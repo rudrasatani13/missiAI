@@ -4,7 +4,7 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'missiAI',
   description: 'The Next Gen AI Assistant',
-  generator: 'v0.dev',
+  generator: 'missiAI Platform',
 }
 
 export default function RootLayout({
