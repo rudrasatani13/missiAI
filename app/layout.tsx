@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'missiAI',
-  description: 'The Next Generation AI Platform',
+  description: 'The Next Gen AI Assistant',
   generator: 'v0.dev',
 }
 
