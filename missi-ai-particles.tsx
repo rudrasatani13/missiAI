@@ -35,10 +35,7 @@ export default function Component() {
       stars = []
       const starCount = isMobile ? 150 : 300
       for (let i = 0; i < starCount; i++) {
-        // @ts-ignore
-          // @ts-ignore
-          // @ts-ignore
-          stars.push({
+        stars.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
           size: Math.random() * 2 + 0.5,
@@ -53,16 +50,10 @@ export default function Component() {
         const side = Math.floor(Math.random() * 4);
         let startX, startY, endX, endY;
         switch (side) {
-            case 0: // @ts-ignore
-                startX = Math.random() * canvas.width; startY = -50; endX = Math.random() * canvas.width; endY = canvas.height + 50; break;
-            case 1: // @ts-ignore
-                startX = canvas.width + 50; // @ts-ignore
-                startY = Math.random() * canvas.height; endX = -50; endY = Math.random() * canvas.height; break;
-            case 2: // @ts-ignore
-                startX = Math.random() * canvas.width; // @ts-ignore
-                startY = canvas.height + 50; endX = Math.random() * canvas.width; endY = -50; break;
-            default: startX = -50; // @ts-ignore
-                startY = Math.random() * canvas.height; endX = canvas.width + 50; endY = Math.random() * canvas.height;
+            case 0: startX = Math.random() * canvas.width; startY = -50; endX = Math.random() * canvas.width; endY = canvas.height + 50; break;
+            case 1: startX = canvas.width + 50; startY = Math.random() * canvas.height; endX = -50; endY = Math.random() * canvas.height; break;
+            case 2: startX = Math.random() * canvas.width; startY = canvas.height + 50; endX = Math.random() * canvas.width; endY = -50; break;
+            default: startX = -50; startY = Math.random() * canvas.height; endX = canvas.width + 50; endY = Math.random() * canvas.height;
         }
         const distance = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
         const speed = 10 + Math.random() * 5;
@@ -82,11 +73,7 @@ export default function Component() {
       if (!ctx || !canvas || canvas.width === 0 || canvas.height === 0) return 0
       ctx.fillStyle = "rgb(255, 255, 255)";
       ctx.save();
-
-      // *** YAHAN CHANGE KIYA GAYA HAI ***
-      // Mobile ke liye font size 48 se badha kar 64 kar diya hai
       const fontSize = isMobile ? 64 : 96;
-
       ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -117,9 +104,30 @@ export default function Component() {
         const x = Math.floor(Math.random() * canvas.width);
         const y = Math.floor(Math.random() * canvas.height);
         if (data[(y * canvas.width + x) * 4 + 3] > 128) {
-          const missiEndX = canvas.width / 2;
-          const isMissi = x <= missiEndX;
-          return { x, y, baseX: x, baseY: y, size: Math.random() * 1.5 + 0.5, color: "white", scatteredColor: isMissi ? "#00DCFF" : "#FF6B6B", isMissi };
+
+          // *** YAHAN CHANGE KIYA GAYA HAI ***
+          // Ab rangon ko alag karne ka tareeka zyada aacurate hai
+          const centerX = canvas.width / 2;
+          const fontSize = isMobile ? 64 : 96;
+          ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+          const missiMetrics = ctx.measureText("missi");
+          const aiMetrics = ctx.measureText("AI");
+          const spacing = fontSize * 0.3;
+          const totalWidth = missiMetrics.width + spacing + aiMetrics.width;
+          const textStartX = centerX - totalWidth / 2;
+
+          // "missi" aur "AI" ke beech ki aacurate boundary
+          const boundaryX = textStartX + missiMetrics.width + (spacing / 2);
+
+          const isMissi = x < boundaryX;
+
+          return {
+            x, y, baseX: x, baseY: y,
+            size: Math.random() * 1.5 + 0.5,
+            color: "white",
+            scatteredColor: isMissi ? "#00DCFF" : "#FF6B6B",
+            isMissi
+          };
         }
       }
       return null;
@@ -128,7 +136,6 @@ export default function Component() {
     function createInitialParticles(scale: number) {
         if (!textImageData) return;
         const baseParticleCount = 8000;
-        // @ts-ignore
         const particleCount = Math.floor(baseParticleCount * Math.sqrt((canvas.width * canvas.height) / (1920 * 1080)));
         for (let i = 0; i < particleCount; i++) {
             const particle = createParticle(scale);
