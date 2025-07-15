@@ -35,9 +35,10 @@ export default function Component() {
       stars = []
       const starCount = isMobile ? 150 : 300
       for (let i = 0; i < starCount; i++) {
-        stars.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
+        // @ts-ignore
+          stars.push({
+          x: Math.random() * canvas!.width,
+          y: Math.random() * canvas!.height,
           size: Math.random() * 2 + 0.5,
           brightness: Math.random() * 0.7 + 0.3,
           twinkleSpeed: Math.random() * 0.02 + 0.01,
@@ -50,10 +51,14 @@ export default function Component() {
         const side = Math.floor(Math.random() * 4);
         let startX, startY, endX, endY;
         switch (side) {
-            case 0: startX = Math.random() * canvas.width; startY = -50; endX = Math.random() * canvas.width; endY = canvas.height + 50; break;
-            case 1: startX = canvas.width + 50; startY = Math.random() * canvas.height; endX = -50; endY = Math.random() * canvas.height; break;
-            case 2: startX = Math.random() * canvas.width; startY = canvas.height + 50; endX = Math.random() * canvas.width; endY = -50; break;
-            default: startX = -50; startY = Math.random() * canvas.height; endX = canvas.width + 50; endY = Math.random() * canvas.height;
+            case 0: // @ts-ignore
+                startX = Math.random() * canvas.width; startY = -50; endX = Math.random() * canvas.width; endY = canvas.height + 50; break;
+            case 1: // @ts-ignore
+                startX = canvas.width + 50; startY = Math.random() * canvas.height; endX = -50; endY = Math.random() * canvas.height; break;
+            case 2: // @ts-ignore
+                startX = Math.random() * canvas.width; startY = canvas.height + 50; endX = Math.random() * canvas.width; endY = -50; break;
+            default: startX = -50; // @ts-ignore
+                startY = Math.random() * canvas.height; endX = canvas.width + 50; endY = Math.random() * canvas.height;
         }
         const distance = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
         const speed = 10 + Math.random() * 5;
@@ -136,6 +141,7 @@ export default function Component() {
     function createInitialParticles(scale: number) {
         if (!textImageData) return;
         const baseParticleCount = 8000;
+        // @ts-ignore
         const particleCount = Math.floor(baseParticleCount * Math.sqrt((canvas.width * canvas.height) / (1920 * 1080)));
         for (let i = 0; i < particleCount; i++) {
             const particle = createParticle(scale);
@@ -304,6 +310,8 @@ export default function Component() {
     }
   }, [isMobile])
 
+
+
   return (
     <div className="relative w-full h-dvh flex flex-col items-center justify-center overflow-hidden">
       <canvas
@@ -323,5 +331,6 @@ export default function Component() {
         </p>
       </div>
     </div>
+
   )
 }
