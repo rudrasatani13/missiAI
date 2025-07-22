@@ -54,8 +54,8 @@ export function WaitlistLayout({ children, activeTab }: WaitlistLayoutProps) {
       const starCount = window.innerWidth < 768 ? 150 : 300 // Fewer stars on mobile
 
       for (let i = 0; i < starCount; i++) {
-        const baseX = Math.random() * canvas!.width
-        const baseY = Math.random() * canvas!.height
+        const baseX = Math.random() * canvas.width
+        const baseY = Math.random() * canvas.height
         stars.push({
           x: baseX,
           y: baseY,
@@ -75,28 +75,28 @@ export function WaitlistLayout({ children, activeTab }: WaitlistLayoutProps) {
 
       switch (side) {
         case 0: // Top
-          startX = Math.random() * canvas!.width
+          startX = Math.random() * canvas.width
           startY = -50
-          endX = Math.random() * canvas!.width
-          endY = canvas!.height + 50
+          endX = Math.random() * canvas.width
+          endY = canvas.height + 50
           break
         case 1: // Right
-          startX = canvas!.width + 50
-          startY = Math.random() * canvas!.height
+          startX = canvas.width + 50
+          startY = Math.random() * canvas.height
           endX = -50
-          endY = Math.random() * canvas!.height
+          endY = Math.random() * canvas.height
           break
         case 2: // Bottom
-          startX = Math.random() * canvas!.width
-          startY = canvas!.height + 50
-          endX = Math.random() * canvas!.width
+          startX = Math.random() * canvas.width
+          startY = canvas.height + 50
+          endX = Math.random() * canvas.width
           endY = -50
           break
         default: // Left
           startX = -50
-          startY = Math.random() * canvas!.height
-          endX = canvas!.width + 50
-          endY = Math.random() * canvas!.height
+          startY = Math.random() * canvas.height
+          endX = canvas.width + 50
+          endY = Math.random() * canvas.height
       }
 
       const distance = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2)

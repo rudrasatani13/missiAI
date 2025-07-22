@@ -1,15 +1,20 @@
 "use client"
-import {useRef, useState, useEffect, InputHTMLAttributes} from "react"
+import { useRef, useState, useEffect } from "react"
 import type React from "react"
+import { InputHTMLAttributes } from "react"
 
 type InputForm = {
+  name: string
+  type: string
+  placeholder: string
+  required?: boolean
+  formAction?: (data: FormData) => Promise<{ success: true } | { success: false; error: string }>
   buttonCopy: {
     idle: string
-    success: string
     loading: string
+    success: string
   }
-  formAction?: (data: FormData) => Promise<{ success: true } | { success: false; error: string }>
-} & Pick<InputHTMLAttributes<HTMLInputElement>, "name" | "type" | "placeholder" | "required">
+} & React.HTMLAttributes<HTMLInputElement>
 
 type State = "idle" | "loading" | "success" | "error"
 
