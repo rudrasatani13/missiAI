@@ -20,7 +20,7 @@ const dancingScript = Dancing_Script({
 
 export const metadata: Metadata = {
   title: "missiAI - AI with Memory",
-  description: "Help your AI remember the right stuff. Context-aware AI platform.",
+  description: "Help your AI remember the right stuff.",
   generator: "missiAI",
   icons: {
     icon: [
