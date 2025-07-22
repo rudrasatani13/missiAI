@@ -3,7 +3,140 @@
 @tailwind utilities;
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 400;
+}
+
+.font-script {
+  font-family: "Dancing Script", cursive;
+}
+
+.font-inter {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Logo Protection Styles */
+.logo-protected {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  pointer-events: none;
+}
+
+.logo-protected::selection {
+  background: transparent;
+}
+
+.logo-protected::-moz-selection {
+  background: transparent;
+}
+
+/* Disable image context menu globally for logo images */
+img[src*="logo"],
+img[src*="missiai"] {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  pointer-events: none;
+}
+
+/* Disable right-click context menu on logo containers */
+.logo-container {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Updated Transparent Card Styling */
+.glass-card {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.glass-card-main {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(25px) saturate(130%);
+  -webkit-backdrop-filter: blur(25px) saturate(130%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 8px 25px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.glass-input {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+/* Clean White Button */
+.clean-button {
+  background: rgba(255, 255, 255, 0.95);
+  color: #000;
+  border: none;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.clean-button:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.clean-button:active {
+  transform: translateY(0);
+}
+
+.clean-button:disabled {
+  background: rgba(255, 255, 255, 0.7);
+  cursor: not-allowed;
+}
+
+/* Tab Styling */
+.glass-tab {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.glass-tab-active {
+  background: rgba(255, 255, 255, 0.95);
+  color: #000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 500;
+}
+
+.glass-tab:hover:not(.glass-tab-active) {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 @layer utilities {
