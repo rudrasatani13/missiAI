@@ -51,7 +51,7 @@ export function WaitlistLayout({ children, activeTab }: WaitlistLayoutProps) {
 
     function createStars() {
       stars = []
-      const starCount = 300
+      const starCount = window.innerWidth < 768 ? 150 : 300 // Fewer stars on mobile
 
       for (let i = 0; i < starCount; i++) {
         const baseX = Math.random() * canvas!.width
@@ -157,8 +157,9 @@ export function WaitlistLayout({ children, activeTab }: WaitlistLayoutProps) {
         }
       }
 
-      // Create shooting stars occasionally
-      if (time - lastShootingStarTime > 4 + Math.random() * 6) {
+      // Create shooting stars occasionally (less frequent on mobile)
+      const shootingStarInterval = window.innerWidth < 768 ? 8 : 4
+      if (time - lastShootingStarTime > shootingStarInterval + Math.random() * 6) {
         shootingStars.push(createShootingStar())
         lastShootingStarTime = time
       }
@@ -258,25 +259,26 @@ export function WaitlistLayout({ children, activeTab }: WaitlistLayoutProps) {
       {/* Animated Stars Background */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" aria-label="Animated starry background" />
 
-      {/* Back Button in Top-Left Corner */}
-      <div className="absolute top-8 left-8 z-20">
+      {/* Back Button - Responsive positioning */}
+      <div className="absolute top-4 left-4 md:top-8 md:left-8 z-20">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm group glass-card px-4 py-2 rounded-full"
+          className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-xs md:text-sm group glass-card px-3 py-2 md:px-4 md:py-2 rounded-full"
         >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          Back to Home
+          <ArrowLeft className="w-3 h-3 md:w-4 md:h-4 group-hover:-translate-x-1 transition-transform" />
+          <span className="hidden sm:inline">Back to Home</span>
+          <span className="sm:hidden">Back</span>
         </Link>
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
-        {/* Navigation Tabs */}
-        <div className="mb-8">
+      {/* Content - Responsive layout */}
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4 md:p-6 lg:p-8">
+        {/* Navigation Tabs - Responsive sizing */}
+        <div className="mb-6 md:mb-8">
           <div className="flex glass-card rounded-full p-1">
             <Link
               href="/waitlist"
-              className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
+              className={`px-4 py-2 md:px-6 md:py-2.5 rounded-full text-xs md:text-sm font-medium transition-all ${
                 activeTab === "waitlist" ? "glass-tab-active" : "glass-tab text-gray-300 hover:text-white"
               }`}
             >
@@ -284,7 +286,7 @@ export function WaitlistLayout({ children, activeTab }: WaitlistLayoutProps) {
             </Link>
             <Link
               href="/manifesto"
-              className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
+              className={`px-4 py-2 md:px-6 md:py-2.5 rounded-full text-xs md:text-sm font-medium transition-all ${
                 activeTab === "manifesto" ? "glass-tab-active" : "glass-tab text-gray-300 hover:text-white"
               }`}
             >
@@ -293,17 +295,19 @@ export function WaitlistLayout({ children, activeTab }: WaitlistLayoutProps) {
           </div>
         </div>
 
-        {/* Main Card */}
-        <div className="w-full max-w-lg glass-card-main rounded-3xl p-8 shadow-2xl">{children}</div>
+        {/* Main Card - Responsive sizing and padding */}
+        <div className="w-full max-w-sm md:max-w-lg glass-card-main rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-2xl">
+          {children}
+        </div>
 
-        {/* Footer */}
-        <div className="mt-8 flex items-center justify-between w-full max-w-lg text-xs text-gray-400">
-          <div className="flex items-center gap-4">
-            <span>Follow missiAI on</span>
+        {/* Footer - Responsive layout */}
+        <div className="mt-6 md:mt-8 flex flex-col sm:flex-row items-center justify-between w-full max-w-sm md:max-w-lg text-xs text-gray-400 gap-4 sm:gap-0">
+          <div className="flex items-center gap-2 md:gap-4 text-center sm:text-left">
+            <span className="text-xs">Follow missiAI on</span>
             <Link href="#" className="hover:text-white transition-colors">
               𝕏
             </Link>
-            <span>and</span>
+            <span className="text-xs">and</span>
             <Link href="#" className="hover:text-white transition-colors underline">
               Discord
             </Link>

@@ -7,9 +7,9 @@ import Image from "next/image"
 export default function WaitlistPage() {
   return (
     <WaitlistLayout activeTab="waitlist">
-      <div className="flex flex-col items-center gap-6 text-center">
-        {/* Protected Logo */}
-        <div className="flex items-center justify-center mb-4 relative select-none">
+      <div className="flex flex-col items-center gap-4 md:gap-6 text-center">
+        {/* Protected Logo - Responsive sizing */}
+        <div className="flex items-center justify-center mb-2 md:mb-4 relative select-none">
           {/* Transparent overlay to prevent right-click */}
           <div
             className="absolute inset-0 z-10"
@@ -21,7 +21,7 @@ export default function WaitlistPage() {
             alt="MissiAI"
             width={400}
             height={120}
-            className="h-24 w-auto object-contain brightness-0 invert select-none pointer-events-none"
+            className="h-16 md:h-20 lg:h-24 w-auto object-contain brightness-0 invert select-none pointer-events-none"
             priority
             draggable={false}
             onContextMenu={(e) => e.preventDefault()}
@@ -29,19 +29,19 @@ export default function WaitlistPage() {
           />
         </div>
 
-        {/* Headline */}
-        <h1 className="text-white text-2xl font-medium leading-tight max-w-md">
+        {/* Headline - Responsive text sizing */}
+        <h1 className="text-white text-lg md:text-xl lg:text-2xl font-medium leading-tight max-w-xs md:max-w-md px-2">
           The most powerful human AI assistant yet.
         </h1>
 
-        {/* Description */}
-        <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
+        {/* Description - Responsive text sizing */}
+        <p className="text-gray-400 text-xs md:text-sm leading-relaxed max-w-xs md:max-w-sm px-2">
           missiAI represents the pinnacle of AI advancement, delivering unprecedented intelligence, capability, and
           human-like interaction. Experience the future of AI assistance today.
         </p>
 
-        {/* Waitlist Form */}
-        <div className="w-full max-w-sm mt-4">
+        {/* Waitlist Form - Responsive width */}
+        <div className="w-full max-w-xs md:max-w-sm mt-2 md:mt-4">
           <InputForm
             buttonCopy={{
               idle: "Join waitlist",

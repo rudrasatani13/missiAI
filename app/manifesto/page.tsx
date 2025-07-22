@@ -6,9 +6,9 @@ import Image from "next/image"
 export default function ManifestoPage() {
   return (
     <WaitlistLayout activeTab="manifesto">
-      <div className="flex flex-col gap-8 text-left">
-        {/* Protected Logo */}
-        <div className="flex items-center justify-center mb-4 relative select-none">
+      <div className="flex flex-col gap-6 md:gap-8 text-left">
+        {/* Protected Logo - Responsive sizing */}
+        <div className="flex items-center justify-center mb-2 md:mb-4 relative select-none">
           {/* Transparent overlay to prevent right-click */}
           <div
             className="absolute inset-0 z-10"
@@ -20,7 +20,7 @@ export default function ManifestoPage() {
             alt="MissiAI"
             width={400}
             height={120}
-            className="h-24 w-auto object-contain brightness-0 invert select-none pointer-events-none"
+            className="h-16 md:h-20 lg:h-24 w-auto object-contain brightness-0 invert select-none pointer-events-none"
             priority
             draggable={false}
             onContextMenu={(e) => e.preventDefault()}
@@ -28,8 +28,8 @@ export default function ManifestoPage() {
           />
         </div>
 
-        {/* Manifesto Content */}
-        <div className="text-gray-200 text-sm leading-relaxed space-y-4 font-light">
+        {/* Manifesto Content - Responsive text sizing */}
+        <div className="text-gray-200 text-xs md:text-sm leading-relaxed space-y-3 md:space-y-4 font-light">
           <p>
             At missiAI, we believe that artificial intelligence should transcend current limitations and redefine what's
             possible. Our mission is to create the most advanced human AI assistant ever built—one that doesn't just
@@ -50,9 +50,9 @@ export default function ManifestoPage() {
           </p>
         </div>
 
-        {/* Signature */}
-        <div className="flex flex-col gap-1 mt-8">
-          <div className="text-white text-3xl font-script italic transform -rotate-2">Rudra S.</div>
+        {/* Signature - Responsive sizing */}
+        <div className="flex flex-col gap-1 mt-6 md:mt-8">
+          <div className="text-white text-2xl md:text-3xl font-script italic transform -rotate-2">Rudra S.</div>
           <div className="text-gray-400 text-xs">Rudra Satani, CEO&nbsp;@&nbsp;missiAI</div>
         </div>
       </div>
