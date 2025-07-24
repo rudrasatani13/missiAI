@@ -1,9 +1,10 @@
 "use client"
+
 import { useRef, useState, useEffect } from "react"
 import type React from "react"
 import { InputHTMLAttributes } from "react"
 
-type InputForm = {
+type InputFormProps = {
   name: string
   type: string
   placeholder: string
@@ -18,7 +19,7 @@ type InputForm = {
 
 type State = "idle" | "loading" | "success" | "error"
 
-export function InputForm({ formAction, buttonCopy, ...props }: InputForm) {
+export function InputForm({ formAction, buttonCopy, ...props }: InputFormProps) {
   const [state, setState] = useState<State>("idle")
   const [error, setError] = useState<string>()
   const [value, setValue] = useState("")
@@ -26,10 +27,8 @@ export function InputForm({ formAction, buttonCopy, ...props }: InputForm) {
 
   useEffect(() => {
     if (state === "success") {
-      const resetTimeout = setTimeout(() => {
-        setState("idle")
-      }, 2000)
-      return () => clearTimeout(resetTimeout)
+      const timer = setTimeout(() => setState("idle"), 2000)
+      return () => clearTimeout(timer)
     }
   }, [state])
 
@@ -44,27 +43,26 @@ export function InputForm({ formAction, buttonCopy, ...props }: InputForm) {
       setState("idle")
     }
 
-    if (formAction && typeof formAction === "function") {
+    if (formAction) {
       try {
         setState("loading")
-        const data = await formAction(new FormData(formEl))
-
-        if (data.success) {
+        const result = await formAction(new FormData(formEl))
+        if (result.success) {
           setState("success")
           formEl.reset()
           setValue("")
         } else {
           setState("error")
-          setError(data.error)
+          setError(result.error)
           errorTimeout.current = setTimeout(() => {
             setError(undefined)
             setState("idle")
           }, 3000)
         }
-      } catch (error) {
+      } catch (err) {
+        console.error(err)
         setState("error")
         setError("There was an error while submitting the form")
-        console.error(error)
         errorTimeout.current = setTimeout(() => {
           setError(undefined)
           setState("idle")
@@ -77,14 +75,14 @@ export function InputForm({ formAction, buttonCopy, ...props }: InputForm) {
 
   return (
     <form className="flex flex-col gap-3 w-full relative" onSubmit={handleSubmit}>
-      <div className="flex items-center gap-3 relative">
+      <div className="flex flex-col sm:flex-row items-center gap-3 relative">
         <input
           {...props}
           value={value}
-          className="flex-1 text-sm px-4 py-3.5 glass-input rounded-xl text-white placeholder:text-gray-400 focus:outline-none transition-all"
           disabled={inputDisabled}
           onChange={(e) => setValue(e.target.value)}
           autoComplete="off"
+          className="flex-1 text-sm px-4 py-3.5 glass-input rounded-xl text-white placeholder:text-gray-400 focus:outline-none transition-all"
         />
         <button
           type="submit"
