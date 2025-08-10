@@ -1,13 +1,14 @@
 # missiAI — AI with Memory
 
 <div align="center">
-  <img src="/images/logo-symbol.png" alt="missiAI Logo" width="120" height="120" />
+  <img src="public/images/logo-symbol.png" alt="missiAI Logo" width="160" />
   <h3>The most powerful human AI assistant yet.</h3>
   <p><em>Pioneering new standards in intelligent assistance</em></p>
   
   ![TypeScript](https://img.shields.io/badge/TypeScript-95.8%25-blue)
   ![CSS](https://img.shields.io/badge/CSS-4.0%25-purple)
   ![JavaScript](https://img.shields.io/badge/JavaScript-0.2%25-yellow)
+  
   
   [🌐 Live Demo](https://missi.space/) | [📋 Join Waitlist](https://missi.space/waitlist) | [📖 Manifesto](https://missi.space/manifesto)
 </div>
