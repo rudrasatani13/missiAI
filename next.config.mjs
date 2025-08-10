@@ -1,15 +1,10 @@
+import { setupDevPlatform } from "@cloudflare/next-on-pages/next-dev";
+
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  output: 'export', // Static export for Cloudflare Pages
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  images: {
-    unoptimized: true,
-  },
+const nextConfig = {};
+
+if (process.env.NODE_ENV === "development") {
+  await setupDevPlatform(); // enables CF bindings in next dev
 }
 
-export default nextConfig
+export default nextConfig;
