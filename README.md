@@ -9,7 +9,6 @@
   ![CSS](https://img.shields.io/badge/CSS-4.0%25-purple)
   ![JavaScript](https://img.shields.io/badge/JavaScript-0.2%25-yellow)
   
-  
   [🌐 Live Demo](https://missi.space/) | [📋 Join Waitlist](https://missi.space/waitlist) | [📖 Manifesto](https://missi.space/manifesto)
 </div>
 
@@ -82,28 +81,28 @@ missiAI/
 
 ### Prerequisites
 
-- **Node.js** 18+ 
-- **pnpm** (recommended) or npm/yarn
+- Node.js 18+
+- pnpm (recommended) or npm/yarn
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone** the repository
    ```bash
    git clone https://github.com/rudrasatani13/missiAI.git
    cd missiAI
    ```
 
-2. **Install dependencies**
+2. **Install** dependencies
    ```bash
    pnpm install
    ```
 
-3. **Start development server**
+3. **Start** development server
    ```bash
    pnpm dev
    ```
 
-4. **Open in browser**
+4. **Open** in browser
    ```
    http://localhost:3000
    ```
@@ -130,7 +129,7 @@ pnpm export
 
 For future API integrations and configuration, create a `.env.local` file:
 
-```env
+```bash
 # Example environment variables (to be configured as needed)
 # NEXT_PUBLIC_API_URL=https://api.missi.ai
 # NEXT_PUBLIC_ANALYTICS_ID=your_analytics_id
@@ -143,9 +142,9 @@ For future API integrations and configuration, create a `.env.local` file:
 
 Once running locally, you'll have access to:
 
-- **Home Page** (`/`) - Interactive landing with particle animations
-- **Waitlist** (`/waitlist`) - Early access signup form
-- **Manifesto** (`/manifesto`) - Vision and mission statement
+- **Home Page** (/) - Interactive landing with particle animations
+- **Waitlist** (/waitlist) - Early access signup form
+- **Manifesto** (/manifesto) - Vision and mission statement
 
 ### 🎨 Features in Action
 
@@ -158,9 +157,7 @@ Once running locally, you'll have access to:
 
 ## 🚀 Deployment
 
-The project is optimized for deployment on **Vercel** (recommended for Next.js apps):
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/rudrasatani13/missiAI)
+The project is fully configured and deployed on **Cloudflare Pages** with static export via `output: 'export'` in `next.config.mjs`.
 
 ### Alternative Deployment Options
 
@@ -209,7 +206,7 @@ For licensing inquiries, please contact: [contact@missi.ai](mailto:contact@missi
 ## 🙏 Acknowledgments
 
 - **Next.js Team** for the incredible React framework
-- **Vercel** for seamless deployment platform
+- **Cloudflare Pages** for reliable static hosting
 - **Radix UI** for accessible component primitives
 - **Tailwind CSS** for utility-first styling
 - **Open Source Community** for continuous inspiration
