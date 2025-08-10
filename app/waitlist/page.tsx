@@ -37,7 +37,7 @@ export default function WaitlistPage() {
         {/* Description - Responsive text sizing */}
         <p className="text-gray-400 text-xs md:text-sm leading-relaxed max-w-xs md:max-w-sm px-2">
           missiAI represents the pinnacle of AI advancement, delivering unprecedented intelligence, capability, and
-          human-like interaction. Experience the future of AI assistance today.
+          human-like interaction. Experience the future of Human-AI assistance today.
         </p>
 
         {/* Waitlist Form - Responsive width */}
