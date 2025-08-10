@@ -1,7 +1,7 @@
 # missiAI — AI with Memory
 
 <div align="center">
-  <img src="/images/logo-symbol.png" alt="missiAI Logo" width="120" height="120" />
+  <img src="public/images/missiai-logo.png" alt="missiAI Logo" width="120" height="120" />
   <h3>The most powerful human AI assistant yet.</h3>
   <p><em>Pioneering new standards in intelligent assistance</em></p>
   
