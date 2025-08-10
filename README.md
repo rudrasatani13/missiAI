@@ -155,20 +155,6 @@ Once running locally, you'll have access to:
 
 ---
 
-## 🚀 Deployment
-
-The project is optimized for deployment on **Vercel** (recommended for Next.js apps):
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/rudrasatani13/missiAI)
-
-### Alternative Deployment Options
-
-- **Netlify**: Static export compatible
-- **AWS Amplify**: Full-stack deployment
-- **Docker**: Containerized deployment
-
----
-
 ## 🤝 Contributing
 
 We welcome contributions to missiAI! Please follow these steps:
@@ -193,7 +179,7 @@ We welcome contributions to missiAI! Please follow these steps:
 
 This project is private and proprietary. All rights reserved by **Rudra Satani** and the missiAI team.
 
-For licensing inquiries, please contact: [contact@missi.ai](mailto:contact@missi.ai)
+For licensing inquiries, please contact: [rudrasatani@missi.space](mailto:rudrasatani@missi.space)
 
 ---
 
@@ -218,7 +204,7 @@ For licensing inquiries, please contact: [contact@missi.ai](mailto:contact@missi
 ## 📞 Contact & Support
 
 - **Website**: [missi.space](https://missi.space)
-- **Email**: contact@missi.ai
+- **Email**: [rudrasatani@missi.space](mailto:rudrasatani@missi.space)
 - **GitHub**: [@rudrasatani13](https://github.com/rudrasatani13)
 - **Issues**: [GitHub Issues](https://github.com/rudrasatani13/missiAI/issues)
 
