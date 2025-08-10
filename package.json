@@ -1,12 +1,13 @@
 {
-  "name": "my-v0-project",
+  "name": "missiAI",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "export": "next export"
+    "export": "next export",
+    "pages:build": "npx @cloudflare/next-on-pages@latest"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
