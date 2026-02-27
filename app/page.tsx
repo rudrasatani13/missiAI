@@ -13,7 +13,6 @@ export default function Page() {
       <div className="absolute top-8 left-8 z-10">
         <Link href="/" className="block">
           <div className="relative w-12 h-12 select-none">
-            {/* Transparent overlay to prevent right-click */}
             <div
               className="absolute inset-0 z-10 cursor-pointer"
               onContextMenu={(e) => e.preventDefault()}
@@ -34,8 +33,14 @@ export default function Page() {
         </Link>
       </div>
 
-      {/* Navigation to Waitlist */}
-      <div className="absolute top-8 right-8 z-10">
+      {/* Navigation — Waitlist + Chat */}
+      <div className="absolute top-8 right-8 z-10 flex items-center gap-3">
+        <Link
+          href="/chat"
+          className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm text-white text-sm rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300"
+        >
+           Try Chat
+        </Link>
         <Link
           href="/waitlist"
           className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm text-white text-sm rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300"

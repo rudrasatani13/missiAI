@@ -61,7 +61,7 @@ export default function Component() {
 
     function createStars() {
       stars = []
-      const starCount = isMobile ? 200 : 400
+      const starCount = isMobile ? 100 : 200
 
       for (let i = 0; i < starCount; i++) {
         const baseX = Math.random() * canvas!.width
@@ -231,8 +231,6 @@ export default function Component() {
       if (!ctx || !canvas || canvas.width === 0 || canvas.height === 0) return
 
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-      ctx.fillStyle = "black"
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
 
       time += 0.016 // ~60fps
 
@@ -268,7 +266,7 @@ export default function Component() {
         const gradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 3)
         gradient.addColorStop(0, `rgba(255, 255, 255, ${alpha})`)
         gradient.addColorStop(0.3, `rgba(200, 220, 255, ${alpha * 0.6})`)
-        gradient.addColorStop(1, "rgba(0, 0, 0, 0)")
+        gradient.addColorStop(1, "transparent")
 
         ctx.fillStyle = gradient
         ctx.beginPath()
@@ -319,7 +317,7 @@ export default function Component() {
           gradient.addColorStop(0, `rgba(255, 255, 255, ${alpha})`)
           gradient.addColorStop(0.3, `rgba(200, 220, 255, ${alpha * 0.8})`)
           gradient.addColorStop(0.7, `rgba(100, 150, 255, ${alpha * 0.4})`)
-          gradient.addColorStop(1, "rgba(0, 0, 0, 0)")
+          gradient.addColorStop(1, "transparent")
 
           ctx.strokeStyle = gradient
           ctx.lineWidth = 2
@@ -488,7 +486,7 @@ export default function Component() {
   }, [isMobile])
 
   return (
-    <div className="relative w-full h-dvh flex flex-col items-center justify-center bg-black">
+    <div className="relative w-full h-dvh flex flex-col items-center justify-center bg-transparent">
       <canvas
         ref={canvasRef}
         className="w-full h-full absolute top-0 left-0 touch-none"
