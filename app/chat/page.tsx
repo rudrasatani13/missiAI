@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Plus, Square } from "lucide-react"
+import { ArrowLeft, Plus, Square, Copy, ThumbsUp, ThumbsDown, RotateCcw, Check } from "lucide-react"
 
 /* ─────────────────────────────────────────────────
    Starfield Canvas — MINIMAL & SLOW
@@ -18,18 +18,8 @@ function StarfieldCanvas() {
     if (!ctx) return
 
     let animId: number
-
-    interface Star {
-      x: number; y: number
-      size: number; brightness: number; twinkleSpeed: number; twinkleOffset: number
-    }
-    interface ShootingStar {
-      x: number; y: number; vx: number; vy: number
-      brightness: number; life: number; maxLife: number
-    }
-
-    let stars: Star[] = []
-    let shootingStars: ShootingStar[] = []
+    let stars: { x: number; y: number; size: number; brightness: number; twinkleSpeed: number; twinkleOffset: number }[] = []
+    let shootingStars: { x: number; y: number; vx: number; vy: number; brightness: number; life: number; maxLife: number }[] = []
 
     const resize = () => {
       canvas.width = window.innerWidth
@@ -39,35 +29,21 @@ function StarfieldCanvas() {
 
     const initStars = () => {
       stars = []
-      const count = window.innerWidth < 768 ? 80 : 160
+      const count = window.innerWidth < 768 ? 80 : 150
       for (let i = 0; i < count; i++) {
         stars.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          size: Math.random() * 1.4 + 0.3,
-          brightness: Math.random() * 0.5 + 0.15,
-          twinkleSpeed: Math.random() * 0.003 + 0.001,
+          size: Math.random() * 1.3 + 0.2,
+          brightness: Math.random() * 0.45 + 0.1,
+          twinkleSpeed: Math.random() * 0.002 + 0.0008,
           twinkleOffset: Math.random() * Math.PI * 2,
         })
       }
     }
 
-    const spawnShootingStar = () => {
-      if (Math.random() > 0.001) return
-      const sx = Math.random() * canvas.width
-      const angle = Math.PI / 4 + Math.random() * 0.6
-      const speed = 4 + Math.random() * 4
-      const ml = 60 + Math.random() * 60
-      shootingStars.push({
-        x: sx, y: -20,
-        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-        brightness: 1, life: ml, maxLife: ml,
-      })
-    }
-
     const draw = (t: number) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-
       for (const s of stars) {
         const b = s.brightness * (0.7 + 0.3 * Math.sin(t * s.twinkleSpeed + s.twinkleOffset))
         ctx.fillStyle = `rgba(255,255,255,${b})`
@@ -75,82 +51,43 @@ function StarfieldCanvas() {
         ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2)
         ctx.fill()
       }
-
-      spawnShootingStar()
+      // Rare shooting stars
+      if (Math.random() < 0.0008) {
+        const a = Math.PI / 4 + Math.random() * 0.6, sp = 4 + Math.random() * 4, ml = 50 + Math.random() * 50
+        shootingStars.push({ x: Math.random() * canvas.width, y: -20, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, brightness: 1, life: ml, maxLife: ml })
+      }
       for (let i = shootingStars.length - 1; i >= 0; i--) {
         const ss = shootingStars[i]
         ss.x += ss.vx; ss.y += ss.vy; ss.life--
-        const alpha = (ss.life / ss.maxLife) * ss.brightness
-        const tl = 18
-        const grad = ctx.createLinearGradient(ss.x, ss.y, ss.x - ss.vx * tl, ss.y - ss.vy * tl)
-        grad.addColorStop(0, `rgba(255,255,255,${alpha})`)
-        grad.addColorStop(0.4, `rgba(200,215,255,${alpha * 0.6})`)
-        grad.addColorStop(1, "transparent")
-        ctx.strokeStyle = grad
-        ctx.lineWidth = 1.5
-        ctx.lineCap = "round"
-        ctx.beginPath()
-        ctx.moveTo(ss.x, ss.y)
-        ctx.lineTo(ss.x - ss.vx * tl, ss.y - ss.vy * tl)
-        ctx.stroke()
+        const al = (ss.life / ss.maxLife) * ss.brightness
+        const g = ctx.createLinearGradient(ss.x, ss.y, ss.x - ss.vx * 18, ss.y - ss.vy * 18)
+        g.addColorStop(0, `rgba(255,255,255,${al})`)
+        g.addColorStop(0.4, `rgba(200,215,255,${al * 0.5})`)
+        g.addColorStop(1, "transparent")
+        ctx.strokeStyle = g; ctx.lineWidth = 1.2; ctx.lineCap = "round"
+        ctx.beginPath(); ctx.moveTo(ss.x, ss.y); ctx.lineTo(ss.x - ss.vx * 18, ss.y - ss.vy * 18); ctx.stroke()
         if (ss.life <= 0) shootingStars.splice(i, 1)
       }
-
       animId = requestAnimationFrame(draw)
     }
 
     resize()
     animId = requestAnimationFrame(draw)
     window.addEventListener("resize", resize)
-    return () => {
-      cancelAnimationFrame(animId)
-      window.removeEventListener("resize", resize)
-    }
+    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize) }
   }, [])
 
   return <canvas ref={canvasRef} className="fixed inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }} />
 }
 
 /* ─────────────────────────────────────────────────
-   Typing Indicator
-   ───────────────────────────────────────────────── */
-function TypingIndicator() {
-  return (
-    <div className="flex gap-1 items-center py-1">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="w-1.5 h-1.5 rounded-full"
-          style={{
-            background: "rgba(255,255,255,0.4)",
-            animation: `typingBounce 1.2s ease-in-out ${i * 0.15}s infinite`,
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-/* ─────────────────────────────────────────────────
    Icons
    ───────────────────────────────────────────────── */
-function SparkleIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z" />
-      <path d="M19 15L19.88 17.12L22 18L19.88 18.88L19 21L18.12 18.88L16 18L18.12 17.12L19 15Z" opacity="0.5" />
-      <path d="M5 17L5.63 18.37L7 19L5.63 19.63L5 21L4.37 19.63L3 19L4.37 18.37L5 17Z" opacity="0.35" />
-    </svg>
-  )
-}
-
 function MicIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="2" width="6" height="12" rx="3" />
-      <path d="M5 10a7 7 0 0 0 14 0" />
-      <line x1="12" y1="19" x2="12" y2="22" />
-      <line x1="8" y1="22" x2="16" y2="22" />
+      <rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" />
+      <line x1="12" y1="19" x2="12" y2="22" /><line x1="8" y1="22" x2="16" y2="22" />
     </svg>
   )
 }
@@ -158,9 +95,65 @@ function MicIcon() {
 function SendArrowIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 19V5" />
-      <path d="M5 12L12 5L19 12" />
+      <path d="M12 19V5" /><path d="M5 12L12 5L19 12" />
     </svg>
+  )
+}
+
+/* ─────────────────────────────────────────────────
+   Typing dots
+   ───────────────────────────────────────────────── */
+function TypingDots() {
+  return (
+    <div className="flex gap-1 items-center h-6">
+      {[0, 1, 2].map((i) => (
+        <span key={i} className="w-1.5 h-1.5 rounded-full" style={{
+          background: "rgba(255,255,255,0.4)",
+          animation: `bounce 1.2s ease-in-out ${i * 0.15}s infinite`,
+        }} />
+      ))}
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────
+   Message Action Buttons (copy, like, dislike, regen)
+   ───────────────────────────────────────────────── */
+function MessageActions({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false)
+  const [liked, setLiked] = useState<null | "up" | "down">(null)
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(content)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const btnStyle = "w-7 h-7 rounded-md flex items-center justify-center transition-all duration-200 hover:bg-white/[0.08]"
+
+  return (
+    <div className="flex items-center gap-0.5 mt-2 -ml-1" style={{ color: "rgba(255,255,255,0.3)" }}>
+      <button onClick={handleCopy} className={btnStyle} title="Copy">
+        {copied ? <Check className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.6)" }} /> : <Copy className="w-3.5 h-3.5" />}
+      </button>
+      <button
+        onClick={() => setLiked(liked === "up" ? null : "up")}
+        className={btnStyle}
+        title="Good response"
+      >
+        <ThumbsUp className="w-3.5 h-3.5" style={{ color: liked === "up" ? "rgba(255,255,255,0.7)" : undefined }} />
+      </button>
+      <button
+        onClick={() => setLiked(liked === "down" ? null : "down")}
+        className={btnStyle}
+        title="Bad response"
+      >
+        <ThumbsDown className="w-3.5 h-3.5" style={{ color: liked === "down" ? "rgba(255,255,255,0.7)" : undefined }} />
+      </button>
+      <button className={btnStyle} title="Regenerate">
+        <RotateCcw className="w-3.5 h-3.5" />
+      </button>
+    </div>
   )
 }
 
@@ -168,128 +161,14 @@ function SendArrowIcon() {
    Simulated AI responses
    ───────────────────────────────────────────────── */
 const AI_RESPONSES = [
-  "That's a fascinating question. Let me think through this carefully for you — missiAI is designed to bring deep, thoughtful reasoning to every conversation.",
-  "I appreciate you bringing that up. Here's my perspective: the intersection of memory and intelligence is what makes truly personalized assistance possible.",
-  "Great point. From my analysis, there are several dimensions worth exploring here. Let me walk you through the key considerations.",
-  "Interesting. I've processed your request and here's what I'd recommend — balancing innovation with practical implementation is always the sweet spot.",
-  "I understand completely. Let me provide a thorough breakdown that addresses each aspect of your question with the depth it deserves.",
-  "That's exactly the kind of challenge missiAI was built for. Here's how I'd approach it, drawing on contextual understanding and adaptive reasoning.",
-]
-
-const SUGGESTIONS = [
-  "What can missiAI do?",
-  "Tell me about AI with Memory",
-  "Help me brainstorm ideas",
-  "Write something creative",
+  "Hey Rudra.\n\nWhat intellectual adventure are we stepping into today?\n\nAI architecture? Future strategy? Building something slightly insane and futuristic? Or are we poking at some strange corner of the universe just for fun?\n\nThe floor is yours.",
+  "Great question. Let me think through this carefully.\n\nThe intersection of memory and intelligence is what makes truly personalized assistance possible. When an AI can remember context across conversations, it transforms from a tool into a genuine collaborator.\n\nThat's the vision behind missiAI.",
+  "Interesting challenge. Here are the key dimensions worth exploring:\n\nFirst, we need to consider the architecture — how data flows through the system and where intelligence gets applied. Second, the user experience needs to feel natural, almost invisible.\n\nLet me know which angle you want to dive deeper into.",
+  "I appreciate you bringing that up.\n\nBalancing innovation with practical implementation is always the sweet spot. The best products don't just push boundaries — they make complexity feel simple.\n\nWhat specific aspect would you like me to elaborate on?",
 ]
 
 /* ─────────────────────────────────────────────────
-   Input Bar Component (reused in both states)
-   ───────────────────────────────────────────────── */
-interface InputBarProps {
-  input: string
-  setInput: (v: string) => void
-  onSend: () => void
-  onMic: () => void
-  onStop?: () => void
-  isTyping: boolean
-  isListening: boolean
-  hasText: boolean
-  textareaRef?: React.RefObject<HTMLTextAreaElement | null>
-  elevated?: boolean
-}
-
-function InputBar({ input, setInput, onSend, onMic, onStop, isTyping, isListening, hasText, textareaRef, elevated }: InputBarProps) {
-  return (
-    <div
-      className="flex items-center gap-0 rounded-full transition-all duration-300 focus-within:border-white/20"
-      style={{
-        background: "rgba(255,255,255,0.05)",
-        border: "1px solid rgba(255,255,255,0.1)",
-        boxShadow: elevated ? "0 8px 32px rgba(0,0,0,0.3)" : "none",
-        padding: "6px 6px 6px 4px",
-        height: 52,
-      }}
-    >
-      {/* + Button (left side) */}
-      <button
-        className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
-        style={{
-          color: "rgba(255,255,255,0.4)",
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-        }}
-      >
-        <Plus className="w-5 h-5" />
-      </button>
-
-      {/* Textarea — left aligned next to + */}
-      <textarea
-        ref={textareaRef}
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault()
-            onSend()
-          }
-        }}
-        placeholder="Ask anything"
-        rows={1}
-        className="flex-1 bg-transparent border-none text-sm font-light leading-6 placeholder:text-white/30 focus:outline-none resize-none"
-        style={{
-          color: "rgba(255,255,255,0.9)",
-          minHeight: 24,
-          maxHeight: 40,
-          paddingTop: 7,
-          paddingBottom: 7,
-          textAlign: "left",
-          paddingLeft: 0,
-          marginLeft: 0,
-        }}
-      />
-
-      {/* Mic Button */}
-      <button
-        onClick={onMic}
-        className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
-        style={{
-          background: isListening ? "rgba(255,255,255,0.12)" : "transparent",
-          border: "none",
-          color: isListening ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.35)",
-          animation: isListening ? "micPulse 1.5s ease-in-out infinite" : "none",
-          cursor: "pointer",
-        }}
-      >
-        <MicIcon />
-      </button>
-
-      {/* Send / Stop Button */}
-      <button
-        onClick={isTyping ? onStop : onSend}
-        disabled={!hasText && !isTyping}
-        className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
-        style={{
-          background: isTyping
-            ? "rgba(255,255,255,0.15)"
-            : hasText
-              ? "rgba(255,255,255,0.9)"
-              : "rgba(255,255,255,0.06)",
-          border: "none",
-          color: isTyping ? "#fff" : hasText ? "#000" : "rgba(255,255,255,0.15)",
-          cursor: (!hasText && !isTyping) ? "default" : "pointer",
-          boxShadow: hasText && !isTyping ? "0 2px 16px rgba(255,255,255,0.12)" : "none",
-        }}
-      >
-        {isTyping ? <Square className="w-3.5 h-3.5" fill="currentColor" /> : <SendArrowIcon />}
-      </button>
-    </div>
-  )
-}
-
-/* ─────────────────────────────────────────────────
-   Main Chat Page
+   Main Chat Playground
    ───────────────────────────────────────────────── */
 interface Message {
   role: "user" | "assistant"
@@ -311,14 +190,22 @@ export default function ChatPage() {
 
   useEffect(() => { scrollToBottom() }, [messages, isTyping, scrollToBottom])
 
-  const simulateResponse = useCallback((userMsg: string) => {
+  // Auto-resize textarea
+  useEffect(() => {
+    const ta = textareaRef.current
+    if (ta) {
+      ta.style.height = "24px"
+      ta.style.height = Math.min(ta.scrollHeight, 160) + "px"
+    }
+  }, [input])
+
+  const simulateResponse = useCallback(() => {
     setIsTyping(true)
-    const delay = 1200 + Math.random() * 1800
     setTimeout(() => {
       const resp = AI_RESPONSES[Math.floor(Math.random() * AI_RESPONSES.length)]
       setMessages((prev) => [...prev, { role: "assistant", content: resp, id: Date.now() }])
       setIsTyping(false)
-    }, delay)
+    }, 1000 + Math.random() * 1500)
   }, [])
 
   const handleSend = useCallback(() => {
@@ -326,23 +213,13 @@ export default function ChatPage() {
     if (!trimmed || isTyping) return
     setMessages((prev) => [...prev, { role: "user", content: trimmed, id: Date.now() }])
     setInput("")
-    simulateResponse(trimmed)
+    simulateResponse()
   }, [input, isTyping, simulateResponse])
-
-  const handleSuggestion = useCallback((text: string) => {
-    if (isTyping) return
-    setMessages((prev) => [...prev, { role: "user", content: text, id: Date.now() }])
-    simulateResponse(text)
-  }, [isTyping, simulateResponse])
 
   const handleNewChat = useCallback(() => {
     setMessages([])
     setInput("")
     setIsTyping(false)
-  }, [])
-
-  const handleMic = useCallback(() => {
-    setIsListening((prev) => !prev)
   }, [])
 
   const isEmpty = messages.length === 0
@@ -351,214 +228,130 @@ export default function ChatPage() {
   return (
     <>
       <style jsx global>{`
-        @keyframes typingBounce {
+        @keyframes bounce {
           0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
           30% { transform: translateY(-6px); opacity: 0.9; }
         }
-        @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateY(12px); }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes subtlePulse {
-          0%, 100% { opacity: 0.6; }
-          50% { opacity: 1; }
         }
         @keyframes micPulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.15); }
           50% { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
         }
-        .msg-appear { animation: fadeSlideUp 0.35s ease-out both; }
-        .chat-scroll::-webkit-scrollbar { width: 4px; }
+        .msg-in { animation: fadeUp 0.3s ease-out both; }
+        .chat-scroll::-webkit-scrollbar { width: 5px; }
         .chat-scroll::-webkit-scrollbar-track { background: transparent; }
-        .chat-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-        .chat-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        .chat-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+        .chat-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
       `}</style>
 
       <div className="fixed inset-0 bg-black flex flex-col font-inter">
         <StarfieldCanvas />
 
         {/* ── Header ─────────────────────────────────── */}
-        <header
-          className="relative z-10 flex items-center justify-between px-4 py-3 md:px-6 md:py-4"
+        <header className="relative z-10 flex items-center justify-between px-5 py-3 md:px-6"
           style={{
             borderBottom: "1px solid rgba(255,255,255,0.06)",
-            background: "rgba(0,0,0,0.5)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
+            background: "rgba(0,0,0,0.4)",
+            backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
           }}
         >
-          {/* Back button */}
-          <Link
-            href="/"
+          <Link href="/"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs md:text-sm transition-all duration-200 hover:bg-white/10"
-            style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "rgba(255,255,255,0.5)",
-            }}
+            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Back</span>
           </Link>
 
-          {/* ── LOGO — bigger with actual logo image ── */}
-          <div className="flex items-center gap-3">
-            <div className="relative w-8 h-8 md:w-9 md:h-9 select-none">
-              <div
-                className="absolute inset-0 z-10"
-                onContextMenu={(e) => e.preventDefault()}
-                onDragStart={(e) => e.preventDefault()}
-              />
-              <Image
-                src="/images/logo-symbol.png"
-                alt="missiAI Logo"
-                width={36}
-                height={36}
-                className="w-8 h-8 md:w-9 md:h-9 opacity-90 select-none pointer-events-none"
-                priority
-                draggable={false}
-                onContextMenu={(e) => e.preventDefault()}
-                onDragStart={(e) => e.preventDefault()}
-              />
+          {/* Logo — full missiAI lengthy logo */}
+          <div className="absolute left-1/2 -translate-x-1/2 select-none">
+            <div className="relative" onContextMenu={(e) => e.preventDefault()} onDragStart={(e) => e.preventDefault()}>
+              <Image src="/images/missiai-logo.png" alt="missiAI" width={200} height={40}
+                className="h-12 md:h-14 w-auto object-contain brightness-0 invert opacity-90 select-none pointer-events-none"
+                priority draggable={false} onContextMenu={(e) => e.preventDefault()} onDragStart={(e) => e.preventDefault()} />
             </div>
-            <span className="text-base md:text-lg font-medium tracking-tight text-white">
-              missi<span className="opacity-50">AI</span>
-            </span>
           </div>
 
-          {/* New chat button */}
-          <button
-            onClick={handleNewChat}
+          <button onClick={handleNewChat}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs md:text-sm transition-all duration-200 hover:bg-white/10"
-            style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "rgba(255,255,255,0.5)",
-            }}
+            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}
           >
             <Plus className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">New</span>
           </button>
         </header>
 
-        {/* ── Messages / Empty State ─────────────────── */}
+        {/* ── Main Content ───────────────────────────── */}
         <div className="chat-scroll flex-1 overflow-y-auto relative z-[5] flex flex-col">
+
           {isEmpty ? (
-            /* ── CENTERED EMPTY STATE ──────────── */
-            <div className="flex-1 flex flex-col items-center justify-center px-5 gap-8">
-              {/* Sparkle icon */}
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  animation: "subtlePulse 4s ease-in-out infinite",
-                }}
-              >
-                <SparkleIcon size={28} className="text-white/50" />
-              </div>
-
-              <div className="text-center max-w-sm">
-                <h1 className="text-xl md:text-2xl font-medium tracking-tight mb-2">
-                  How can I help you today?
-                </h1>
-                <p className="text-xs md:text-sm font-light leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
-                  Start a conversation with missiAI — your intelligent assistant with memory.
-                </p>
-              </div>
-
-              {/* ── CENTERED INPUT BAR ────────────── */}
-              <div className="w-full max-w-xl">
-                <InputBar
-                  input={input}
-                  setInput={setInput}
-                  onSend={handleSend}
-                  onMic={handleMic}
-                  isTyping={isTyping}
-                  isListening={isListening}
-                  hasText={hasText}
-                  textareaRef={textareaRef}
-                  elevated
-                />
-
-                {/* Suggestions */}
-                <div className="flex flex-wrap gap-2 justify-center mt-5">
-                  {SUGGESTIONS.map((s, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleSuggestion(s)}
-                      className="px-4 py-2 rounded-full text-xs font-normal transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.15]"
-                      style={{
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        color: "rgba(255,255,255,0.45)",
-                      }}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-
-                <p className="text-center text-[11px] font-light mt-4" style={{ color: "rgba(255,255,255,0.18)" }}>
-                  missiAI may make mistakes. Verify important information.
-                </p>
-              </div>
+            /* ── EMPTY: Clean centered heading + input below ── */
+            <div className="flex-1 flex flex-col items-center justify-center px-5">
+              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-white mb-1">
+                What&apos;s on your mind?
+              </h1>
+              <p className="text-sm font-light tracking-wide mb-8" style={{ color: "rgba(255,255,255,0.3)" }}>
+                I remember. I learn. I evolve. Let&apos;s think together.
+              </p>
             </div>
           ) : (
-            /* ── Chat messages ────────────────────── */
-            <div className="max-w-2xl w-full mx-auto px-4 md:px-5 py-6 flex flex-col gap-1.5 flex-1">
+            /* ── CHAT MESSAGES ── */
+            <div className="max-w-3xl w-full mx-auto px-5 md:px-8 py-8 flex flex-col gap-8 flex-1">
               {messages.map((msg, idx) => (
-                <div
-                  key={msg.id}
-                  className="msg-appear flex"
-                  style={{
-                    justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
-                    animationDelay: `${idx * 0.04}s`,
-                  }}
-                >
-                  {msg.role === "assistant" && (
-                    <div
-                      className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center mr-2.5 mt-0.5"
-                      style={{
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                      }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z" />
-                      </svg>
+                <div key={msg.id} className="msg-in" style={{ animationDelay: `${idx * 0.03}s` }}>
+                  {msg.role === "user" ? (
+                    /* User message — right aligned pill */
+                    <div className="flex justify-end">
+                      <div className="max-w-[75%] px-4 py-2.5 rounded-2xl text-[15px] leading-relaxed"
+                        style={{
+                          background: "rgba(255,255,255,0.08)",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                          color: "rgba(255,255,255,0.9)",
+                        }}
+                      >
+                        {msg.content}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Assistant message — left aligned, with logo */
+                    <div className="flex items-start gap-3">
+                      {/* missiAI logo */}
+                      <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 select-none overflow-hidden"
+                        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
+                      >
+                        <Image src="/images/logo-symbol.png" alt="M" width={18} height={18}
+                          className="w-[18px] h-[18px] opacity-80 select-none pointer-events-none" draggable={false} />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        {/* Response text */}
+                        <div className="text-[15px] leading-[1.75] font-light whitespace-pre-line"
+                          style={{ color: "rgba(255,255,255,0.82)" }}
+                        >
+                          {msg.content}
+                        </div>
+
+                        {/* Action buttons */}
+                        <MessageActions content={msg.content} />
+                      </div>
                     </div>
                   )}
-                  <div
-                    className="text-sm font-light leading-relaxed"
-                    style={{
-                      maxWidth: msg.role === "user" ? "75%" : "85%",
-                      padding: msg.role === "user" ? "10px 16px" : "10px 0",
-                      borderRadius: msg.role === "user" ? 18 : 0,
-                      background: msg.role === "user" ? "rgba(255,255,255,0.08)" : "transparent",
-                      border: msg.role === "user" ? "1px solid rgba(255,255,255,0.1)" : "none",
-                      color: msg.role === "user" ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.75)",
-                    }}
-                  >
-                    {msg.content}
-                  </div>
                 </div>
               ))}
 
+              {/* Typing indicator */}
               {isTyping && (
-                <div className="msg-appear flex items-start gap-2.5">
-                  <div
-                    className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center mt-0.5"
-                    style={{
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                    }}
+                <div className="msg-in flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 select-none overflow-hidden"
+                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z" />
-                    </svg>
+                    <Image src="/images/logo-symbol.png" alt="M" width={18} height={18}
+                      className="w-[18px] h-[18px] opacity-80 select-none pointer-events-none" draggable={false} />
                   </div>
-                  <TypingIndicator />
+                  <TypingDots />
                 </div>
               )}
 
@@ -567,30 +360,75 @@ export default function ChatPage() {
           )}
         </div>
 
-        {/* ── Bottom Input (only when chatting) ───────── */}
-        {!isEmpty && (
-          <div
-            className="relative z-10 px-4 md:px-5 pt-3 pb-5"
-            style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 60%, transparent)" }}
-          >
-            <div className="max-w-2xl mx-auto">
-              <InputBar
-                input={input}
-                setInput={setInput}
-                onSend={handleSend}
-                onMic={handleMic}
-                onStop={() => setIsTyping(false)}
-                isTyping={isTyping}
-                isListening={isListening}
-                hasText={hasText}
+        {/* ── Input Bar (always at bottom) ───────────── */}
+        <div className="relative z-10 px-5 md:px-8 pt-2 pb-4"
+          style={{ background: isEmpty ? "transparent" : "linear-gradient(to top, rgba(0,0,0,0.9) 50%, transparent)" }}
+        >
+          <div className="max-w-3xl mx-auto">
+            {/* Input container */}
+            <div className="flex items-center gap-0 rounded-full transition-all duration-300 focus-within:border-white/[0.18]"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                padding: "5px 5px 5px 4px",
+                height: 50,
+              }}
+            >
+              {/* + button */}
+              <button className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-colors hover:bg-white/[0.06]"
+                style={{ color: "rgba(255,255,255,0.4)", background: "transparent", border: "none", cursor: "pointer" }}
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+
+              {/* Input */}
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+                placeholder="Ask anything"
+                rows={1}
+                className="flex-1 bg-transparent border-none text-[15px] font-light leading-6 placeholder:text-white/25 focus:outline-none resize-none"
+                style={{ color: "rgba(255,255,255,0.9)", minHeight: 24, maxHeight: 40, paddingTop: 7, paddingBottom: 7, textAlign: "left", paddingLeft: 0, marginLeft: 0 }}
               />
 
-              <p className="text-center text-[11px] font-light mt-2.5" style={{ color: "rgba(255,255,255,0.18)" }}>
-                missiAI may make mistakes. Verify important information.
-              </p>
+              {/* Mic */}
+              <button onClick={() => setIsListening((p) => !p)}
+                className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
+                style={{
+                  background: isListening ? "rgba(255,255,255,0.12)" : "transparent",
+                  border: "none", cursor: "pointer",
+                  color: isListening ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)",
+                  animation: isListening ? "micPulse 1.5s ease-in-out infinite" : "none",
+                }}
+              >
+                <MicIcon />
+              </button>
+
+              {/* Send / Stop */}
+              <button
+                onClick={isTyping ? () => setIsTyping(false) : handleSend}
+                disabled={!hasText && !isTyping}
+                className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
+                style={{
+                  background: isTyping ? "rgba(255,255,255,0.15)" : hasText ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.06)",
+                  border: "none",
+                  color: isTyping ? "#fff" : hasText ? "#000" : "rgba(255,255,255,0.12)",
+                  cursor: (!hasText && !isTyping) ? "default" : "pointer",
+                  boxShadow: hasText && !isTyping ? "0 2px 12px rgba(255,255,255,0.1)" : "none",
+                }}
+              >
+                {isTyping ? <Square className="w-3.5 h-3.5" fill="currentColor" /> : <SendArrowIcon />}
+              </button>
             </div>
+
+            {/* Disclaimer */}
+            <p className="text-center text-[11px] font-light mt-2.5 tracking-wide" style={{ color: "rgba(255,255,255,0.16)" }}>
+              missiAI can make mistakes. Verify important information.
+            </p>
           </div>
-        )}
+        </div>
       </div>
     </>
   )
