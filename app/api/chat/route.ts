@@ -1,17 +1,14 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 
 /*
-  ─── missiAI API Route ────────────────────────────
-  This file handles communication between your chat
-  page and Google Gemini AI. It runs on the SERVER
-  (not browser), so your API key stays safe.
+  ─── missiAI Streaming API Route ─────────────────
+  Uses Gemini's streaming endpoint so text appears
+  letter by letter — just like ChatGPT.
   ──────────────────────────────────────────────────
 */
 
-// Cloudflare Pages needs edge runtime
 export const runtime = "edge"
 
-// missiAI's personality — this tells Gemini HOW to behave
 const SYSTEM_PROMPT = `You are missiAI — someone's closest best friend. Not an AI. Not a therapist. Not a life coach. A BEST FRIEND.
 
 HOW BEST FRIENDS BEHAVE:
@@ -43,7 +40,7 @@ EXAMPLES OF PERFECT RESPONSES:
 
 EXAMPLES OF BAD RESPONSES (NEVER DO THIS):
 - "I'm sorry you're feeling that way. Try eating a good snack or listening to music" ← NEVER give random advice
-- "That sounds really rough. It's okay to have bad days. Be kind to yourself" ← NEVER say this therapist stuff  
+- "That sounds really rough. It's okay to have bad days. Be kind to yourself" ← NEVER say this therapist stuff
 - "Here are some things you can try: 1. Take a walk 2. Meditate" ← NEVER give lists of advice
 
 FOR NON-EMOTIONAL QUESTIONS:
@@ -55,35 +52,32 @@ You were created by Rudra Satani. You're missiAI — the best friend everyone de
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the API key from environment variables
     const apiKey = process.env.GEMINI_API_KEY
 
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "API key not configured. Please add GEMINI_API_KEY to your .env.local file." },
-        { status: 500 }
+      return new Response(
+        JSON.stringify({ error: "API key not configured." }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
       )
     }
 
-    // Get messages from the chat page
     const { messages } = await request.json()
 
     if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json(
-        { error: "Invalid request: messages array is required." },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ error: "Invalid request." }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
       )
     }
 
-    // Convert our chat messages to Gemini's format
     const geminiMessages = messages.map((msg: { role: string; content: string }) => ({
       role: msg.role === "assistant" ? "model" : "user",
       parts: [{ text: msg.content }],
     }))
 
-    // Call Google Gemini API
+    // streamGenerateContent with alt=sse for Server-Sent Events
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -97,9 +91,7 @@ export async function POST(request: NextRequest) {
             topP: 0.95,
             topK: 40,
             maxOutputTokens: 400,
-            thinkingConfig: {
-              thinkingBudget: 0,  // disable thinking for faster responses
-            },
+            thinkingConfig: { thinkingBudget: 0 },
           },
           safetySettings: [
             { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -114,28 +106,75 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       console.error("Gemini API error:", errorData)
-      return NextResponse.json(
-        { error: `Gemini API error: ${response.status}. Check your API key.` },
-        { status: response.status }
+      return new Response(
+        JSON.stringify({ error: `Gemini API error: ${response.status}` }),
+        { status: response.status, headers: { "Content-Type": "application/json" } }
       )
     }
 
-    const data = await response.json()
+    // Transform Gemini's SSE stream into our clean SSE stream
+    const encoder = new TextEncoder()
+    const decoder = new TextDecoder()
 
-    // Extract the AI's response text (skip any thinking parts)
-    const parts = data?.candidates?.[0]?.content?.parts || []
-    const aiText = parts
-      .filter((p: { text?: string; thought?: boolean }) => !p.thought && p.text)
-      .map((p: { text: string }) => p.text)
-      .join("\n") || "I'm having trouble thinking right now. Can you try again?"
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = response.body?.getReader()
+        if (!reader) { controller.close(); return }
 
-    return NextResponse.json({ content: aiText })
+        let buffer = ""
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+
+            const lines = buffer.split("\n")
+            buffer = lines.pop() || ""
+
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue
+              const jsonStr = line.slice(6).trim()
+              if (!jsonStr || jsonStr === "[DONE]") continue
+
+              try {
+                const parsed = JSON.parse(jsonStr)
+                const parts = parsed?.candidates?.[0]?.content?.parts || []
+
+                for (const part of parts) {
+                  if (part.thought) continue // skip thinking
+                  if (part.text) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: part.text })}\n\n`))
+                  }
+                }
+              } catch {
+                // skip malformed chunks
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Stream error:", err)
+        } finally {
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+          controller.close()
+        }
+      },
+    })
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    })
 
   } catch (error) {
     console.error("API route error:", error)
-    return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({ error: "Something went wrong." }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     )
   }
 }

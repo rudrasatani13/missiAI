@@ -123,18 +123,14 @@ function SendArrowIcon() {
 }
 
 /* ─────────────────────────────────────────────────
-   Typing Dots
+   Blinking cursor for streaming
    ───────────────────────────────────────────────── */
-function TypingDots() {
+function StreamCursor() {
   return (
-    <div className="flex gap-1 items-center h-6">
-      {[0, 1, 2].map((i) => (
-        <span key={i} className="w-1.5 h-1.5 rounded-full" style={{
-          background: "rgba(255,255,255,0.4)",
-          animation: `bounce 1.2s ease-in-out ${i * 0.15}s infinite`,
-        }} />
-      ))}
-    </div>
+    <span className="inline-block w-[2px] h-[18px] ml-0.5 align-middle" style={{
+      background: "rgba(255,255,255,0.6)",
+      animation: "cursorBlink 0.8s ease-in-out infinite",
+    }} />
   )
 }
 
@@ -201,7 +197,6 @@ function Sidebar({
     ? chats.filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
     : chats
 
-  // Group by date
   const grouped: { label: string; chats: Chat[] }[] = []
   const today: Chat[] = [], yesterday: Chat[] = [], week: Chat[] = [], older: Chat[] = []
   const now = Date.now()
@@ -226,7 +221,6 @@ function Sidebar({
   return (
     <>
       {isOpen && <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={onClose} />}
-
       <aside
         className={`fixed md:relative z-40 top-0 left-0 h-full flex flex-col transition-all duration-300 ease-in-out
           ${isOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full md:translate-x-0 md:w-0"}`}
@@ -236,7 +230,6 @@ function Sidebar({
         }}
       >
         <div className="flex flex-col h-full w-72">
-          {/* Header */}
           <div className="flex items-center justify-between px-3 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
             <button onClick={onNewChat}
               className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/[0.06]"
@@ -245,11 +238,11 @@ function Sidebar({
             </button>
             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors"
               style={{ color: "rgba(255,255,255,0.4)" }}>
-              {typeof window !== "undefined" && window.innerWidth < 768 ? <X className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+              <PanelLeftClose className="w-4 h-4 hidden md:block" />
+              <X className="w-4 h-4 md:hidden" />
             </button>
           </div>
 
-          {/* Search */}
           <div className="px-3 py-2">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
@@ -260,7 +253,6 @@ function Sidebar({
             </div>
           </div>
 
-          {/* Chat list */}
           <div className="flex-1 overflow-y-auto px-2 py-1 sidebar-scroll">
             {grouped.length === 0 ? (
               <div className="px-3 py-8 text-center">
@@ -309,7 +301,6 @@ function Sidebar({
             )}
           </div>
 
-          {/* Footer */}
           <div className="px-3 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
             <Link href="/" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all hover:bg-white/[0.06]"
               style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -332,7 +323,8 @@ export default function ChatPage() {
   const [chats, setChats] = useState<Chat[]>([])
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [input, setInput] = useState("")
-  const [isTyping, setIsTyping] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [streamingMsgId, setStreamingMsgId] = useState<number | null>(null)
   const [isListening, setIsListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -340,14 +332,12 @@ export default function ChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  // Load chats on mount
   useEffect(() => {
     const stored = loadChats()
     setChats(stored)
     if (window.innerWidth < 768) setSidebarOpen(false)
   }, [])
 
-  // Save chats on change
   useEffect(() => {
     if (chats.length > 0) saveChats(chats)
   }, [chats])
@@ -360,7 +350,7 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [])
 
-  useEffect(() => { scrollToBottom() }, [messages, isTyping, scrollToBottom])
+  useEffect(() => { scrollToBottom() }, [messages, isStreaming, scrollToBottom])
 
   useEffect(() => {
     const ta = textareaRef.current
@@ -368,11 +358,11 @@ export default function ChatPage() {
   }, [input])
 
   const handleNewChat = useCallback(() => {
-    setActiveChatId(null); setInput(""); setIsTyping(false); setError(null)
+    setActiveChatId(null); setInput(""); setIsStreaming(false); setError(null)
   }, [])
 
   const handleSelectChat = useCallback((id: string) => {
-    setActiveChatId(id); setInput(""); setIsTyping(false); setError(null)
+    setActiveChatId(id); setInput(""); setIsStreaming(false); setError(null)
   }, [])
 
   const handleDeleteChat = useCallback((id: string) => {
@@ -384,17 +374,29 @@ export default function ChatPage() {
     setChats((prev) => { const u = prev.map((c) => c.id === id ? { ...c, title } : c); saveChats(u); return u })
   }, [])
 
-  /* ── Call REAL Gemini API ─────────────────────── */
+  /* ── STREAMING AI CALL ───────────────────────── */
   const callAI = useCallback(async (chatId: string, allMessages: Message[]) => {
-    setIsTyping(true)
+    setIsStreaming(true)
     setError(null)
 
-    // Create an AbortController so user can stop generation
     const controller = new AbortController()
     abortControllerRef.current = controller
 
+    // Create empty AI message that we'll fill with streamed text
+    const aiMsgId = Date.now()
+    setStreamingMsgId(aiMsgId)
+    const aiMsg: Message = { role: "assistant", content: "", id: aiMsgId }
+
+    // Add empty AI message to chat
+    setChats((prev) => {
+      const updated = prev.map((c) =>
+        c.id === chatId ? { ...c, messages: [...c.messages, aiMsg], updatedAt: Date.now() } : c
+      )
+      saveChats(updated)
+      return updated
+    })
+
     try {
-      // Send messages to our API route (app/api/chat/route.ts)
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -409,47 +411,93 @@ export default function ChatPage() {
         throw new Error(errData.error || `Server error: ${response.status}`)
       }
 
-      const data = await response.json()
-      const aiText = data.content || "I'm having a moment. Can you try again?"
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error("No response stream")
 
-      const aiMsg: Message = { role: "assistant", content: aiText, id: Date.now() }
+      const decoder = new TextDecoder()
+      let fullText = ""
 
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split("\n")
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue
+          const data = line.slice(6).trim()
+          if (data === "[DONE]") continue
+
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed.text) {
+              fullText += parsed.text
+
+              // Update the AI message content in real-time
+              const currentText = fullText
+              setChats((prev) => {
+                const updated = prev.map((c) => {
+                  if (c.id !== chatId) return c
+                  const msgs = c.messages.map((m) =>
+                    m.id === aiMsgId ? { ...m, content: currentText } : m
+                  )
+                  return { ...c, messages: msgs, updatedAt: Date.now() }
+                })
+                // Don't save to localStorage on every chunk (performance)
+                return updated
+              })
+            }
+          } catch {
+            // skip malformed chunks
+          }
+        }
+      }
+
+      // Final save to localStorage
       setChats((prev) => {
-        const updated = prev.map((c) =>
-          c.id === chatId ? { ...c, messages: [...c.messages, aiMsg], updatedAt: Date.now() } : c
-        )
-        saveChats(updated)
-        return updated
+        saveChats(prev)
+        return prev
       })
+
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") {
-        // User cancelled — do nothing
+        // User cancelled — save what we have
+        setChats((prev) => { saveChats(prev); return prev })
       } else {
         const errorMsg = err instanceof Error ? err.message : "Something went wrong"
         setError(errorMsg)
-        console.error("AI call failed:", err)
+        // Remove empty AI message on error
+        setChats((prev) => {
+          const updated = prev.map((c) => {
+            if (c.id !== chatId) return c
+            const msgs = c.messages.filter((m) => m.id !== aiMsgId || m.content.length > 0)
+            return { ...c, messages: msgs }
+          })
+          saveChats(updated)
+          return updated
+        })
       }
     } finally {
-      setIsTyping(false)
+      setIsStreaming(false)
+      setStreamingMsgId(null)
       abortControllerRef.current = null
     }
   }, [])
 
-  // Stop generation
   const handleStop = useCallback(() => {
     abortControllerRef.current?.abort()
-    setIsTyping(false)
+    setIsStreaming(false)
+    setStreamingMsgId(null)
   }, [])
 
-  // Send message
   const handleSend = useCallback(() => {
     const trimmed = input.trim()
-    if (!trimmed || isTyping) return
+    if (!trimmed || isStreaming) return
 
     const userMsg: Message = { role: "user", content: trimmed, id: Date.now() }
 
     if (!activeChatId) {
-      // New chat
       const newChat: Chat = {
         id: generateId(), title: generateTitle(trimmed),
         messages: [userMsg], createdAt: Date.now(), updatedAt: Date.now(),
@@ -459,7 +507,6 @@ export default function ChatPage() {
       setInput("")
       callAI(newChat.id, [userMsg])
     } else {
-      // Existing chat
       const updatedMessages = [...messages, userMsg]
       setChats((prev) => {
         const u = prev.map((c) =>
@@ -471,16 +518,13 @@ export default function ChatPage() {
       setInput("")
       callAI(activeChatId, updatedMessages)
     }
-  }, [input, isTyping, activeChatId, messages, callAI])
+  }, [input, isStreaming, activeChatId, messages, callAI])
 
-  // Regenerate last response
   const handleRegenerate = useCallback(() => {
-    if (!activeChat || isTyping) return
+    if (!activeChat || isStreaming) return
     const msgs = activeChat.messages
-    // Find last user message
     const lastUserIdx = msgs.findLastIndex((m) => m.role === "user")
     if (lastUserIdx === -1) return
-    // Remove last AI message if it exists
     const messagesUpToUser = msgs.slice(0, lastUserIdx + 1)
     setChats((prev) => {
       const u = prev.map((c) =>
@@ -490,7 +534,7 @@ export default function ChatPage() {
       return u
     })
     callAI(activeChatId!, messagesUpToUser)
-  }, [activeChat, activeChatId, isTyping, callAI])
+  }, [activeChat, activeChatId, isStreaming, callAI])
 
   const hasText = input.trim().length > 0
 
@@ -509,6 +553,10 @@ export default function ChatPage() {
           0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.15); }
           50% { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
         }
+        @keyframes cursorBlink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
         .msg-in { animation: fadeUp 0.3s ease-out both; }
         .chat-scroll::-webkit-scrollbar, .sidebar-scroll::-webkit-scrollbar { width: 4px; }
         .chat-scroll::-webkit-scrollbar-track, .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -518,12 +566,10 @@ export default function ChatPage() {
       <div className="fixed inset-0 bg-black flex font-inter">
         <StarfieldCanvas />
 
-        {/* Sidebar */}
         <Sidebar chats={chats} activeChatId={activeChatId} onSelectChat={handleSelectChat}
           onNewChat={handleNewChat} onDeleteChat={handleDeleteChat} onRenameChat={handleRenameChat}
           isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        {/* Main */}
         <div className="flex-1 flex flex-col relative z-[5] min-w-0">
 
           {/* Header */}
@@ -574,7 +620,7 @@ export default function ChatPage() {
             ) : (
               <div className="max-w-3xl w-full mx-auto px-5 md:px-8 py-8 flex flex-col gap-8 flex-1">
                 {messages.map((msg, idx) => (
-                  <div key={msg.id} className="msg-in" style={{ animationDelay: `${idx * 0.03}s` }}>
+                  <div key={msg.id} className="msg-in" style={{ animationDelay: `${Math.min(idx * 0.03, 0.3)}s` }}>
                     {msg.role === "user" ? (
                       <div className="flex justify-end">
                         <div className="max-w-[75%] px-4 py-2.5 rounded-2xl text-[15px] leading-relaxed"
@@ -593,28 +639,21 @@ export default function ChatPage() {
                           <div className="text-[15px] leading-[1.75] font-light whitespace-pre-line"
                             style={{ color: "rgba(255,255,255,0.82)" }}>
                             {msg.content}
+                            {/* Show blinking cursor while streaming this message */}
+                            {streamingMsgId === msg.id && isStreaming && <StreamCursor />}
                           </div>
-                          <MessageActions content={msg.content}
-                            onRegenerate={idx === messages.length - 1 ? handleRegenerate : undefined} />
+                          {/* Show actions only when not streaming */}
+                          {streamingMsgId !== msg.id && msg.content && (
+                            <MessageActions content={msg.content}
+                              onRegenerate={idx === messages.length - 1 ? handleRegenerate : undefined} />
+                          )}
                         </div>
                       </div>
                     )}
                   </div>
                 ))}
 
-                {/* Typing indicator */}
-                {isTyping && (
-                  <div className="msg-in flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 select-none overflow-hidden"
-                      style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                      <Image src="/images/logo-symbol.png" alt="M" width={18} height={18}
-                        className="w-[18px] h-[18px] opacity-80 select-none pointer-events-none" draggable={false} />
-                    </div>
-                    <TypingDots />
-                  </div>
-                )}
-
-                {/* Error message */}
+                {/* Error */}
                 {error && (
                   <div className="msg-in flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
                     style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "rgba(239,68,68,0.8)" }}>
@@ -655,16 +694,16 @@ export default function ChatPage() {
                 </button>
 
                 <button
-                  onClick={isTyping ? handleStop : handleSend}
-                  disabled={!hasText && !isTyping}
+                  onClick={isStreaming ? handleStop : handleSend}
+                  disabled={!hasText && !isStreaming}
                   className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
                   style={{
-                    background: isTyping ? "rgba(255,255,255,0.15)" : hasText ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.06)",
-                    border: "none", color: isTyping ? "#fff" : hasText ? "#000" : "rgba(255,255,255,0.12)",
-                    cursor: (!hasText && !isTyping) ? "default" : "pointer",
-                    boxShadow: hasText && !isTyping ? "0 2px 12px rgba(255,255,255,0.1)" : "none",
+                    background: isStreaming ? "rgba(255,255,255,0.15)" : hasText ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.06)",
+                    border: "none", color: isStreaming ? "#fff" : hasText ? "#000" : "rgba(255,255,255,0.12)",
+                    cursor: (!hasText && !isStreaming) ? "default" : "pointer",
+                    boxShadow: hasText && !isStreaming ? "0 2px 12px rgba(255,255,255,0.1)" : "none",
                   }}>
-                  {isTyping ? <Square className="w-3.5 h-3.5" fill="currentColor" /> : <SendArrowIcon />}
+                  {isStreaming ? <Square className="w-3.5 h-3.5" fill="currentColor" /> : <SendArrowIcon />}
                 </button>
               </div>
 
