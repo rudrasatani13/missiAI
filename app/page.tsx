@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, Brain, Sparkles, Shield, Zap, MessageSquare, ChevronRight } from "lucide-react"
+import { ArrowRight, Heart, Brain, Eye, Fingerprint, Shield, Headphones, ChevronRight, MessageSquare } from "lucide-react"
 
 /* ─────────────────────────────────────────────────
    Starfield Hero Canvas
@@ -18,7 +18,7 @@ function HeroStarfield() {
     if (!ctx) return
 
     let animId: number
-    let stars: { x: number; y: number; size: number; brightness: number; speed: number; twinkleOffset: number }[] = []
+    let stars: { x: number; y: number; size: number; brightness: number; speed: number; offset: number }[] = []
     let shootingStars: { x: number; y: number; vx: number; vy: number; life: number; maxLife: number }[] = []
 
     const resize = () => {
@@ -37,7 +37,7 @@ function HeroStarfield() {
           size: Math.random() * 1.5 + 0.3,
           brightness: Math.random() * 0.5 + 0.1,
           speed: Math.random() * 0.002 + 0.0005,
-          twinkleOffset: Math.random() * Math.PI * 2,
+          offset: Math.random() * Math.PI * 2,
         })
       }
     }
@@ -45,22 +45,22 @@ function HeroStarfield() {
     const draw = (t: number) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      // Subtle radial gradient overlay
-      const grad = ctx.createRadialGradient(canvas.width / 2, canvas.height * 0.4, 0, canvas.width / 2, canvas.height * 0.4, canvas.width * 0.7)
-      grad.addColorStop(0, "rgba(255,255,255,0.012)")
+      // Warm subtle radial
+      const grad = ctx.createRadialGradient(canvas.width / 2, canvas.height * 0.35, 0, canvas.width / 2, canvas.height * 0.35, canvas.width * 0.6)
+      grad.addColorStop(0, "rgba(255,220,200,0.008)")
       grad.addColorStop(1, "transparent")
       ctx.fillStyle = grad
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
       for (const s of stars) {
-        const b = s.brightness * (0.6 + 0.4 * Math.sin(t * s.speed + s.twinkleOffset))
+        const b = s.brightness * (0.6 + 0.4 * Math.sin(t * s.speed + s.offset))
         ctx.fillStyle = `rgba(255,255,255,${b})`
         ctx.beginPath()
         ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2)
         ctx.fill()
       }
 
-      if (Math.random() < 0.001) {
+      if (Math.random() < 0.0008) {
         const a = Math.PI / 4 + Math.random() * 0.5, sp = 5 + Math.random() * 5, ml = 50 + Math.random() * 50
         shootingStars.push({ x: Math.random() * canvas.width, y: -10, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: ml, maxLife: ml })
       }
@@ -87,12 +87,11 @@ function HeroStarfield() {
 }
 
 /* ─────────────────────────────────────────────────
-   Scroll Fade-In Hook
+   Scroll Reveal
    ───────────────────────────────────────────────── */
 function useScrollReveal() {
   const ref = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
-
   useEffect(() => {
     const el = ref.current
     if (!el) return
@@ -102,22 +101,17 @@ function useScrollReveal() {
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
-
   return { ref, visible }
 }
 
 function RevealSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const { ref, visible } = useScrollReveal()
   return (
-    <div
-      ref={ref}
-      className={className}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(40px)",
-        transition: `opacity 0.8s ease ${delay}s, transform 0.8s ease ${delay}s`,
-      }}
-    >
+    <div ref={ref} className={className} style={{
+      opacity: visible ? 1 : 0,
+      transform: visible ? "translateY(0)" : "translateY(40px)",
+      transition: `opacity 0.8s ease ${delay}s, transform 0.8s ease ${delay}s`,
+    }}>
       {children}
     </div>
   )
@@ -129,29 +123,22 @@ function RevealSection({ children, className = "", delay = 0 }: { children: Reac
 function AnimatedStat({ value, suffix, label }: { value: number; suffix: string; label: string }) {
   const { ref, visible } = useScrollReveal()
   const [count, setCount] = useState(0)
-
   useEffect(() => {
     if (!visible) return
     let start = 0
-    const duration = 2000
-    const step = (timestamp: number) => {
-      if (!start) start = timestamp
-      const progress = Math.min((timestamp - start) / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3) // easeOutCubic
-      setCount(Math.floor(eased * value))
-      if (progress < 1) requestAnimationFrame(step)
+    const step = (ts: number) => {
+      if (!start) start = ts
+      const p = Math.min((ts - start) / 2000, 1)
+      setCount(Math.floor((1 - Math.pow(1 - p, 3)) * value))
+      if (p < 1) requestAnimationFrame(step)
     }
     requestAnimationFrame(step)
   }, [visible, value])
 
   return (
     <div ref={ref} className="text-center">
-      <div className="text-3xl md:text-5xl font-semibold tracking-tight text-white mb-2">
-        {count}{suffix}
-      </div>
-      <div className="text-xs md:text-sm font-light tracking-wide" style={{ color: "rgba(255,255,255,0.4)" }}>
-        {label}
-      </div>
+      <div className="text-3xl md:text-5xl font-semibold tracking-tight text-white mb-2">{count}{suffix}</div>
+      <div className="text-xs md:text-sm font-light tracking-wide" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</div>
     </div>
   )
 }
@@ -162,30 +149,18 @@ function AnimatedStat({ value, suffix, label }: { value: number; suffix: string;
 function FeatureCard({ icon: Icon, title, description, delay }: { icon: React.ElementType; title: string; description: string; delay: number }) {
   return (
     <RevealSection delay={delay}>
-      <div
-        className="group relative p-6 md:p-8 rounded-2xl transition-all duration-500 hover:scale-[1.02]"
-        style={{
-          background: "rgba(255,255,255,0.025)",
-          border: "1px solid rgba(255,255,255,0.06)",
-        }}
+      <div className="group relative p-6 md:p-8 rounded-2xl transition-all duration-500 hover:scale-[1.02]"
+        style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)" }}
       >
-        {/* Hover glow */}
-        <div
-          className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-          style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.04), transparent 70%)" }}
-        />
-
+        <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.04), transparent 70%)" }} />
         <div className="relative z-10">
-          <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center mb-5"
-            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
-          >
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-5"
+            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
             <Icon className="w-5 h-5" style={{ color: "rgba(255,255,255,0.6)" }} />
           </div>
           <h3 className="text-base md:text-lg font-medium text-white mb-2 tracking-tight">{title}</h3>
-          <p className="text-sm font-light leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
-            {description}
-          </p>
+          <p className="text-sm font-light leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>{description}</p>
         </div>
       </div>
     </RevealSection>
@@ -193,30 +168,70 @@ function FeatureCard({ icon: Icon, title, description, delay }: { icon: React.El
 }
 
 /* ─────────────────────────────────────────────────
-   Step Card
+   Emotional Chat Demo
    ───────────────────────────────────────────────── */
-function StepCard({ number, title, description, delay }: { number: string; title: string; description: string; delay: number }) {
+function EmotionalChatDemo() {
+  const [step, setStep] = useState(0)
+
+  const conversation = [
+    { role: "user" as const, text: "I had a really rough day today..." },
+    { role: "ai" as const, text: "I can feel it in your words. You don't have to explain everything right now — I'm here. Last time you felt this way, going for a walk helped. Want to talk about it, or just sit with it for a moment?" },
+    { role: "user" as const, text: "How do you remember that?" },
+    { role: "ai" as const, text: "Because you matter to me. I remember your patterns, your moods, what lifts you up. That's not data — that's knowing someone. That's what I was built for." },
+  ]
+
+  useEffect(() => {
+    if (step >= conversation.length) return
+    const timer = setTimeout(() => setStep((s) => s + 1), step === 0 ? 1500 : 2500)
+    return () => clearTimeout(timer)
+  }, [step, conversation.length])
+
   return (
-    <RevealSection delay={delay}>
-      <div className="flex gap-5 md:gap-6">
+    <div className="flex flex-col gap-4">
+      {conversation.slice(0, step).map((msg, i) => (
         <div
-          className="w-10 h-10 md:w-12 md:h-12 rounded-full flex-shrink-0 flex items-center justify-center text-sm md:text-base font-semibold"
+          key={i}
+          className="flex"
           style={{
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            color: "rgba(255,255,255,0.7)",
+            justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
+            animation: "fadeUp 0.4s ease-out both",
           }}
         >
-          {number}
+          {msg.role === "ai" && (
+            <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center mr-3 mt-1 overflow-hidden select-none"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              <Image src="/images/logo-symbol.png" alt="M" width={18} height={18}
+                className="w-[18px] h-[18px] opacity-80 select-none pointer-events-none" draggable={false} />
+            </div>
+          )}
+          <div
+            className="text-sm font-light leading-relaxed"
+            style={{
+              maxWidth: "80%",
+              padding: msg.role === "user" ? "10px 16px" : "10px 2px",
+              borderRadius: msg.role === "user" ? 18 : 0,
+              background: msg.role === "user" ? "rgba(255,255,255,0.08)" : "transparent",
+              border: msg.role === "user" ? "1px solid rgba(255,255,255,0.1)" : "none",
+              color: msg.role === "user" ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.7)",
+            }}
+          >
+            {msg.text}
+          </div>
         </div>
-        <div>
-          <h3 className="text-base md:text-lg font-medium text-white mb-1 tracking-tight">{title}</h3>
-          <p className="text-sm font-light leading-relaxed" style={{ color: "rgba(255,255,255,0.4)" }}>
-            {description}
-          </p>
+      ))}
+
+      {step < conversation.length && (
+        <div className="flex items-center gap-1 pl-10">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="w-1.5 h-1.5 rounded-full"
+              style={{
+                background: "rgba(255,255,255,0.4)",
+                animation: `typingBounce 1.2s ease-in-out ${i * 0.15}s infinite`,
+              }} />
+          ))}
         </div>
-      </div>
-    </RevealSection>
+      )}
+    </div>
   )
 }
 
@@ -228,126 +243,85 @@ export default function LandingPage() {
     <div className="bg-black text-white font-inter overflow-x-hidden">
 
       {/* ═══════════════════════════════════════════
-          HERO SECTION
+          HERO — Personal Intelligence
           ═══════════════════════════════════════════ */}
       <section className="relative min-h-screen flex flex-col">
         <HeroStarfield />
 
         {/* Nav */}
         <nav className="relative z-10 flex items-center justify-between px-6 md:px-10 py-5">
-          {/* Logo */}
           <Link href="/" className="block select-none">
             <div className="relative" onContextMenu={(e) => e.preventDefault()}>
-              <Image
-                src="/images/logo-symbol.png"
-                alt="missiAI"
-                width={40}
-                height={40}
+              <Image src="/images/logo-symbol.png" alt="missiAI" width={40} height={40}
                 className="w-9 h-9 md:w-10 md:h-10 opacity-80 hover:opacity-100 transition-opacity duration-300 select-none pointer-events-none"
-                priority
-                draggable={false}
-              />
+                priority draggable={false} />
             </div>
           </Link>
-
-          {/* Nav links */}
           <div className="flex items-center gap-2 md:gap-3">
-            <Link href="/chat"
-              className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10"
-              style={{ color: "rgba(255,255,255,0.6)" }}
-            >
+            <Link href="/chat" className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10" style={{ color: "rgba(255,255,255,0.6)" }}>
               Try Chat
             </Link>
-            <Link href="/manifesto"
-              className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10 hidden sm:inline-flex"
-              style={{ color: "rgba(255,255,255,0.6)" }}
-            >
+            <Link href="/manifesto" className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10 hidden sm:inline-flex" style={{ color: "rgba(255,255,255,0.6)" }}>
               Manifesto
             </Link>
             <Link href="/waitlist"
-              className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300"
-              style={{
-                background: "rgba(255,255,255,0.9)",
-                color: "#000",
-              }}
-            >
+              className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
+              style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
               Join Waitlist
             </Link>
           </div>
         </nav>
 
         {/* Hero Content */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center pb-20">
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center pb-24">
           {/* Badge */}
-          <div
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-8"
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-8"
             style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "rgba(255,255,255,0.6)",
-              animation: "fadeUp 0.8s ease-out both",
-            }}
-          >
+              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+              color: "rgba(255,255,255,0.6)", animation: "fadeUp 0.8s ease-out both",
+            }}>
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            Now in Early Access
+            Personal Intelligence — Early Access
           </div>
 
           {/* Logo */}
           <div className="mb-6 select-none" style={{ animation: "fadeUp 0.8s ease-out 0.1s both" }}>
-            <Image
-              src="/images/missiai-logo.png"
-              alt="missiAI"
-              width={500}
-              height={120}
+            <Image src="/images/missiai-logo.png" alt="missiAI" width={500} height={120}
               className="h-14 md:h-20 lg:h-24 w-auto object-contain brightness-0 invert select-none pointer-events-none"
-              priority
-              draggable={false}
-              onContextMenu={(e) => e.preventDefault()}
-            />
+              priority draggable={false} onContextMenu={(e) => e.preventDefault()} />
           </div>
 
           {/* Headline */}
-          <h1
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1] max-w-3xl mb-5"
-            style={{ animation: "fadeUp 0.8s ease-out 0.2s both" }}
-          >
-            The AI that{" "}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1] max-w-3xl mb-5"
+            style={{ animation: "fadeUp 0.8s ease-out 0.2s both" }}>
+            Not just AI.{" "}
             <span className="relative">
-              remembers
-              <span
-                className="absolute -bottom-1 left-0 w-full h-[2px] rounded-full"
-                style={{ background: "linear-gradient(90deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1))" }}
-              />
-            </span>{" "}
-            you.
+              Your AI.
+              <span className="absolute -bottom-1 left-0 w-full h-[2px] rounded-full"
+                style={{ background: "linear-gradient(90deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1))" }} />
+            </span>
           </h1>
 
           {/* Subheadline */}
-          <p
-            className="text-base md:text-lg font-light leading-relaxed max-w-xl mb-10"
-            style={{ color: "rgba(255,255,255,0.45)", animation: "fadeUp 0.8s ease-out 0.3s both" }}
-          >
-            missiAI doesn&apos;t just respond — it understands, learns, and evolves with every conversation.
-            Your thoughts, your context, always remembered.
+          <p className="text-base md:text-lg font-light leading-relaxed max-w-xl mb-10"
+            style={{ color: "rgba(255,255,255,0.45)", animation: "fadeUp 0.8s ease-out 0.3s both" }}>
+            missiAI is a personal intelligence that feels, understands, and grows with you.
+            It doesn&apos;t just answer questions — it knows when you&apos;re struggling,
+            celebrates when you win, and remembers what matters to you.
           </p>
 
-          {/* CTA Buttons */}
-          <div
-            className="flex flex-col sm:flex-row items-center gap-3"
-            style={{ animation: "fadeUp 0.8s ease-out 0.4s both" }}
-          >
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row items-center gap-3" style={{ animation: "fadeUp 0.8s ease-out 0.4s both" }}>
             <Link href="/chat"
               className="group inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
-              style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}
-            >
-              Start Chatting
+              style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
+              Meet missiAI
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link href="/waitlist"
               className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:bg-white/10"
-              style={{ border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}
-            >
-              Join the Waitlist
+              style={{ border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
+              Get Early Access
             </Link>
           </div>
         </div>
@@ -361,143 +335,124 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════
-          FEATURES SECTION
+          WHAT IS missiAI — Emotional Core
+          ═══════════════════════════════════════════ */}
+      <section className="relative py-24 md:py-36 px-6 md:px-10">
+        <div className="max-w-3xl mx-auto text-center">
+          <RevealSection>
+            <p className="text-xs font-medium tracking-[0.2em] uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>
+              What is missiAI?
+            </p>
+          </RevealSection>
+          <RevealSection delay={0.1}>
+            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight mb-6 leading-snug">
+              Imagine an intelligence that{" "}
+              <span style={{ color: "rgba(255,255,255,0.4)" }}>actually cares</span>
+            </h2>
+          </RevealSection>
+          <RevealSection delay={0.2}>
+            <p className="text-sm md:text-base font-light leading-[1.85] max-w-2xl mx-auto" style={{ color: "rgba(255,255,255,0.5)" }}>
+              Most AI treats you like a stranger every time. missiAI is different. It&apos;s your personal intelligence —
+              like EDITH, like JARVIS — built to understand not just your words, but your emotions, your patterns,
+              your unspoken needs. It remembers your bad days. It knows what makes you smile. It evolves with every
+              conversation until it feels less like software and more like someone who genuinely knows you.
+            </p>
+          </RevealSection>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          EMOTIONAL CAPABILITIES
           ═══════════════════════════════════════════ */}
       <section className="relative py-24 md:py-32 px-6 md:px-10">
-        {/* Section header */}
         <div className="max-w-3xl mx-auto text-center mb-16 md:mb-20">
           <RevealSection>
             <p className="text-xs font-medium tracking-[0.2em] uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>
-              Why missiAI
+              Core Capabilities
             </p>
           </RevealSection>
           <RevealSection delay={0.1}>
             <h2 className="text-2xl md:text-4xl font-semibold tracking-tight mb-5">
-              Intelligence that grows{" "}
-              <span style={{ color: "rgba(255,255,255,0.4)" }}>with you</span>
+              Intelligence meets{" "}
+              <span style={{ color: "rgba(255,255,255,0.4)" }}>empathy</span>
             </h2>
           </RevealSection>
           <RevealSection delay={0.2}>
             <p className="text-sm md:text-base font-light leading-relaxed max-w-lg mx-auto" style={{ color: "rgba(255,255,255,0.4)" }}>
-              Not just another chatbot. missiAI pioneers a new standard in AI — one that adapts,
-              remembers, and delivers unprecedented depth in every interaction.
+              Six pillars that make missiAI unlike anything you&apos;ve ever experienced.
             </p>
           </RevealSection>
         </div>
 
-        {/* Feature grid */}
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
           <FeatureCard
-            icon={Brain}
-            title="Memory Architecture"
-            description="Every conversation builds on the last. missiAI remembers your preferences, context, and history — creating a truly personalized experience that deepens over time."
+            icon={Heart}
+            title="Emotional Awareness"
+            description="missiAI reads between the lines. It detects your mood, tone, and emotional state — responding with genuine empathy, not scripted phrases."
             delay={0}
           />
           <FeatureCard
-            icon={Sparkles}
-            title="Adaptive Intelligence"
-            description="Goes beyond pattern matching. missiAI understands nuance, anticipates your needs, and delivers responses that feel genuinely thoughtful and human-like."
+            icon={Brain}
+            title="Deep Memory"
+            description="Remembers your conversations, preferences, dreams, and struggles. Not as cold data — but as the story of who you are."
             delay={0.1}
           />
           <FeatureCard
-            icon={Zap}
-            title="Instant Performance"
-            description="Powered by cutting-edge models with optimized inference. Get responses in milliseconds, not seconds — without sacrificing depth or quality."
+            icon={Eye}
+            title="Contextual Understanding"
+            description="Knows the difference between you venting and asking for advice. Understands context, nuance, and what you actually need in the moment."
+            delay={0.15}
+          />
+          <FeatureCard
+            icon={Fingerprint}
+            title="Uniquely Yours"
+            description="No two missiAI experiences are alike. It adapts to your personality, communication style, and evolves to become YOUR intelligence."
             delay={0.2}
           />
           <FeatureCard
             icon={Shield}
-            title="Privacy First"
-            description="Your data, your control. End-to-end encryption, zero data selling, and transparent AI practices. We believe trust is non-negotiable."
+            title="Trust & Privacy"
+            description="Your deepest thoughts deserve the strongest protection. End-to-end encryption. Zero data selling. Your mind is sacred."
+            delay={0.25}
+          />
+          <FeatureCard
+            icon={Headphones}
+            title="Always Present"
+            description="Not just available 24/7 — but genuinely attentive. Like a friend who's always there when you need them, without judgment."
             delay={0.3}
           />
         </div>
       </section>
 
       {/* ═══════════════════════════════════════════
-          STATS SECTION
-          ═══════════════════════════════════════════ */}
-      <section className="relative py-20 md:py-28 px-6">
-        <div
-          className="max-w-4xl mx-auto rounded-3xl px-8 py-14 md:py-20"
-          style={{
-            background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.05)",
-          }}
-        >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
-            <AnimatedStat value={10} suffix="x" label="Faster Responses" />
-            <AnimatedStat value={99} suffix="%" label="Uptime Reliability" />
-            <AnimatedStat value={50} suffix="k+" label="Early Signups" />
-            <AnimatedStat value={100} suffix="%" label="Data Privacy" />
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════
-          HOW IT WORKS
+          LIVE EMOTIONAL CHAT DEMO
           ═══════════════════════════════════════════ */}
       <section className="relative py-24 md:py-32 px-6 md:px-10">
-        <div className="max-w-3xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-16 md:mb-20">
-            <RevealSection>
-              <p className="text-xs font-medium tracking-[0.2em] uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>
-                How it works
-              </p>
-            </RevealSection>
-            <RevealSection delay={0.1}>
-              <h2 className="text-2xl md:text-4xl font-semibold tracking-tight">
-                Three steps to{" "}
-                <span style={{ color: "rgba(255,255,255,0.4)" }}>smarter AI</span>
-              </h2>
-            </RevealSection>
-          </div>
-
-          {/* Steps */}
-          <div className="flex flex-col gap-10 md:gap-14 max-w-lg mx-auto">
-            <StepCard
-              number="01"
-              title="Start a Conversation"
-              description="Just type naturally. Ask questions, brainstorm ideas, or think out loud. missiAI adapts to your style."
-              delay={0}
-            />
-            <StepCard
-              number="02"
-              title="Build Context Over Time"
-              description="The more you interact, the smarter it gets. missiAI remembers your preferences, past discussions, and working style."
-              delay={0.1}
-            />
-            <StepCard
-              number="03"
-              title="Experience True Intelligence"
-              description="Get responses that feel like they come from someone who truly knows you. That's the power of AI with Memory."
-              delay={0.2}
-            />
-          </div>
+        <div className="max-w-3xl mx-auto text-center mb-12">
+          <RevealSection>
+            <p className="text-xs font-medium tracking-[0.2em] uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>
+              See it in action
+            </p>
+          </RevealSection>
+          <RevealSection delay={0.1}>
+            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight">
+              This is how it{" "}
+              <span style={{ color: "rgba(255,255,255,0.4)" }}>feels</span>
+            </h2>
+          </RevealSection>
         </div>
-      </section>
 
-      {/* ═══════════════════════════════════════════
-          CHAT PREVIEW SECTION
-          ═══════════════════════════════════════════ */}
-      <section className="relative py-24 md:py-32 px-6 md:px-10">
-        <RevealSection className="max-w-3xl mx-auto">
-          <div
-            className="rounded-2xl md:rounded-3xl overflow-hidden"
-            style={{
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid rgba(255,255,255,0.06)",
-            }}
-          >
-            {/* Fake chat header */}
+        <RevealSection className="max-w-2xl mx-auto">
+          <div className="rounded-2xl md:rounded-3xl overflow-hidden"
+            style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            {/* Chat header */}
             <div className="flex items-center justify-between px-5 py-3.5"
-              style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
-            >
+              style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
               <div className="flex items-center gap-2">
                 <Image src="/images/logo-symbol.png" alt="M" width={20} height={20}
                   className="w-5 h-5 opacity-70 select-none pointer-events-none" draggable={false} />
                 <span className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.5)" }}>missiAI</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400/80 ml-1" />
               </div>
               <div className="flex gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
@@ -506,47 +461,103 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Fake chat messages */}
-            <div className="px-5 md:px-8 py-6 md:py-8 flex flex-col gap-5">
-              {/* User */}
-              <div className="flex justify-end">
-                <div className="px-4 py-2.5 rounded-2xl text-sm" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.85)" }}>
-                  Continue where we left off yesterday on the product roadmap
-                </div>
-              </div>
-              {/* AI */}
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden"
-                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                  <Image src="/images/logo-symbol.png" alt="M" width={16} height={16}
-                    className="w-4 h-4 opacity-70 select-none pointer-events-none" draggable={false} />
-                </div>
-                <div className="text-sm font-light leading-relaxed" style={{ color: "rgba(255,255,255,0.7)" }}>
-                  Of course. Yesterday we finalized the Q2 milestones — user auth, memory persistence, and the API launch.
-                  You mentioned wanting to prioritize the memory feature first. Want me to draft the technical spec for that?
-                </div>
-              </div>
-            </div>
-
-            {/* Fake input */}
-            <div className="px-5 md:px-8 pb-5">
-              <div className="flex items-center rounded-full px-4 py-2.5"
-                style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
-              >
-                <span className="text-sm font-light" style={{ color: "rgba(255,255,255,0.2)" }}>Ask anything...</span>
-              </div>
+            {/* Live chat demo */}
+            <div className="px-5 md:px-8 py-6 md:py-8 min-h-[280px]">
+              <EmotionalChatDemo />
             </div>
           </div>
         </RevealSection>
 
         <RevealSection delay={0.2} className="text-center mt-8">
-          <Link href="/chat"
-            className="group inline-flex items-center gap-2 text-sm font-medium transition-all duration-300"
-            style={{ color: "rgba(255,255,255,0.5)" }}
-          >
-            Try it yourself
+          <Link href="/chat" className="group inline-flex items-center gap-2 text-sm font-medium transition-all duration-300"
+            style={{ color: "rgba(255,255,255,0.5)" }}>
+            Experience it yourself
             <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
+        </RevealSection>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          NOT LIKE OTHERS — Comparison
+          ═══════════════════════════════════════════ */}
+      <section className="relative py-24 md:py-32 px-6 md:px-10">
+        <div className="max-w-3xl mx-auto text-center mb-16">
+          <RevealSection>
+            <p className="text-xs font-medium tracking-[0.2em] uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>
+              The difference
+            </p>
+          </RevealSection>
+          <RevealSection delay={0.1}>
+            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight">
+              AI assistants vs{" "}
+              <span style={{ color: "rgba(255,255,255,0.4)" }}>Personal Intelligence</span>
+            </h2>
+          </RevealSection>
+        </div>
+
+        <RevealSection className="max-w-2xl mx-auto">
+          <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
+            {/* Header row */}
+            <div className="grid grid-cols-3 gap-0 text-center text-xs font-medium py-4 px-4"
+              style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+              <div style={{ color: "rgba(255,255,255,0.3)" }}>Feature</div>
+              <div style={{ color: "rgba(255,255,255,0.3)" }}>Regular AI</div>
+              <div className="text-white">missiAI</div>
+            </div>
+
+            {[
+              { feature: "Remembers you", regular: "—", missi: "Always" },
+              { feature: "Understands emotions", regular: "—", missi: "Deeply" },
+              { feature: "Adapts to your mood", regular: "—", missi: "Real-time" },
+              { feature: "Grows with you", regular: "—", missi: "Every day" },
+              { feature: "Feels personal", regular: "Generic", missi: "Uniquely you" },
+              { feature: "Privacy", regular: "Varies", missi: "Non-negotiable" },
+            ].map((row, i) => (
+              <div key={i} className="grid grid-cols-3 gap-0 text-center text-sm py-3.5 px-4"
+                style={{ borderBottom: i < 5 ? "1px solid rgba(255,255,255,0.04)" : "none", background: i % 2 === 0 ? "rgba(255,255,255,0.01)" : "transparent" }}>
+                <div className="font-light" style={{ color: "rgba(255,255,255,0.6)" }}>{row.feature}</div>
+                <div className="font-light" style={{ color: "rgba(255,255,255,0.2)" }}>{row.regular}</div>
+                <div className="font-medium text-white">{row.missi}</div>
+              </div>
+            ))}
+          </div>
+        </RevealSection>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          STATS
+          ═══════════════════════════════════════════ */}
+      <section className="relative py-20 md:py-28 px-6">
+        <div className="max-w-4xl mx-auto rounded-3xl px-8 py-14 md:py-20"
+          style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
+            <AnimatedStat value={10} suffix="x" label="More Personal" />
+            <AnimatedStat value={99} suffix="%" label="Uptime" />
+            <AnimatedStat value={50} suffix="k+" label="Early Adopters" />
+            <AnimatedStat value={100} suffix="%" label="Privacy Guaranteed" />
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          VISION QUOTE
+          ═══════════════════════════════════════════ */}
+      <section className="relative py-24 md:py-32 px-6">
+        <RevealSection className="max-w-2xl mx-auto text-center">
+          <div className="mb-6" style={{ color: "rgba(255,255,255,0.15)", fontSize: 48, lineHeight: 1 }}>&ldquo;</div>
+          <p className="text-lg md:text-xl font-light leading-[1.8] italic mb-8" style={{ color: "rgba(255,255,255,0.6)" }}>
+            I didn&apos;t want to build another chatbot. I wanted to build something that makes people feel understood —
+            something that remembers not just what you said, but how you felt when you said it.
+            That&apos;s missiAI.
+          </p>
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-2xl font-script italic" style={{ fontFamily: "var(--font-dancing-script), cursive", transform: "rotate(-2deg)", display: "inline-block" }}>
+              Rudra S.
+            </span>
+            <span className="text-xs font-light" style={{ color: "rgba(255,255,255,0.3)" }}>
+              Rudra Satani, Creator of missiAI
+            </span>
+          </div>
         </RevealSection>
       </section>
 
@@ -555,31 +566,29 @@ export default function LandingPage() {
           ═══════════════════════════════════════════ */}
       <section className="relative py-24 md:py-32 px-6 text-center">
         <RevealSection>
-          <h2 className="text-2xl md:text-4xl lg:text-5xl font-semibold tracking-tight mb-5 max-w-2xl mx-auto">
-            Ready to experience AI{" "}
-            <span style={{ color: "rgba(255,255,255,0.4)" }}>that remembers?</span>
+          <h2 className="text-2xl md:text-4xl lg:text-5xl font-semibold tracking-tight mb-5 max-w-2xl mx-auto leading-snug">
+            Your personal intelligence{" "}
+            <span style={{ color: "rgba(255,255,255,0.4)" }}>is waiting.</span>
           </h2>
         </RevealSection>
         <RevealSection delay={0.1}>
           <p className="text-sm md:text-base font-light max-w-md mx-auto mb-10" style={{ color: "rgba(255,255,255,0.4)" }}>
-            Join thousands of early adopters already shaping the future of human-AI collaboration.
+            The future of AI isn&apos;t artificial. It&apos;s personal.
           </p>
         </RevealSection>
         <RevealSection delay={0.2}>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/waitlist"
               className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
-              style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}
-            >
+              style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
               Get Early Access
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link href="/chat"
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:bg-white/10"
-              style={{ border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}
-            >
+              style={{ border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
               <MessageSquare className="w-4 h-4" />
-              Try Chat
+              Meet missiAI
             </Link>
           </div>
         </RevealSection>
@@ -590,47 +599,42 @@ export default function LandingPage() {
           ═══════════════════════════════════════════ */}
       <footer className="relative px-6 md:px-10 py-10" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Logo + copyright */}
           <div className="flex items-center gap-3">
             <Image src="/images/logo-symbol.png" alt="missiAI" width={24} height={24}
               className="w-6 h-6 opacity-60 select-none pointer-events-none" draggable={false} />
             <span className="text-xs font-light" style={{ color: "rgba(255,255,255,0.3)" }}>
-              © 2025 missiAI. All rights reserved.
+              © 2025 missiAI — Personal Intelligence. All rights reserved.
             </span>
           </div>
-
-          {/* Links */}
           <div className="flex items-center gap-6">
-            <Link href="/manifesto" className="text-xs transition-colors hover:text-white/60" style={{ color: "rgba(255,255,255,0.3)" }}>
-              Manifesto
-            </Link>
-            <Link href="/waitlist" className="text-xs transition-colors hover:text-white/60" style={{ color: "rgba(255,255,255,0.3)" }}>
-              Waitlist
-            </Link>
-            <Link href="/chat" className="text-xs transition-colors hover:text-white/60" style={{ color: "rgba(255,255,255,0.3)" }}>
-              Chat
-            </Link>
-            <a href="https://github.com/rudrasatani13/missiAI" target="_blank" rel="noopener noreferrer"
-              className="text-xs transition-colors hover:text-white/60" style={{ color: "rgba(255,255,255,0.3)" }}
-            >
-              GitHub
-            </a>
+            {[
+              { label: "Manifesto", href: "/manifesto" },
+              { label: "Waitlist", href: "/waitlist" },
+              { label: "Chat", href: "/chat" },
+              { label: "GitHub", href: "https://github.com/rudrasatani13/missiAI" },
+            ].map((link) => (
+              <Link key={link.label} href={link.href}
+                className="text-xs transition-colors hover:text-white/60" style={{ color: "rgba(255,255,255,0.3)" }}>
+                {link.label}
+              </Link>
+            ))}
           </div>
-
-          {/* Signature */}
           <div className="text-xs font-light" style={{ color: "rgba(255,255,255,0.25)" }}>
-            Built by <span className="text-white/40">Rudra Satani</span>
+            Built with <Heart className="w-3 h-3 inline-block mx-0.5" style={{ color: "rgba(255,255,255,0.3)" }} /> by{" "}
+            <span className="text-white/40">Rudra Satani</span>
           </div>
         </div>
       </footer>
 
-      {/* ═══════════════════════════════════════════
-          GLOBAL ANIMATIONS
-          ═══════════════════════════════════════════ */}
+      {/* Animations */}
       <style jsx global>{`
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(24px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes typingBounce {
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+          30% { transform: translateY(-6px); opacity: 0.9; }
         }
       `}</style>
     </div>
