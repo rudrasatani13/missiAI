@@ -54,21 +54,8 @@ function generateTitle(firstMessage: string): string {
   return trimmed.slice(0, 40) + "..."
 }
 
-function formatDate(ts: number): string {
-  const d = new Date(ts)
-  const now = new Date()
-  const diff = now.getTime() - d.getTime()
-  const days = Math.floor(diff / 86400000)
-
-  if (days === 0) return "Today"
-  if (days === 1) return "Yesterday"
-  if (days < 7) return `${days} days ago`
-  if (days < 30) return `${Math.floor(days / 7)}w ago`
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-}
-
 /* ─────────────────────────────────────────────────
-   Starfield Canvas — MINIMAL
+   Starfield Canvas
    ───────────────────────────────────────────────── */
 function StarfieldCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -154,7 +141,7 @@ function TypingDots() {
 /* ─────────────────────────────────────────────────
    Message Actions
    ───────────────────────────────────────────────── */
-function MessageActions({ content }: { content: string }) {
+function MessageActions({ content, onRegenerate }: { content: string; onRegenerate?: () => void }) {
   const [copied, setCopied] = useState(false)
   const [liked, setLiked] = useState<null | "up" | "down">(null)
 
@@ -177,23 +164,17 @@ function MessageActions({ content }: { content: string }) {
       <button onClick={() => setLiked(liked === "down" ? null : "down")} className={btn}>
         <ThumbsDown className="w-3.5 h-3.5" style={{ color: liked === "down" ? "rgba(255,255,255,0.7)" : undefined }} />
       </button>
-      <button className={btn}><RotateCcw className="w-3.5 h-3.5" /></button>
+      {onRegenerate && (
+        <button onClick={onRegenerate} className={btn} title="Regenerate">
+          <RotateCcw className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   )
 }
 
 /* ─────────────────────────────────────────────────
-   Simulated AI responses
-   ───────────────────────────────────────────────── */
-const AI_RESPONSES = [
-  "Hey, I can feel there's a lot on your mind right now.\n\nLet me think about this carefully for you. The way I see it, every challenge is an opportunity to grow — and I remember how you've handled similar situations before. You've got this.\n\nWant me to break it down further?",
-  "That's a great question, and I appreciate you trusting me with it.\n\nFrom what I know about you and your style, here's how I'd approach this: start with the core problem, then work outward. Context matters more than speed.\n\nShall I dive deeper into any part of this?",
-  "I remember we touched on something similar before.\n\nHere's my perspective: the intersection of memory and understanding is what makes our conversations meaningful. I don't just process your words — I understand the intent behind them.\n\nWhat aspect would you like to explore next?",
-  "Interesting. I've been thinking about this since you last brought it up.\n\nThe key insight is that good intelligence isn't just about having answers — it's about asking the right questions and knowing when to listen. That's what I try to do for you.\n\nTell me more about what's on your mind.",
-]
-
-/* ─────────────────────────────────────────────────
-   SIDEBAR COMPONENT
+   SIDEBAR
    ───────────────────────────────────────────────── */
 function Sidebar({
   chats, activeChatId, onSelectChat, onNewChat, onDeleteChat, onRenameChat, isOpen, onClose,
@@ -220,13 +201,9 @@ function Sidebar({
     ? chats.filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
     : chats
 
-  // Group chats by date
+  // Group by date
   const grouped: { label: string; chats: Chat[] }[] = []
-  const today: Chat[] = []
-  const yesterday: Chat[] = []
-  const week: Chat[] = []
-  const older: Chat[] = []
-
+  const today: Chat[] = [], yesterday: Chat[] = [], week: Chat[] = [], older: Chat[] = []
   const now = Date.now()
   for (const c of filtered) {
     const days = Math.floor((now - c.updatedAt) / 86400000)
@@ -235,64 +212,40 @@ function Sidebar({
     else if (days < 7) week.push(c)
     else older.push(c)
   }
-
   if (today.length) grouped.push({ label: "Today", chats: today })
   if (yesterday.length) grouped.push({ label: "Yesterday", chats: yesterday })
   if (week.length) grouped.push({ label: "This Week", chats: week })
   if (older.length) grouped.push({ label: "Older", chats: older })
 
-  const startRename = (c: Chat) => {
-    setEditingId(c.id)
-    setEditTitle(c.title)
-  }
-
+  const startRename = (c: Chat) => { setEditingId(c.id); setEditTitle(c.title) }
   const confirmRename = () => {
-    if (editingId && editTitle.trim()) {
-      onRenameChat(editingId, editTitle.trim())
-    }
+    if (editingId && editTitle.trim()) onRenameChat(editingId, editTitle.trim())
     setEditingId(null)
   }
 
   return (
     <>
-      {/* Mobile overlay */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={onClose} />
-      )}
+      {isOpen && <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={onClose} />}
 
       <aside
-        className={`
-          fixed md:relative z-40 top-0 left-0 h-full
-          flex flex-col
-          transition-all duration-300 ease-in-out
-          ${isOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full md:translate-x-0 md:w-0"}
-        `}
+        className={`fixed md:relative z-40 top-0 left-0 h-full flex flex-col transition-all duration-300 ease-in-out
+          ${isOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full md:translate-x-0 md:w-0"}`}
         style={{
-          background: "rgba(0,0,0,0.7)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          borderRight: isOpen ? "1px solid rgba(255,255,255,0.06)" : "none",
-          overflow: "hidden",
+          background: "rgba(0,0,0,0.7)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+          borderRight: isOpen ? "1px solid rgba(255,255,255,0.06)" : "none", overflow: "hidden",
         }}
       >
         <div className="flex flex-col h-full w-72">
-          {/* Sidebar header */}
+          {/* Header */}
           <div className="flex items-center justify-between px-3 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-            <button
-              onClick={onNewChat}
+            <button onClick={onNewChat}
               className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/[0.06]"
-              style={{ color: "rgba(255,255,255,0.7)" }}
-            >
-              <Plus className="w-4 h-4" />
-              New Chat
+              style={{ color: "rgba(255,255,255,0.7)" }}>
+              <Plus className="w-4 h-4" /> New Chat
             </button>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors md:flex hidden"
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors"
               style={{ color: "rgba(255,255,255,0.4)" }}>
-              <PanelLeftClose className="w-4 h-4" />
-            </button>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors md:hidden"
-              style={{ color: "rgba(255,255,255,0.4)" }}>
-              <X className="w-4 h-4" />
+              {typeof window !== "undefined" && window.innerWidth < 768 ? <X className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
             </button>
           </div>
 
@@ -301,13 +254,9 @@ function Sidebar({
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
               <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "rgba(255,255,255,0.25)" }} />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search chats..."
-                className="flex-1 bg-transparent border-none text-xs font-light placeholder:text-white/20 focus:outline-none"
-                style={{ color: "rgba(255,255,255,0.7)" }}
-              />
+              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search chats..." className="flex-1 bg-transparent border-none text-xs font-light placeholder:text-white/20 focus:outline-none"
+                style={{ color: "rgba(255,255,255,0.7)" }} />
             </div>
           </div>
 
@@ -327,46 +276,29 @@ function Sidebar({
                     {group.label}
                   </p>
                   {group.chats.map((chat) => (
-                    <div
-                      key={chat.id}
+                    <div key={chat.id}
                       className={`group flex items-center gap-1 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 mb-0.5 ${
-                        activeChatId === chat.id ? "bg-white/[0.08]" : "hover:bg-white/[0.04]"
-                      }`}
-                      onClick={() => { onSelectChat(chat.id); onClose() }}
-                    >
+                        activeChatId === chat.id ? "bg-white/[0.08]" : "hover:bg-white/[0.04]"}`}
+                      onClick={() => { onSelectChat(chat.id); if (window.innerWidth < 768) onClose() }}>
                       {editingId === chat.id ? (
-                        <input
-                          ref={editRef}
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          onBlur={confirmRename}
-                          onKeyDown={(e) => { if (e.key === "Enter") confirmRename(); if (e.key === "Escape") setEditingId(null) }}
+                        <input ref={editRef} value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
+                          onBlur={confirmRename} onKeyDown={(e) => { if (e.key === "Enter") confirmRename(); if (e.key === "Escape") setEditingId(null) }}
                           className="flex-1 bg-transparent border-none text-xs font-light focus:outline-none"
-                          style={{ color: "rgba(255,255,255,0.8)" }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
+                          style={{ color: "rgba(255,255,255,0.8)" }} onClick={(e) => e.stopPropagation()} />
                       ) : (
                         <>
                           <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "rgba(255,255,255,0.2)" }} />
-                          <span className="flex-1 text-xs font-light truncate" style={{ color: activeChatId === chat.id ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.55)" }}>
+                          <span className="flex-1 text-xs font-light truncate"
+                            style={{ color: activeChatId === chat.id ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.55)" }}>
                             {chat.title}
                           </span>
-                          {/* Actions on hover */}
                           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); startRename(chat) }}
+                            <button onClick={(e) => { e.stopPropagation(); startRename(chat) }}
                               className="w-6 h-6 rounded flex items-center justify-center hover:bg-white/[0.08]"
-                              style={{ color: "rgba(255,255,255,0.3)" }}
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); onDeleteChat(chat.id) }}
+                              style={{ color: "rgba(255,255,255,0.3)" }}><Pencil className="w-3 h-3" /></button>
+                            <button onClick={(e) => { e.stopPropagation(); onDeleteChat(chat.id) }}
                               className="w-6 h-6 rounded flex items-center justify-center hover:bg-red-500/20"
-                              style={{ color: "rgba(255,255,255,0.3)" }}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
+                              style={{ color: "rgba(255,255,255,0.3)" }}><Trash2 className="w-3 h-3" /></button>
                           </div>
                         </>
                       )}
@@ -377,10 +309,9 @@ function Sidebar({
             )}
           </div>
 
-          {/* Sidebar footer */}
+          {/* Footer */}
           <div className="px-3 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-            <Link href="/"
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all hover:bg-white/[0.06]"
+            <Link href="/" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all hover:bg-white/[0.06]"
               style={{ color: "rgba(255,255,255,0.4)" }}>
               <Image src="/images/logo-symbol.png" alt="missiAI" width={20} height={20}
                 className="w-5 h-5 opacity-60 select-none pointer-events-none" draggable={false} />
@@ -403,19 +334,20 @@ export default function ChatPage() {
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
-  // Load chats from localStorage on mount
+  // Load chats on mount
   useEffect(() => {
     const stored = loadChats()
     setChats(stored)
-    // Auto-hide sidebar on mobile
     if (window.innerWidth < 768) setSidebarOpen(false)
   }, [])
 
-  // Save chats whenever they change
+  // Save chats on change
   useEffect(() => {
     if (chats.length > 0) saveChats(chats)
   }, [chats])
@@ -435,45 +367,52 @@ export default function ChatPage() {
     if (ta) { ta.style.height = "24px"; ta.style.height = Math.min(ta.scrollHeight, 160) + "px" }
   }, [input])
 
-  // Create new chat
   const handleNewChat = useCallback(() => {
-    setActiveChatId(null)
-    setInput("")
-    setIsTyping(false)
+    setActiveChatId(null); setInput(""); setIsTyping(false); setError(null)
   }, [])
 
-  // Select existing chat
   const handleSelectChat = useCallback((id: string) => {
-    setActiveChatId(id)
-    setInput("")
-    setIsTyping(false)
+    setActiveChatId(id); setInput(""); setIsTyping(false); setError(null)
   }, [])
 
-  // Delete chat
   const handleDeleteChat = useCallback((id: string) => {
-    setChats((prev) => {
-      const updated = prev.filter((c) => c.id !== id)
-      saveChats(updated)
-      return updated
-    })
+    setChats((prev) => { const u = prev.filter((c) => c.id !== id); saveChats(u); return u })
     if (activeChatId === id) setActiveChatId(null)
   }, [activeChatId])
 
-  // Rename chat
   const handleRenameChat = useCallback((id: string, title: string) => {
-    setChats((prev) => {
-      const updated = prev.map((c) => c.id === id ? { ...c, title } : c)
-      saveChats(updated)
-      return updated
-    })
+    setChats((prev) => { const u = prev.map((c) => c.id === id ? { ...c, title } : c); saveChats(u); return u })
   }, [])
 
-  // Simulate AI response
-  const simulateResponse = useCallback((chatId: string) => {
+  /* ── Call REAL Gemini API ─────────────────────── */
+  const callAI = useCallback(async (chatId: string, allMessages: Message[]) => {
     setIsTyping(true)
-    setTimeout(() => {
-      const resp = AI_RESPONSES[Math.floor(Math.random() * AI_RESPONSES.length)]
-      const aiMsg: Message = { role: "assistant", content: resp, id: Date.now() }
+    setError(null)
+
+    // Create an AbortController so user can stop generation
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
+    try {
+      // Send messages to our API route (app/api/chat/route.ts)
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
+        }),
+        signal: controller.signal,
+      })
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}))
+        throw new Error(errData.error || `Server error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      const aiText = data.content || "I'm having a moment. Can you try again?"
+
+      const aiMsg: Message = { role: "assistant", content: aiText, id: Date.now() }
 
       setChats((prev) => {
         const updated = prev.map((c) =>
@@ -482,8 +421,24 @@ export default function ChatPage() {
         saveChats(updated)
         return updated
       })
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+        // User cancelled — do nothing
+      } else {
+        const errorMsg = err instanceof Error ? err.message : "Something went wrong"
+        setError(errorMsg)
+        console.error("AI call failed:", err)
+      }
+    } finally {
       setIsTyping(false)
-    }, 1000 + Math.random() * 1500)
+      abortControllerRef.current = null
+    }
+  }, [])
+
+  // Stop generation
+  const handleStop = useCallback(() => {
+    abortControllerRef.current?.abort()
+    setIsTyping(false)
   }, [])
 
   // Send message
@@ -494,35 +449,48 @@ export default function ChatPage() {
     const userMsg: Message = { role: "user", content: trimmed, id: Date.now() }
 
     if (!activeChatId) {
-      // Create new chat
+      // New chat
       const newChat: Chat = {
-        id: generateId(),
-        title: generateTitle(trimmed),
-        messages: [userMsg],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        id: generateId(), title: generateTitle(trimmed),
+        messages: [userMsg], createdAt: Date.now(), updatedAt: Date.now(),
       }
-      setChats((prev) => {
-        const updated = [newChat, ...prev]
-        saveChats(updated)
-        return updated
-      })
+      setChats((prev) => { const u = [newChat, ...prev]; saveChats(u); return u })
       setActiveChatId(newChat.id)
       setInput("")
-      simulateResponse(newChat.id)
+      callAI(newChat.id, [userMsg])
     } else {
-      // Add to existing chat
+      // Existing chat
+      const updatedMessages = [...messages, userMsg]
       setChats((prev) => {
-        const updated = prev.map((c) =>
-          c.id === activeChatId ? { ...c, messages: [...c.messages, userMsg], updatedAt: Date.now() } : c
+        const u = prev.map((c) =>
+          c.id === activeChatId ? { ...c, messages: updatedMessages, updatedAt: Date.now() } : c
         )
-        saveChats(updated)
-        return updated
+        saveChats(u)
+        return u
       })
       setInput("")
-      simulateResponse(activeChatId)
+      callAI(activeChatId, updatedMessages)
     }
-  }, [input, isTyping, activeChatId, simulateResponse])
+  }, [input, isTyping, activeChatId, messages, callAI])
+
+  // Regenerate last response
+  const handleRegenerate = useCallback(() => {
+    if (!activeChat || isTyping) return
+    const msgs = activeChat.messages
+    // Find last user message
+    const lastUserIdx = msgs.findLastIndex((m) => m.role === "user")
+    if (lastUserIdx === -1) return
+    // Remove last AI message if it exists
+    const messagesUpToUser = msgs.slice(0, lastUserIdx + 1)
+    setChats((prev) => {
+      const u = prev.map((c) =>
+        c.id === activeChatId ? { ...c, messages: messagesUpToUser, updatedAt: Date.now() } : c
+      )
+      saveChats(u)
+      return u
+    })
+    callAI(activeChatId!, messagesUpToUser)
+  }, [activeChat, activeChatId, isTyping, callAI])
 
   const hasText = input.trim().length > 0
 
@@ -550,29 +518,18 @@ export default function ChatPage() {
       <div className="fixed inset-0 bg-black flex font-inter">
         <StarfieldCanvas />
 
-        {/* ── Sidebar ──────────────────────────────── */}
-        <Sidebar
-          chats={chats}
-          activeChatId={activeChatId}
-          onSelectChat={handleSelectChat}
-          onNewChat={handleNewChat}
-          onDeleteChat={handleDeleteChat}
-          onRenameChat={handleRenameChat}
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
+        {/* Sidebar */}
+        <Sidebar chats={chats} activeChatId={activeChatId} onSelectChat={handleSelectChat}
+          onNewChat={handleNewChat} onDeleteChat={handleDeleteChat} onRenameChat={handleRenameChat}
+          isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        {/* ── Main Chat Area ───────────────────────── */}
+        {/* Main */}
         <div className="flex-1 flex flex-col relative z-[5] min-w-0">
 
           {/* Header */}
           <header className="relative z-10 flex items-center justify-between px-4 py-3 md:px-5"
-            style={{
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
-              background: "rgba(0,0,0,0.4)",
-              backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
-            }}>
-            {/* Left: sidebar toggle */}
+            style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.4)",
+              backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}>
             <div className="flex items-center gap-2">
               {!sidebarOpen && (
                 <button onClick={() => setSidebarOpen(true)}
@@ -589,14 +546,12 @@ export default function ChatPage() {
               </Link>
             </div>
 
-            {/* Center: logo */}
             <div className="absolute left-1/2 -translate-x-1/2 select-none">
               <Image src="/images/missiai-logo.png" alt="missiAI" width={200} height={40}
                 className="h-12 md:h-14 w-auto object-contain brightness-0 invert opacity-90 select-none pointer-events-none"
                 priority draggable={false} onContextMenu={(e) => e.preventDefault()} />
             </div>
 
-            {/* Right: new chat */}
             <button onClick={handleNewChat}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all duration-200 hover:bg-white/10"
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}>
@@ -605,10 +560,9 @@ export default function ChatPage() {
             </button>
           </header>
 
-          {/* Messages / Empty State */}
+          {/* Messages */}
           <div className="chat-scroll flex-1 overflow-y-auto flex flex-col">
             {isEmpty || (!activeChat && messages.length === 0) ? (
-              /* Empty state */
               <div className="flex-1 flex flex-col items-center justify-center px-5">
                 <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-white mb-1">
                   What&apos;s on your mind?
@@ -618,7 +572,6 @@ export default function ChatPage() {
                 </p>
               </div>
             ) : (
-              /* Chat messages */
               <div className="max-w-3xl w-full mx-auto px-5 md:px-8 py-8 flex flex-col gap-8 flex-1">
                 {messages.map((msg, idx) => (
                   <div key={msg.id} className="msg-in" style={{ animationDelay: `${idx * 0.03}s` }}>
@@ -641,13 +594,15 @@ export default function ChatPage() {
                             style={{ color: "rgba(255,255,255,0.82)" }}>
                             {msg.content}
                           </div>
-                          <MessageActions content={msg.content} />
+                          <MessageActions content={msg.content}
+                            onRegenerate={idx === messages.length - 1 ? handleRegenerate : undefined} />
                         </div>
                       </div>
                     )}
                   </div>
                 ))}
 
+                {/* Typing indicator */}
                 {isTyping && (
                   <div className="msg-in flex items-start gap-3">
                     <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 select-none overflow-hidden"
@@ -659,56 +614,53 @@ export default function ChatPage() {
                   </div>
                 )}
 
+                {/* Error message */}
+                {error && (
+                  <div className="msg-in flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
+                    style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "rgba(239,68,68,0.8)" }}>
+                    <span>⚠</span> {error}
+                    <button onClick={() => setError(null)} className="ml-auto hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                )}
+
                 <div ref={messagesEndRef} />
               </div>
             )}
           </div>
 
-          {/* Input Bar */}
+          {/* Input */}
           <div className="relative z-10 px-5 md:px-8 pt-2 pb-4"
             style={{ background: isEmpty ? "transparent" : "linear-gradient(to top, rgba(0,0,0,0.9) 50%, transparent)" }}>
             <div className="max-w-3xl mx-auto">
               <div className="flex items-center gap-0 rounded-full transition-all duration-300 focus-within:border-white/[0.18]"
-                style={{
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  padding: "5px 5px 5px 4px", height: 50,
-                }}>
+                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                  padding: "5px 5px 5px 4px", height: 50 }}>
                 <button className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-colors hover:bg-white/[0.06]"
                   style={{ color: "rgba(255,255,255,0.4)", background: "transparent", border: "none", cursor: "pointer" }}>
                   <Plus className="w-5 h-5" />
                 </button>
 
-                <textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-                  placeholder="Ask anything"
-                  rows={1}
+                  placeholder="Ask anything" rows={1}
                   className="flex-1 bg-transparent border-none text-[15px] font-light leading-6 placeholder:text-white/25 focus:outline-none resize-none"
-                  style={{ color: "rgba(255,255,255,0.9)", minHeight: 24, maxHeight: 40, paddingTop: 7, paddingBottom: 7, textAlign: "left", paddingLeft: 0, marginLeft: 0 }}
-                />
+                  style={{ color: "rgba(255,255,255,0.9)", minHeight: 24, maxHeight: 40, paddingTop: 7, paddingBottom: 7, textAlign: "left", paddingLeft: 0, marginLeft: 0 }} />
 
                 <button onClick={() => setIsListening((p) => !p)}
                   className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
-                  style={{
-                    background: isListening ? "rgba(255,255,255,0.12)" : "transparent",
-                    border: "none", cursor: "pointer",
+                  style={{ background: isListening ? "rgba(255,255,255,0.12)" : "transparent", border: "none", cursor: "pointer",
                     color: isListening ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)",
-                    animation: isListening ? "micPulse 1.5s ease-in-out infinite" : "none",
-                  }}>
+                    animation: isListening ? "micPulse 1.5s ease-in-out infinite" : "none" }}>
                   <MicIcon />
                 </button>
 
                 <button
-                  onClick={isTyping ? () => setIsTyping(false) : handleSend}
+                  onClick={isTyping ? handleStop : handleSend}
                   disabled={!hasText && !isTyping}
                   className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
                   style={{
                     background: isTyping ? "rgba(255,255,255,0.15)" : hasText ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.06)",
-                    border: "none",
-                    color: isTyping ? "#fff" : hasText ? "#000" : "rgba(255,255,255,0.12)",
+                    border: "none", color: isTyping ? "#fff" : hasText ? "#000" : "rgba(255,255,255,0.12)",
                     cursor: (!hasText && !isTyping) ? "default" : "pointer",
                     boxShadow: hasText && !isTyping ? "0 2px 12px rgba(255,255,255,0.1)" : "none",
                   }}>
