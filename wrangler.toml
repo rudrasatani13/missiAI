@@ -1,0 +1,7 @@
+name = "missiai"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# GEMINI_API_KEY is set in Cloudflare Dashboard (Settings > Environment Variables)
+# Don't put your actual key here — this file goes to GitHub!

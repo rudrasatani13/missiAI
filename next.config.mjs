@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  output: 'export', // Static export for Cloudflare Pages
+const nextConfig = { // Static export for Cloudflare Pages
   eslint: {
     ignoreDuringBuilds: true,
   },
