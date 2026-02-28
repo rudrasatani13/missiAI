@@ -4,9 +4,8 @@
   "private": true,
   "scripts": {
   "dev": "next dev",
-  "build": "npx @cloudflare/next-on-pages",
-  "start": "next start",
-  "preview": "npx wrangler pages dev .vercel/output/static"
+  "build": "next build",
+  "start": "next start"
 },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
