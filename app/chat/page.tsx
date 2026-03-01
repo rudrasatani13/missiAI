@@ -6,8 +6,9 @@ import Image from "next/image"
 import {
   ArrowLeft, Plus, Square, Copy, ThumbsUp, ThumbsDown,
   RotateCcw, Check, PanelLeftClose, PanelLeft,
-  MessageSquare, Trash2, Pencil, Search, X,
+  MessageSquare, Trash2, Pencil, Search, X, LogOut, User,
 } from "lucide-react"
+import { useUser, useClerk } from "@clerk/nextjs"
 
 /* ─────────────────────────────────────────────────
    Types
@@ -173,7 +174,7 @@ function MessageActions({ content, onRegenerate }: { content: string; onRegenera
    SIDEBAR
    ───────────────────────────────────────────────── */
 function Sidebar({
-  chats, activeChatId, onSelectChat, onNewChat, onDeleteChat, onRenameChat, isOpen, onClose,
+  chats, activeChatId, onSelectChat, onNewChat, onDeleteChat, onRenameChat, isOpen, onClose, user, onLogout,
 }: {
   chats: Chat[]
   activeChatId: string | null
@@ -183,6 +184,8 @@ function Sidebar({
   onRenameChat: (id: string, title: string) => void
   isOpen: boolean
   onClose: () => void
+  user: any
+  onLogout: () => void
 }) {
   const [searchQuery, setSearchQuery] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -301,7 +304,36 @@ function Sidebar({
             )}
           </div>
 
-          <div className="px-3 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="px-3 py-3 flex flex-col gap-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            {/* User profile */}
+            {user && (
+              <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg"
+                style={{ background: "rgba(255,255,255,0.03)" }}>
+                <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                  {user.imageUrl ? (
+                    <img src={user.imageUrl} alt="" className="w-7 h-7 rounded-full" />
+                  ) : (
+                    <User className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.5)" }} />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate" style={{ color: "rgba(255,255,255,0.7)" }}>
+                    {user.fullName || user.primaryEmailAddress?.emailAddress?.split("@")[0] || "User"}
+                  </p>
+                  <p className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.3)" }}>
+                    {user.primaryEmailAddress?.emailAddress}
+                  </p>
+                </div>
+                <button onClick={onLogout} title="Logout"
+                  className="w-7 h-7 rounded-md flex-shrink-0 flex items-center justify-center hover:bg-white/[0.08] transition-colors"
+                  style={{ color: "rgba(255,255,255,0.3)" }}>
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all hover:bg-white/[0.06]"
               style={{ color: "rgba(255,255,255,0.4)" }}>
               <Image src="/images/logo-symbol.png" alt="missiAI" width={20} height={20}
@@ -328,6 +360,8 @@ export default function ChatPage() {
   const [isListening, setIsListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const { user } = useUser()
+  const { signOut } = useClerk()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -360,6 +394,11 @@ export default function ChatPage() {
   const handleNewChat = useCallback(() => {
     setActiveChatId(null); setInput(""); setIsStreaming(false); setError(null)
   }, [])
+
+  const handleLogout = useCallback(async () => {
+    await signOut()
+    window.location.href = "/login"
+  }, [signOut])
 
   const handleSelectChat = useCallback((id: string) => {
     setActiveChatId(id); setInput(""); setIsStreaming(false); setError(null)
@@ -568,7 +607,8 @@ export default function ChatPage() {
 
         <Sidebar chats={chats} activeChatId={activeChatId} onSelectChat={handleSelectChat}
           onNewChat={handleNewChat} onDeleteChat={handleDeleteChat} onRenameChat={handleRenameChat}
-          isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)}
+          user={user} onLogout={handleLogout} />
 
         <div className="flex-1 flex flex-col relative z-[5] min-w-0">
 

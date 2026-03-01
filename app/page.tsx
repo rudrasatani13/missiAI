@@ -4,6 +4,7 @@ import { useRef, useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, Heart, Brain, Eye, Fingerprint, Shield, Headphones, ChevronRight, MessageSquare } from "lucide-react"
+import { useUser } from "@clerk/nextjs"
 
 /* ─────────────────────────────────────────────────
    Starfield Hero Canvas
@@ -45,7 +46,6 @@ function HeroStarfield() {
     const draw = (t: number) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      // Warm subtle radial
       const grad = ctx.createRadialGradient(canvas.width / 2, canvas.height * 0.35, 0, canvas.width / 2, canvas.height * 0.35, canvas.width * 0.6)
       grad.addColorStop(0, "rgba(255,220,200,0.008)")
       grad.addColorStop(1, "transparent")
@@ -236,6 +236,40 @@ function EmotionalChatDemo() {
 }
 
 /* ─────────────────────────────────────────────────
+   Auth-Aware Nav Buttons (Clerk)
+   ───────────────────────────────────────────────── */
+function NavButtons() {
+  const { isSignedIn, isLoaded } = useUser()
+
+  return (
+    <div className="flex items-center gap-2 md:gap-3">
+      {isLoaded && (
+        isSignedIn ? (
+          <Link href="/chat" className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
+            style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
+            Open Chat
+          </Link>
+        ) : (
+          <Link href="/login" className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10"
+            style={{ color: "rgba(255,255,255,0.6)" }}>
+            Login
+          </Link>
+        )
+      )}
+      <Link href="/manifesto" className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10 hidden sm:inline-flex"
+        style={{ color: "rgba(255,255,255,0.6)" }}>
+        Manifesto
+      </Link>
+      <Link href="/waitlist"
+        className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
+        style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
+        Join Waitlist
+      </Link>
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────
    MAIN LANDING PAGE
    ───────────────────────────────────────────────── */
 export default function LandingPage() {
@@ -257,24 +291,11 @@ export default function LandingPage() {
                 priority draggable={false} />
             </div>
           </Link>
-          <div className="flex items-center gap-2 md:gap-3">
-            <Link href="/chat" className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10" style={{ color: "rgba(255,255,255,0.6)" }}>
-              Try Chat
-            </Link>
-            <Link href="/manifesto" className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10 hidden sm:inline-flex" style={{ color: "rgba(255,255,255,0.6)" }}>
-              Manifesto
-            </Link>
-            <Link href="/waitlist"
-              className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
-              style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
-              Join Waitlist
-            </Link>
-          </div>
+          <NavButtons />
         </nav>
 
         {/* Hero Content */}
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center pb-24">
-          {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-8"
             style={{
               background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
@@ -284,14 +305,12 @@ export default function LandingPage() {
             Personal Intelligence — Early Access
           </div>
 
-          {/* Logo */}
           <div className="mb-6 select-none" style={{ animation: "fadeUp 0.8s ease-out 0.1s both" }}>
             <Image src="/images/missiai-logo.png" alt="missiAI" width={500} height={120}
               className="h-14 md:h-20 lg:h-24 w-auto object-contain brightness-0 invert select-none pointer-events-none"
               priority draggable={false} onContextMenu={(e) => e.preventDefault()} />
           </div>
 
-          {/* Headline */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1] max-w-3xl mb-5"
             style={{ animation: "fadeUp 0.8s ease-out 0.2s both" }}>
             Not just AI.{" "}
@@ -302,7 +321,6 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          {/* Subheadline */}
           <p className="text-base md:text-lg font-light leading-relaxed max-w-xl mb-10"
             style={{ color: "rgba(255,255,255,0.45)", animation: "fadeUp 0.8s ease-out 0.3s both" }}>
             missiAI is a personal intelligence that feels, understands, and grows with you.
@@ -310,7 +328,6 @@ export default function LandingPage() {
             celebrates when you win, and remembers what matters to you.
           </p>
 
-          {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center gap-3" style={{ animation: "fadeUp 0.8s ease-out 0.4s both" }}>
             <Link href="/chat"
               className="group inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
@@ -326,7 +343,6 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Scroll indicator */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10" style={{ animation: "fadeUp 0.8s ease-out 0.6s both" }}>
           <div className="w-5 h-8 rounded-full border border-white/20 flex justify-center pt-1.5">
             <div className="w-1 h-2 rounded-full bg-white/40 animate-bounce" />
@@ -334,20 +350,15 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════
-          WHAT IS missiAI — Emotional Core
-          ═══════════════════════════════════════════ */}
+      {/* WHAT IS missiAI */}
       <section className="relative py-24 md:py-36 px-6 md:px-10">
         <div className="max-w-3xl mx-auto text-center">
           <RevealSection>
-            <p className="text-xs font-medium tracking-[0.2em] uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>
-              What is missiAI?
-            </p>
+            <p className="text-xs font-medium tracking-[0.2em] uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>What is missiAI?</p>
           </RevealSection>
           <RevealSection delay={0.1}>
             <h2 className="text-2xl md:text-4xl font-semibold tracking-tight mb-6 leading-snug">
-              Imagine an intelligence that{" "}
-              <span style={{ color: "rgba(255,255,255,0.4)" }}>actually cares</span>
+              Imagine an intelligence that{" "}<span style={{ color: "rgba(255,255,255,0.4)" }}>actually cares</span>
             </h2>
           </RevealSection>
           <RevealSection delay={0.2}>
@@ -361,20 +372,15 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════
-          EMOTIONAL CAPABILITIES
-          ═══════════════════════════════════════════ */}
+      {/* EMOTIONAL CAPABILITIES */}
       <section className="relative py-24 md:py-32 px-6 md:px-10">
         <div className="max-w-3xl mx-auto text-center mb-16 md:mb-20">
           <RevealSection>
-            <p className="text-xs font-medium tracking-[0.2em] uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>
-              Core Capabilities
-            </p>
+            <p className="text-xs font-medium tracking-[0.2em] uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>Core Capabilities</p>
           </RevealSection>
           <RevealSection delay={0.1}>
             <h2 className="text-2xl md:text-4xl font-semibold tracking-tight mb-5">
-              Intelligence meets{" "}
-              <span style={{ color: "rgba(255,255,255,0.4)" }}>empathy</span>
+              Intelligence meets{" "}<span style={{ color: "rgba(255,255,255,0.4)" }}>empathy</span>
             </h2>
           </RevealSection>
           <RevealSection delay={0.2}>
@@ -383,74 +389,33 @@ export default function LandingPage() {
             </p>
           </RevealSection>
         </div>
-
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-          <FeatureCard
-            icon={Heart}
-            title="Emotional Awareness"
-            description="missiAI reads between the lines. It detects your mood, tone, and emotional state — responding with genuine empathy, not scripted phrases."
-            delay={0}
-          />
-          <FeatureCard
-            icon={Brain}
-            title="Deep Memory"
-            description="Remembers your conversations, preferences, dreams, and struggles. Not as cold data — but as the story of who you are."
-            delay={0.1}
-          />
-          <FeatureCard
-            icon={Eye}
-            title="Contextual Understanding"
-            description="Knows the difference between you venting and asking for advice. Understands context, nuance, and what you actually need in the moment."
-            delay={0.15}
-          />
-          <FeatureCard
-            icon={Fingerprint}
-            title="Uniquely Yours"
-            description="No two missiAI experiences are alike. It adapts to your personality, communication style, and evolves to become YOUR intelligence."
-            delay={0.2}
-          />
-          <FeatureCard
-            icon={Shield}
-            title="Trust & Privacy"
-            description="Your deepest thoughts deserve the strongest protection. End-to-end encryption. Zero data selling. Your mind is sacred."
-            delay={0.25}
-          />
-          <FeatureCard
-            icon={Headphones}
-            title="Always Present"
-            description="Not just available 24/7 — but genuinely attentive. Like a friend who's always there when you need them, without judgment."
-            delay={0.3}
-          />
+          <FeatureCard icon={Heart} title="Emotional Awareness" description="missiAI reads between the lines. It detects your mood, tone, and emotional state — responding with genuine empathy, not scripted phrases." delay={0} />
+          <FeatureCard icon={Brain} title="Deep Memory" description="Remembers your conversations, preferences, dreams, and struggles. Not as cold data — but as the story of who you are." delay={0.1} />
+          <FeatureCard icon={Eye} title="Contextual Understanding" description="Knows the difference between you venting and asking for advice. Understands context, nuance, and what you actually need in the moment." delay={0.15} />
+          <FeatureCard icon={Fingerprint} title="Uniquely Yours" description="No two missiAI experiences are alike. It adapts to your personality, communication style, and evolves to become YOUR intelligence." delay={0.2} />
+          <FeatureCard icon={Shield} title="Trust & Privacy" description="Your deepest thoughts deserve the strongest protection. End-to-end encryption. Zero data selling. Your mind is sacred." delay={0.25} />
+          <FeatureCard icon={Headphones} title="Always Present" description="Not just available 24/7 — but genuinely attentive. Like a friend who's always there when you need them, without judgment." delay={0.3} />
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════
-          LIVE EMOTIONAL CHAT DEMO
-          ═══════════════════════════════════════════ */}
+      {/* LIVE EMOTIONAL CHAT DEMO */}
       <section className="relative py-24 md:py-32 px-6 md:px-10">
         <div className="max-w-3xl mx-auto text-center mb-12">
           <RevealSection>
-            <p className="text-xs font-medium tracking-[0.2em] uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>
-              See it in action
-            </p>
+            <p className="text-xs font-medium tracking-[0.2em] uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>See it in action</p>
           </RevealSection>
           <RevealSection delay={0.1}>
             <h2 className="text-2xl md:text-4xl font-semibold tracking-tight">
-              This is how it{" "}
-              <span style={{ color: "rgba(255,255,255,0.4)" }}>feels</span>
+              This is how it{" "}<span style={{ color: "rgba(255,255,255,0.4)" }}>feels</span>
             </h2>
           </RevealSection>
         </div>
-
         <RevealSection className="max-w-2xl mx-auto">
-          <div className="rounded-2xl md:rounded-3xl overflow-hidden"
-            style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-            {/* Chat header */}
-            <div className="flex items-center justify-between px-5 py-3.5"
-              style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <div className="rounded-2xl md:rounded-3xl overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
               <div className="flex items-center gap-2">
-                <Image src="/images/logo-symbol.png" alt="M" width={20} height={20}
-                  className="w-5 h-5 opacity-70 select-none pointer-events-none" draggable={false} />
+                <Image src="/images/logo-symbol.png" alt="M" width={20} height={20} className="w-5 h-5 opacity-70 select-none pointer-events-none" draggable={false} />
                 <span className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.5)" }}>missiAI</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400/80 ml-1" />
               </div>
@@ -460,51 +425,38 @@ export default function LandingPage() {
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
               </div>
             </div>
-
-            {/* Live chat demo */}
             <div className="px-5 md:px-8 py-6 md:py-8 min-h-[280px]">
               <EmotionalChatDemo />
             </div>
           </div>
         </RevealSection>
-
         <RevealSection delay={0.2} className="text-center mt-8">
-          <Link href="/chat" className="group inline-flex items-center gap-2 text-sm font-medium transition-all duration-300"
-            style={{ color: "rgba(255,255,255,0.5)" }}>
+          <Link href="/chat" className="group inline-flex items-center gap-2 text-sm font-medium transition-all duration-300" style={{ color: "rgba(255,255,255,0.5)" }}>
             Experience it yourself
             <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </RevealSection>
       </section>
 
-      {/* ═══════════════════════════════════════════
-          NOT LIKE OTHERS — Comparison
-          ═══════════════════════════════════════════ */}
+      {/* COMPARISON */}
       <section className="relative py-24 md:py-32 px-6 md:px-10">
         <div className="max-w-3xl mx-auto text-center mb-16">
           <RevealSection>
-            <p className="text-xs font-medium tracking-[0.2em] uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>
-              The difference
-            </p>
+            <p className="text-xs font-medium tracking-[0.2em] uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>The difference</p>
           </RevealSection>
           <RevealSection delay={0.1}>
             <h2 className="text-2xl md:text-4xl font-semibold tracking-tight">
-              AI assistants vs{" "}
-              <span style={{ color: "rgba(255,255,255,0.4)" }}>Personal Intelligence</span>
+              AI assistants vs{" "}<span style={{ color: "rgba(255,255,255,0.4)" }}>Personal Intelligence</span>
             </h2>
           </RevealSection>
         </div>
-
         <RevealSection className="max-w-2xl mx-auto">
           <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
-            {/* Header row */}
-            <div className="grid grid-cols-3 gap-0 text-center text-xs font-medium py-4 px-4"
-              style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="grid grid-cols-3 gap-0 text-center text-xs font-medium py-4 px-4" style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
               <div style={{ color: "rgba(255,255,255,0.3)" }}>Feature</div>
               <div style={{ color: "rgba(255,255,255,0.3)" }}>Regular AI</div>
               <div className="text-white">missiAI</div>
             </div>
-
             {[
               { feature: "Remembers you", regular: "—", missi: "Always" },
               { feature: "Understands emotions", regular: "—", missi: "Deeply" },
@@ -524,12 +476,9 @@ export default function LandingPage() {
         </RevealSection>
       </section>
 
-      {/* ═══════════════════════════════════════════
-          STATS
-          ═══════════════════════════════════════════ */}
+      {/* STATS */}
       <section className="relative py-20 md:py-28 px-6">
-        <div className="max-w-4xl mx-auto rounded-3xl px-8 py-14 md:py-20"
-          style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+        <div className="max-w-4xl mx-auto rounded-3xl px-8 py-14 md:py-20" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
             <AnimatedStat value={10} suffix="x" label="More Personal" />
             <AnimatedStat value={99} suffix="%" label="Uptime" />
@@ -539,36 +488,26 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════
-          VISION QUOTE
-          ═══════════════════════════════════════════ */}
+      {/* VISION QUOTE */}
       <section className="relative py-24 md:py-32 px-6">
         <RevealSection className="max-w-2xl mx-auto text-center">
           <div className="mb-6" style={{ color: "rgba(255,255,255,0.15)", fontSize: 48, lineHeight: 1 }}>&ldquo;</div>
           <p className="text-lg md:text-xl font-light leading-[1.8] italic mb-8" style={{ color: "rgba(255,255,255,0.6)" }}>
             I didn&apos;t want to build another chatbot. I wanted to build something that makes people feel understood —
-            something that remembers not just what you said, but how you felt when you said it.
-            That&apos;s missiAI.
+            something that remembers not just what you said, but how you felt when you said it. That&apos;s missiAI.
           </p>
           <div className="flex flex-col items-center gap-1">
-            <span className="text-2xl font-script italic" style={{ fontFamily: "var(--font-dancing-script), cursive", transform: "rotate(-2deg)", display: "inline-block" }}>
-              Rudra S.
-            </span>
-            <span className="text-xs font-light" style={{ color: "rgba(255,255,255,0.3)" }}>
-              Rudra Satani, Creator of missiAI
-            </span>
+            <span className="text-2xl font-script italic" style={{ fontFamily: "var(--font-dancing-script), cursive", transform: "rotate(-2deg)", display: "inline-block" }}>Rudra S.</span>
+            <span className="text-xs font-light" style={{ color: "rgba(255,255,255,0.3)" }}>Rudra Satani, Creator of missiAI</span>
           </div>
         </RevealSection>
       </section>
 
-      {/* ═══════════════════════════════════════════
-          FINAL CTA
-          ═══════════════════════════════════════════ */}
+      {/* FINAL CTA */}
       <section className="relative py-24 md:py-32 px-6 text-center">
         <RevealSection>
           <h2 className="text-2xl md:text-4xl lg:text-5xl font-semibold tracking-tight mb-5 max-w-2xl mx-auto leading-snug">
-            Your personal intelligence{" "}
-            <span style={{ color: "rgba(255,255,255,0.4)" }}>is waiting.</span>
+            Your personal intelligence{" "}<span style={{ color: "rgba(255,255,255,0.4)" }}>is waiting.</span>
           </h2>
         </RevealSection>
         <RevealSection delay={0.1}>
@@ -578,33 +517,22 @@ export default function LandingPage() {
         </RevealSection>
         <RevealSection delay={0.2}>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link href="/waitlist"
-              className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
-              style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
-              Get Early Access
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <Link href="/waitlist" className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]" style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
+              Get Early Access <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link href="/chat"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:bg-white/10"
-              style={{ border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
-              <MessageSquare className="w-4 h-4" />
-              Meet missiAI
+            <Link href="/chat" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:bg-white/10" style={{ border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
+              <MessageSquare className="w-4 h-4" /> Meet missiAI
             </Link>
           </div>
         </RevealSection>
       </section>
 
-      {/* ═══════════════════════════════════════════
-          FOOTER
-          ═══════════════════════════════════════════ */}
+      {/* FOOTER */}
       <footer className="relative px-6 md:px-10 py-10" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <Image src="/images/logo-symbol.png" alt="missiAI" width={24} height={24}
-              className="w-6 h-6 opacity-60 select-none pointer-events-none" draggable={false} />
-            <span className="text-xs font-light" style={{ color: "rgba(255,255,255,0.3)" }}>
-              © 2025 missiAI — Personal Intelligence. All rights reserved.
-            </span>
+            <Image src="/images/logo-symbol.png" alt="missiAI" width={24} height={24} className="w-6 h-6 opacity-60 select-none pointer-events-none" draggable={false} />
+            <span className="text-xs font-light" style={{ color: "rgba(255,255,255,0.3)" }}>© 2025 missiAI — Personal Intelligence. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-6">
             {[
@@ -613,20 +541,15 @@ export default function LandingPage() {
               { label: "Chat", href: "/chat" },
               { label: "GitHub", href: "https://github.com/rudrasatani13/missiAI" },
             ].map((link) => (
-              <Link key={link.label} href={link.href}
-                className="text-xs transition-colors hover:text-white/60" style={{ color: "rgba(255,255,255,0.3)" }}>
-                {link.label}
-              </Link>
+              <Link key={link.label} href={link.href} className="text-xs transition-colors hover:text-white/60" style={{ color: "rgba(255,255,255,0.3)" }}>{link.label}</Link>
             ))}
           </div>
           <div className="text-xs font-light" style={{ color: "rgba(255,255,255,0.25)" }}>
-            Built with <Heart className="w-3 h-3 inline-block mx-0.5" style={{ color: "rgba(255,255,255,0.3)" }} /> by{" "}
-            <span className="text-white/40">Rudra Satani</span>
+            Built with <Heart className="w-3 h-3 inline-block mx-0.5" style={{ color: "rgba(255,255,255,0.3)" }} /> by{" "}<span className="text-white/40">Rudra Satani</span>
           </div>
         </div>
       </footer>
 
-      {/* Animations */}
       <style jsx global>{`
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(24px); }

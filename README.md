@@ -59,7 +59,7 @@ missiAI/
 │   ├── manifesto/          # Vision and mission pages
 │   ├── waitlist/            # Early access signup
 │   ├── globals.css          # Global styles
-│   ├── layout.tsx           # Root layout component
+│   ├── clerk-layout.tsx           # Root layout component
 │   └── page.tsx             # Home page
 ├── components/              # Reusable UI components
 ├── hooks/                   # Custom React hooks
