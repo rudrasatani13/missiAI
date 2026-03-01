@@ -1,64 +1,26 @@
 "use client"
+export const runtime = "edge"
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import {
-  ArrowLeft, Plus, Square, Copy, ThumbsUp, ThumbsDown,
-  RotateCcw, Check, PanelLeftClose, PanelLeft,
-  MessageSquare, Trash2, Pencil, Search, X, LogOut, User,
-} from "lucide-react"
+import { ArrowLeft, Settings, Mic, MicOff, Volume2, VolumeX, LogOut, X } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 
 /* ─────────────────────────────────────────────────
-   Types
+   Types & State Machine
    ───────────────────────────────────────────────── */
-interface Message {
+type VoiceState = "idle" | "recording" | "transcribing" | "thinking" | "speaking"
+
+interface ConversationEntry {
   role: "user" | "assistant"
   content: string
-  id: number
-}
-
-interface Chat {
-  id: string
-  title: string
-  messages: Message[]
-  createdAt: number
-  updatedAt: number
-}
-
-/* ─────────────────────────────────────────────────
-   LocalStorage helpers
-   ───────────────────────────────────────────────── */
-const STORAGE_KEY = "missiai-chats"
-
-function loadChats(): Chat[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch { return [] }
-}
-
-function saveChats(chats: Chat[]) {
-  if (typeof window === "undefined") return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(chats))
-}
-
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-}
-
-function generateTitle(firstMessage: string): string {
-  const trimmed = firstMessage.trim()
-  if (trimmed.length <= 40) return trimmed
-  return trimmed.slice(0, 40) + "..."
 }
 
 /* ─────────────────────────────────────────────────
    Starfield Canvas
    ───────────────────────────────────────────────── */
-function StarfieldCanvas() {
+function StarfieldBg() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -68,28 +30,26 @@ function StarfieldCanvas() {
     if (!ctx) return
 
     let animId: number
-    let stars: { x: number; y: number; size: number; brightness: number; speed: number; offset: number }[] = []
+    let stars: { x: number; y: number; s: number; b: number; sp: number; off: number }[] = []
 
     const resize = () => {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
-      stars = []
-      const count = window.innerWidth < 768 ? 70 : 140
-      for (let i = 0; i < count; i++) {
-        stars.push({
-          x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-          size: Math.random() * 1.3 + 0.2, brightness: Math.random() * 0.4 + 0.1,
-          speed: Math.random() * 0.002 + 0.0005, offset: Math.random() * Math.PI * 2,
-        })
-      }
+      stars = Array.from({ length: 120 }, () => ({
+        x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+        s: Math.random() * 1.2 + 0.3, b: Math.random() * 0.4 + 0.1,
+        sp: Math.random() * 0.002 + 0.0005, off: Math.random() * Math.PI * 2,
+      }))
     }
 
     const draw = (t: number) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-      for (const s of stars) {
-        const b = s.brightness * (0.65 + 0.35 * Math.sin(t * s.speed + s.offset))
-        ctx.fillStyle = `rgba(255,255,255,${b})`
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2); ctx.fill()
+      for (const star of stars) {
+        const alpha = star.b * (0.6 + 0.4 * Math.sin(t * star.sp + star.off))
+        ctx.fillStyle = `rgba(255,255,255,${alpha})`
+        ctx.beginPath()
+        ctx.arc(star.x, star.y, star.s, 0, Math.PI * 2)
+        ctx.fill()
       }
       animId = requestAnimationFrame(draw)
     }
@@ -100,355 +60,327 @@ function StarfieldCanvas() {
     return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize) }
   }, [])
 
-  return <canvas ref={canvasRef} className="fixed inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }} />
+  return <canvas ref={canvasRef} className="fixed inset-0 w-full h-full" />
 }
 
 /* ─────────────────────────────────────────────────
-   Icons
+   Animated Voice Orb
    ───────────────────────────────────────────────── */
-function MicIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" />
-      <line x1="12" y1="19" x2="12" y2="22" /><line x1="8" y1="22" x2="16" y2="22" />
-    </svg>
-  )
-}
-
-function SendArrowIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 19V5" /><path d="M5 12L12 5L19 12" />
-    </svg>
-  )
-}
-
-/* ─────────────────────────────────────────────────
-   Blinking cursor for streaming
-   ───────────────────────────────────────────────── */
-function StreamCursor() {
-  return (
-    <span className="inline-block w-[2px] h-[18px] ml-0.5 align-middle" style={{
-      background: "rgba(255,255,255,0.6)",
-      animation: "cursorBlink 0.8s ease-in-out infinite",
-    }} />
-  )
-}
-
-/* ─────────────────────────────────────────────────
-   Message Actions
-   ───────────────────────────────────────────────── */
-function MessageActions({ content, onRegenerate }: { content: string; onRegenerate?: () => void }) {
-  const [copied, setCopied] = useState(false)
-  const [liked, setLiked] = useState<null | "up" | "down">(null)
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const btn = "w-7 h-7 rounded-md flex items-center justify-center transition-all duration-200 hover:bg-white/[0.08]"
-
-  return (
-    <div className="flex items-center gap-0.5 mt-2 -ml-1" style={{ color: "rgba(255,255,255,0.3)" }}>
-      <button onClick={handleCopy} className={btn} title="Copy">
-        {copied ? <Check className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.6)" }} /> : <Copy className="w-3.5 h-3.5" />}
-      </button>
-      <button onClick={() => setLiked(liked === "up" ? null : "up")} className={btn}>
-        <ThumbsUp className="w-3.5 h-3.5" style={{ color: liked === "up" ? "rgba(255,255,255,0.7)" : undefined }} />
-      </button>
-      <button onClick={() => setLiked(liked === "down" ? null : "down")} className={btn}>
-        <ThumbsDown className="w-3.5 h-3.5" style={{ color: liked === "down" ? "rgba(255,255,255,0.7)" : undefined }} />
-      </button>
-      {onRegenerate && (
-        <button onClick={onRegenerate} className={btn} title="Regenerate">
-          <RotateCcw className="w-3.5 h-3.5" />
-        </button>
-      )}
-    </div>
-  )
-}
-
-/* ─────────────────────────────────────────────────
-   SIDEBAR
-   ───────────────────────────────────────────────── */
-function Sidebar({
-  chats, activeChatId, onSelectChat, onNewChat, onDeleteChat, onRenameChat, isOpen, onClose, user, onLogout,
-}: {
-  chats: Chat[]
-  activeChatId: string | null
-  onSelectChat: (id: string) => void
-  onNewChat: () => void
-  onDeleteChat: (id: string) => void
-  onRenameChat: (id: string, title: string) => void
-  isOpen: boolean
-  onClose: () => void
-  user: any
-  onLogout: () => void
-}) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editTitle, setEditTitle] = useState("")
-  const editRef = useRef<HTMLInputElement>(null)
+function VoiceOrb({ state, onClick }: { state: VoiceState; onClick: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    if (editingId && editRef.current) editRef.current.focus()
-  }, [editingId])
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
 
-  const filtered = searchQuery.trim()
-    ? chats.filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    : chats
+    const size = 200
+    canvas.width = size
+    canvas.height = size
+    let animId: number
 
-  const grouped: { label: string; chats: Chat[] }[] = []
-  const today: Chat[] = [], yesterday: Chat[] = [], week: Chat[] = [], older: Chat[] = []
-  const now = Date.now()
-  for (const c of filtered) {
-    const days = Math.floor((now - c.updatedAt) / 86400000)
-    if (days === 0) today.push(c)
-    else if (days === 1) yesterday.push(c)
-    else if (days < 7) week.push(c)
-    else older.push(c)
-  }
-  if (today.length) grouped.push({ label: "Today", chats: today })
-  if (yesterday.length) grouped.push({ label: "Yesterday", chats: yesterday })
-  if (week.length) grouped.push({ label: "This Week", chats: week })
-  if (older.length) grouped.push({ label: "Older", chats: older })
+    const draw = (t: number) => {
+      ctx.clearRect(0, 0, size, size)
+      const cx = size / 2
+      const cy = size / 2
 
-  const startRename = (c: Chat) => { setEditingId(c.id); setEditTitle(c.title) }
-  const confirmRename = () => {
-    if (editingId && editTitle.trim()) onRenameChat(editingId, editTitle.trim())
-    setEditingId(null)
-  }
+      // Outer glow
+      const glowRadius = state === "recording" ? 85 + Math.sin(t * 0.003) * 8 :
+        state === "speaking" ? 82 + Math.sin(t * 0.004) * 10 :
+        state === "thinking" || state === "transcribing" ? 80 + Math.sin(t * 0.005) * 5 : 78
+
+      const glowAlpha = state === "recording" ? 0.15 :
+        state === "speaking" ? 0.12 : state === "idle" ? 0.04 : 0.08
+
+      const grad = ctx.createRadialGradient(cx, cy, 30, cx, cy, glowRadius)
+
+      if (state === "recording") {
+        grad.addColorStop(0, `rgba(239,68,68,${glowAlpha + 0.1})`)
+        grad.addColorStop(0.5, `rgba(239,68,68,${glowAlpha})`)
+        grad.addColorStop(1, "transparent")
+      } else if (state === "speaking") {
+        grad.addColorStop(0, `rgba(255,255,255,${glowAlpha + 0.08})`)
+        grad.addColorStop(0.5, `rgba(200,220,255,${glowAlpha})`)
+        grad.addColorStop(1, "transparent")
+      } else if (state === "thinking" || state === "transcribing") {
+        grad.addColorStop(0, `rgba(255,255,255,${glowAlpha + 0.05})`)
+        grad.addColorStop(0.5, `rgba(255,255,255,${glowAlpha})`)
+        grad.addColorStop(1, "transparent")
+      } else {
+        grad.addColorStop(0, `rgba(255,255,255,${glowAlpha + 0.03})`)
+        grad.addColorStop(1, "transparent")
+      }
+
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, size, size)
+
+      // Core circle
+      const baseRadius = 42
+      const coreRadius = state === "recording" ? baseRadius + 3 + Math.sin(t * 0.006) * 4 :
+        state === "speaking" ? baseRadius + 2 + Math.sin(t * 0.005) * 5 :
+        state === "thinking" || state === "transcribing" ? baseRadius + Math.sin(t * 0.008) * 2 : baseRadius
+
+      ctx.beginPath()
+      ctx.arc(cx, cy, coreRadius, 0, Math.PI * 2)
+
+      if (state === "recording") {
+        ctx.fillStyle = "rgba(239,68,68,0.12)"
+        ctx.fill()
+        ctx.strokeStyle = "rgba(239,68,68,0.5)"
+        ctx.lineWidth = 2
+        ctx.stroke()
+      } else if (state === "speaking") {
+        ctx.fillStyle = "rgba(255,255,255,0.08)"
+        ctx.fill()
+        ctx.strokeStyle = "rgba(255,255,255,0.35)"
+        ctx.lineWidth = 2
+        ctx.stroke()
+      } else if (state === "thinking" || state === "transcribing") {
+        ctx.fillStyle = "rgba(255,255,255,0.04)"
+        ctx.fill()
+        ctx.strokeStyle = "rgba(255,255,255,0.15)"
+        ctx.lineWidth = 1.5
+        ctx.stroke()
+      } else {
+        ctx.fillStyle = "rgba(255,255,255,0.03)"
+        ctx.fill()
+        ctx.strokeStyle = "rgba(255,255,255,0.12)"
+        ctx.lineWidth = 1
+        ctx.stroke()
+      }
+
+      // Waveform ring (recording & speaking)
+      if (state === "recording" || state === "speaking") {
+        const waveCount = state === "recording" ? 48 : 64
+        const waveRadius = coreRadius + 12
+        for (let i = 0; i < waveCount; i++) {
+          const angle = (i / waveCount) * Math.PI * 2
+          const wave = Math.sin(angle * 6 + t * 0.004) * (state === "recording" ? 8 : 12)
+            + Math.sin(angle * 3 + t * 0.003) * 4
+          const r1 = waveRadius
+          const r2 = waveRadius + Math.abs(wave)
+          const x1 = cx + Math.cos(angle) * r1
+          const y1 = cy + Math.sin(angle) * r1
+          const x2 = cx + Math.cos(angle) * r2
+          const y2 = cy + Math.sin(angle) * r2
+          ctx.beginPath()
+          ctx.moveTo(x1, y1)
+          ctx.lineTo(x2, y2)
+          ctx.strokeStyle = state === "recording"
+            ? `rgba(239,68,68,${0.2 + Math.abs(wave) / 20})`
+            : `rgba(255,255,255,${0.15 + Math.abs(wave) / 25})`
+          ctx.lineWidth = 1.5
+          ctx.lineCap = "round"
+          ctx.stroke()
+        }
+      }
+
+      // Spinning ring (thinking/transcribing)
+      if (state === "thinking" || state === "transcribing") {
+        const spinAngle = t * 0.003
+        const arcLen = Math.PI * 0.7
+        ctx.beginPath()
+        ctx.arc(cx, cy, coreRadius + 10, spinAngle, spinAngle + arcLen)
+        ctx.strokeStyle = "rgba(255,255,255,0.25)"
+        ctx.lineWidth = 2
+        ctx.lineCap = "round"
+        ctx.stroke()
+
+        ctx.beginPath()
+        ctx.arc(cx, cy, coreRadius + 10, spinAngle + Math.PI, spinAngle + Math.PI + arcLen * 0.5)
+        ctx.strokeStyle = "rgba(255,255,255,0.12)"
+        ctx.lineWidth = 1.5
+        ctx.stroke()
+      }
+
+      animId = requestAnimationFrame(draw)
+    }
+
+    animId = requestAnimationFrame(draw)
+    return () => cancelAnimationFrame(animId)
+  }, [state])
+
+  const isClickable = state === "idle" || state === "recording" || state === "speaking"
 
   return (
-    <>
-      {isOpen && <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={onClose} />}
-      <aside
-        className={`fixed md:relative z-40 top-0 left-0 h-full flex flex-col transition-all duration-300 ease-in-out
-          ${isOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full md:translate-x-0 md:w-0"}`}
-        style={{
-          background: "rgba(0,0,0,0.7)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
-          borderRight: isOpen ? "1px solid rgba(255,255,255,0.06)" : "none", overflow: "hidden",
-        }}
-      >
-        <div className="flex flex-col h-full w-72">
-          <div className="flex items-center justify-between px-3 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-            <button onClick={onNewChat}
-              className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/[0.06]"
-              style={{ color: "rgba(255,255,255,0.7)" }}>
-              <Plus className="w-4 h-4" /> New Chat
-            </button>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors"
-              style={{ color: "rgba(255,255,255,0.4)" }}>
-              <PanelLeftClose className="w-4 h-4 hidden md:block" />
-              <X className="w-4 h-4 md:hidden" />
-            </button>
-          </div>
+    <button
+      onClick={onClick}
+      disabled={!isClickable}
+      className="relative transition-transform duration-300"
+      style={{
+        cursor: isClickable ? "pointer" : "default",
+        transform: isClickable ? "scale(1)" : "scale(0.98)",
+        outline: "none", border: "none", background: "transparent",
+      }}
+    >
+      <canvas ref={canvasRef} width={200} height={200} className="w-[200px] h-[200px]" />
 
-          <div className="px-3 py-2">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "rgba(255,255,255,0.25)" }} />
-              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search chats..." className="flex-1 bg-transparent border-none text-xs font-light placeholder:text-white/20 focus:outline-none"
-                style={{ color: "rgba(255,255,255,0.7)" }} />
-            </div>
+      {/* Center icon */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        {state === "recording" ? (
+          <div className="w-5 h-5 rounded-sm bg-red-400/80" />
+        ) : state === "thinking" || state === "transcribing" ? (
+          <div className="flex gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <span key={i} className="w-1.5 h-1.5 rounded-full" style={{
+                background: "rgba(255,255,255,0.5)",
+                animation: `dotPulse 1.2s ease-in-out ${i * 0.15}s infinite`,
+              }} />
+            ))}
           </div>
-
-          <div className="flex-1 overflow-y-auto px-2 py-1 sidebar-scroll">
-            {grouped.length === 0 ? (
-              <div className="px-3 py-8 text-center">
-                <MessageSquare className="w-8 h-8 mx-auto mb-3" style={{ color: "rgba(255,255,255,0.1)" }} />
-                <p className="text-xs font-light" style={{ color: "rgba(255,255,255,0.25)" }}>
-                  {searchQuery ? "No chats found" : "No conversations yet"}
-                </p>
-              </div>
-            ) : (
-              grouped.map((group) => (
-                <div key={group.label} className="mb-3">
-                  <p className="px-3 py-1.5 text-[10px] font-medium tracking-wider uppercase" style={{ color: "rgba(255,255,255,0.25)" }}>
-                    {group.label}
-                  </p>
-                  {group.chats.map((chat) => (
-                    <div key={chat.id}
-                      className={`group flex items-center gap-1 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 mb-0.5 ${
-                        activeChatId === chat.id ? "bg-white/[0.08]" : "hover:bg-white/[0.04]"}`}
-                      onClick={() => { onSelectChat(chat.id); if (window.innerWidth < 768) onClose() }}>
-                      {editingId === chat.id ? (
-                        <input ref={editRef} value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
-                          onBlur={confirmRename} onKeyDown={(e) => { if (e.key === "Enter") confirmRename(); if (e.key === "Escape") setEditingId(null) }}
-                          className="flex-1 bg-transparent border-none text-xs font-light focus:outline-none"
-                          style={{ color: "rgba(255,255,255,0.8)" }} onClick={(e) => e.stopPropagation()} />
-                      ) : (
-                        <>
-                          <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "rgba(255,255,255,0.2)" }} />
-                          <span className="flex-1 text-xs font-light truncate"
-                            style={{ color: activeChatId === chat.id ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.55)" }}>
-                            {chat.title}
-                          </span>
-                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={(e) => { e.stopPropagation(); startRename(chat) }}
-                              className="w-6 h-6 rounded flex items-center justify-center hover:bg-white/[0.08]"
-                              style={{ color: "rgba(255,255,255,0.3)" }}><Pencil className="w-3 h-3" /></button>
-                            <button onClick={(e) => { e.stopPropagation(); onDeleteChat(chat.id) }}
-                              className="w-6 h-6 rounded flex items-center justify-center hover:bg-red-500/20"
-                              style={{ color: "rgba(255,255,255,0.3)" }}><Trash2 className="w-3 h-3" /></button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ))
-            )}
-          </div>
-
-          <div className="px-3 py-3 flex flex-col gap-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-            {/* User profile */}
-            {user && (
-              <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg"
-                style={{ background: "rgba(255,255,255,0.03)" }}>
-                <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center"
-                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                  {user.imageUrl ? (
-                    <img src={user.imageUrl} alt="" className="w-7 h-7 rounded-full" />
-                  ) : (
-                    <User className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.5)" }} />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate" style={{ color: "rgba(255,255,255,0.7)" }}>
-                    {user.fullName || user.primaryEmailAddress?.emailAddress?.split("@")[0] || "User"}
-                  </p>
-                  <p className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.3)" }}>
-                    {user.primaryEmailAddress?.emailAddress}
-                  </p>
-                </div>
-                <button onClick={onLogout} title="Logout"
-                  className="w-7 h-7 rounded-md flex-shrink-0 flex items-center justify-center hover:bg-white/[0.08] transition-colors"
-                  style={{ color: "rgba(255,255,255,0.3)" }}>
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all hover:bg-white/[0.06]"
-              style={{ color: "rgba(255,255,255,0.4)" }}>
-              <Image src="/images/logo-symbol.png" alt="missiAI" width={20} height={20}
-                className="w-5 h-5 opacity-60 select-none pointer-events-none" draggable={false} />
-              <span className="font-medium">missi<span className="opacity-40">AI</span></span>
-              <span className="ml-auto text-[10px]" style={{ color: "rgba(255,255,255,0.2)" }}>v0.1</span>
-            </Link>
-          </div>
-        </div>
-      </aside>
-    </>
+        ) : state === "speaking" ? (
+          <Volume2 className="w-6 h-6" style={{ color: "rgba(255,255,255,0.6)" }} />
+        ) : (
+          <Mic className="w-7 h-7" style={{ color: "rgba(255,255,255,0.5)" }} />
+        )}
+      </div>
+    </button>
   )
 }
 
 /* ─────────────────────────────────────────────────
-   MAIN CHAT PAGE
+   MAIN VOICE ASSISTANT PAGE
    ───────────────────────────────────────────────── */
-export default function ChatPage() {
-  const [chats, setChats] = useState<Chat[]>([])
-  const [activeChatId, setActiveChatId] = useState<string | null>(null)
-  const [input, setInput] = useState("")
-  const [isStreaming, setIsStreaming] = useState(false)
-  const [streamingMsgId, setStreamingMsgId] = useState<number | null>(null)
-  const [isListening, setIsListening] = useState(false)
+export default function Page() {
+  const [voiceState, setVoiceState] = useState<VoiceState>("idle")
+  const [statusText, setStatusText] = useState("Tap to speak")
+  const [lastTranscript, setLastTranscript] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [showSettings, setShowSettings] = useState(false)
   const { user } = useUser()
   const { signOut } = useClerk()
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const abortControllerRef = useRef<AbortController | null>(null)
 
-  useEffect(() => {
-    const stored = loadChats()
-    setChats(stored)
-    if (window.innerWidth < 768) setSidebarOpen(false)
+  // Conversation history (hidden from UI, used for context)
+  const conversationRef = useRef<ConversationEntry[]>([])
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
+
+  /* ══════════════════════════════════════════════
+     CORE VOICE FLOW
+     1. Record → 2. Transcribe (STT) → 3. Think (Gemini) → 4. Speak (TTS)
+     ══════════════════════════════════════════════ */
+
+  /* ── Step 1: Start Recording ─── */
+  const startRecording = useCallback(async () => {
+    try {
+      // Stop any current speech
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause()
+        audioPlayerRef.current = null
+      }
+
+      setVoiceState("recording")
+      setStatusText("Listening...")
+      setError(null)
+      setLastTranscript("")
+      audioChunksRef.current = []
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true },
+      })
+      streamRef.current = stream
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus" : "audio/webm"
+      const recorder = new MediaRecorder(stream, { mimeType })
+      mediaRecorderRef.current = recorder
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data)
+      }
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop())
+        streamRef.current = null
+
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" })
+
+        if (audioBlob.size < 500) {
+          setVoiceState("idle")
+          setStatusText("Too short — try again")
+          setTimeout(() => setStatusText("Tap to speak"), 2000)
+          return
+        }
+
+        // Step 2: Transcribe
+        await transcribeAudio(audioBlob)
+      }
+
+      recorder.start(100)
+    } catch (err) {
+      console.error("Mic error:", err)
+      setError("Microphone access denied. Please allow permissions.")
+      setVoiceState("idle")
+      setStatusText("Tap to speak")
+    }
   }, [])
 
-  useEffect(() => {
-    if (chats.length > 0) saveChats(chats)
-  }, [chats])
-
-  const activeChat = chats.find((c) => c.id === activeChatId) || null
-  const messages = activeChat?.messages || []
-  const isEmpty = messages.length === 0 && !activeChatId
-
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [])
-
-  useEffect(() => { scrollToBottom() }, [messages, isStreaming, scrollToBottom])
-
-  useEffect(() => {
-    const ta = textareaRef.current
-    if (ta) { ta.style.height = "24px"; ta.style.height = Math.min(ta.scrollHeight, 160) + "px" }
-  }, [input])
-
-  const handleNewChat = useCallback(() => {
-    setActiveChatId(null); setInput(""); setIsStreaming(false); setError(null)
-  }, [])
-
-  const handleLogout = useCallback(async () => {
-    await signOut()
-    window.location.href = "/login"
-  }, [signOut])
-
-  const handleSelectChat = useCallback((id: string) => {
-    setActiveChatId(id); setInput(""); setIsStreaming(false); setError(null)
-  }, [])
-
-  const handleDeleteChat = useCallback((id: string) => {
-    setChats((prev) => { const u = prev.filter((c) => c.id !== id); saveChats(u); return u })
-    if (activeChatId === id) setActiveChatId(null)
-  }, [activeChatId])
-
-  const handleRenameChat = useCallback((id: string, title: string) => {
-    setChats((prev) => { const u = prev.map((c) => c.id === id ? { ...c, title } : c); saveChats(u); return u })
-  }, [])
-
-  /* ── STREAMING AI CALL ───────────────────────── */
-  const callAI = useCallback(async (chatId: string, allMessages: Message[]) => {
-    setIsStreaming(true)
-    setError(null)
-
-    const controller = new AbortController()
-    abortControllerRef.current = controller
-
-    // Create empty AI message that we'll fill with streamed text
-    const aiMsgId = Date.now()
-    setStreamingMsgId(aiMsgId)
-    const aiMsg: Message = { role: "assistant", content: "", id: aiMsgId }
-
-    // Add empty AI message to chat
-    setChats((prev) => {
-      const updated = prev.map((c) =>
-        c.id === chatId ? { ...c, messages: [...c.messages, aiMsg], updatedAt: Date.now() } : c
-      )
-      saveChats(updated)
-      return updated
-    })
+  /* ── Step 2: Transcribe via ElevenLabs STT ─── */
+  const transcribeAudio = useCallback(async (audioBlob: Blob) => {
+    setVoiceState("transcribing")
+    setStatusText("Processing your voice...")
 
     try {
+      const formData = new FormData()
+      formData.append("audio", audioBlob, "recording.webm")
+
+      const res = await fetch("/api/stt", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!res.ok) throw new Error("Transcription failed")
+
+      const data = await res.json()
+      const transcript = data.text?.trim()
+
+      if (!transcript) {
+        setVoiceState("idle")
+        setStatusText("Didn't catch that — try again")
+        setTimeout(() => setStatusText("Tap to speak"), 2500)
+        return
+      }
+
+      setLastTranscript(transcript)
+
+      // Add to conversation history
+      conversationRef.current.push({ role: "user", content: transcript })
+
+      // Step 3: Get AI response
+      await getAIResponse(transcript)
+    } catch (err) {
+      console.error("STT error:", err)
+      setError("Couldn't process your voice. Try again.")
+      setVoiceState("idle")
+      setStatusText("Tap to speak")
+    }
+  }, [])
+
+  /* ── Step 3: Get response from Gemini ─── */
+  const getAIResponse = useCallback(async (userText: string) => {
+    setVoiceState("thinking")
+    setStatusText("Thinking...")
+
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    try {
+      const messages = conversationRef.current.map((m) => ({
+        role: m.role, content: m.content,
+      }))
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
-        }),
+        body: JSON.stringify({ messages }),
         signal: controller.signal,
       })
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}))
-        throw new Error(errData.error || `Server error: ${response.status}`)
-      }
+      if (!response.ok) throw new Error(`Server error: ${response.status}`)
 
       const reader = response.body?.getReader()
       if (!reader) throw new Error("No response stream")
@@ -470,290 +402,288 @@ export default function ChatPage() {
 
           try {
             const parsed = JSON.parse(data)
-            if (parsed.text) {
-              fullText += parsed.text
-
-              // Update the AI message content in real-time
-              const currentText = fullText
-              setChats((prev) => {
-                const updated = prev.map((c) => {
-                  if (c.id !== chatId) return c
-                  const msgs = c.messages.map((m) =>
-                    m.id === aiMsgId ? { ...m, content: currentText } : m
-                  )
-                  return { ...c, messages: msgs, updatedAt: Date.now() }
-                })
-                // Don't save to localStorage on every chunk (performance)
-                return updated
-              })
-            }
+            if (parsed.text) fullText += parsed.text
           } catch {
-            // skip malformed chunks
+            // skip malformed
           }
         }
       }
 
-      // Final save to localStorage
-      setChats((prev) => {
-        saveChats(prev)
-        return prev
-      })
+      if (!fullText.trim()) {
+        setVoiceState("idle")
+        setStatusText("No response — try again")
+        setTimeout(() => setStatusText("Tap to speak"), 2500)
+        return
+      }
 
-    } catch (err: unknown) {
+      // Add to conversation history
+      conversationRef.current.push({ role: "assistant", content: fullText })
+
+      // Keep conversation manageable (last 20 entries)
+      if (conversationRef.current.length > 20) {
+        conversationRef.current = conversationRef.current.slice(-20)
+      }
+
+      // Step 4: Speak the response
+      await speakResponse(fullText)
+    } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
-        // User cancelled — save what we have
-        setChats((prev) => { saveChats(prev); return prev })
-      } else {
-        const errorMsg = err instanceof Error ? err.message : "Something went wrong"
-        setError(errorMsg)
-        // Remove empty AI message on error
-        setChats((prev) => {
-          const updated = prev.map((c) => {
-            if (c.id !== chatId) return c
-            const msgs = c.messages.filter((m) => m.id !== aiMsgId || m.content.length > 0)
-            return { ...c, messages: msgs }
-          })
-          saveChats(updated)
-          return updated
-        })
+        setVoiceState("idle")
+        setStatusText("Tap to speak")
+        return
       }
-    } finally {
-      setIsStreaming(false)
-      setStreamingMsgId(null)
-      abortControllerRef.current = null
+      console.error("AI error:", err)
+      setError("Couldn't get a response. Try again.")
+      setVoiceState("idle")
+      setStatusText("Tap to speak")
     }
   }, [])
 
-  const handleStop = useCallback(() => {
-    abortControllerRef.current?.abort()
-    setIsStreaming(false)
-    setStreamingMsgId(null)
-  }, [])
+  /* ── Step 4: Speak via ElevenLabs TTS ─── */
+  const speakResponse = useCallback(async (text: string) => {
+    setVoiceState("speaking")
+    setStatusText("Speaking...")
 
-  const handleSend = useCallback(() => {
-    const trimmed = input.trim()
-    if (!trimmed || isStreaming) return
-
-    const userMsg: Message = { role: "user", content: trimmed, id: Date.now() }
-
-    if (!activeChatId) {
-      const newChat: Chat = {
-        id: generateId(), title: generateTitle(trimmed),
-        messages: [userMsg], createdAt: Date.now(), updatedAt: Date.now(),
-      }
-      setChats((prev) => { const u = [newChat, ...prev]; saveChats(u); return u })
-      setActiveChatId(newChat.id)
-      setInput("")
-      callAI(newChat.id, [userMsg])
-    } else {
-      const updatedMessages = [...messages, userMsg]
-      setChats((prev) => {
-        const u = prev.map((c) =>
-          c.id === activeChatId ? { ...c, messages: updatedMessages, updatedAt: Date.now() } : c
-        )
-        saveChats(u)
-        return u
+    try {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
       })
-      setInput("")
-      callAI(activeChatId, updatedMessages)
+
+      if (!res.ok) throw new Error("TTS failed")
+
+      const audioBlob = await res.blob()
+      const audioUrl = URL.createObjectURL(audioBlob)
+
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause()
+      }
+
+      const audio = new Audio(audioUrl)
+      audioPlayerRef.current = audio
+
+      audio.onended = () => {
+        setVoiceState("idle")
+        setStatusText("Tap to speak")
+        URL.revokeObjectURL(audioUrl)
+        audioPlayerRef.current = null
+      }
+
+      audio.onerror = () => {
+        setVoiceState("idle")
+        setStatusText("Tap to speak")
+        URL.revokeObjectURL(audioUrl)
+        audioPlayerRef.current = null
+      }
+
+      await audio.play()
+    } catch (err) {
+      console.error("TTS error:", err)
+      // Fallback: just go back to idle
+      setVoiceState("idle")
+      setStatusText("Tap to speak")
     }
-  }, [input, isStreaming, activeChatId, messages, callAI])
+  }, [])
 
-  const handleRegenerate = useCallback(() => {
-    if (!activeChat || isStreaming) return
-    const msgs = activeChat.messages
-    const lastUserIdx = msgs.findLastIndex((m) => m.role === "user")
-    if (lastUserIdx === -1) return
-    const messagesUpToUser = msgs.slice(0, lastUserIdx + 1)
-    setChats((prev) => {
-      const u = prev.map((c) =>
-        c.id === activeChatId ? { ...c, messages: messagesUpToUser, updatedAt: Date.now() } : c
-      )
-      saveChats(u)
-      return u
-    })
-    callAI(activeChatId!, messagesUpToUser)
-  }, [activeChat, activeChatId, isStreaming, callAI])
+  /* ── Stop everything ─── */
+  const stopAll = useCallback(() => {
+    // Stop recording
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.stop()
+    }
+    // Stop audio playback
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause()
+      audioPlayerRef.current = null
+    }
+    // Stop AI request
+    if (abortRef.current) {
+      abortRef.current.abort()
+      abortRef.current = null
+    }
+    // Stop mic stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop())
+      streamRef.current = null
+    }
 
-  const hasText = input.trim().length > 0
+    setVoiceState("idle")
+    setStatusText("Tap to speak")
+  }, [])
+
+  /* ── Orb click handler ─── */
+  const handleOrbClick = useCallback(() => {
+    switch (voiceState) {
+      case "idle":
+        startRecording()
+        break
+      case "recording":
+        // Stop recording — this triggers onstop → transcribe → AI → speak
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+          mediaRecorderRef.current.stop()
+          setStatusText("Processing...")
+        }
+        break
+      case "speaking":
+        stopAll()
+        break
+      default:
+        break
+    }
+  }, [voiceState, startRecording, stopAll])
+
+  /* ── Keyboard shortcut (spacebar) ─── */
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.code === "Space" && e.target === document.body) {
+        e.preventDefault()
+        handleOrbClick()
+      }
+      if (e.code === "Escape") {
+        stopAll()
+      }
+    }
+    window.addEventListener("keydown", handleKey)
+    return () => window.removeEventListener("keydown", handleKey)
+  }, [handleOrbClick, stopAll])
+
+  /* ── Cleanup on unmount ─── */
+  useEffect(() => {
+    return () => {
+      stopAll()
+    }
+  }, [stopAll])
+
+  const handleLogout = useCallback(async () => {
+    stopAll()
+    await signOut({ redirectUrl: "/" })
+  }, [signOut, stopAll])
 
   return (
-    <>
+    <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"
+      style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}>
+
+      <StarfieldBg />
+
+      {/* ─── Top Nav ─── */}
+      <nav className="relative z-20 flex items-center justify-between px-5 md:px-8 py-4">
+        <Link href="/" className="flex items-center gap-2 opacity-50 hover:opacity-80 transition-opacity">
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-xs font-light hidden sm:inline">Home</span>
+        </Link>
+
+        <Image src="/images/logo-symbol.png" alt="missiAI" width={32} height={32}
+          className="w-7 h-7 opacity-50 pointer-events-none"
+          priority draggable={false} />
+
+        <button onClick={() => setShowSettings(!showSettings)}
+          className="opacity-50 hover:opacity-80 transition-opacity"
+          style={{ background: "none", border: "none", cursor: "pointer", color: "white" }}>
+          {showSettings ? <X className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
+        </button>
+      </nav>
+
+      {/* ─── Settings Panel ─── */}
+      {showSettings && (
+        <div className="absolute top-16 right-5 z-30 w-56 rounded-2xl p-4"
+          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+            backdropFilter: "blur(20px)" }}>
+          <div className="flex items-center gap-3 mb-4 pb-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            {user?.imageUrl && (
+              <img src={user.imageUrl} alt="" className="w-8 h-8 rounded-full opacity-80" />
+            )}
+            <div>
+              <p className="text-xs font-medium text-white/80">{user?.fullName || "User"}</p>
+              <p className="text-[10px] font-light text-white/30">{user?.primaryEmailAddress?.emailAddress}</p>
+            </div>
+          </div>
+          <button onClick={handleLogout}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-light transition-colors hover:bg-white/5"
+            style={{ color: "rgba(255,255,255,0.5)", background: "none", border: "none", cursor: "pointer" }}>
+            <LogOut className="w-3.5 h-3.5" /> Sign out
+          </button>
+        </div>
+      )}
+
+      {/* ─── Main Voice Interface ─── */}
+      <div className="relative z-10 flex flex-col items-center justify-center" style={{ height: "calc(100vh - 70px)" }}>
+
+        {/* Greeting */}
+        <div className="text-center mb-10" style={{ animation: "fadeIn 0.8s ease-out both" }}>
+          <h1 className="text-xl md:text-2xl font-semibold tracking-tight mb-1">
+            {voiceState === "idle"
+              ? `Hey${user?.firstName ? `, ${user.firstName}` : ""}`
+              : voiceState === "recording"
+              ? "I'm listening"
+              : voiceState === "transcribing"
+              ? "Processing"
+              : voiceState === "thinking"
+              ? "Let me think"
+              : ""}
+          </h1>
+        </div>
+
+        {/* Voice Orb */}
+        <div style={{ animation: "fadeIn 0.8s ease-out 0.15s both" }}>
+          <VoiceOrb state={voiceState} onClick={handleOrbClick} />
+        </div>
+
+        {/* Status Text */}
+        <div className="text-center mt-8" style={{ minHeight: 60 }}>
+          <p className="text-sm font-light tracking-wide mb-1"
+            style={{
+              color: voiceState === "recording" ? "rgba(239,68,68,0.7)"
+                : voiceState === "speaking" ? "rgba(255,255,255,0.6)"
+                : "rgba(255,255,255,0.35)",
+              animation: "fadeIn 0.5s ease-out both",
+            }}>
+            {statusText}
+          </p>
+
+          {/* Show transcript briefly */}
+          {lastTranscript && voiceState !== "idle" && (
+            <p className="text-xs font-light italic max-w-xs mx-auto mt-2"
+              style={{ color: "rgba(255,255,255,0.2)", animation: "fadeIn 0.3s ease-out both" }}>
+              &ldquo;{lastTranscript}&rdquo;
+            </p>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <p className="text-xs font-light" style={{ color: "rgba(239,68,68,0.7)" }}>
+                {error}
+              </p>
+              <button onClick={() => setError(null)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(239,68,68,0.5)" }}>
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Keyboard hint */}
+        <div className="absolute bottom-8 left-0 right-0 text-center">
+          <p className="text-[10px] font-light tracking-wider"
+            style={{ color: "rgba(255,255,255,0.12)" }}>
+            <span className="hidden md:inline">Press SPACE to talk · ESC to cancel</span>
+            <span className="md:hidden">Tap the orb to speak</span>
+          </p>
+        </div>
+      </div>
+
+      {/* ─── Animations ─── */}
       <style jsx global>{`
-        @keyframes bounce {
-          0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-          30% { transform: translateY(-6px); opacity: 0.9; }
-        }
-        @keyframes fadeUp {
+        @keyframes fadeIn {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes micPulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.15); }
-          50% { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
+        @keyframes dotPulse {
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+          30% { transform: translateY(-5px); opacity: 1; }
         }
-        @keyframes cursorBlink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
-        }
-        .msg-in { animation: fadeUp 0.3s ease-out both; }
-        .chat-scroll::-webkit-scrollbar, .sidebar-scroll::-webkit-scrollbar { width: 4px; }
-        .chat-scroll::-webkit-scrollbar-track, .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
-        .chat-scroll::-webkit-scrollbar-thumb, .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
       `}</style>
-
-      <div className="fixed inset-0 bg-black flex font-inter">
-        <StarfieldCanvas />
-
-        <Sidebar chats={chats} activeChatId={activeChatId} onSelectChat={handleSelectChat}
-          onNewChat={handleNewChat} onDeleteChat={handleDeleteChat} onRenameChat={handleRenameChat}
-          isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)}
-          user={user} onLogout={handleLogout} />
-
-        <div className="flex-1 flex flex-col relative z-[5] min-w-0">
-
-          {/* Header */}
-          <header className="relative z-10 flex items-center justify-between px-4 py-3 md:px-5"
-            style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.4)",
-              backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}>
-            <div className="flex items-center gap-2">
-              {!sidebarOpen && (
-                <button onClick={() => setSidebarOpen(true)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors"
-                  style={{ color: "rgba(255,255,255,0.4)" }}>
-                  <PanelLeft className="w-4 h-4" />
-                </button>
-              )}
-              <Link href="/"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all duration-200 hover:bg-white/10"
-                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}>
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Home</span>
-              </Link>
-            </div>
-
-            <div className="absolute left-1/2 -translate-x-1/2 select-none">
-              <Image src="/images/missiai-logo.png" alt="missiAI" width={200} height={40}
-                className="h-12 md:h-14 w-auto object-contain brightness-0 invert opacity-90 select-none pointer-events-none"
-                priority draggable={false} onContextMenu={(e) => e.preventDefault()} />
-            </div>
-
-            <button onClick={handleNewChat}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all duration-200 hover:bg-white/10"
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}>
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">New</span>
-            </button>
-          </header>
-
-          {/* Messages */}
-          <div className="chat-scroll flex-1 overflow-y-auto flex flex-col">
-            {isEmpty || (!activeChat && messages.length === 0) ? (
-              <div className="flex-1 flex flex-col items-center justify-center px-5">
-                <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-white mb-1">
-                  What&apos;s on your mind?
-                </h1>
-                <p className="text-sm font-light tracking-wide mb-8" style={{ color: "rgba(255,255,255,0.3)" }}>
-                  I remember. I learn. I evolve. Let&apos;s think together.
-                </p>
-              </div>
-            ) : (
-              <div className="max-w-3xl w-full mx-auto px-5 md:px-8 py-8 flex flex-col gap-8 flex-1">
-                {messages.map((msg, idx) => (
-                  <div key={msg.id} className="msg-in" style={{ animationDelay: `${Math.min(idx * 0.03, 0.3)}s` }}>
-                    {msg.role === "user" ? (
-                      <div className="flex justify-end">
-                        <div className="max-w-[75%] px-4 py-2.5 rounded-2xl text-[15px] leading-relaxed"
-                          style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.9)" }}>
-                          {msg.content}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 select-none overflow-hidden"
-                          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                          <Image src="/images/logo-symbol.png" alt="M" width={18} height={18}
-                            className="w-[18px] h-[18px] opacity-80 select-none pointer-events-none" draggable={false} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[15px] leading-[1.75] font-light whitespace-pre-line"
-                            style={{ color: "rgba(255,255,255,0.82)" }}>
-                            {msg.content}
-                            {/* Show blinking cursor while streaming this message */}
-                            {streamingMsgId === msg.id && isStreaming && <StreamCursor />}
-                          </div>
-                          {/* Show actions only when not streaming */}
-                          {streamingMsgId !== msg.id && msg.content && (
-                            <MessageActions content={msg.content}
-                              onRegenerate={idx === messages.length - 1 ? handleRegenerate : undefined} />
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {/* Error */}
-                {error && (
-                  <div className="msg-in flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
-                    style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "rgba(239,68,68,0.8)" }}>
-                    <span>⚠</span> {error}
-                    <button onClick={() => setError(null)} className="ml-auto hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
-                  </div>
-                )}
-
-                <div ref={messagesEndRef} />
-              </div>
-            )}
-          </div>
-
-          {/* Input */}
-          <div className="relative z-10 px-5 md:px-8 pt-2 pb-4"
-            style={{ background: isEmpty ? "transparent" : "linear-gradient(to top, rgba(0,0,0,0.9) 50%, transparent)" }}>
-            <div className="max-w-3xl mx-auto">
-              <div className="flex items-center gap-0 rounded-full transition-all duration-300 focus-within:border-white/[0.18]"
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                  padding: "5px 5px 5px 4px", height: 50 }}>
-                <button className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-colors hover:bg-white/[0.06]"
-                  style={{ color: "rgba(255,255,255,0.4)", background: "transparent", border: "none", cursor: "pointer" }}>
-                  <Plus className="w-5 h-5" />
-                </button>
-
-                <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-                  placeholder="Ask anything" rows={1}
-                  className="flex-1 bg-transparent border-none text-[15px] font-light leading-6 placeholder:text-white/25 focus:outline-none resize-none"
-                  style={{ color: "rgba(255,255,255,0.9)", minHeight: 24, maxHeight: 40, paddingTop: 7, paddingBottom: 7, textAlign: "left", paddingLeft: 0, marginLeft: 0 }} />
-
-                <button onClick={() => setIsListening((p) => !p)}
-                  className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
-                  style={{ background: isListening ? "rgba(255,255,255,0.12)" : "transparent", border: "none", cursor: "pointer",
-                    color: isListening ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)",
-                    animation: isListening ? "micPulse 1.5s ease-in-out infinite" : "none" }}>
-                  <MicIcon />
-                </button>
-
-                <button
-                  onClick={isStreaming ? handleStop : handleSend}
-                  disabled={!hasText && !isStreaming}
-                  className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
-                  style={{
-                    background: isStreaming ? "rgba(255,255,255,0.15)" : hasText ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.06)",
-                    border: "none", color: isStreaming ? "#fff" : hasText ? "#000" : "rgba(255,255,255,0.12)",
-                    cursor: (!hasText && !isStreaming) ? "default" : "pointer",
-                    boxShadow: hasText && !isStreaming ? "0 2px 12px rgba(255,255,255,0.1)" : "none",
-                  }}>
-                  {isStreaming ? <Square className="w-3.5 h-3.5" fill="currentColor" /> : <SendArrowIcon />}
-                </button>
-              </div>
-
-              <p className="text-center text-[11px] font-light mt-2.5 tracking-wide" style={{ color: "rgba(255,255,255,0.16)" }}>
-                missiAI can make mistakes. Verify important information.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
+    </div>
   )
 }
