@@ -4,6 +4,8 @@ import "./globals.css"
 import { Inter } from "next/font/google"
 import { Dancing_Script } from "next/font/google"
 import Script from "next/script"
+import { ClerkProvider } from "@clerk/nextjs"
+import { dark } from "@clerk/themes"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -55,19 +57,31 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
-      <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png" />
-        <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-      </head>
-      <body className={`${inter.variable} ${dancingScript.variable} font-inter`}>
-        {children}
+    <ClerkProvider
+      appearance={{
+        baseTheme: dark,
+        variables: {
+          colorPrimary: "#ffffff",
+          colorBackground: "#000000",
+          colorInputBackground: "rgba(255,255,255,0.05)",
+          colorInputText: "rgba(255,255,255,0.85)",
+          borderRadius: "0.75rem",
+        },
+      }}
+    >
+      <html lang="en" className="dark">
+        <head>
+          <link rel="icon" href="/favicon.ico" sizes="any" />
+          <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png" />
+          <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png" />
+          <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        </head>
+        <body className={`${inter.variable} ${dancingScript.variable} font-inter`}>
+          {children}
 
-        {/* Logo Protection Script */}
-        <Script id="logo-protection" strategy="afterInteractive">
-          {`
+          {/* Logo Protection Script */}
+          <Script id="logo-protection" strategy="afterInteractive">
+            {`
             // Disable right-click context menu on logo images
             document.addEventListener('contextmenu', function(e) {
               if (e.target.tagName === 'IMG' && (
@@ -96,7 +110,6 @@ export default function RootLayout({
 
             // Disable keyboard shortcuts for saving images
             document.addEventListener('keydown', function(e) {
-              // Disable Ctrl+S, Ctrl+A, F12, Ctrl+Shift+I, Ctrl+U
               if ((e.ctrlKey && (e.key === 's' || e.key === 'a' || e.key === 'u')) || 
                   e.key === 'F12' || 
                   (e.ctrlKey && e.shiftKey && e.key === 'I')) {
@@ -114,8 +127,9 @@ export default function RootLayout({
               container.style.userSelect = 'none';
             });
           `}
-        </Script>
-      </body>
-    </html>
+          </Script>
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }
