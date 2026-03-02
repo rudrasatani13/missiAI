@@ -1,54 +1,92 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 
 export const runtime = "edge"
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.ELEVENLABS_API_KEY
-
-    if (!apiKey) {
-      return NextResponse.json({ error: "ElevenLabs not configured" }, { status: 500 })
-    }
-
-    // Get the audio from the request
     const formData = await req.formData()
     const audioFile = formData.get("audio") as File | null
 
     if (!audioFile) {
-      return NextResponse.json({ error: "Audio file is required" }, { status: 400 })
+      return new Response(JSON.stringify({ error: "No audio file" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      })
     }
 
-    // Forward to ElevenLabs STT API
+    const apiKey = process.env.ELEVENLABS_API_KEY
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "Missing ElevenLabs API key" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+
     const elevenLabsForm = new FormData()
-    elevenLabsForm.append("file", audioFile, "audio.webm")
-    elevenLabsForm.append("model_id", "scribe_v1")
-    elevenLabsForm.append("language_code", "en")
+    elevenLabsForm.append("file", audioFile)
+    elevenLabsForm.append("model_id", "scribe_v2")
+
+    // ════════════════════════════════════════════════
+    // KEY FIX #1: Force Hindi language detection
+    // Without this, ElevenLabs defaults to English
+    // and garbles all Hindi speech
+    // ════════════════════════════════════════════════
+    elevenLabsForm.append("language_code", "hin")
+
+    // ════════════════════════════════════════════════
+    // KEY FIX #2: Keyterms — bias model towards
+    // common Hinglish words for better accuracy
+    // ════════════════════════════════════════════════
+    const hinglishKeyterms = [
+      "kya", "hai", "nahi", "haan", "yaar", "arre",
+      "acha", "accha", "theek", "matlab", "samajh",
+      "batao", "bata", "sunao", "dekho", "chalo",
+      "kaise", "kaha", "kab", "kyun", "kaun",
+      "mujhe", "tujhe", "humein", "tumhe",
+      "karo", "karna", "chahiye", "sakta", "sakti",
+      "bahut", "thoda", "zyada", "kam", "abhi",
+      "pehle", "baad", "phir", "fir", "lekin",
+      "aur", "ya", "par", "toh", "woh", "yeh",
+      "kuch", "sab", "bohot", "bilkul",
+      "paisa", "kaam", "ghar", "dost",
+      "missi", "missiAI",
+    ]
+    for (const term of hinglishKeyterms) {
+      elevenLabsForm.append("keyterms", term)
+    }
+
+    elevenLabsForm.append("tag_audio_events", "false")
 
     const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
       method: "POST",
-      headers: {
-        "xi-api-key": apiKey,
-      },
+      headers: { "xi-api-key": apiKey },
       body: elevenLabsForm,
     })
 
     if (!response.ok) {
       const errText = await response.text()
-      console.error("ElevenLabs STT error:", errText)
-      return NextResponse.json(
-        { error: "Speech-to-text failed" },
-        { status: response.status }
-      )
+      console.error("ElevenLabs STT error:", response.status, errText)
+      return new Response(JSON.stringify({ error: "Transcription failed", details: errText }), {
+        status: response.status,
+        headers: { "Content-Type": "application/json" },
+      })
     }
 
     const result = await response.json()
 
-    return NextResponse.json({
-      text: result.text || "",
-      language: result.language_code || "en",
-    })
+    return new Response(
+      JSON.stringify({
+        text: result.text || "",
+        language: result.language_code || "hin",
+        confidence: result.language_probability || 0,
+      }),
+      { headers: { "Content-Type": "application/json" } }
+    )
   } catch (err) {
     console.error("STT route error:", err)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    })
   }
 }
