@@ -7,11 +7,19 @@ import { ArrowLeft, Settings, LogOut, X } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 
 type VoiceState = "idle" | "recording" | "transcribing" | "thinking" | "speaking"
+type PersonalityKey = "bestfriend" | "professional" | "playful" | "mentor"
 
 interface ConversationEntry {
   role: "user" | "assistant"
   content: string
 }
+
+const PERSONALITY_OPTIONS: { key: PersonalityKey; label: string; emoji: string; desc: string }[] = [
+  { key: "bestfriend", label: "Best Friend", emoji: "💛", desc: "Warm, supportive, Hinglish" },
+  { key: "professional", label: "Professional", emoji: "💼", desc: "Sharp, efficient, English" },
+  { key: "playful", label: "Playful", emoji: "✨", desc: "Fun, witty, high energy" },
+  { key: "mentor", label: "Mentor", emoji: "🧠", desc: "Wise, thoughtful, guiding" },
+]
 
 /* ═══════════════════════════════════════════════════════
    THREE.JS PARTICLE VISUALIZER (from reference)
@@ -331,10 +339,31 @@ export default function VoiceAssistantPage() {
   const [audioLevel, setAudioLevel] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  const [personality, setPersonality] = useState<PersonalityKey>("bestfriend")
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
 
+  // Load saved personality on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("missi-personality") as PersonalityKey | null
+      if (saved && PERSONALITY_OPTIONS.some(p => p.key === saved)) {
+        setPersonality(saved)
+        personalityRef.current = saved
+      }
+    } catch {}
+  }, [])
+
+  const updatePersonality = useCallback((key: PersonalityKey) => {
+    setPersonality(key)
+    personalityRef.current = key
+    try { localStorage.setItem("missi-personality", key) } catch {}
+    // Clear conversation when personality changes for a fresh start
+    conversationRef.current = []
+  }, [])
+
   const conversationRef = useRef<ConversationEntry[]>([])
+  const personalityRef = useRef<PersonalityKey>("bestfriend")
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null)
@@ -351,6 +380,9 @@ export default function VoiceAssistantPage() {
   // TTS analysis
   const ttsContextRef = useRef<AudioContext | null>(null)
   const ttsAnalyserRef = useRef<AnalyserNode | null>(null)
+
+  // Continuous conversation mode
+  const continuousRef = useRef(false)
 
   /* ══════════════════════════════════════════════
      MIC AUDIO MONITOR + SILENCE DETECTION
@@ -521,9 +553,14 @@ export default function VoiceAssistantPage() {
 
         const blob = new Blob(audioChunksRef.current, { type: "audio/webm" })
         if (blob.size < 500) {
-          setVoiceState("idle")
-          setStatusText("Didn't catch that — try again")
-          setTimeout(() => setStatusText("Tap anywhere to speak"), 2000)
+          // Too short — in continuous mode, just listen again
+          if (continuousRef.current) {
+            startRecording()
+          } else {
+            setVoiceState("idle")
+            setStatusText("Didn't catch that — try again")
+            setTimeout(() => setStatusText("Tap anywhere to speak"), 2000)
+          }
           return
         }
         await transcribeAudio(blob)
@@ -548,20 +585,29 @@ export default function VoiceAssistantPage() {
       const data = await res.json()
       const text = data.text?.trim()
       if (!text) {
-        setVoiceState("idle")
-        setStatusText("Didn't catch that — try again")
-        setTimeout(() => setStatusText("Tap anywhere to speak"), 2500)
+        if (continuousRef.current) {
+          startRecording() // Re-listen
+        } else {
+          setVoiceState("idle")
+          setStatusText("Didn't catch that — try again")
+          setTimeout(() => setStatusText("Tap anywhere to speak"), 2500)
+        }
         return
       }
       setLastTranscript(text)
       conversationRef.current.push({ role: "user", content: text })
       await getAIResponse()
     } catch {
-      setError("Transcription failed. Try again.")
-      setVoiceState("idle")
-      setStatusText("Tap anywhere to speak")
+      if (continuousRef.current) {
+        setError("Transcription hiccup — listening again...")
+        startRecording()
+      } else {
+        setError("Transcription failed. Try again.")
+        setVoiceState("idle")
+        setStatusText("Tap anywhere to speak")
+      }
     }
-  }, [])
+  }, [startRecording])
 
   const getAIResponse = useCallback(async () => {
     setVoiceState("thinking")
@@ -573,7 +619,7 @@ export default function VoiceAssistantPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: msgs }),
+        body: JSON.stringify({ messages: msgs, personality: personalityRef.current }),
         signal: ctrl.signal,
       })
       if (!res.ok) throw new Error(`Error ${res.status}`)
@@ -592,6 +638,7 @@ export default function VoiceAssistantPage() {
         }
       }
       if (!full.trim()) {
+        if (continuousRef.current) { startRecording(); return }
         setVoiceState("idle"); setStatusText("Tap anywhere to speak"); return
       }
       conversationRef.current.push({ role: "assistant", content: full })
@@ -600,9 +647,14 @@ export default function VoiceAssistantPage() {
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") { setVoiceState("idle"); setStatusText("Tap anywhere to speak"); return }
       setError("Failed to get response.")
-      setVoiceState("idle"); setStatusText("Tap anywhere to speak")
+      if (continuousRef.current) {
+        // Wait a moment then re-listen
+        setTimeout(() => { if (continuousRef.current) startRecording() }, 1500)
+      } else {
+        setVoiceState("idle"); setStatusText("Tap anywhere to speak")
+      }
     }
-  }, [])
+  }, [startRecording])
 
   const speakText = useCallback(async (text: string) => {
     setVoiceState("speaking")
@@ -620,15 +672,44 @@ export default function VoiceAssistantPage() {
       const audio = new Audio(url)
       audioPlayerRef.current = audio
       startTTSMonitor(audio)
-      audio.onended = () => { setVoiceState("idle"); setStatusText("Tap anywhere to speak"); stopTTSMonitor(); URL.revokeObjectURL(url); audioPlayerRef.current = null }
-      audio.onerror = () => { setVoiceState("idle"); setStatusText("Tap anywhere to speak"); stopTTSMonitor(); URL.revokeObjectURL(url); audioPlayerRef.current = null }
+
+      audio.onended = () => {
+        stopTTSMonitor()
+        URL.revokeObjectURL(url)
+        audioPlayerRef.current = null
+        // Continuous mode: auto-start listening again
+        if (continuousRef.current) {
+          startRecording()
+        } else {
+          setVoiceState("idle")
+          setStatusText("Tap anywhere to speak")
+        }
+      }
+      audio.onerror = () => {
+        stopTTSMonitor()
+        URL.revokeObjectURL(url)
+        audioPlayerRef.current = null
+        if (continuousRef.current) {
+          startRecording()
+        } else {
+          setVoiceState("idle")
+          setStatusText("Tap anywhere to speak")
+        }
+      }
+
       await audio.play()
     } catch {
-      setVoiceState("idle"); setStatusText("Tap anywhere to speak"); stopTTSMonitor()
+      stopTTSMonitor()
+      if (continuousRef.current) {
+        startRecording()
+      } else {
+        setVoiceState("idle"); setStatusText("Tap anywhere to speak")
+      }
     }
-  }, [startTTSMonitor, stopTTSMonitor])
+  }, [startTTSMonitor, stopTTSMonitor, startRecording])
 
   const stopAll = useCallback(() => {
+    continuousRef.current = false  // Exit continuous mode
     if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop()
     if (audioPlayerRef.current) { audioPlayerRef.current.pause(); audioPlayerRef.current = null }
     abortRef.current?.abort()
@@ -639,8 +720,14 @@ export default function VoiceAssistantPage() {
 
   /* ── Click handler (screen-wide) ─── */
   const handleTap = useCallback(() => {
-    if (voiceState === "idle") startRecording()
-    else if (voiceState === "speaking") stopAll()
+    if (voiceState === "idle") {
+      // Start continuous conversation
+      continuousRef.current = true
+      startRecording()
+    } else {
+      // Any tap during active state → stop everything
+      stopAll()
+    }
   }, [voiceState, startRecording, stopAll])
 
   /* ── Keyboard ─── */
@@ -694,8 +781,10 @@ export default function VoiceAssistantPage() {
         startTTSMonitor(audio)
 
         audio.onended = () => {
-          setVoiceState("idle"); setStatusText("Tap anywhere to speak")
           stopTTSMonitor(); URL.revokeObjectURL(url); audioPlayerRef.current = null
+          // Enter continuous mode — start listening after greeting
+          continuousRef.current = true
+          startRecording()
         }
         audio.onerror = () => {
           setVoiceState("idle"); setStatusText("Tap anywhere to speak")
@@ -748,9 +837,10 @@ export default function VoiceAssistantPage() {
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="absolute top-16 right-5 z-30 w-56 rounded-2xl p-4 pointer-events-auto"
+        <div className="absolute top-16 right-5 z-30 w-64 rounded-2xl p-4 pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
           style={{ background: "rgba(0,0,0,0.7)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(30px)" }}>
+          {/* User Info */}
           <div className="flex items-center gap-3 mb-4 pb-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
             {user?.imageUrl && <img src={user.imageUrl} alt="" className="w-8 h-8 rounded-full opacity-80" />}
             <div>
@@ -758,11 +848,49 @@ export default function VoiceAssistantPage() {
               <p className="text-[10px] font-light text-white/25">{user?.primaryEmailAddress?.emailAddress}</p>
             </div>
           </div>
-          <button onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-light transition-colors hover:bg-white/5"
-            style={{ color: "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer" }}>
-            <LogOut className="w-3.5 h-3.5" /> Sign out
-          </button>
+
+          {/* Personality Picker */}
+          <div className="mb-4">
+            <p className="text-[10px] font-medium tracking-wider uppercase mb-2.5" style={{ color: "rgba(255,255,255,0.3)" }}>
+              Missi&apos;s Personality
+            </p>
+            <div className="flex flex-col gap-1.5">
+              {PERSONALITY_OPTIONS.map((p) => (
+                <button
+                  key={p.key}
+                  onClick={() => updatePersonality(p.key)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all"
+                  style={{
+                    background: personality === p.key ? "rgba(255,255,255,0.08)" : "transparent",
+                    border: personality === p.key ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span className="text-sm">{p.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-medium" style={{ color: personality === p.key ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.45)" }}>
+                      {p.label}
+                    </p>
+                    <p className="text-[9px] font-light" style={{ color: personality === p.key ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.18)" }}>
+                      {p.desc}
+                    </p>
+                  </div>
+                  {personality === p.key && (
+                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "rgba(0,255,140,0.6)" }} />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Sign Out */}
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "12px" }}>
+            <button onClick={handleLogout}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-light transition-colors hover:bg-white/5"
+              style={{ color: "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer" }}>
+              <LogOut className="w-3.5 h-3.5" /> Sign out
+            </button>
+          </div>
         </div>
       )}
 
@@ -798,13 +926,19 @@ export default function VoiceAssistantPage() {
 
         {voiceState === "recording" && (
           <p className="text-[10px] font-light tracking-wider mt-1" style={{ color: "rgba(255,80,60,0.3)" }}>
-            Auto-stops when you pause
+            Speak naturally · auto-detects when you're done
+          </p>
+        )}
+
+        {(voiceState === "thinking" || voiceState === "transcribing") && (
+          <p className="text-[10px] font-light tracking-wider mt-1" style={{ color: "rgba(255,255,255,0.2)" }}>
+            Tap anywhere to end conversation
           </p>
         )}
 
         {voiceState === "speaking" && (
           <p className="text-[10px] font-light tracking-wider mt-1" style={{ color: "rgba(0,255,140,0.25)" }}>
-            Tap to stop
+            Tap to end conversation
           </p>
         )}
 

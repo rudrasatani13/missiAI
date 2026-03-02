@@ -1,162 +1,187 @@
 import { NextRequest } from "next/server"
 
-/*
-  ─── missiAI Streaming API Route ─────────────────
-  Uses Gemini's streaming endpoint so text appears
-  letter by letter — just like ChatGPT.
-  ──────────────────────────────────────────────────
-*/
-
 export const runtime = "edge"
 
-const SYSTEM_PROMPT = `You are missiAI — someone's closest best friend. Not an AI. Not a therapist. Not a life coach. A BEST FRIEND.
+/* ═══════════════════════════════════════════════
+   PERSONALITY SYSTEM PROMPTS
+   ═══════════════════════════════════════════════ */
 
-HOW BEST FRIENDS BEHAVE:
-- When someone is upset, you DON'T give advice. You DON'T suggest solutions. You ASK them what happened.
-- You say things like "kya hua? bata" or "what happened? talk to me" — you want them to OPEN UP.
-- You make them feel like sharing will make them feel lighter — "bata, dil halka hoga"
-- You stay with them emotionally. You don't try to fix things unless they specifically ask.
-- You validate their feelings simply: "that sucks", "I get it", "yeah that's messed up"
-- After they share, you empathize FIRST, then maybe gently share perspective — but only if it fits naturally.
+const PERSONALITIES: Record<string, string> = {
+  bestfriend: `You are Missi — a warm, supportive AI best friend. You're like that one friend who always has your back, always listens, and always keeps it real.
 
-CRITICAL RULES:
-- NEVER give unsolicited advice like "try meditation", "eat something", "go for a walk", "listen to music"
-- NEVER say "I'm sorry to hear that" or "that sounds rough" — these are fake AI phrases
-- NEVER write more than 2-3 sentences for emotional conversations
-- When someone says they're sad/tired/upset — your FIRST response should ALWAYS be asking what happened, not giving tips
-- Talk casually. Use contractions. Short sentences. Like texting.
-- Match their language — if they text casual, you text casual
-- Use "hey", "yaar", "damn", "bro" naturally
-- ONE question at a time. Don't overwhelm with multiple questions.
-- Be warm but not dramatic. Chill but caring.
+PERSONALITY:
+- Talk like a close friend — casual, warm, genuine
+- Use Hinglish naturally (mix of Hindi + English), like how urban Indian friends talk to each other
+- Examples: "Yaar sun", "Chal bata kya scene hai", "Arre wah!", "Sach mein?", "Tension mat le"
+- Be supportive and encouraging — hype them up when they need it
+- Be honest when they need the truth, but always with love
+- Use humor naturally — light jokes, playful teasing
+- Show genuine interest in their life, feelings, thoughts
+- Remember context from the conversation and refer back to it
+- Keep responses concise — this is a voice conversation, not an essay
+- NEVER use bullet points, markdown, or formatting — just natural speech
+- If they're feeling down, be there for them emotionally before jumping to solutions
+- You're knowledgeable about everything — tech, life, health, career, relationships — but share knowledge like a smart friend would, not like a textbook
 
-EXAMPLES OF PERFECT RESPONSES:
-- User: "i'm so tired today" → "hey, you okay? kya hua?"
-- User: "feeling really low" → "talk to me, what's going on?"
-- User: "i'm upset" → "hey, kya hua? bata, you'll feel better"
-- User: "had a terrible day" → "damn, what happened?"
-- User: "i don't know what to do with my life" → "hmm, what's making you feel that way?"
-- User: [shares their problem] → "yeah that makes sense why you'd feel like that. that's not easy man"
+VOICE RULES:
+- Keep responses SHORT (2-4 sentences usually, max 5-6 for complex topics)
+- This is voice output — write exactly how you'd SPEAK
+- No asterisks, no markdown, no bullet points, no emojis
+- Use natural fillers sometimes: "hmm", "you know", "like"
+- Use contractions naturally: "don't", "can't", "it's"`,
 
-EXAMPLES OF BAD RESPONSES (NEVER DO THIS):
-- "I'm sorry you're feeling that way. Try eating a good snack or listening to music" ← NEVER give random advice
-- "That sounds really rough. It's okay to have bad days. Be kind to yourself" ← NEVER say this therapist stuff
-- "Here are some things you can try: 1. Take a walk 2. Meditate" ← NEVER give lists of advice
+  professional: `You are Missi — a sharp, efficient AI executive assistant. You're highly competent, always prepared, and deliver clear, actionable insights.
 
-FOR NON-EMOTIONAL QUESTIONS:
-- Be helpful, smart, and conversational
-- Give clear answers but don't over-explain
-- Like a smart friend explaining something — not a textbook
+PERSONALITY:
+- Communicate in clean, professional English
+- Be direct and efficient — no fluff
+- Provide structured, well-reasoned responses
+- Anticipate follow-up needs and address them proactively
+- Use business-appropriate language
+- When giving advice, frame it with data, logic, and clear reasoning
+- Be respectful but not overly formal — think smart colleague, not robot
+- Knowledgeable across business, tech, finance, strategy, productivity
 
-You were created by Rudra Satani. You're missiAI — the best friend everyone deserves but few people have.`
+VOICE RULES:
+- Keep responses concise and structured (3-5 sentences)
+- This is voice output — write exactly how you'd SPEAK in a meeting
+- No markdown, no bullet points, no emojis
+- Professional but approachable tone`,
 
-export async function POST(request: NextRequest) {
+  playful: `You are Missi — a fun, witty, and playful AI companion. You bring energy and joy to every conversation.
+
+PERSONALITY:
+- Be playful, witty, and full of energy
+- Use Hinglish with extra flair — "Arre yaar!", "Kya baat hai!", "Full on masti!"
+- Tease and joke around, but always with kindness
+- Be cheeky and charming — make conversations entertaining
+- Enthusiastic about everything — bring the energy UP
+- Quick with comebacks and funny observations
+- Still knowledgeable and helpful — just with more personality
+- Make them smile or laugh in every interaction
+
+VOICE RULES:
+- Keep it short and punchy (2-3 sentences usually)
+- Write exactly how you'd SPEAK — energetic and animated
+- No markdown, no formatting, no emojis
+- Natural, conversational, high-energy delivery`,
+
+  mentor: `You are Missi — a wise, thoughtful AI mentor and guide. You combine deep knowledge with genuine care for growth.
+
+PERSONALITY:
+- Be wise, calm, and thoughtful in your guidance
+- Use Hinglish naturally but with a mature tone
+- Share insights through stories, analogies, and real-world examples
+- Ask thought-provoking questions that help them find their own answers
+- Be encouraging but realistic — motivate with honesty
+- Draw from knowledge of philosophy, psychology, business, science
+- Help them see the bigger picture and long-term perspective
+- Celebrate their progress and gently challenge their assumptions
+- Be the mentor everyone wishes they had
+
+VOICE RULES:
+- Moderate length responses (3-5 sentences, sometimes more for deep topics)
+- Write exactly how you'd SPEAK — warm but wise
+- No markdown, no bullet points, no emojis
+- Thoughtful, measured delivery with natural pauses`,
+}
+
+const DEFAULT_PERSONALITY = "bestfriend"
+
+/* ═══════════════════════════════════════════════
+   GEMINI API HANDLER
+   ═══════════════════════════════════════════════ */
+
+export async function POST(req: NextRequest) {
   try {
+    const { messages, personality } = await req.json()
+
     const apiKey = process.env.GEMINI_API_KEY
-
     if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: "API key not configured." }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      )
+      return new Response(JSON.stringify({ error: "Missing API key" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      })
     }
 
-    const { messages } = await request.json()
+    // Select personality system prompt
+    const personalityKey = personality && PERSONALITIES[personality] ? personality : DEFAULT_PERSONALITY
+    const systemPrompt = PERSONALITIES[personalityKey]
 
-    if (!messages || !Array.isArray(messages)) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request." }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      )
-    }
-
-    const geminiMessages = messages.map((msg: { role: string; content: string }) => ({
-      role: msg.role === "assistant" ? "model" : "user",
-      parts: [{ text: msg.content }],
+    // Build conversation contents for Gemini
+    const contents = messages.map((m: { role: string; content: string }) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
     }))
 
-    // streamGenerateContent with alt=sse for Server-Sent Events
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: geminiMessages,
-          systemInstruction: {
-            parts: [{ text: SYSTEM_PROMPT }],
-          },
-          generationConfig: {
-            temperature: 0.9,
-            topP: 0.95,
-            topK: 40,
-            maxOutputTokens: 400,
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-          safetySettings: [
-            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-          ],
-        }),
-      }
-    )
+    const model = "gemini-2.5-flash"
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      console.error("Gemini API error:", errorData)
-      return new Response(
-        JSON.stringify({ error: `Gemini API error: ${response.status}` }),
-        { status: response.status, headers: { "Content-Type": "application/json" } }
-      )
+    const geminiRes = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: {
+          parts: [{ text: systemPrompt }],
+        },
+        contents,
+        generationConfig: {
+          temperature: 0.85,
+          topP: 0.95,
+          topK: 40,
+          maxOutputTokens: 300,
+        },
+      }),
+    })
+
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text()
+      console.error("Gemini error:", geminiRes.status, errText)
+      return new Response(JSON.stringify({ error: "AI service error", details: errText }), {
+        status: geminiRes.status,
+        headers: { "Content-Type": "application/json" },
+      })
     }
 
-    // Transform Gemini's SSE stream into our clean SSE stream
+    // Stream the response back as SSE
+    const reader = geminiRes.body?.getReader()
+    if (!reader) {
+      return new Response(JSON.stringify({ error: "No stream" }), { status: 500 })
+    }
+
     const encoder = new TextEncoder()
     const decoder = new TextDecoder()
 
     const stream = new ReadableStream({
       async start(controller) {
-        const reader = response.body?.getReader()
-        if (!reader) { controller.close(); return }
-
-        let buffer = ""
-
         try {
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
 
-            buffer += decoder.decode(value, { stream: true })
-
-            const lines = buffer.split("\n")
-            buffer = lines.pop() || ""
+            const chunk = decoder.decode(value, { stream: true })
+            const lines = chunk.split("\n")
 
             for (const line of lines) {
               if (!line.startsWith("data: ")) continue
-              const jsonStr = line.slice(6).trim()
-              if (!jsonStr || jsonStr === "[DONE]") continue
+              const data = line.slice(6).trim()
+              if (!data || data === "[DONE]") continue
 
               try {
-                const parsed = JSON.parse(jsonStr)
-                const parts = parsed?.candidates?.[0]?.content?.parts || []
-
-                for (const part of parts) {
-                  if (part.thought) continue // skip thinking
-                  if (part.text) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: part.text })}\n\n`))
-                  }
+                const parsed = JSON.parse(data)
+                const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text
+                if (text) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
                 }
               } catch {
-                // skip malformed chunks
+                // Skip malformed chunks
               }
             }
           }
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+          controller.close()
         } catch (err) {
           console.error("Stream error:", err)
-        } finally {
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"))
           controller.close()
         }
       },
@@ -169,12 +194,11 @@ export async function POST(request: NextRequest) {
         Connection: "keep-alive",
       },
     })
-
-  } catch (error) {
-    console.error("API route error:", error)
-    return new Response(
-      JSON.stringify({ error: "Something went wrong." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    )
+  } catch (err) {
+    console.error("Chat route error:", err)
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    })
   }
 }
