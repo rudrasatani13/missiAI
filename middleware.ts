@@ -1,14 +1,12 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 
+// Yahan se AI routes hata diye gaye hain taaki wo secure rahein
 const isPublicRoute = createRouteMatcher([
   "/",
   "/login(.*)",
   "/sign-up(.*)",
   "/waitlist(.*)",
   "/manifesto(.*)",
-  "/api/chat(.*)",
-  "/api/tts(.*)",
-  "/api/stt(.*)",
 ])
 
 export default clerkMiddleware(async (auth, request) => {

@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Settings, LogOut, X } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
+import * as THREE from "three"
 
 type VoiceState = "idle" | "recording" | "transcribing" | "thinking" | "speaking"
 type PersonalityKey = "bestfriend" | "professional" | "playful" | "mentor"
@@ -22,41 +23,22 @@ const PERSONALITY_OPTIONS: { key: PersonalityKey; label: string; emoji: string; 
 ]
 
 /* ═══════════════════════════════════════════════════════
-   THREE.JS PARTICLE VISUALIZER (from reference)
-   5500 particles, WebGL shaders, curl noise, audio-reactive
+   THREE.JS PARTICLE VISUALIZER (NPM Version)
    ═══════════════════════════════════════════════════════ */
 function ParticleVisualizer({ state, audioLevel }: { state: VoiceState; audioLevel: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const vizRef = useRef<{
-    scene: any; camera: any; renderer: any; particles: any
-    uniforms: any; clock: number; activityLevel: number
+    scene: THREE.Scene; camera: THREE.PerspectiveCamera; renderer: THREE.WebGLRenderer; particles: THREE.Points;
+    uniforms: any; clock: number; activityLevel: number;
     targetActivity: number; smoothAudio: number
   } | null>(null)
   const animRef = useRef<number>(0)
-  const threeLoadedRef = useRef(false)
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    // Load Three.js from CDN
-    const loadThree = () => {
-      return new Promise<void>((resolve) => {
-        if ((window as any).THREE) { resolve(); return }
-        const script = document.createElement("script")
-        script.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
-        script.onload = () => resolve()
-        document.head.appendChild(script)
-      })
-    }
-
-    const init = async () => {
-      await loadThree()
-      if (threeLoadedRef.current) return
-      threeLoadedRef.current = true
-
-      const THREE = (window as any).THREE
-
+    const init = () => {
       const scene = new THREE.Scene()
       scene.background = new THREE.Color(0x000000)
 
@@ -75,7 +57,6 @@ function ParticleVisualizer({ state, audioLevel }: { state: VoiceState; audioLev
         uActivityLevel: { value: 0.2 },
       }
 
-      // Create particles in sphere distribution
       const geometry = new THREE.BufferGeometry()
       const positions: number[] = []
       const normals: number[] = []
@@ -239,7 +220,6 @@ function ParticleVisualizer({ state, audioLevel }: { state: VoiceState; audioLev
       const particles = new THREE.Points(geometry, material)
       scene.add(particles)
 
-      // Subtle grid
       const gridGeo = new THREE.PlaneGeometry(20, 20, 20, 20)
       const gridMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, wireframe: true, transparent: true, opacity: 0.03 })
       const grid = new THREE.Mesh(gridGeo, gridMat)
@@ -251,7 +231,6 @@ function ParticleVisualizer({ state, audioLevel }: { state: VoiceState; audioLev
         clock: 0, activityLevel: 0.2, targetActivity: 0.2, smoothAudio: 0,
       }
 
-      // Mouse parallax
       const onMove = (e: MouseEvent) => {
         const mx = (e.clientX / window.innerWidth) * 2 - 1
         camera.position.x = Math.sin(mx * 0.3) * 3
@@ -267,18 +246,15 @@ function ParticleVisualizer({ state, audioLevel }: { state: VoiceState; audioLev
       }
       window.addEventListener("resize", onResize)
 
-      // Animate
       const animate = () => {
         const v = vizRef.current
         if (!v) return
         v.clock += 0.016
         v.uniforms.uTime.value = v.clock
 
-        // Smooth activity transition
         v.activityLevel += (v.targetActivity - v.activityLevel) * 0.05
         v.uniforms.uActivityLevel.value = v.activityLevel
 
-        // Smooth audio
         v.smoothAudio += (audioLevel - v.smoothAudio) * 0.15
         const al = v.smoothAudio
 
@@ -303,7 +279,6 @@ function ParticleVisualizer({ state, audioLevel }: { state: VoiceState; audioLev
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update activity level based on voice state
   useEffect(() => {
     if (!vizRef.current) return
     switch (state) {
@@ -314,7 +289,6 @@ function ParticleVisualizer({ state, audioLevel }: { state: VoiceState; audioLev
     }
   }, [state])
 
-  // Feed audio level into visualizer
   useEffect(() => {
     if (!vizRef.current) return
     vizRef.current.smoothAudio = audioLevel
@@ -343,7 +317,6 @@ export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
 
-  // Load saved personality on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem("missi-personality") as PersonalityKey | null
@@ -358,7 +331,6 @@ export default function VoiceAssistantPage() {
     setPersonality(key)
     personalityRef.current = key
     try { localStorage.setItem("missi-personality", key) } catch {}
-    // Clear conversation when personality changes for a fresh start
     conversationRef.current = []
   }, [])
 
@@ -370,23 +342,16 @@ export default function VoiceAssistantPage() {
   const streamRef = useRef<MediaStream | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  // Audio analysis
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const levelAnimRef = useRef<number | null>(null)
   const hasSpokenRef = useRef(false)
 
-  // TTS analysis
   const ttsContextRef = useRef<AudioContext | null>(null)
   const ttsAnalyserRef = useRef<AnalyserNode | null>(null)
-
-  // Continuous conversation mode
   const continuousRef = useRef(false)
 
-  /* ══════════════════════════════════════════════
-     MIC AUDIO MONITOR + SILENCE DETECTION
-     ══════════════════════════════════════════════ */
   const startAudioMonitor = useCallback((stream: MediaStream) => {
     const AC = window.AudioContext || (window as any).webkitAudioContext
     const ctx = new AC()
@@ -400,39 +365,32 @@ export default function VoiceAssistantPage() {
     const source = ctx.createMediaStreamSource(stream)
     source.connect(analyser)
 
-    // Use TIME DOMAIN data for reliable voice detection
     const timeDomain = new Float32Array(analyser.fftSize)
-    // Frequency data just for visual level
     const freqData = new Uint8Array(analyser.frequencyBinCount)
 
-    const SPEECH_THRESH = 0.015    // RMS above this = speaking
-    const SILENCE_THRESH = 0.008   // RMS below this = silence
-    const SILENCE_MS = 1800        // 1.8s of silence → auto-stop
-    const MAX_RECORD_MS = 30000    // 30s max recording (safety fallback)
+    const SPEECH_THRESH = 0.015
+    const SILENCE_THRESH = 0.008
+    const SILENCE_MS = 1800
+    const MAX_RECORD_MS = 30000
 
-    // Max duration fallback
     const maxTimer = setTimeout(() => {
       if (mediaRecorderRef.current?.state === "recording") {
-        console.log("Max duration reached — auto-stopping")
         mediaRecorderRef.current.stop()
       }
     }, MAX_RECORD_MS)
 
     const monitor = () => {
-      // Time-domain RMS for voice activity detection
       analyser.getFloatTimeDomainData(timeDomain)
       let sum = 0
       for (let i = 0; i < timeDomain.length; i++) sum += timeDomain[i] * timeDomain[i]
       const rms = Math.sqrt(sum / timeDomain.length)
 
-      // Frequency data for visual level (particle reactivity)
       analyser.getByteFrequencyData(freqData)
       let fSum = 0
       for (let i = 0; i < freqData.length; i++) fSum += freqData[i]
       const vizLevel = Math.min(1, (fSum / freqData.length / 255) * 4)
       setAudioLevel(vizLevel)
 
-      // Voice activity detection using time-domain RMS
       if (rms > SPEECH_THRESH) {
         hasSpokenRef.current = true
         if (silenceTimerRef.current) {
@@ -445,7 +403,6 @@ export default function VoiceAssistantPage() {
         if (!silenceTimerRef.current) {
           silenceTimerRef.current = setTimeout(() => {
             if (mediaRecorderRef.current?.state === "recording") {
-              console.log("Silence detected — auto-stopping")
               mediaRecorderRef.current.stop()
             }
           }, SILENCE_MS)
@@ -458,16 +415,13 @@ export default function VoiceAssistantPage() {
       levelAnimRef.current = requestAnimationFrame(monitor)
     }
 
-    // Store max timer ref for cleanup
     ;(analyser as any)._maxTimer = maxTimer
-
     levelAnimRef.current = requestAnimationFrame(monitor)
   }, [])
 
   const stopAudioMonitor = useCallback(() => {
     if (levelAnimRef.current) cancelAnimationFrame(levelAnimRef.current)
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
-    // Clear max recording timer
     if (analyserRef.current && (analyserRef.current as any)._maxTimer) {
       clearTimeout((analyserRef.current as any)._maxTimer)
     }
@@ -480,9 +434,6 @@ export default function VoiceAssistantPage() {
     setAudioLevel(0)
   }, [])
 
-  /* ══════════════════════════════════════════════
-     TTS AUDIO MONITOR (for speaking visualization)
-     ══════════════════════════════════════════════ */
   const startTTSMonitor = useCallback((audio: HTMLAudioElement) => {
     try {
       const AC = window.AudioContext || (window as any).webkitAudioContext
@@ -519,10 +470,6 @@ export default function VoiceAssistantPage() {
     setAudioLevel(0)
   }, [])
 
-  /* ══════════════════════════════════════════════
-     VOICE FLOW: Record → Transcribe → Think → Speak
-     ══════════════════════════════════════════════ */
-
   const startRecording = useCallback(async () => {
     try {
       if (audioPlayerRef.current) { audioPlayerRef.current.pause(); audioPlayerRef.current = null }
@@ -553,7 +500,6 @@ export default function VoiceAssistantPage() {
 
         const blob = new Blob(audioChunksRef.current, { type: "audio/webm" })
         if (blob.size < 500) {
-          // Too short — in continuous mode, just listen again
           if (continuousRef.current) {
             startRecording()
           } else {
@@ -586,7 +532,7 @@ export default function VoiceAssistantPage() {
       const text = data.text?.trim()
       if (!text) {
         if (continuousRef.current) {
-          startRecording() // Re-listen
+          startRecording()
         } else {
           setVoiceState("idle")
           setStatusText("Didn't catch that — try again")
@@ -648,7 +594,6 @@ export default function VoiceAssistantPage() {
       if (err instanceof Error && err.name === "AbortError") { setVoiceState("idle"); setStatusText("Tap anywhere to speak"); return }
       setError("Failed to get response.")
       if (continuousRef.current) {
-        // Wait a moment then re-listen
         setTimeout(() => { if (continuousRef.current) startRecording() }, 1500)
       } else {
         setVoiceState("idle"); setStatusText("Tap anywhere to speak")
@@ -677,7 +622,6 @@ export default function VoiceAssistantPage() {
         stopTTSMonitor()
         URL.revokeObjectURL(url)
         audioPlayerRef.current = null
-        // Continuous mode: auto-start listening again
         if (continuousRef.current) {
           startRecording()
         } else {
@@ -709,7 +653,7 @@ export default function VoiceAssistantPage() {
   }, [startTTSMonitor, stopTTSMonitor, startRecording])
 
   const stopAll = useCallback(() => {
-    continuousRef.current = false  // Exit continuous mode
+    continuousRef.current = false
     if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop()
     if (audioPlayerRef.current) { audioPlayerRef.current.pause(); audioPlayerRef.current = null }
     abortRef.current?.abort()
@@ -718,34 +662,24 @@ export default function VoiceAssistantPage() {
     setVoiceState("idle"); setStatusText("Tap anywhere to speak")
   }, [stopAudioMonitor, stopTTSMonitor])
 
-  /* ── Click handler (screen-wide) ─── */
   const handleTap = useCallback(() => {
     if (voiceState === "idle") {
-      // Start continuous conversation
       continuousRef.current = true
       startRecording()
     } else if (voiceState === "speaking" || voiceState === "thinking") {
-      // ════════════════════════════════════════════
-      // INTERRUPT: User wants to speak while Missi
-      // is talking or thinking. Stop Missi immediately,
-      // then start listening to the user.
-      // ════════════════════════════════════════════
-      abortRef.current?.abort()  // Cancel pending AI request
+      abortRef.current?.abort()
       if (audioPlayerRef.current) {
         audioPlayerRef.current.pause()
         audioPlayerRef.current = null
       }
       stopTTSMonitor()
-      // Keep continuous mode alive and start recording
       continuousRef.current = true
       startRecording()
     } else {
-      // recording/transcribing → stop everything
       stopAll()
     }
   }, [voiceState, startRecording, stopAll, stopTTSMonitor])
 
-  /* ── Keyboard ─── */
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.code === "Space" && e.target === document.body) { e.preventDefault(); handleTap() }
@@ -755,17 +689,14 @@ export default function VoiceAssistantPage() {
     return () => window.removeEventListener("keydown", h)
   }, [handleTap, stopAll])
 
-  /* ── Cleanup ─── */
   useEffect(() => { return () => { stopAll() } }, [stopAll])
 
-  /* ── Auto-greet on first load ─── */
   const greetedRef = useRef(false)
   useEffect(() => {
     if (!isLoaded || greetedRef.current) return
     greetedRef.current = true
 
     const doGreet = async () => {
-      // Wait for page to render and user data to load
       await new Promise((r) => setTimeout(r, 1200))
 
       const name = user?.firstName || ""
@@ -797,7 +728,6 @@ export default function VoiceAssistantPage() {
 
         audio.onended = () => {
           stopTTSMonitor(); URL.revokeObjectURL(url); audioPlayerRef.current = null
-          // Enter continuous mode — start listening after greeting
           continuousRef.current = true
           startRecording()
         }
@@ -818,21 +748,15 @@ export default function VoiceAssistantPage() {
 
   const handleLogout = useCallback(async () => { stopAll(); await signOut({ redirectUrl: "/" }) }, [signOut, stopAll])
 
-  /* ═════════════════════════════════════
-     RENDER
-     ═════════════════════════════════════ */
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"
       style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}>
 
-      {/* Three.js Particle Background */}
       <ParticleVisualizer state={voiceState} audioLevel={audioLevel} />
 
-      {/* Clickable overlay for voice */}
       <div className="fixed inset-0 z-10" onClick={handleTap}
         style={{ cursor: voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
 
-      {/* Top Nav */}
       <nav className="relative z-20 flex items-center justify-between px-5 md:px-8 py-4 pointer-events-auto">
         <Link href="/" className="flex items-center gap-2 opacity-40 hover:opacity-70 transition-opacity">
           <ArrowLeft className="w-4 h-4" />
@@ -850,12 +774,10 @@ export default function VoiceAssistantPage() {
         </button>
       </nav>
 
-      {/* Settings Panel */}
       {showSettings && (
         <div className="absolute top-16 right-5 z-30 w-64 rounded-2xl p-4 pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
           style={{ background: "rgba(0,0,0,0.7)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(30px)" }}>
-          {/* User Info */}
           <div className="flex items-center gap-3 mb-4 pb-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
             {user?.imageUrl && <img src={user.imageUrl} alt="" className="w-8 h-8 rounded-full opacity-80" />}
             <div>
@@ -864,7 +786,6 @@ export default function VoiceAssistantPage() {
             </div>
           </div>
 
-          {/* Personality Picker */}
           <div className="mb-4">
             <p className="text-[10px] font-medium tracking-wider uppercase mb-2.5" style={{ color: "rgba(255,255,255,0.3)" }}>
               Missi&apos;s Personality
@@ -898,7 +819,6 @@ export default function VoiceAssistantPage() {
             </div>
           </div>
 
-          {/* Sign Out */}
           <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "12px" }}>
             <button onClick={handleLogout}
               className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-light transition-colors hover:bg-white/5"
@@ -909,7 +829,6 @@ export default function VoiceAssistantPage() {
         </div>
       )}
 
-      {/* Status Overlay — Bottom Center */}
       <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pb-10 md:pb-14 pointer-events-none">
         <p className="text-base md:text-lg font-light tracking-tight mb-1"
           style={{
