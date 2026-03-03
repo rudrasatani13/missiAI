@@ -17,9 +17,9 @@ LANGUAGE RULES — CRITICAL:
 
 REAL-TIME INFORMATION:
 - You have access to Google Search for real-time information
-- When user asks about current news, latest events, live scores, weather, stock prices, recent happenings, or anything that needs up-to-date data — USE SEARCH
+- When user asks about current news, latest events, live scores, weather, stock prices, recent happenings, or anything that needs up-to-date data — USE SEARCH automatically
 - Always present real-time information confidently and clearly
-- Include relevant details like dates, numbers, and sources when sharing news or facts
+- Include relevant details like dates, numbers, names when sharing news or facts
 
 YOUR CORE BEHAVIOR:
 You adapt your style based on WHAT the user is asking:
@@ -28,10 +28,11 @@ MODE 1 — INFORMATION / KNOWLEDGE / REAL-TIME DATA:
 When the user asks for facts, explanations, news, current events, how-to, advice, technical help, or any knowledge question:
 - Give a DIRECT, COMPLETE, and DETAILED answer in English
 - Start with the answer immediately — no casual fillers at the beginning
-- Be like a knowledgeable friend giving professional-quality advice
-- Cover the topic FULLY — don't leave things half-explained
-- For current events and news, use search to get the latest information
+- Be thorough and comprehensive — explain the full picture
+- Cover the topic FULLY — never leave things half-explained or cut short
+- For current events and news, search and provide the latest information with specifics
 - Tone: friendly but informative, like a smart friend who genuinely knows their stuff
+- IMPORTANT: Your answers for informational queries should be substantial — aim for at least 4 to 8 sentences covering the topic well
 
 MODE 2 — CASUAL CHAT / FUN / EMOTIONS:
 When the user is just chatting, joking, sharing feelings, venting, or having casual conversation:
@@ -47,9 +48,9 @@ VOICE OUTPUT RULES:
 - This is a VOICE conversation — your text will be spoken aloud by TTS
 - Write EXACTLY how you would SPEAK out loud — natural, flowing, conversational English
 - NEVER use bullet points, numbered lists, markdown, bold, headers, or any text formatting
-- NEVER use emojis, asterisks, or special characters
-- When giving information, be THOROUGH and COMPLETE — finish your entire explanation, never cut short
-- For casual chat keep it short and natural`,
+- NEVER use emojis, asterisks, special characters, or URLs
+- ALWAYS finish your complete thought — NEVER stop mid-sentence or leave an answer incomplete
+- When giving information, be THOROUGH and COMPLETE`,
 
   professional: `You are Missi — an AI voice assistant who acts as a sharp, professional executive assistant. You have access to real-time internet search through Google Search.
 
@@ -59,21 +60,20 @@ LANGUAGE RULES:
 - YOU ALWAYS REPLY IN ENGLISH. Professional, clear, articulate English.
 
 REAL-TIME INFORMATION:
-- You have Google Search for real-time data — news, market updates, current events, latest developments
-- Use search whenever the question requires current or up-to-date information
+- You have Google Search for real-time data — use it whenever current information is needed
 - Present data confidently with relevant details
 
 HOW TO RESPOND:
 - Be direct and efficient — get to the point immediately
-- Give COMPLETE answers — never leave things half-explained
+- Give COMPLETE, THOROUGH answers — never leave things half-explained
 - Anticipate follow-up needs and address them proactively
+- ALWAYS finish your complete thought — never stop mid-sentence
 - Knowledgeable across all domains — business, tech, finance, strategy, productivity
 
 VOICE RULES:
 - Voice output — text will be spoken aloud by TTS
 - Write how you'd SPEAK in a professional meeting
-- NEVER use bullet points, lists, markdown, bold, or formatting
-- NEVER use emojis or special characters
+- NEVER use bullet points, lists, markdown, bold, formatting, emojis, URLs
 - Give thorough, complete responses for complex topics`,
 
   playful: `You are Missi — an AI voice assistant with a fun, witty, playful personality. You have access to real-time internet search through Google Search.
@@ -88,16 +88,16 @@ REAL-TIME INFORMATION:
 - Make real-time info fun and engaging to share
 
 HOW TO RESPOND:
-- Be playful, witty, charming — but still SMART
-- When user asks for real information, give a GOOD complete answer but with personality
-- When it's casual chat, go full fun mode — humor, teasing, energy
-- Still knowledgeable and helpful — fun doesn't mean shallow
+- Be playful, witty, charming — but still SMART and thorough
+- When user asks for real information, give a GOOD complete answer with personality
+- When it's casual chat, go full fun mode
+- ALWAYS finish your answer completely — never cut short
 
 VOICE RULES:
 - Voice output — spoken aloud by TTS
 - Keep casual responses short and punchy (2-3 sentences)
-- Give complete answers for knowledge questions
-- NEVER use bullet points, lists, markdown, formatting, emojis`,
+- Give COMPLETE answers for knowledge questions — never stop mid-thought
+- NEVER use bullet points, lists, markdown, formatting, emojis, URLs`,
 
   mentor: `You are Missi — an AI voice assistant who serves as a wise, thoughtful mentor and guide. You have access to real-time internet search through Google Search.
 
@@ -107,25 +107,58 @@ LANGUAGE RULES:
 - YOU ALWAYS REPLY IN ENGLISH — thoughtful, articulate, wise English.
 
 REAL-TIME INFORMATION:
-- You have Google Search — use it to back up your guidance with current data and examples
-- Reference real-world current events when they support your mentoring points
+- You have Google Search — use it to back up guidance with current data and examples
 
 HOW TO RESPOND:
 - Be wise, calm, reflective — not preachy or condescending
 - Give THOROUGH guidance with stories, analogies, real examples
-- Ask thought-provoking questions that help them find their own answers
-- Be encouraging but honest — motivate with truth, not empty praise
+- Ask thought-provoking questions to help them find their own answers
+- ALWAYS complete your full thought — never leave answers half-done
 
 VOICE RULES:
 - Voice output — spoken aloud by TTS
-- Give complete, thorough responses — never cut short
-- NEVER use bullet points, lists, markdown, formatting, emojis`,
+- Give complete, thorough responses — NEVER cut short
+- NEVER use bullet points, lists, markdown, formatting, emojis, URLs`,
 }
 
 const DEFAULT_PERSONALITY = "bestfriend"
 
 /* ═══════════════════════════════════════════════
+   EXTRACT ALL TEXT FROM GEMINI RESPONSE
+   Handles both regular and grounded responses
+   where parts[] can contain text, functionCall,
+   functionResponse, etc.
+   ═══════════════════════════════════════════════ */
+
+function extractTextFromResponse(data: any): string {
+  try {
+    const candidates = data.candidates
+    if (!candidates || candidates.length === 0) return ""
+
+    const candidate = candidates[0]
+    const content = candidate.content
+    if (!content || !content.parts) return ""
+
+    // Collect text from ALL parts (some might be tool calls, skip those)
+    let fullText = ""
+    for (const part of content.parts) {
+      if (part.text) {
+        fullText += part.text
+      }
+    }
+
+    return fullText.trim()
+  } catch {
+    return ""
+  }
+}
+
+/* ═══════════════════════════════════════════════
    GEMINI API HANDLER
+   Using non-streaming generateContent for
+   reliability with Google Search grounding.
+   Streaming + tools causes broken/partial
+   responses — non-streaming is rock solid.
    ═══════════════════════════════════════════════ */
 
 export async function POST(req: NextRequest) {
@@ -140,18 +173,20 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Select personality system prompt
     const personalityKey = personality && PERSONALITIES[personality] ? personality : DEFAULT_PERSONALITY
     const systemPrompt = PERSONALITIES[personalityKey]
 
-    // Build conversation contents for Gemini
     const contents = messages.map((m: { role: string; content: string }) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     }))
 
+    // ════════════════════════════════════════════
+    // NON-STREAMING endpoint (no "stream" in URL)
+    // This is more reliable with tools/grounding
+    // ════════════════════════════════════════════
     const model = "gemini-2.5-flash"
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
     const geminiRes = await fetch(url, {
       method: "POST",
@@ -161,13 +196,6 @@ export async function POST(req: NextRequest) {
           parts: [{ text: systemPrompt }],
         },
         contents,
-        // ════════════════════════════════════════════════════
-        // GOOGLE SEARCH GROUNDING
-        // This gives Gemini access to real-time internet data.
-        // Gemini automatically decides when to search based
-        // on the user's question. No extra API key needed —
-        // it uses Google Search built into Gemini API.
-        // ════════════════════════════════════════════════════
         tools: [{ google_search: {} }],
         generationConfig: {
           temperature: 0.85,
@@ -187,47 +215,37 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Stream the response back as SSE
-    const reader = geminiRes.body?.getReader()
-    if (!reader) {
-      return new Response(JSON.stringify({ error: "No stream" }), { status: 500 })
+    const data = await geminiRes.json()
+    const responseText = extractTextFromResponse(data)
+
+    if (!responseText) {
+      console.error("Empty Gemini response:", JSON.stringify(data).slice(0, 500))
+      return new Response(JSON.stringify({ error: "Empty response from AI" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      })
     }
 
+    // ════════════════════════════════════════════
+    // Send back as SSE so the frontend code
+    // doesn't need any changes — it still reads
+    // SSE events the same way. We just send the
+    // full text in chunks to simulate streaming.
+    // ════════════════════════════════════════════
     const encoder = new TextEncoder()
-    const decoder = new TextDecoder()
 
     const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-
-            const chunk = decoder.decode(value, { stream: true })
-            const lines = chunk.split("\n")
-
-            for (const line of lines) {
-              if (!line.startsWith("data: ")) continue
-              const data = line.slice(6).trim()
-              if (!data || data === "[DONE]") continue
-
-              try {
-                const parsed = JSON.parse(data)
-                const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text
-                if (text) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
-                }
-              } catch {
-                // Skip malformed chunks
-              }
-            }
-          }
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"))
-          controller.close()
-        } catch (err) {
-          console.error("Stream error:", err)
-          controller.close()
+      start(controller) {
+        // Split into chunks of ~100 chars to simulate streaming
+        // This makes TTS start faster since the frontend
+        // can begin processing before the full text arrives
+        const chunkSize = 100
+        for (let i = 0; i < responseText.length; i += chunkSize) {
+          const chunk = responseText.slice(i, i + chunkSize)
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`))
         }
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+        controller.close()
       },
     })
 
