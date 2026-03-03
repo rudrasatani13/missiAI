@@ -15,8 +15,8 @@ interface ConversationEntry {
 }
 
 const PERSONALITY_OPTIONS: { key: PersonalityKey; label: string; emoji: string; desc: string }[] = [
-  { key: "bestfriend", label: "Best Friend", emoji: "💛", desc: "Warm, supportive, Hinglish" },
-  { key: "professional", label: "Professional", emoji: "💼", desc: "Sharp, efficient, English" },
+  { key: "bestfriend", label: "Best Friend", emoji: "💛", desc: "Warm, supportive, friendly" },
+  { key: "professional", label: "Professional", emoji: "💼", desc: "Sharp, efficient, direct" },
   { key: "playful", label: "Playful", emoji: "✨", desc: "Fun, witty, high energy" },
   { key: "mentor", label: "Mentor", emoji: "🧠", desc: "Wise, thoughtful, guiding" },
 ]
@@ -724,11 +724,26 @@ export default function VoiceAssistantPage() {
       // Start continuous conversation
       continuousRef.current = true
       startRecording()
+    } else if (voiceState === "speaking" || voiceState === "thinking") {
+      // ════════════════════════════════════════════
+      // INTERRUPT: User wants to speak while Missi
+      // is talking or thinking. Stop Missi immediately,
+      // then start listening to the user.
+      // ════════════════════════════════════════════
+      abortRef.current?.abort()  // Cancel pending AI request
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause()
+        audioPlayerRef.current = null
+      }
+      stopTTSMonitor()
+      // Keep continuous mode alive and start recording
+      continuousRef.current = true
+      startRecording()
     } else {
-      // Any tap during active state → stop everything
+      // recording/transcribing → stop everything
       stopAll()
     }
-  }, [voiceState, startRecording, stopAll])
+  }, [voiceState, startRecording, stopAll, stopTTSMonitor])
 
   /* ── Keyboard ─── */
   useEffect(() => {
