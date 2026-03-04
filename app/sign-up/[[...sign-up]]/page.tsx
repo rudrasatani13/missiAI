@@ -1,118 +1,49 @@
 "use client"
 
-export const runtime = "edge"
-
 import { SignUp } from "@clerk/nextjs"
-import { useRef, useEffect } from "react"
+import { dark } from "@clerk/themes"
 import Link from "next/link"
-import Image from "next/image"
 import { ArrowLeft } from "lucide-react"
-
-/* ─── Starfield ─────────────────────────────────── */
-function StarfieldCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-
-    let animId: number
-    let stars: { x: number; y: number; size: number; brightness: number; speed: number; offset: number }[] = []
-
-    const resize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-      stars = []
-      const count = window.innerWidth < 768 ? 70 : 140
-      for (let i = 0; i < count; i++) {
-        stars.push({
-          x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-          size: Math.random() * 1.3 + 0.2, brightness: Math.random() * 0.4 + 0.1,
-          speed: Math.random() * 0.002 + 0.0005, offset: Math.random() * Math.PI * 2,
-        })
-      }
-    }
-
-    const draw = (t: number) => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      for (const s of stars) {
-        const b = s.brightness * (0.65 + 0.35 * Math.sin(t * s.speed + s.offset))
-        ctx.fillStyle = `rgba(255,255,255,${b})`
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2); ctx.fill()
-      }
-      animId = requestAnimationFrame(draw)
-    }
-
-    resize()
-    animId = requestAnimationFrame(draw)
-    window.addEventListener("resize", resize)
-    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize) }
-  }, [])
-
-  return <canvas ref={canvasRef} className="fixed inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }} />
-}
 
 export default function SignUpPage() {
   return (
-    <>
-      <div className="fixed inset-0 bg-black" />
-      <StarfieldCanvas />
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden" style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}>
 
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-5 font-inter">
-
-        {/* Back to home */}
-        <div className="absolute top-5 left-5">
-          <Link href="/public"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all duration-200 hover:bg-white/10"
-            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}>
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Home</span>
-          </Link>
-        </div>
-
-        {/* Logo */}
-        <div className="mb-8">
-          <Image src="/images/missiai-logo.png" alt="missiAI" width={200} height={50}
-            className="h-14 w-auto object-contain brightness-0 invert opacity-90 select-none pointer-events-none"
-            priority draggable={false} />
-        </div>
-
-        {/* Clerk SignUp Component */}
-        <SignUp
-          appearance={{
-            elements: {
-              rootBox: "w-full max-w-sm",
-              card: "bg-transparent shadow-none border-0",
-              cardBox: "rounded-2xl shadow-none",
-              headerTitle: "text-white text-xl",
-              headerSubtitle: "text-white/40 text-xs",
-              socialButtonsBlockButton: "bg-white/[0.06] border border-white/10 text-white/85 hover:bg-white/[0.12] rounded-xl",
-              socialButtonsBlockButtonText: "text-sm font-medium",
-              dividerLine: "bg-white/[0.08]",
-              dividerText: "text-white/25 text-[11px]",
-              formFieldLabel: "text-white/50 text-xs",
-              formFieldInput: "bg-transparent border-white/10 text-white/85 rounded-xl text-sm focus:border-white/30",
-              formButtonPrimary: "bg-white/90 text-black hover:bg-white rounded-xl text-sm font-medium",
-              footerActionLink: "text-white/70 hover:text-white font-medium",
-              footerActionText: "text-white/35 text-xs",
-              identityPreviewEditButton: "text-white/50",
-              formFieldAction: "text-white/50 text-xs",
-              otpCodeFieldInput: "border-white/10 text-white",
-              alert: "bg-red-500/10 border border-red-500/20 text-red-400/80",
-            },
-          }}
-          routing="path"
-          path="/sign-up"
-          signInUrl="/login"
-          forceRedirectUrl="/chat"
-        />
-
-        <p className="text-center text-[11px] mt-4" style={{ color: "rgba(255,255,255,0.15)" }}>
-          By continuing, you agree to missiAI&apos;s Terms & Privacy Policy
-        </p>
+      {/* Background Effect */}
+      <div className="absolute inset-0 w-full h-full z-0 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-20"
+          style={{ background: "radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)" }} />
       </div>
-    </>
+
+      <nav className="absolute top-0 left-0 w-full flex items-center p-6 md:p-8 z-20">
+        <Link href="/" className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity text-white">
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-xs font-light tracking-wide">Back to Home</span>
+        </Link>
+      </nav>
+
+      <div className="relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        <SignUp
+          signInUrl="/login"
+          fallbackRedirectUrl="/waitlist" // Fallback safety
+          appearance={{
+            baseTheme: dark,
+            elements: {
+              card: "bg-white/5 border border-white/10 shadow-2xl backdrop-blur-xl rounded-2xl",
+              headerTitle: "text-white font-semibold text-2xl",
+              headerSubtitle: "text-white/50 font-light",
+              socialButtonsBlockButton: "bg-white/5 border-white/10 hover:bg-white/10 text-white transition-colors",
+              formButtonPrimary: "bg-white text-black hover:bg-white/90 transition-all rounded-full font-medium py-2.5",
+              formFieldInput: "bg-white/5 border-white/10 text-white focus:border-white/30 rounded-xl",
+              formFieldLabel: "text-white/70 font-light",
+              dividerLine: "bg-white/10",
+              dividerText: "text-white/40",
+              footerActionLink: "text-white hover:text-white/80 transition-colors",
+              footerActionText: "text-white/50 font-light"
+            }
+          }}
+        />
+      </div>
+    </div>
   )
 }
