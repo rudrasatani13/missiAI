@@ -260,3 +260,51 @@ div[style*="bottom:12px"] {
     opacity: 0 !important;
     pointer-events: none !important;
 }
+
+
+/* ═══════ Login Page Entry Animations ═══════ */
+@keyframes loginFadeSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes loginFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Back to Home — fade in */
+.login-animate-back {
+  opacity: 0;
+  animation: loginFadeIn 0.6s ease-out 0.1s forwards;
+}
+
+/* SignIn Card — slide up + fade in (SIRF EK BAAR, no hover re-trigger) */
+.login-animate-card {
+  opacity: 0;
+  animation: loginFadeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+}
+
+/* 👇 Hover pe SIRF subtle transition — NO animation (glitch fix) */
+.login-animate-card:hover {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 8px 25px rgba(0, 0, 0, 0.2), 0 0 30px rgba(255, 255, 255, 0.04);
+  transition: box-shadow 0.4s ease;
+}
+
+/* Waitlist link — fade in with delay */
+.login-animate-waitlist {
+  opacity: 0;
+  animation: loginFadeIn 0.6s ease-out 0.6s forwards;
+}
+
+/* Footer — fade in last */
+.login-animate-footer {
+  opacity: 0;
+  animation: loginFadeIn 0.6s ease-out 0.8s forwards;
+}
