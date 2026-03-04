@@ -250,3 +250,13 @@ img[src*="missiai"] {
     @apply bg-background text-foreground;
   }
 }
+
+/* Hide Clerk Development Badge Temporarily */
+.cl-internal-b3al4t,
+.cl-internal-1x7qwnx,
+div[style*="bottom: 12px"],
+div[style*="bottom:12px"] {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}

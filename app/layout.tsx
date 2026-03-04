@@ -1,135 +1,47 @@
-import type React from "react"
-import type { Metadata } from "next"
-import "./globals.css"
-import { Inter } from "next/font/google"
-import { Dancing_Script } from "next/font/google"
-import Script from "next/script"
-import { ClerkProvider } from "@clerk/nextjs"
-import { dark } from "@clerk/themes"
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { ClerkProvider } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
+import { Toaster } from "@/components/ui/sonner"; // 👈 Toaster import karein
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  weight: ["300", "400", "500", "600", "700"],
-  display: "swap",
-})
-const dancingScript = Dancing_Script({
-  variable: "--font-dancing-script",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-})
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "missiAI - AI with Memory",
-  description: "Help your AI remember the right stuff.",
-  generator: "missiAI",
-  icons: {
-    icon: [
-      {
-        url: "/favicon.ico",
-        sizes: "any",
-      },
-      {
-        url: "/favicon-16x16.png",
-        sizes: "16x16",
-        type: "image/png",
-      },
-      {
-        url: "/favicon-32x32.png",
-        sizes: "32x32",
-        type: "image/png",
-      },
-    ],
-    apple: [
-      {
-        url: "/apple-touch-icon.png",
-        sizes: "180x180",
-        type: "image/png",
-      },
-    ],
-  },
-}
+  title: "missiAI | The Future of Human-AI Interaction",
+  description: "The most powerful human AI assistant yet.",
+};
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <ClerkProvider
       appearance={{
         baseTheme: dark,
-        variables: {
-          colorPrimary: "#ffffff",
-          colorBackground: "#000000",
-          colorInputBackground: "rgba(255,255,255,0.05)",
-          colorInputText: "rgba(255,255,255,0.85)",
-          borderRadius: "0.75rem",
-        },
       }}
     >
       <html lang="en" className="dark">
-        <head>
-          <link rel="icon" href="/favicon.ico" sizes="any" />
-          <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png" />
-          <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png" />
-          <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        </head>
-        <body className={`${inter.variable} ${dancingScript.variable} font-inter`}>
+        <body className={`${inter.variable} font-sans antialiased bg-black text-white`}>
           {children}
 
-          {/* Logo Protection Script */}
-          <Script id="logo-protection" strategy="afterInteractive">
-            {`
-            // Disable right-click context menu on logo images
-            document.addEventListener('contextmenu', function(e) {
-              if (e.target.tagName === 'IMG' && (
-                e.target.src.includes('logo') || 
-                e.target.src.includes('missiai') ||
-                e.target.alt.toLowerCase().includes('logo') ||
-                e.target.alt.toLowerCase().includes('missiai')
-              )) {
-                e.preventDefault();
-                return false;
+          {/* 👈 Yeh Toaster app me kahin bhi popup dikhane ka kaam karega */}
+          <Toaster
+            theme="dark"
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: 'rgba(20, 20, 20, 0.9)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(10px)',
+                color: 'white',
               }
-            });
-
-            // Disable drag and drop for logo images
-            document.addEventListener('dragstart', function(e) {
-              if (e.target.tagName === 'IMG' && (
-                e.target.src.includes('logo') || 
-                e.target.src.includes('missiai') ||
-                e.target.alt.toLowerCase().includes('logo') ||
-                e.target.alt.toLowerCase().includes('missiai')
-              )) {
-                e.preventDefault();
-                return false;
-              }
-            });
-
-            // Disable keyboard shortcuts for saving images
-            document.addEventListener('keydown', function(e) {
-              if ((e.ctrlKey && (e.key === 's' || e.key === 'a' || e.key === 'u')) || 
-                  e.key === 'F12' || 
-                  (e.ctrlKey && e.shiftKey && e.key === 'I')) {
-                e.preventDefault();
-                return false;
-              }
-            });
-
-            // Disable text selection on logo containers
-            const logoContainers = document.querySelectorAll('[class*="logo"], [alt*="logo"], [alt*="missiai"]');
-            logoContainers.forEach(function(container) {
-              container.style.webkitUserSelect = 'none';
-              container.style.mozUserSelect = 'none';
-              container.style.msUserSelect = 'none';
-              container.style.userSelect = 'none';
-            });
-          `}
-          </Script>
+            }}
+          />
         </body>
       </html>
     </ClerkProvider>
-  )
+  );
 }
