@@ -746,7 +746,23 @@ export default function VoiceAssistantPage() {
     doGreet()
   }, [isLoaded, user, startTTSMonitor, stopTTSMonitor])
 
-  const handleLogout = useCallback(async () => { stopAll(); await signOut({ redirectUrl: "/" }) }, [signOut, stopAll])
+  const handleLogout = useCallback(async () => {
+  // Pehle sab band karo
+  stopAll()
+
+  // Settings panel band karo
+  setShowSettings(false)
+
+  // Thoda delay do taaki stopAll cleanly complete ho
+  // Phir signOut karo with proper redirect
+  try {
+    await signOut({ redirectUrl: "/" })
+  } catch (err) {
+    console.error("Sign out failed:", err)
+    // Fallback: manually redirect agar signOut fail ho
+    window.location.href = "/"
+  }
+}, [signOut, stopAll])
 
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"
