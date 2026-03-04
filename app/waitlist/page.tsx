@@ -1,52 +1,82 @@
 "use client"
 
-import { Waitlist } from "@clerk/nextjs"
-import { dark } from "@clerk/themes"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { WaitlistLayout } from "@/components/waitlist/layout"
+import { InputForm } from "@/components/waitlist/form"
+import Image from "next/image"
 
 export default function WaitlistPage() {
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden" style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}>
+    <WaitlistLayout activeTab="waitlist">
+      <div className="flex flex-col items-center gap-4 md:gap-6 text-center">
+        {/* Protected Logo - Responsive sizing */}
+        <div className="flex items-center justify-center mb-2 md:mb-4 relative select-none">
+          {/* Transparent overlay to prevent right-click */}
+          <div
+            className="absolute inset-0 z-10"
+            onContextMenu={(e) => e.preventDefault()}
+            onDragStart={(e) => e.preventDefault()}
+          />
+          <Image
+            src="/images/missiai-logo.png"
+            alt="MissiAI"
+            width={400}
+            height={120}
+            className="h-16 md:h-20 lg:h-24 w-auto object-contain brightness-0 invert select-none pointer-events-none"
+            priority
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+            onDragStart={(e) => e.preventDefault()}
+          />
+        </div>
 
-      {/* Background Starfield Effect (Subtle) */}
-      <div className="absolute inset-0 w-full h-full z-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-20"
-          style={{ background: "radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)" }} />
+        {/* Headline - Responsive text sizing */}
+        <h1 className="text-white text-lg md:text-xl lg:text-2xl font-medium leading-tight max-w-xs md:max-w-md px-2">
+          The most powerful human AI assistant yet.
+        </h1>
+
+        {/* Description - Responsive text sizing */}
+        <p className="text-gray-400 text-xs md:text-sm leading-relaxed max-w-xs md:max-w-sm px-2">
+          missiAI represents the pinnacle of AI advancement, delivering unprecedented intelligence, capability, and
+          human-like interaction. Experience the future of Human-AI assistance today.
+        </p>
+
+        {/* Waitlist Form - Responsive width */}
+        <div className="w-full max-w-xs md:max-w-sm mt-2 md:mt-4">
+          <InputForm
+            buttonCopy={{
+              idle: "Join waitlist",
+              success: "Welcome aboard!",
+              loading: "Joining...",
+            }}
+            formAction={async (data) => {
+              try {
+                const email = data.get("email") as string
+
+                if (!email || !email.includes("@")) {
+                  return {
+                    success: false,
+                    error: "Please enter a valid email address",
+                  }
+                }
+
+                // Here you would save to database
+                console.log("New waitlist signup:", email)
+                return { success: true }
+              } catch (error) {
+                console.error(error)
+                return {
+                  success: false,
+                  error: "There was an error while submitting the form",
+                }
+              }
+            }}
+            name="email"
+            type="email"
+            placeholder="Your work email"
+            required
+          />
+        </div>
       </div>
-
-      {/* Top Nav */}
-      <nav className="absolute top-0 left-0 w-full flex items-center p-6 md:p-8 z-20">
-        <Link href="/" className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity text-white">
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-xs font-light tracking-wide">Back to Home</span>
-        </Link>
-      </nav>
-
-      <div className="relative z-10 w-full max-w-md flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-1000">
-
-        {/* Clerk's Built-in Waitlist Component */}
-        <Waitlist
-          signInUrl="/login"
-          appearance={{
-            baseTheme: dark,
-            elements: {
-              card: "bg-white/5 border border-white/10 shadow-2xl backdrop-blur-xl rounded-2xl w-full",
-              // FIX: Hidden hata kar native title/subtitle ko style kiya hai taaki success message dikhe
-              headerTitle: "text-white font-semibold text-2xl tracking-tight text-center",
-              headerSubtitle: "text-white/50 font-light text-sm text-center mb-2",
-              socialButtonsBlockButton: "bg-white/5 border-white/10 hover:bg-white/10 text-white transition-colors",
-              formButtonPrimary: "bg-white text-black hover:bg-white/90 transition-all rounded-full font-medium py-2.5 mt-2",
-              formFieldInput: "bg-white/5 border-white/10 text-white focus:border-white/30 rounded-xl",
-              formFieldLabel: "text-white/70 font-light",
-              dividerLine: "bg-white/10",
-              dividerText: "text-white/40",
-              footerActionLink: "text-white/70 hover:text-white transition-colors",
-              footerActionText: "text-white/40"
-            }
-          }}
-        />
-      </div>
-    </div>
+    </WaitlistLayout>
   )
 }
