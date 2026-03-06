@@ -749,13 +749,25 @@ export default function VoiceAssistantPage() {
   const handleLogout = useCallback(() => {
   stopAll()
   setShowSettings(false)
-  // Don't await — signOut hangs on Cloudflare Pages
-  // Fire it and force redirect after short delay
-  signOut().catch(() => {})
-  setTimeout(() => {
-    window.location.href = "/"
-  }, 500)
-}, [signOut, stopAll])
+
+  // Nuclear: Manually clear ALL Clerk cookies
+  // This bypasses Clerk's signOut() which hangs on Cloudflare
+  const cookiesToClear = ["__session", "__client_uat", "__clerk_db_jwt"]
+  const domains = [window.location.hostname, ".missi.space", ""]
+
+  for (const name of cookiesToClear) {
+    for (const domain of domains) {
+      const domainPart = domain ? `; domain=${domain}` : ""
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${domainPart}`
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${domainPart}; secure`
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${domainPart}; secure; samesite=lax`
+    }
+  }
+
+  // Hard redirect to home — Clerk middleware will see
+  // no session cookies and treat user as logged out
+  window.location.href = "/"
+}, [stopAll])
 
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"
