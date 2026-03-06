@@ -3,14 +3,12 @@
 import { WaitlistLayout } from "@/components/waitlist/layout"
 import { InputForm } from "@/components/waitlist/form"
 import Image from "next/image"
-import { joinWaitlist } from "./actions"
-import { toast } from "sonner" // 👈 Popup notification import kiya gaya hai
 
 export default function WaitlistPage() {
   return (
     <WaitlistLayout activeTab="waitlist">
       <div className="flex flex-col items-center gap-4 md:gap-6 text-center">
-        {/* Protected Logo */}
+        {/* Protected Logo - Responsive sizing */}
         <div className="flex items-center justify-center mb-2 md:mb-4 relative select-none">
           <div
             className="absolute inset-0 z-10"
@@ -36,12 +34,12 @@ export default function WaitlistPage() {
         </h1>
 
         {/* Description */}
-        <p className="text-zinc-400 text-xs md:text-sm leading-relaxed max-w-xs md:max-w-sm px-2">
+        <p className="text-gray-400 text-xs md:text-sm leading-relaxed max-w-xs md:max-w-sm px-2">
           missiAI represents the pinnacle of AI advancement, delivering unprecedented intelligence, capability, and
           human-like interaction. Experience the future of Human-AI assistance today.
         </p>
 
-        {/* Waitlist Form with Toasts */}
+        {/* Waitlist Form */}
         <div className="w-full max-w-xs md:max-w-sm mt-2 md:mt-4">
           <InputForm
             buttonCopy={{
@@ -50,52 +48,32 @@ export default function WaitlistPage() {
               loading: "Joining...",
             }}
             formAction={async (data) => {
-              try {
-                const email = data.get("email") as string
+              const email = data.get("email") as string
 
-                // 🚨 Invalid Email Popup
-                if (!email || !email.includes("@")) {
-                  toast.error("Invalid Email", {
-                    description: "Please enter a valid email address.",
-                  })
-                  return {
-                    success: false,
-                    error: "Please enter a valid email address",
-                  }
-                }
-
-                const res = await joinWaitlist(email)
-
-                // 🚨 Server Error / Already Joined Popup
-                if (!res.success) {
-                  toast.error("Notice", {
-                    description: res.error as string,
-                  })
-                  return {
-                    success: false,
-                    error: res.error as string,
-                  }
-                }
-
-                // ✅ SUCCESS POPUP (Yeh sabse important hai)
-                toast.success("Thank you for joining!", {
-                  description: "You have been successfully added to the missiAI waitlist. We will email you soon.",
-                })
-
-                console.log("New waitlist signup successful:", email)
-                return { success: true }
-
-              } catch (error) {
-                console.error(error)
-                // 🚨 Catch-all Error Popup
-                toast.error("Oops!", {
-                  description: "Something went wrong. Please try again.",
-                })
+              if (!email || !email.includes("@")) {
                 return {
                   success: false,
-                  error: "There was an error while submitting the form",
+                  error: "Please enter a valid email address",
                 }
               }
+
+              // Call the API route instead of inline logic
+              const res = await fetch("/api/waitlist", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+              })
+
+              const result = await res.json()
+
+              if (!res.ok || !result.success) {
+                return {
+                  success: false,
+                  error: result.error || "Something went wrong. Please try again.",
+                }
+              }
+
+              return { success: true }
             }}
             name="email"
             type="email"
