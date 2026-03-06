@@ -746,17 +746,15 @@ export default function VoiceAssistantPage() {
     doGreet()
   }, [isLoaded, user, startTTSMonitor, stopTTSMonitor])
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = useCallback(() => {
   stopAll()
   setShowSettings(false)
-  try {
-    await signOut()
-    // Manual redirect — Clerk's built-in redirect
-    // breaks on Cloudflare Pages
+  // Don't await — signOut hangs on Cloudflare Pages
+  // Fire it and force redirect after short delay
+  signOut().catch(() => {})
+  setTimeout(() => {
     window.location.href = "/"
-  } catch {
-    window.location.href = "/"
-  }
+  }, 500)
 }, [signOut, stopAll])
 
   return (
