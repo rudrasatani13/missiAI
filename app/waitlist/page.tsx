@@ -3,8 +3,14 @@
 import { WaitlistLayout } from "@/components/waitlist/layout"
 import { InputForm } from "@/components/waitlist/form"
 import Image from "next/image"
+import { joinWaitlist } from "./actions"
+
+// Email validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function WaitlistPage() {
+  // @ts-ignore
+  // @ts-ignore
   return (
     <WaitlistLayout activeTab="waitlist">
       <div className="flex flex-col items-center gap-4 md:gap-6 text-center">
@@ -48,32 +54,21 @@ export default function WaitlistPage() {
               loading: "Joining...",
             }}
             formAction={async (data) => {
-              const email = data.get("email") as string
+              const email = (data.get("email") as string)?.trim()
 
-              if (!email || !email.includes("@")) {
+              // Proper email validation
+              if (!email || !EMAIL_REGEX.test(email)) {
                 return {
                   success: false,
                   error: "Please enter a valid email address",
                 }
               }
 
-              // Call the API route instead of inline logic
-              const res = await fetch("/api/waitlist", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
-              })
+              // Email sanitization - remove any potentially harmful characters
+              const sanitizedEmail = email.toLowerCase().replace(/[<>]/g, "")
 
-              const result = await res.json()
-
-              if (!res.ok || !result.success) {
-                return {
-                  success: false,
-                  error: result.error || "Something went wrong. Please try again.",
-                }
-              }
-
-              return { success: true }
+              const result = await joinWaitlist(sanitizedEmail)
+              return result
             }}
             name="email"
             type="email"

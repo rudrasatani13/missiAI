@@ -15,7 +15,7 @@ type InputFormProps = {
     loading: string
     success: string
   }
-} & React.HTMLAttributes<HTMLInputElement>
+} & Omit<InputHTMLAttributes<HTMLInputElement>, "name" | "type" | "placeholder" | "required">
 
 type State = "idle" | "loading" | "success" | "error"
 
