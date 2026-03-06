@@ -754,7 +754,7 @@ export default function VoiceAssistantPage() {
   // This bypasses Clerk's signOut() which hangs on Cloudflare
   const cookiesToClear = ["__session", "__client_uat", "__clerk_db_jwt"]
   const domains = [window.location.hostname, ".missi.space", ""]
-
+// hy
   for (const name of cookiesToClear) {
     for (const domain of domains) {
       const domainPart = domain ? `; domain=${domain}` : ""
