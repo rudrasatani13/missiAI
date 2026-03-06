@@ -747,19 +747,14 @@ export default function VoiceAssistantPage() {
   }, [isLoaded, user, startTTSMonitor, stopTTSMonitor])
 
   const handleLogout = useCallback(async () => {
-  // Pehle sab band karo
   stopAll()
-
-  // Settings panel band karo
   setShowSettings(false)
-
-  // Thoda delay do taaki stopAll cleanly complete ho
-  // Phir signOut karo with proper redirect
   try {
-    await signOut({ redirectUrl: "/" })
-  } catch (err) {
-    console.error("Sign out failed:", err)
-    // Fallback: manually redirect agar signOut fail ho
+    await signOut()
+    // Manual redirect — Clerk's built-in redirect
+    // breaks on Cloudflare Pages
+    window.location.href = "/"
+  } catch {
     window.location.href = "/"
   }
 }, [signOut, stopAll])
