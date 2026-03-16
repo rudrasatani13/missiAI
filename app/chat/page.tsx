@@ -317,6 +317,7 @@ export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
 
+  // Load saved personality
   useEffect(() => {
     try {
       const saved = localStorage.getItem("missi-personality") as PersonalityKey | null
@@ -327,6 +328,22 @@ export default function VoiceAssistantPage() {
     } catch {}
   }, [])
 
+  // ═══════════════════════════════════════
+  // MEMORY: Load memories from Cloudflare KV
+  // ═══════════════════════════════════════
+  useEffect(() => {
+    if (!isLoaded || !user?.id) return
+    fetch(`/api/memory?userId=${user.id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.memories) {
+          memoriesRef.current = data.memories
+          console.log("[Memory] Loaded memories for", user.id)
+        }
+      })
+      .catch(() => {}) // Silent fail — memory is optional
+  }, [isLoaded, user?.id])
+
   const updatePersonality = useCallback((key: PersonalityKey) => {
     setPersonality(key)
     personalityRef.current = key
@@ -336,6 +353,7 @@ export default function VoiceAssistantPage() {
 
   const conversationRef = useRef<ConversationEntry[]>([])
   const personalityRef = useRef<PersonalityKey>("bestfriend")
+  const memoriesRef = useRef<string>("") // ← MEMORY REF
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null)
@@ -565,7 +583,14 @@ export default function VoiceAssistantPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: msgs, personality: personalityRef.current }),
+        // ═══════════════════════════════════
+        // MEMORY: Send memories with request
+        // ═══════════════════════════════════
+        body: JSON.stringify({
+          messages: msgs,
+          personality: personalityRef.current,
+          memories: memoriesRef.current,
+        }),
         signal: ctrl.signal,
       })
       if (!res.ok) throw new Error(`Error ${res.status}`)
@@ -652,6 +677,9 @@ export default function VoiceAssistantPage() {
     }
   }, [startTTSMonitor, stopTTSMonitor, startRecording])
 
+  // ═══════════════════════════════════════════
+  // STOP ALL — with memory save
+  // ═══════════════════════════════════════════
   const stopAll = useCallback(() => {
     continuousRef.current = false
     if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop()
@@ -660,7 +688,33 @@ export default function VoiceAssistantPage() {
     streamRef.current?.getTracks().forEach((t) => t.stop())
     stopAudioMonitor(); stopTTSMonitor()
     setVoiceState("idle"); setStatusText("Tap anywhere to speak")
-  }, [stopAudioMonitor, stopTTSMonitor])
+
+    // ═══════════════════════════════════════
+    // MEMORY: Save memories in background
+    // after conversation stops
+    // ═══════════════════════════════════════
+    const convo = conversationRef.current
+    const uid = user?.id
+    if (uid && convo.length >= 2) {
+      fetch("/api/memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: uid,
+          conversation: convo,
+          existingMemories: memoriesRef.current,
+        }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.memories) {
+            memoriesRef.current = data.memories
+            console.log("[Memory] Saved updated memories")
+          }
+        })
+        .catch(() => {}) // Silent fail
+    }
+  }, [stopAudioMonitor, stopTTSMonitor, user?.id])
 
   const handleTap = useCallback(() => {
     if (voiceState === "idle") {
@@ -747,27 +801,13 @@ export default function VoiceAssistantPage() {
   }, [isLoaded, user, startTTSMonitor, stopTTSMonitor])
 
   const handleLogout = useCallback(() => {
-  stopAll()
-  setShowSettings(false)
-
-  // Nuclear: Manually clear ALL Clerk cookies
-  // This bypasses Clerk's signOut() which hangs on Cloudflare
-  const cookiesToClear = ["__session", "__client_uat", "__clerk_db_jwt"]
-  const domains = [window.location.hostname, ".missi.space", ""]
-// hy
-  for (const name of cookiesToClear) {
-    for (const domain of domains) {
-      const domainPart = domain ? `; domain=${domain}` : ""
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${domainPart}`
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${domainPart}; secure`
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${domainPart}; secure; samesite=lax`
-    }
-  }
-
-  // Hard redirect to home — Clerk middleware will see
-  // no session cookies and treat user as logged out
-  window.location.href = "/"
-}, [stopAll])
+    stopAll()
+    setShowSettings(false)
+    signOut().catch(() => {})
+    setTimeout(() => {
+      window.location.href = "/"
+    }, 500)
+  }, [signOut, stopAll])
 
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"

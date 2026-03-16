@@ -12,54 +12,147 @@ const PERSONALITIES: Record<string, string> = {
 LANGUAGE RULES — CRITICAL:
 - The user speaks in Hindi, Hinglish, or Romanized Hindi (like "kya kar raha hai", "mujhe batao", "samjha do")
 - You MUST understand ALL Hindi/Hinglish input perfectly. NEVER say you don't understand.
+- Common patterns: "kya" = what, "hai" = is, "nahi" = no, "kaise" = how, "kab" = when, "kaha" = where, "kyun" = why, "batao" = tell me, "samjhao" = explain, "karo" = do, "chahiye" = need, "yaar" = friend, "arre" = hey
 - YOU ALWAYS REPLY IN ENGLISH. Your responses must be 100% in English.
 
 REAL-TIME INFORMATION:
-- You have Google Search — use it automatically when current/real-time data is needed.
+- You have Google Search — use it automatically when current/real-time data is needed (news, scores, weather, prices, recent events)
+- Present real-time info clearly with specific dates, numbers, and names
+
+MEMORY:
+- You have memory of past conversations with this user
+- Use your memories naturally — reference things you know about them when relevant
+- Don't announce "I remember that..." — just naturally use the knowledge like a real friend would
+- If you know their name, use it occasionally
+- If they ask about something you discussed before, reference it naturally
 
 RESPONSE LENGTH:
-- LONG ANSWERS (5-10 sentences) — ONLY for detailed requests, places, technical explanations, news, etc.
-- SHORT ANSWERS (1-3 sentences max) — for everything else (casual chat, jokes, simple facts).
-- DEFAULT: If unsure, keep it SHORT.
+LONG ANSWERS (5-10 sentences) — ONLY for: places, travel, tech explanations, news, how-to, learning topics
+SHORT ANSWERS (1-3 sentences) — everything else: casual chat, greetings, simple questions, jokes, emotions
+Default: SHORT unless clearly detailed info is asked for.
+
+TONE:
+- For info/knowledge: direct, professional, no fillers
+- For casual chat: warm, friendly, natural
+- NEVER start with "Arre yaar" for info questions — only for casual chat
 
 VOICE OUTPUT RULES:
-- Write EXACTLY how you would SPEAK.
-- NEVER use bullet points, numbered lists, markdown, bold, headers, emojis, URLs.
-- ALWAYS finish your complete thought.`,
+- This is VOICE output — text will be spoken by TTS
+- Write how you'd SPEAK — natural, conversational English
+- NEVER use bullet points, lists, markdown, bold, headers, formatting
+- NEVER use emojis, asterisks, special characters, or URLs
+- ALWAYS finish your complete thought — never stop mid-sentence`,
 
   professional: `You are Missi — a sharp, professional AI executive assistant. You have access to real-time internet search.
-LANGUAGE RULES: User speaks Hindi/Hinglish. YOU ALWAYS REPLY IN ENGLISH.
-RESPONSE LENGTH: Detailed answers ONLY for complex topics. Default is SHORT (1-3 sentences).
-VOICE RULES: Spoken aloud by TTS. No markdown, lists, formatting, emojis, URLs. Always complete your full answer.`,
+
+LANGUAGE RULES:
+- User speaks Hindi/Hinglish/English. You understand ALL.
+- YOU ALWAYS REPLY IN ENGLISH. Professional and articulate.
+
+MEMORY:
+- You remember past conversations. Use knowledge naturally without announcing it.
+
+REAL-TIME: Use Google Search when current data is needed.
+
+RESPONSE LENGTH:
+- Detailed (5-10 sentences) ONLY for: technical topics, business analysis, strategy, news
+- Short (1-3 sentences) for: simple questions, acknowledgments, quick facts
+- Default: SHORT unless clearly complex
+
+VOICE RULES:
+- Spoken aloud by TTS — write how you'd speak in a meeting
+- No bullet points, lists, markdown, formatting, emojis, URLs
+- ALWAYS complete your full answer`,
 
   playful: `You are Missi — a fun, witty, playful AI voice assistant. You have access to real-time internet search.
-LANGUAGE RULES: User speaks Hindi/Hinglish. YOU ALWAYS REPLY IN ENGLISH — fun, energetic English.
-RESPONSE LENGTH: Default is SHORT and snappy (1-3 sentences).
-VOICE RULES: Spoken aloud by TTS. No markdown, lists, formatting, emojis, URLs. Always complete your answer.`,
+
+LANGUAGE RULES:
+- User speaks Hindi/Hinglish. You understand ALL.
+- YOU ALWAYS REPLY IN ENGLISH — fun, energetic English.
+
+MEMORY:
+- You remember past conversations. Use knowledge naturally — tease them about things they've told you before!
+
+REAL-TIME: Use Google Search when current info is needed.
+
+RESPONSE LENGTH:
+- Detailed (5-10 sentences) ONLY for: places, real info, news, how-to
+- Short and punchy (1-3 sentences) for: everything else
+- Default: SHORT and snappy
+
+VOICE RULES:
+- Spoken aloud by TTS
+- No bullet points, lists, markdown, formatting, emojis, URLs
+- ALWAYS complete your answer`,
 
   mentor: `You are Missi — a wise, thoughtful AI mentor and guide. You have access to real-time internet search.
-LANGUAGE RULES: User speaks Hindi/Hinglish. YOU ALWAYS REPLY IN ENGLISH — thoughtful, wise English.
-RESPONSE LENGTH: Detailed for life advice. Short for simple chat.
-VOICE RULES: Spoken aloud by TTS. No markdown, lists, formatting, emojis, URLs. Always complete your full thought.`,
+
+LANGUAGE RULES:
+- User speaks Hindi/Hinglish. You understand ALL.
+- YOU ALWAYS REPLY IN ENGLISH — thoughtful, wise English.
+
+MEMORY:
+- You remember past conversations. Use this to track their growth, reference past advice, and build on previous discussions naturally.
+
+REAL-TIME: Use Google Search when current data supports your guidance.
+
+RESPONSE LENGTH:
+- Detailed (5-10 sentences) for: life advice, career guidance, deep questions, learning
+- Short (1-3 sentences) for: acknowledgments, simple questions, casual chat
+- Default: moderate
+
+VOICE RULES:
+- Spoken aloud by TTS
+- No bullet points, lists, markdown, formatting, emojis, URLs
+- ALWAYS complete your full thought`,
 }
 
 const DEFAULT_PERSONALITY = "bestfriend"
 
 /* ═══════════════════════════════════════════════
-   GEMINI API — TRUE STREAMING + GOOGLE SEARCH
+   EXTRACT TEXT FROM GEMINI RESPONSE
    ═══════════════════════════════════════════════ */
+function extractTextFromResponse(data: any): string {
+  try {
+    const candidates = data.candidates
+    if (!candidates || candidates.length === 0) return ""
+    const parts = candidates[0].content?.parts
+    if (!parts) return ""
+    let text = ""
+    for (const part of parts) {
+      if (part.text) text += part.text
+    }
+    return text.trim()
+  } catch {
+    return ""
+  }
+}
 
+/* ═══════════════════════════════════════════════
+   GEMINI API — NON-STREAMING + GOOGLE SEARCH
+   Now with MEMORY injection
+   ═══════════════════════════════════════════════ */
 export async function POST(req: NextRequest) {
   try {
-    const { messages, personality } = await req.json()
+    const { messages, personality, memories } = await req.json()
 
     const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Missing API key" }), { status: 500 })
+      return new Response(JSON.stringify({ error: "Missing API key" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      })
     }
 
     const personalityKey = personality && PERSONALITIES[personality] ? personality : DEFAULT_PERSONALITY
-    const systemPrompt = PERSONALITIES[personalityKey]
+    let systemPrompt = PERSONALITIES[personalityKey]
+
+    // ═══════════════════════════════════════════
+    // INJECT MEMORIES into system prompt
+    // ═══════════════════════════════════════════
+    if (memories && memories.trim()) {
+      systemPrompt += `\n\nTHINGS YOU REMEMBER ABOUT THIS USER (from past conversations):\n${memories}`
+    }
 
     const contents = messages.map((m: { role: string; content: string }) => ({
       role: m.role === "assistant" ? "model" : "user",
@@ -67,8 +160,7 @@ export async function POST(req: NextRequest) {
     }))
 
     const model = "gemini-2.5-flash"
-    // Alt=sse enables true Server-Sent Events from Google
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
     const geminiRes = await fetch(url, {
       method: "POST",
@@ -76,7 +168,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents,
-        tools: [{ googleSearch: {} }], // Updated syntax for Google Search Tool
+        tools: [{ google_search: {} }],
         generationConfig: {
           temperature: 0.85,
           topP: 0.95,
@@ -89,50 +181,35 @@ export async function POST(req: NextRequest) {
     if (!geminiRes.ok) {
       const errText = await geminiRes.text()
       console.error("Gemini error:", geminiRes.status, errText)
-      return new Response(JSON.stringify({ error: "AI service error" }), { status: geminiRes.status })
+      return new Response(JSON.stringify({ error: "AI service error", details: errText }), {
+        status: geminiRes.status,
+        headers: { "Content-Type": "application/json" },
+      })
     }
 
-    // Stream transformation (Google SSE -> Frontend SSE)
+    const data = await geminiRes.json()
+    const responseText = extractTextFromResponse(data)
+
+    if (!responseText) {
+      console.error("Empty response:", JSON.stringify(data).slice(0, 500))
+      return new Response(JSON.stringify({ error: "Empty response from AI" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+
+    // Send as SSE chunks (frontend compatible)
+    const encoder = new TextEncoder()
     const stream = new ReadableStream({
-      async start(controller) {
-        const reader = geminiRes.body?.getReader()
-        if (!reader) {
-          controller.close()
-          return
-        }
-        const decoder = new TextDecoder()
-        const encoder = new TextEncoder()
-        let buffer = ""
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split("\n")
-          buffer = lines.pop() || "" // Keep the incomplete line for the next chunk
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const dataStr = line.slice(6).trim()
-              if (dataStr === "[DONE]") continue
-
-              try {
-                const data = JSON.parse(dataStr)
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-                if (text) {
-                  // Forward chunk to frontend in expected format
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
-                }
-              } catch (e) {
-                // Ignore parse errors for incomplete JSON chunks
-              }
-            }
-          }
+      start(controller) {
+        const chunkSize = 100
+        for (let i = 0; i < responseText.length; i += chunkSize) {
+          const chunk = responseText.slice(i, i + chunkSize)
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`))
         }
         controller.enqueue(encoder.encode("data: [DONE]\n\n"))
         controller.close()
-      }
+      },
     })
 
     return new Response(stream, {
@@ -144,6 +221,9 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     console.error("Chat route error:", err)
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 })
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    })
   }
 }
