@@ -614,6 +614,29 @@ export default function VoiceAssistantPage() {
       }
       conversationRef.current.push({ role: "assistant", content: full })
       if (conversationRef.current.length > 20) conversationRef.current = conversationRef.current.slice(-20)
+
+      // Auto-save memory after every AI response
+      if (user?.id && conversationRef.current.length >= 4) {
+        const payload = JSON.stringify({
+          userId: user.id,
+          conversation: conversationRef.current,
+          existingMemories: memoriesRef.current,
+        })
+        fetch("/api/memory", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.memories) {
+              memoriesRef.current = data.memories
+              console.log("[Memory] Auto-saved after response")
+            }
+          })
+          .catch(() => {})
+      }
+
       await speakText(full)
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") { setVoiceState("idle"); setStatusText("Tap anywhere to speak"); return }
@@ -693,26 +716,17 @@ export default function VoiceAssistantPage() {
     // MEMORY: Save memories in background
     // after conversation stops
     // ═══════════════════════════════════════
+    // Save memories — use sendBeacon so it works even during tab close
     const convo = conversationRef.current
     const uid = user?.id
     if (uid && convo.length >= 2) {
-      fetch("/api/memory", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: uid,
-          conversation: convo,
-          existingMemories: memoriesRef.current,
-        }),
+      const payload = JSON.stringify({
+        userId: uid,
+        conversation: convo,
+        existingMemories: memoriesRef.current,
       })
-        .then(res => res.json())
-        .then(data => {
-          if (data.memories) {
-            memoriesRef.current = data.memories
-            console.log("[Memory] Saved updated memories")
-          }
-        })
-        .catch(() => {}) // Silent fail
+      // sendBeacon survives tab close, fetch doesn't
+      navigator.sendBeacon("/api/memory", new Blob([payload], { type: "application/json" }))
     }
   }, [stopAudioMonitor, stopTTSMonitor, user?.id])
 
@@ -744,6 +758,24 @@ export default function VoiceAssistantPage() {
   }, [handleTap, stopAll])
 
   useEffect(() => { return () => { stopAll() } }, [stopAll])
+
+  // Save memory on tab close / navigate away
+  useEffect(() => {
+    const saveOnUnload = () => {
+      const uid = user?.id
+      const convo = conversationRef.current
+      if (uid && convo.length >= 2) {
+        const payload = JSON.stringify({
+          userId: uid,
+          conversation: convo,
+          existingMemories: memoriesRef.current,
+        })
+        navigator.sendBeacon("/api/memory", new Blob([payload], { type: "application/json" }))
+      }
+    }
+    window.addEventListener("beforeunload", saveOnUnload)
+    return () => window.removeEventListener("beforeunload", saveOnUnload)
+  }, [user?.id])
 
   const greetedRef = useRef(false)
   useEffect(() => {
