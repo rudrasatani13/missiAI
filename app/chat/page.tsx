@@ -868,7 +868,7 @@ export default function VoiceAssistantPage() {
       </nav>
 
       {showSettings && (
-        <div className="absolute top-16 right-5 z-30 w-64 rounded-2xl p-4 pointer-events-auto"
+        <div className="absolute top-16 right-5 z-30 w-64 rounded-2xl p-4 pointer-events-auto settings-panel"
           onClick={(e) => e.stopPropagation()}
           style={{ background: "rgba(0,0,0,0.7)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(30px)" }}>
           <div className="flex items-center gap-3 mb-4 pb-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
@@ -923,54 +923,84 @@ export default function VoiceAssistantPage() {
       )}
 
       <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pb-10 md:pb-14 pointer-events-none">
-        <p className="text-base md:text-lg font-light tracking-tight mb-1"
+        {/* State indicator dot */}
+        <div className="mb-3 flex items-center gap-2">
+          {voiceState === "recording" && (
+            <span className="w-2 h-2 rounded-full" style={{ background: "rgba(255,80,60,0.9)", animation: "pulseGlow 1.2s ease-in-out infinite" }} />
+          )}
+          {voiceState === "thinking" && (
+            <span className="flex gap-1">
+              {[0, 1, 2].map(i => (
+                <span key={i} className="w-1.5 h-1.5 rounded-full" style={{
+                  background: "rgba(255,255,255,0.6)",
+                  animation: `subtlePulse 1.4s ease-in-out ${i * 0.2}s infinite`,
+                }} />
+              ))}
+            </span>
+          )}
+          {voiceState === "transcribing" && (
+            <span className="flex gap-1">
+              {[0, 1, 2].map(i => (
+                <span key={i} className="w-1.5 h-1.5 rounded-full" style={{
+                  background: "rgba(255,255,255,0.4)",
+                  animation: `subtlePulse 1s ease-in-out ${i * 0.15}s infinite`,
+                }} />
+              ))}
+            </span>
+          )}
+          {voiceState === "speaking" && (
+            <span className="w-2 h-2 rounded-full" style={{ background: "rgba(0,255,140,0.7)", animation: "breathe 2s ease-in-out infinite" }} />
+          )}
+        </div>
+
+        <p className="text-base md:text-lg font-light tracking-tight mb-1 state-text"
           style={{
             color: voiceState === "recording" ? "rgba(255,80,60,0.8)"
               : voiceState === "speaking" ? "rgba(0,255,140,0.7)"
               : voiceState === "thinking" || voiceState === "transcribing" ? "rgba(255,255,255,0.5)"
               : "rgba(255,255,255,0.3)",
-            animation: "fadeIn 0.5s ease-out both",
+            animation: voiceState === "thinking" ? "pulseGlow 2s ease-in-out infinite" : "fadeIn 0.5s ease-out both",
           }}>
           {voiceState === "idle" && `Hey${user?.firstName ? ` ${user.firstName}` : ""}`}
           {voiceState === "recording" && "Listening..."}
           {voiceState === "transcribing" && "Processing..."}
           {voiceState === "thinking" && "Thinking..."}
-          {voiceState === "speaking" && ""}
+          {voiceState === "speaking" && "Speaking..."}
         </p>
 
         {lastTranscript && voiceState !== "idle" && (
           <p className="text-[11px] font-light italic max-w-[260px] mx-auto truncate"
-            style={{ color: "rgba(255,255,255,0.12)" }}>
+            style={{ color: "rgba(255,255,255,0.15)", animation: "fadeIn 0.4s ease-out both" }}>
             &ldquo;{lastTranscript}&rdquo;
           </p>
         )}
 
         {voiceState === "idle" && (
-          <p className="text-[11px] font-light tracking-wide mt-1" style={{ color: "rgba(255,255,255,0.15)" }}>
+          <p className="text-[11px] font-light tracking-wide mt-1 state-text" style={{ color: "rgba(255,255,255,0.15)" }}>
             {statusText}
           </p>
         )}
 
         {voiceState === "recording" && (
-          <p className="text-[10px] font-light tracking-wider mt-1" style={{ color: "rgba(255,80,60,0.3)" }}>
-            Speak naturally · auto-detects when you're done
+          <p className="text-[10px] font-light tracking-wider mt-1" style={{ color: "rgba(255,80,60,0.3)", animation: "fadeIn 0.3s ease-out both" }}>
+            Speak naturally · auto-detects when you&apos;re done
           </p>
         )}
 
         {(voiceState === "thinking" || voiceState === "transcribing") && (
-          <p className="text-[10px] font-light tracking-wider mt-1" style={{ color: "rgba(255,255,255,0.2)" }}>
-            Tap anywhere to end conversation
+          <p className="text-[10px] font-light tracking-wider mt-1" style={{ color: "rgba(255,255,255,0.2)", animation: "fadeIn 0.3s ease-out both" }}>
+            Tap to interrupt
           </p>
         )}
 
         {voiceState === "speaking" && (
-          <p className="text-[10px] font-light tracking-wider mt-1" style={{ color: "rgba(0,255,140,0.25)" }}>
-            Tap to end conversation
+          <p className="text-[10px] font-light tracking-wider mt-1" style={{ color: "rgba(0,255,140,0.25)", animation: "fadeIn 0.3s ease-out both" }}>
+            Tap to interrupt
           </p>
         )}
 
         {error && (
-          <div className="flex items-center gap-2 mt-2 pointer-events-auto">
+          <div className="flex items-center gap-2 mt-2 pointer-events-auto" style={{ animation: "fadeIn 0.3s ease-out both" }}>
             <p className="text-xs font-light" style={{ color: "rgba(239,68,68,0.7)" }}>{error}</p>
             <button onClick={() => setError(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(239,68,68,0.5)" }}>
               <X className="w-3 h-3" />
@@ -990,6 +1020,28 @@ export default function VoiceAssistantPage() {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(6px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulseGlow {
+          0%, 100% { opacity: 0.5; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.04); }
+        }
+        @keyframes breathe {
+          0%, 100% { opacity: 0.25; }
+          50% { opacity: 0.7; }
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes subtlePulse {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 0.7; }
+        }
+        .state-text {
+          transition: color 0.4s ease, opacity 0.4s ease, transform 0.3s ease;
+        }
+        .settings-panel {
+          animation: slideDown 0.25s ease-out both;
         }
       `}</style>
     </div>
