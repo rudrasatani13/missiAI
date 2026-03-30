@@ -10,31 +10,29 @@ Login page on live site (https://missi.space/login) returns 500 Internal Server 
 - **AI**: Gemini 2.5 Flash (voice + chat)
 - **Storage**: Cloudflare KV (MISSI_MEMORY)
 
-## Root Cause Analysis
-The 500 error on `/login` was caused by **Clerk middleware crashing in Cloudflare's edge runtime** without graceful error handling. Key evidence:
-- `X-Clerk-Auth-Reason: session-token-and-uat-missing` (Clerk headers present = middleware ran partially)
-- `X-Matched-Path: /500` (Next.js matched to error page)
-- Works on localhost (has .env.local with CLERK_SECRET_KEY) but not on Cloudflare (may be missing CLERK_SECRET_KEY)
+## Root Cause Analysis (Iteration 2)
+The 500 on `/login` was caused by the **catch-all route `[[...sign-in]]` forcing edge runtime SSR** of Clerk's `<SignIn>` component on Cloudflare Workers. This SSR crashes because Clerk's internal server-rendering logic is incompatible with Cloudflare's edge runtime.
 
-Contributing factors:
-1. `export const runtime = "edge"` on `layout.tsx` — layouts shouldn't need this with @cloudflare/next-on-pages
-2. No try-catch around `clerkMiddleware` — one crash = 500 on ALL routes
-3. Deprecated `eslint` config in `next.config.mjs` (Next.js 16 warning)
-4. Possibly missing `CLERK_SECRET_KEY` in Cloudflare Pages environment variables
+Evidence:
+- Homepage (/) loads fine → no edge runtime, static HTML shell + client hydration
+- Login (/login) → 500 → catch-all `[[...sign-in]]` = dynamic route = edge SSR = crash
+- CLERK_SECRET_KEY is correctly set in Cloudflare (confirmed by user)
 
-## What's Been Implemented (Jan 2026)
-- [x] **middleware.ts**: Added try-catch error resilience wrapper around `clerkMiddleware` — public routes proceed even if Clerk fails, API routes get 503 JSON, protected routes redirect to /login
-- [x] **layout.tsx**: Removed `export const runtime = "edge"` (not required for layouts, was NOT flagged in build)
-- [x] **login/page.tsx & sign-up/page.tsx**: Kept `export const runtime = "edge"` (REQUIRED by @cloudflare/next-on-pages for dynamic catch-all routes)
-- [x] **next.config.mjs**: Removed deprecated `eslint.ignoreDuringBuilds` (unsupported in Next.js 16)
+## Fix Applied
+Switched from `routing="path"` (requires catch-all route + edge SSR) to `routing="hash"` (static page + client-side routing). This eliminates edge SSR entirely.
 
-## Configuration Checklist (User Action Required)
-- [ ] Verify `CLERK_SECRET_KEY` is set in Cloudflare Pages dashboard (Settings → Environment Variables → Production & Preview)
-- [ ] Verify `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is set in Cloudflare
-- [ ] Redeploy after code changes
+### Files Changed
+| File | Change |
+|------|--------|
+| `middleware.ts` | Try-catch error resilience wrapper around clerkMiddleware |
+| `app/layout.tsx` | Removed `export const runtime = "edge"` |
+| `next.config.mjs` | Removed deprecated `eslint.ignoreDuringBuilds` |
+| `app/login/page.tsx` | **NEW** — Replaced `[[...sign-in]]/page.tsx` with simple page using `routing="hash"` |
+| `app/sign-up/page.tsx` | **NEW** — Replaced `[[...sign-up]]/page.tsx` with simple page using `routing="hash"` |
+| `app/login/[[...sign-in]]/` | **DELETED** — catch-all route removed |
+| `app/sign-up/[[...sign-up]]/` | **DELETED** — catch-all route removed |
 
 ## Backlog / Future
-- P0: Verify fix resolves 500 on live site after redeploy
-- P1: Consider migrating from @cloudflare/next-on-pages to @opennextjs/cloudflare (Cloudflare's recommended approach for Next.js 16+)
+- P1: Consider migrating from @cloudflare/next-on-pages to @opennextjs/cloudflare
 - P1: Consider migrating middleware.ts to proxy.ts (Next.js 16 deprecation)
 - P2: Add monitoring/logging for middleware errors in production

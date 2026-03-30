@@ -1,17 +1,16 @@
 "use client"
 
-export const runtime = "edge"
-
 import { SignUp } from "@clerk/nextjs"
+import { dark } from "@clerk/themes"
 
 export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <SignUp
-        routing="path"
-        path="/sign-up"
+        routing="hash"
         signInUrl="/login"
         appearance={{
+          baseTheme: dark,
           elements: {
             rootBox: "mx-auto",
             card: "bg-zinc-950 border border-zinc-800 shadow-2xl",
@@ -35,7 +34,6 @@ export default function SignUpPage() {
             formResendCodeLink: "text-white",
           },
         }}
-        signInUrl="/login"
         forceRedirectUrl="/chat"
       />
     </div>

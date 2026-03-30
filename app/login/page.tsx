@@ -1,7 +1,5 @@
 "use client"
 
-export const runtime = "edge"
-
 import { SignIn } from "@clerk/nextjs"
 import { dark } from "@clerk/themes"
 import Link from "next/link"
@@ -149,10 +147,10 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-black font-inter">
-      {/* ✨ Animated Stars Background */}
+      {/* Animated Stars Background */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" aria-label="Animated starry background" />
 
-      {/* 🔙 Back to Home */}
+      {/* Back to Home */}
       <div className="absolute top-4 left-4 md:top-8 md:left-8 z-20 login-animate-back">
         <Link
           href="/"
@@ -164,14 +162,13 @@ export default function LoginPage() {
         </Link>
       </div>
 
-      {/* 🔑 Main Content */}
+      {/* Main Content */}
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4 md:p-6 lg:p-8">
 
-        {/* Glass Card — entry animation ONCE only, hover = subtle transition only */}
+        {/* Glass Card */}
         <div className="w-full max-w-sm md:max-w-md glass-card-main rounded-2xl md:rounded-3xl p-1 shadow-2xl login-animate-card">
           <SignIn
-            routing="path"
-            path="/login"
+            routing="hash"
             signUpUrl="/waitlist"
             appearance={{
               baseTheme: dark,
@@ -202,7 +199,7 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* 📝 Waitlist Link */}
+        {/* Waitlist Link */}
         <div className="mt-4 text-center text-sm login-animate-waitlist">
           <span className="text-white/50 font-light">Want early access? </span>
           <Link
@@ -213,12 +210,12 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        {/* 🦶 Footer — CENTERED */}
+        {/* Footer */}
         <div className="mt-6 md:mt-8 flex items-center justify-center w-full max-w-sm md:max-w-md text-xs text-gray-400 login-animate-footer">
           <div className="flex items-center gap-2 md:gap-4 text-center">
             <span className="text-xs">Follow missiAI on</span>
             <Link href="#" className="hover:text-white transition-colors">
-              𝕏
+              X
             </Link>
             <span className="text-xs">and</span>
             <Link href="#" className="hover:text-white transition-colors underline">
