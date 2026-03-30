@@ -39,3 +39,7 @@ next-env.d.ts
 *.env.*
 # Allow .env.production — contains only NEXT_PUBLIC_ vars (safe to commit)
 !.env.production
+-e 
+# Environment files
+*.env
+*.env.*
