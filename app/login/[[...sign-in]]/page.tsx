@@ -170,6 +170,8 @@ export default function LoginPage() {
         {/* Glass Card — entry animation ONCE only, hover = subtle transition only */}
         <div className="w-full max-w-sm md:max-w-md glass-card-main rounded-2xl md:rounded-3xl p-1 shadow-2xl login-animate-card">
           <SignIn
+            routing="path"
+            path="/login"
             signUpUrl="/waitlist"
             appearance={{
               baseTheme: dark,

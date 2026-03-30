@@ -1,4 +1,4 @@
-export const runtime = 'edge'
+"use client"
 
 import { SignUp } from "@clerk/nextjs"
 
@@ -6,6 +6,9 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <SignUp
+        routing="path"
+        path="/sign-up"
+        signInUrl="/login"
         appearance={{
           elements: {
             rootBox: "mx-auto",
