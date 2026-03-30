@@ -12,15 +12,30 @@ const MAX_MEMORY_FACTS = 30
  */
 export function sanitizeMemory(memory: string): string {
   return memory
+    // ── Instruction-format tags ──────────────────────────────────────────
     .replace(/\[INST\]/gi, "")
     .replace(/\[\/INST\]/gi, "")
     .replace(/<<<[\s\S]*?>>>/g, "")
-    .replace(/#{1,6}\s/g, "")
+    .replace(/<\|im_start\|>[\s\S]*?<\|im_end\|>/gi, "")
+    .replace(/<\|system\|>[\s\S]*?<\|end\|>/gi, "")
+    // ── Role prefixes ────────────────────────────────────────────────────
     .replace(/\bSYSTEM\s*:/gi, "")
     .replace(/\bUSER\s*:/gi, "")
     .replace(/\bASSISTANT\s*:/gi, "")
-    .replace(/\bIGNORE\s+PREVIOUS\s+INSTRUCTIONS?\b/gi, "")
+    .replace(/\bHUMAN\s*:/gi, "")
+    .replace(/\bAI\s*:/gi, "")
+    // ── Direct override commands ─────────────────────────────────────────
+    .replace(/\bIGNORE\s+(ALL\s+)?PREVIOUS\s+INSTRUCTIONS?\b/gi, "")
     .replace(/\bDISREGARD\s+ALL\s+PREVIOUS\b/gi, "")
+    .replace(/\bFORGET\s+(EVERYTHING|ALL|PRIOR)\b/gi, "")
+    .replace(/\bYOU\s+ARE\s+NOW\b/gi, "")
+    .replace(/\bACT\s+AS\s+(IF\s+YOU\s+ARE|A|AN)\b/gi, "")
+    .replace(/\bNEW\s+INSTRUCTIONS?\b/gi, "")
+    .replace(/\bOVERRIDE\s+(SYSTEM|PROMPT|INSTRUCTIONS?)\b/gi, "")
+    .replace(/\bDO\s+NOT\s+FOLLOW\b/gi, "")
+    .replace(/\bIGNORE\s+SAFETY\b/gi, "")
+    // ── Markdown structure (keeps plain text only) ───────────────────────
+    .replace(/#{1,6}\s/g, "")
     .trim()
 }
 

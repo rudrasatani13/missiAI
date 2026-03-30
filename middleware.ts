@@ -1,6 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 
-// Yahan se AI routes hata diye gaye hain taaki wo secure rahein
 const isPublicRoute = createRouteMatcher([
   "/",
   "/login(.*)",
@@ -9,7 +8,13 @@ const isPublicRoute = createRouteMatcher([
   "/manifesto(.*)",
 ])
 
+// API routes handle their own auth and return JSON 401 — not a browser redirect.
+// Letting middleware's auth.protect() run on API routes causes Clerk to do a
+// page-style redirect, which returns HTML instead of a proper JSON error response.
+const isAPIRoute = createRouteMatcher(["/api/(.*)"])
+
 export default clerkMiddleware(async (auth, request) => {
+  if (isAPIRoute(request)) return  // route handlers call auth() themselves
   if (!isPublicRoute(request)) {
     await auth.protect()
   }
