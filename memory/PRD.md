@@ -1,33 +1,40 @@
-# Missi AI — PRD & Progress Tracker
+# MissiAI - PRD & Architecture
 
 ## Original Problem Statement
-Replace flat KV memory string with a structured, cost-efficient memory architecture.
-- **Current state**: entire memory = one big string in KV, re-summarized after EVERY interaction
-- **Goal**: store individual facts, inject only relevant ones, summarize every 5th turn only
+Decompose monolithic `app/chat/page.tsx` (670 lines) into clean, focused components with proper state colocation and memoization.
 
 ## Architecture
-- **Platform**: Next.js on Cloudflare Pages with KV bindings
-- **AI Provider**: Gemini (Flash for extraction, configurable model for chat)
+- **Framework**: Next.js 16 with App Router
 - **Auth**: Clerk
-- **Storage**: Cloudflare KV (`MISSI_MEMORY` binding)
-
-## Core Requirements
-1. `types/memory.ts` — MemoryFact + UserMemoryStore interfaces
-2. `lib/kv-memory.ts` — Structured store CRUD + relevance scoring + prompt formatting
-3. `lib/memory-extractor.ts` — Gemini Flash extraction every 5th interaction
-4. `app/api/memory/route.ts` — Structured store endpoints (GET full store, POST with conditional extraction)
-5. `app/api/chat/route.ts` — Relevant-facts-only injection into system prompt
+- **3D**: Three.js (WebGL particle visualizer)
+- **Styling**: Tailwind CSS + inline styles
+- **Voice**: Custom voice state machine hook (STT/TTS/chat streaming)
 
 ## What's Been Implemented (2026-03-30)
-- **types/memory.ts**: MemoryFact (id, text, tags, createdAt, accessCount) + UserMemoryStore (facts, lastExtractedAt, interactionCount)
-- **lib/kv-memory.ts**: getUserMemoryStore, saveUserMemoryStore (sanitize + cap 50), getRelevantFacts (tag scoring + accessCount bonus + fallback), formatFactsForPrompt ([MEMORY START/END] block)
-- **lib/memory-extractor.ts**: extractMemoryFacts — calls Gemini Flash on last 6 messages, JSON-only response, dedup via includes(), cap 50
-- **app/api/memory/route.ts**: POST increments interactionCount, conditionally extracts every 5th; GET returns full UserMemoryStore
-- **app/api/chat/route.ts**: Replaced getUserMemories() with getUserMemoryStore → getRelevantFacts → formatFactsForPrompt pipeline
-- **nanoid@3**: Installed for 8-char ID generation
-- All tests pass (17/17) — TypeScript compilation clean
 
-## Backlog
-- P2: Remove dead `services/memory.service.ts` (old extraction service, no longer imported)
-- P2: Consider persisting updated accessCounts after chat route reads (currently only in-memory mutation)
-- P3: Upgrade relevance scoring with embeddings or TF-IDF if tag matching proves insufficient
+### Component Decomposition
+| File | Lines | Purpose |
+|------|-------|---------|
+| `types/chat.ts` | 24 | Shared types: VoiceState, ConversationEntry, PersonalityKey, PERSONALITY_OPTIONS |
+| `components/chat/VoiceButton.tsx` | 76 | Memo-wrapped state indicator button (idle/recording/thinking/transcribing/speaking) |
+| `components/chat/StatusDisplay.tsx` | 140 | Memo-wrapped status text, streaming text, error display |
+| `components/chat/SettingsPanel.tsx` | 154 | Memo-wrapped settings panel with personality selector, voice toggle, logout |
+| `components/chat/ConversationLog.tsx` | 103 | Memo-wrapped (custom comparator) conversation history, virtualizes at 20+ msgs |
+| `components/chat/ParticleVisualizer.tsx` | 280 | Memo-wrapped Three.js visualizer with quality scaling + visibility API |
+| `app/chat/page.tsx` | 111 | Orchestrator only (down from 670 lines) |
+
+### Key Improvements
+- Page reduced from 670 to 111 lines (83% reduction)
+- All components wrapped in React.memo() for re-render prevention
+- ConversationLog uses custom comparator (only re-renders on length/visibility change)
+- ParticleVisualizer has dynamic quality scaling (LOW: 300 particles, HIGH: 1000)
+- ParticleVisualizer pauses render loop when tab is hidden (Visibility API)
+- Types centralized in `types/chat.ts`, imported everywhere
+- Hook updated to import from types/chat.ts (no inline type defs)
+- CSS animations moved from inline styled-jsx to globals.css
+
+## Prioritized Backlog
+- **P0**: None
+- **P1**: Wire ConversationLog to live conversation data (currently isVisible=false)
+- **P2**: Add hold-to-talk mode via VoiceButton onPointerDown/onPointerUp
+- **P2**: Add unit tests for individual components
