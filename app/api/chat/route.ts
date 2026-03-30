@@ -2,13 +2,14 @@ import { NextRequest } from "next/server"
 import { getRequestContext } from "@cloudflare/next-on-pages"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/auth"
 import { chatSchema, validationErrorResponse } from "@/lib/schemas"
-import { generateResponse } from "@/services/ai.service"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import { getUserMemories } from "@/lib/kv-memory"
+import { buildGeminiRequest, streamGeminiResponse } from "@/lib/gemini-stream"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
 
+const DEFAULT_MODEL = "gemini-2.5-flash"
 const MAX_BODY_BYTES = 1_000_000 // 1 MB
 
 function getKV(): KVStore | null {
@@ -21,7 +22,7 @@ function getKV(): KVStore | null {
 }
 
 export async function POST(req: NextRequest) {
-  // ── 1. Auth: userId comes from Clerk session — never trust the client ─────
+  // ── 1. Auth ────────────────────────────────────────────────────────────────
   let userId: string
   try {
     userId = await getVerifiedUserId()
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
     throw e
   }
 
-  // ── 2. Request size guard ─────────────────────────────────────────────────
+  // ── 2. Request size guard ──────────────────────────────────────────────────
   const contentLength = req.headers.get("content-length")
   if (contentLength && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
     return new Response(
@@ -39,13 +40,13 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ── 3. Rate limit (per user, free tier = 10 req/min) ─────────────────────
+  // ── 3. Rate limit ─────────────────────────────────────────────────────────
   const rateResult = await checkRateLimit(userId, "free")
   if (!rateResult.allowed) {
     return rateLimitExceededResponse(rateResult)
   }
 
-  // ── 4. Parse & validate body with Zod ────────────────────────────────────
+  // ── 4. Parse & validate body ──────────────────────────────────────────────
   let body: unknown
   try {
     body = await req.json()
@@ -63,55 +64,67 @@ export async function POST(req: NextRequest) {
 
   const { messages, personality } = parsed.data
 
-  // ── 5. Fetch memories server-side — client never supplies this ────────────
+  // ── 5. Fetch memories server-side ─────────────────────────────────────────
   const kv = getKV()
   const memories = kv ? await getUserMemories(kv, userId) : ""
 
-  // ── 6. Call AI with timeout (15 s hard cap via AbortController) ───────────
+  // ── 6. Build Gemini request & stream natively ─────────────────────────────
   try {
-    const responseText = await generateResponse(messages, personality, memories, {
-      timeoutMs: 15_000,
-    })
-
-    if (!responseText) {
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) {
       return new Response(
-        JSON.stringify({ success: false, error: "Empty response from AI" }),
+        JSON.stringify({ success: false, error: "GEMINI_API_KEY is not configured" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       )
     }
 
-    // ── 7. Stream SSE back to the client ─────────────────────────────────
+    const model = process.env.GEMINI_MODEL || DEFAULT_MODEL
+    const requestBody = buildGeminiRequest(messages, personality, memories, model)
+    const textStream = await streamGeminiResponse(apiKey, model, requestBody)
+
+    // Transform text deltas into SSE events for the client
     const encoder = new TextEncoder()
-    const stream = new ReadableStream({
-      start(controller) {
-        const chunkSize = 100
-        for (let i = 0; i < responseText.length; i += chunkSize) {
-          const chunk = responseText.slice(i, i + chunkSize)
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`)
-          )
+    const sseStream = new ReadableStream({
+      async start(controller) {
+        const reader = textStream.getReader()
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) {
+              controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+              controller.close()
+              return
+            }
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ text: value })}\n\n`)
+            )
+          }
+        } catch {
+          try {
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+            controller.close()
+          } catch {
+            // controller already closed
+          }
         }
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"))
-        controller.close()
       },
     })
 
-    return new Response(stream, {
+    return new Response(sseStream, {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
-        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
       },
     })
   } catch (err) {
     console.error("Chat route error:", err)
-    const isTimeout = err instanceof Error && err.name === "AbortError"
     return new Response(
       JSON.stringify({
         success: false,
-        error: isTimeout ? "AI request timed out. Please try again." : "Internal server error",
+        error: err instanceof Error ? err.message : "Internal server error",
       }),
-      { status: isTimeout ? 504 : 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json" } }
     )
   }
 }

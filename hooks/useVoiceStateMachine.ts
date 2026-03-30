@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import {
   fetchWithTimeout,
-  CHAT_TIMEOUT,
+  STREAM_CHAT_TIMEOUT,
   TTS_TIMEOUT,
   STT_TIMEOUT,
 } from "@/lib/fetch-with-timeout"
@@ -43,6 +43,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const [statusText, setStatusText] = useState("Tap anywhere to speak")
   const [lastTranscript, setLastTranscript] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [streamingText, setStreamingText] = useState("")
 
   /* ── Internal refs ──────────────────────────────────────────────────────── */
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -324,11 +325,10 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           body: JSON.stringify({
             messages: msgs,
             personality: personalityRef.current,
-            memories: memoriesRef.current,
           }),
           signal: ctrl.signal,
         },
-        CHAT_TIMEOUT,
+        STREAM_CHAT_TIMEOUT,
       )
       if (!res.ok) throw new Error(`Error ${res.status}`)
 
@@ -346,12 +346,16 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           if (d === "[DONE]") continue
           try {
             const p = JSON.parse(d)
-            if (p.text) full += p.text
+            if (p.text) {
+              full += p.text
+              setStreamingText(full)
+            }
           } catch {}
         }
       }
 
       if (!full.trim()) {
+        setStreamingText("")
         if (continuousRef.current) {
           await fnRef.current.startRecording()
           return
@@ -360,6 +364,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         return
       }
 
+      setStreamingText("")
       conversationRef.current.push({ role: "assistant", content: full })
       if (conversationRef.current.length > 20) {
         conversationRef.current = conversationRef.current.slice(-20)
@@ -387,9 +392,11 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       await fnRef.current.speakText(full)
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
+        setStreamingText("")
         resetToIdle()
         return
       }
+      setStreamingText("")
       setError("Failed to get response.")
       if (continuousRef.current) {
         setTimeout(() => {
@@ -697,6 +704,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     lastTranscript,
     error,
     setError,
+    streamingText,
     startRecording,
     stopRecording,
     cancelAll,

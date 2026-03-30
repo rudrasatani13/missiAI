@@ -326,6 +326,7 @@ export default function VoiceAssistantPage() {
     lastTranscript,
     error,
     setError,
+    streamingText,
     handleTap,
     cancelAll,
     greet,
@@ -589,6 +590,20 @@ export default function VoiceAssistantPage() {
           </p>
         )}
 
+        {voiceState === "thinking" && streamingText && (
+          <div className="max-w-sm mx-auto mt-3 px-4 overflow-hidden"
+            data-testid="streaming-text-display"
+            style={{ animation: "fadeIn 0.3s ease-out both", maxHeight: "120px", overflowY: "auto" }}>
+            <p className="text-xs font-light leading-relaxed text-center"
+              style={{ color: "rgba(255,255,255,0.55)" }}>
+              {streamingText}
+              <span className="inline-block w-[2px] h-[0.9em] ml-0.5 align-text-bottom"
+                data-testid="streaming-cursor"
+                style={{ backgroundColor: "rgba(255,255,255,0.6)", animation: "blink 1s step-end infinite" }} />
+            </p>
+          </div>
+        )}
+
         {voiceState === "speaking" && (
           <p className="text-[10px] font-light tracking-wider mt-1"
             data-testid="speaking-interrupt-hint"
@@ -638,6 +653,9 @@ export default function VoiceAssistantPage() {
         @keyframes subtlePulse {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 0.7; }
+        }
+        @keyframes blink {
+          50% { opacity: 0; }
         }
         .state-text {
           transition: color 0.4s ease, opacity 0.4s ease, transform 0.3s ease;
