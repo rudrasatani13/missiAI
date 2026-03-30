@@ -530,7 +530,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         await fnRef.current.transcribeAudio(blob)
       }
 
-      recorder.start(100)
+      recorder.start()
       isTransitioningRef.current = false
     } catch {
       setError("Microphone access denied.")
