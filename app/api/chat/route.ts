@@ -3,7 +3,7 @@ import { getRequestContext } from "@cloudflare/next-on-pages"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/auth"
 import { chatSchema, validationErrorResponse } from "@/lib/schemas"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
-import { getUserMemories } from "@/lib/kv-memory"
+import { getUserMemoryStore, getRelevantFacts, formatFactsForPrompt } from "@/lib/kv-memory"
 import { buildGeminiRequest, streamGeminiResponse } from "@/lib/gemini-stream"
 import type { KVStore } from "@/types"
 
@@ -64,9 +64,16 @@ export async function POST(req: NextRequest) {
 
   const { messages, personality } = parsed.data
 
-  // ── 5. Fetch memories server-side ─────────────────────────────────────────
+  // ── 5. Fetch structured memories & select relevant facts ──────────────────
   const kv = getKV()
-  const memories = kv ? await getUserMemories(kv, userId) : ""
+  let memories = ""
+  if (kv) {
+    const store = await getUserMemoryStore(kv, userId)
+    const lastUserMessage = messages.filter((m) => m.role === "user").pop()
+    const currentMessage = lastUserMessage?.content ?? ""
+    const relevantFacts = getRelevantFacts(store, currentMessage)
+    memories = formatFactsForPrompt(relevantFacts)
+  }
 
   // ── 6. Build Gemini request & stream natively ─────────────────────────────
   try {
