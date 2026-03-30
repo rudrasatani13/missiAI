@@ -7,6 +7,5 @@ compatibility_flags = ["nodejs_compat"]
 # GEMINI_API_KEY is set in Cloudflare Dashboard (Settings > Environment Variables)
 # Don't put your actual key here — this file goes to GitHub!
 
-[[kv_namespaces]]
-binding = "MISSI_MEMORY"
-id = "YOUR_KV_NAMESPACE_ID"
+# KV binding is configured via Cloudflare Pages dashboard:
+# Settings → Functions → KV namespace bindings → MISSI_MEMORY
