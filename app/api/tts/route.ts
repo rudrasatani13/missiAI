@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/auth"
+import { ttsSchema, validationErrorResponse } from "@/lib/schemas"
 import { textToSpeech } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
-import { ttsSchema, validationErrorResponse } from "@/lib/validation"
 
 export const runtime = "edge"
 
+const MAX_BODY_BYTES = 1_000_000 // 1 MB
 const TTS_TIMEOUT_MS = 15_000
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -19,18 +20,30 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 export async function POST(req: NextRequest) {
   // ── 1. Auth ───────────────────────────────────────────────────────────────
-  const { userId } = await auth()
-  if (!userId) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+  let userId: string
+  try {
+    userId = await getVerifiedUserId()
+  } catch (e) {
+    if (e instanceof AuthenticationError) return unauthorizedResponse()
+    throw e
   }
 
-  // ── 2. Rate limit ─────────────────────────────────────────────────────────
+  // ── 2. Request size guard ─────────────────────────────────────────────────
+  const contentLength = req.headers.get("content-length")
+  if (contentLength && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
+    return NextResponse.json(
+      { success: false, error: "Payload too large (max 1 MB)" },
+      { status: 413 }
+    )
+  }
+
+  // ── 3. Rate limit ─────────────────────────────────────────────────────────
   const rateResult = await checkRateLimit(userId, "free")
   if (!rateResult.allowed) {
     return rateLimitExceededResponse(rateResult)
   }
 
-  // ── 3. Parse & validate ───────────────────────────────────────────────────
+  // ── 4. Parse & validate ───────────────────────────────────────────────────
   let body: unknown
   try {
     body = await req.json()
@@ -45,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   const { text } = parsed.data
 
-  // ── 4. Env check ──────────────────────────────────────────────────────────
+  // ── 5. Env check ──────────────────────────────────────────────────────────
   const apiKey = process.env.ELEVENLABS_API_KEY
   const voiceId = process.env.ELEVENLABS_VOICE_ID
 
@@ -56,7 +69,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ── 5. Call ElevenLabs with timeout ───────────────────────────────────────
+  // ── 6. Call ElevenLabs with timeout ───────────────────────────────────────
   try {
     const audioData = await withTimeout(
       textToSpeech({ text, voiceId, apiKey }),

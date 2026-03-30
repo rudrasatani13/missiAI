@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/auth"
+import { sttSchema, validationErrorResponse } from "@/lib/schemas"
 import { speechToText } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 
 export const runtime = "edge"
 
-const MAX_AUDIO_BYTES = 10_000_000  // 10 MB
 const STT_TIMEOUT_MS = 15_000
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -26,9 +26,12 @@ function jsonError(message: string, status: number): Response {
 
 export async function POST(req: NextRequest) {
   // ── 1. Auth ───────────────────────────────────────────────────────────────
-  const { userId } = await auth()
-  if (!userId) {
-    return jsonError("Unauthorized", 401)
+  let userId: string
+  try {
+    userId = await getVerifiedUserId()
+  } catch (e) {
+    if (e instanceof AuthenticationError) return unauthorizedResponse()
+    throw e
   }
 
   // ── 2. Rate limit ─────────────────────────────────────────────────────────
@@ -37,7 +40,7 @@ export async function POST(req: NextRequest) {
     return rateLimitExceededResponse(rateResult)
   }
 
-  // ── 3. Parse FormData & validate audio ───────────────────────────────────
+  // ── 3. Parse FormData ────────────────────────────────────────────────────
   let formData: FormData
   try {
     formData = await req.formData()
@@ -50,17 +53,23 @@ export async function POST(req: NextRequest) {
     return jsonError("No audio file provided", 400)
   }
 
-  if (audioFile.size > MAX_AUDIO_BYTES) {
-    return jsonError("Audio file too large (max 10 MB)", 413)
+  // ── 4. Validate audio file with Zod ──────────────────────────────────────
+  const parsed = sttSchema.safeParse({
+    name: audioFile.name,
+    size: audioFile.size,
+    type: audioFile.type,
+  })
+  if (!parsed.success) {
+    return validationErrorResponse(parsed.error)
   }
 
-  // ── 4. Env check ──────────────────────────────────────────────────────────
+  // ── 5. Env check ──────────────────────────────────────────────────────────
   const apiKey = process.env.ELEVENLABS_API_KEY
   if (!apiKey) {
     return jsonError("ElevenLabs API key not configured", 500)
   }
 
-  // ── 5. Call ElevenLabs with timeout ───────────────────────────────────────
+  // ── 6. Call ElevenLabs with timeout ───────────────────────────────────────
   try {
     const result = await withTimeout(
       speechToText({ audio: audioFile, apiKey }),

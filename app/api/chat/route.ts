@@ -1,9 +1,8 @@
 import { NextRequest } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/auth"
+import { chatSchema, validationErrorResponse } from "@/lib/schemas"
 import { generateResponse } from "@/services/ai.service"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
-import { chatSchema, validationErrorResponse } from "@/lib/validation"
-import { z } from "zod"
 
 export const runtime = "edge"
 
@@ -11,12 +10,12 @@ const MAX_BODY_BYTES = 1_000_000 // 1 MB
 
 export async function POST(req: NextRequest) {
   // ── 1. Auth: userId comes from Clerk session — never trust the client ─────
-  const { userId } = await auth()
-  if (!userId) {
-    return new Response(
-      JSON.stringify({ success: false, error: "Unauthorized" }),
-      { status: 401, headers: { "Content-Type": "application/json" } }
-    )
+  let userId: string
+  try {
+    userId = await getVerifiedUserId()
+  } catch (e) {
+    if (e instanceof AuthenticationError) return unauthorizedResponse()
+    throw e
   }
 
   // ── 2. Request size guard ─────────────────────────────────────────────────

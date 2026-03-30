@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
+import { NextResponse } from "next/server"
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -8,13 +9,76 @@ const isPublicRoute = createRouteMatcher([
   "/manifesto(.*)",
 ])
 
-// API routes handle their own auth and return JSON 401 — not a browser redirect.
-// Letting middleware's auth.protect() run on API routes causes Clerk to do a
-// page-style redirect, which returns HTML instead of a proper JSON error response.
+// API routes handle their own Clerk auth and return JSON 401 — not a browser
+// redirect. Letting middleware's auth.protect() run here causes Clerk to issue a
+// page-style redirect, which sends HTML instead of a JSON error.
 const isAPIRoute = createRouteMatcher(["/api/(.*)"])
 
+// ─── IP-based rate limiter (Map, Edge-runtime compatible) ─────────────────────
+//
+// Each Cloudflare Worker isolate has its own memory, so this Map is per-isolate
+// rather than globally distributed. It acts as a per-instance burst guard that
+// complements the KV-backed per-user limit enforced inside each route handler.
+
+interface IPEntry {
+  count: number
+  resetAt: number // ms timestamp
+}
+
+const ipMap = new Map<string, IPEntry>()
+const IP_LIMIT = 10
+const IP_WINDOW_MS = 60_000 // 60 seconds
+
+function checkIPRateLimit(ip: string): { allowed: boolean; retryAfter: number } {
+  const now = Date.now()
+  const entry = ipMap.get(ip)
+
+  if (!entry || now >= entry.resetAt) {
+    ipMap.set(ip, { count: 1, resetAt: now + IP_WINDOW_MS })
+    return { allowed: true, retryAfter: 0 }
+  }
+
+  if (entry.count >= IP_LIMIT) {
+    return { allowed: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000) }
+  }
+
+  entry.count++
+  return { allowed: true, retryAfter: 0 }
+}
+
+function getClientIP(request: Request): string {
+  // Cloudflare sets cf-connecting-ip; x-forwarded-for is a fallback for other hosts.
+  return (
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+    "unknown"
+  )
+}
+
+// ─── Middleware ───────────────────────────────────────────────────────────────
+
 export default clerkMiddleware(async (auth, request) => {
-  if (isAPIRoute(request)) return  // route handlers call auth() themselves
+  if (isAPIRoute(request)) {
+    const ip = getClientIP(request)
+    const { allowed, retryAfter } = checkIPRateLimit(ip)
+
+    if (!allowed) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Too many requests. Please slow down." }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": String(retryAfter),
+          },
+        }
+      )
+    }
+
+    // Route handlers call auth() themselves — do not redirect here.
+    return
+  }
+
   if (!isPublicRoute(request)) {
     await auth.protect()
   }
