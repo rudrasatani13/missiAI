@@ -1,6 +1,6 @@
 "use client"
 
-// 'export const runtime = "edge";' ko completely hata dein
+export const runtime = "edge"
 
 import { SignIn } from "@clerk/nextjs"
 import { dark } from "@clerk/themes"
