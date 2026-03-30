@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+
+export const runtime = "edge";
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import { Toaster } from "@/components/ui/sonner"; // 👈 Toaster import karein
