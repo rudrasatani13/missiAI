@@ -1,7 +1,5 @@
 "use client"
 
-export const runtime = "edge"
-
 import { SignIn } from "@clerk/nextjs"
 import { dark } from "@clerk/themes"
 import Link from "next/link"

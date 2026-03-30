@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
+import type { NextRequest, NextFetchEvent } from "next/server"
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -55,9 +56,9 @@ function getClientIP(request: Request): string {
   )
 }
 
-// ─── Middleware ───────────────────────────────────────────────────────────────
+// ─── Clerk handler ───────────────────────────────────────────────────────────
 
-export default clerkMiddleware(async (auth, request) => {
+const clerkHandler = clerkMiddleware(async (auth, request) => {
   if (isAPIRoute(request)) {
     const ip = getClientIP(request)
     const { allowed, retryAfter } = checkIPRateLimit(ip)
@@ -83,6 +84,37 @@ export default clerkMiddleware(async (auth, request) => {
     await auth.protect()
   }
 })
+
+// ─── Middleware wrapper with error resilience ─────────────────────────────────
+//
+// On Cloudflare edge runtime, clerkMiddleware can crash if CLERK_SECRET_KEY is
+// missing or if there's a runtime incompatibility. This wrapper catches those
+// errors so public routes (login, sign-up, landing, etc.) still render instead
+// of returning a 500 Internal Server Error.
+
+export default async function middleware(request: NextRequest, event: NextFetchEvent) {
+  try {
+    return await clerkHandler(request, event)
+  } catch (error) {
+    console.error("[Middleware] Clerk error on", request.nextUrl.pathname, ":", error)
+
+    // Public routes should still render even if Clerk fails
+    if (isPublicRoute(request)) {
+      return NextResponse.next()
+    }
+
+    // API routes get a JSON error instead of a crash
+    if (isAPIRoute(request)) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Authentication service unavailable" }),
+        { status: 503, headers: { "Content-Type": "application/json" } }
+      )
+    }
+
+    // Protected page routes redirect to login
+    return NextResponse.redirect(new URL("/login", request.url))
+  }
+}
 
 export const config = {
   matcher: [

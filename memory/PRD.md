@@ -1,64 +1,34 @@
-# missiAI PRD
+# missiAI - PRD & Progress
 
 ## Original Problem Statement
-Replace fake chunked streaming in missiAI with Gemini's native `streamGenerateContent` API. The app currently fetches the full Gemini response, then simulates streaming by splitting into 100-char chunks in a ReadableStream.
+Login page on live site (https://missi.space/login) returns 500 Internal Server Error when deployed on Cloudflare Pages, but works fine on localhost.
 
 ## Architecture
-- **Framework**: Next.js 16 (Cloudflare Edge Runtime)
-- **Auth**: Clerk
-- **AI Provider**: Google Gemini (gemini-2.5-flash default, user uses gemini-2.5-pro)
-- **Storage**: Cloudflare KV for memory
-- **Voice**: STT + TTS via custom API routes
+- **Framework**: Next.js 16.1.6 (App Router)
+- **Auth**: Clerk (@clerk/nextjs ^6.39.0)
+- **Deployment**: Cloudflare Pages via @cloudflare/next-on-pages
+- **AI**: Gemini 2.5 Flash (voice + chat)
+- **Storage**: Cloudflare KV (MISSI_MEMORY)
+
+## Root Cause Analysis
+1. **`export const runtime = "edge"` in layout.tsx** — Caused SSR crash on Cloudflare edge runtime. Layouts should NOT have explicit edge runtime when using @cloudflare/next-on-pages (it's already edge by default).
+2. **No error resilience in middleware** — When Clerk middleware encountered issues (e.g., missing CLERK_SECRET_KEY, edge crypto incompatibility), public routes like /login crashed with 500 instead of gracefully proceeding.
+3. **Redundant `export const runtime = "edge"` on client pages** — Login and sign-up pages had both `"use client"` and `export const runtime = "edge"`, which is redundant and can cause build/runtime issues.
 
 ## What's Been Implemented (Jan 2026)
+- [x] Removed `export const runtime = "edge"` from `app/layout.tsx`
+- [x] Removed `export const runtime = "edge"` from `app/login/[[...sign-in]]/page.tsx`
+- [x] Removed `export const runtime = "edge"` from `app/sign-up/[[...sign-up]]/page.tsx`
+- [x] Added try-catch error resilience wrapper to `middleware.ts` — public routes proceed even if Clerk crashes
+- [x] Middleware now returns proper 503 JSON for API routes if auth service is unavailable
+- [x] Protected routes gracefully redirect to /login instead of 500
 
-### Native Gemini Streaming
-- **`/app/lib/gemini-stream.ts`** (NEW): 
-  - `buildGeminiRequest()` - constructs Gemini REST body with system prompt, memories, google_search tool
-  - `streamGeminiResponse()` - calls `streamGenerateContent?alt=sse`, parses SSE, returns `ReadableStream<string>` of text deltas
-  - API key passed via `x-goog-api-key` header (NOT URL param) - fixes key exposure vulnerability
-  - Handles partial SSE lines with line buffer, multiple text parts per candidate
+## Configuration Checklist (User Action Required)
+- [ ] Verify `CLERK_SECRET_KEY` is set in Cloudflare Pages dashboard (Settings → Environment Variables)
+- [ ] Verify `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is set in Cloudflare
+- [ ] Redeploy after code changes
 
-- **`/app/app/api/chat/route.ts`** (REWRITTEN):
-  - Removed all fake chunking logic (100-char chunk splitting)
-  - Uses `buildGeminiRequest` + `streamGeminiResponse` for native streaming
-  - Transforms text deltas into SSE format (`data: {"text":"..."}\n\n`) for client
-  - Headers: `text/event-stream`, `no-cache`, `X-Accel-Buffering: no`
-  - Try/catch returns 500 JSON before stream starts on error
-  - Supports `GEMINI_MODEL` env var override
-
-- **`/app/hooks/useVoiceStateMachine.ts`** (UPDATED):
-  - New `streamingText` state exposed from hook
-  - `getAIResponse` updates `streamingText` on each SSE chunk
-  - Clears `streamingText` on completion, empty response, abort, and errors
-  - Timeout increased from 10s (CHAT_TIMEOUT) to 60s (STREAM_CHAT_TIMEOUT)
-
-- **`/app/app/chat/page.tsx`** (UPDATED):
-  - Displays `streamingText` during `thinking` state with blinking cursor
-  - `data-testid="streaming-text-display"` and `data-testid="streaming-cursor"`
-  - Blink CSS animation for cursor
-
-- **`/app/lib/fetch-with-timeout.ts`** (UPDATED):
-  - Added `STREAM_CHAT_TIMEOUT = 60_000`
-
-## Core Requirements (Static)
-- Edge runtime compatible (no Node.js-only APIs)
-- Clerk auth for all API routes
-- Rate limiting per user
-- Server-side memory fetch from KV (never trust client)
-- Memory sanitization against prompt injection
-
-## User Personas
-- Voice-first AI companion users
-- Hindi/Hinglish speaking users getting English responses
-
-## Prioritized Backlog
-- P0: None (streaming implementation complete)
-- P1: Add text chat mode alongside voice
-- P2: Multi-provider streaming (OpenAI, Claude) 
-- P3: Client-side token counting for cost estimation
-
-## Next Tasks
-- Deploy to Cloudflare with GEMINI_API_KEY configured
-- Set GEMINI_MODEL=gemini-2.5-pro in production env if desired
-- Test end-to-end streaming with real Gemini API key
+## Backlog / Future
+- P0: Verify fix resolves 500 on live site after redeploy
+- P1: Consider migrating from @cloudflare/next-on-pages to @opennextjs/cloudflare (Cloudflare's recommended approach as of 2025)
+- P2: Add monitoring/logging for middleware errors in production

@@ -3,8 +3,6 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/sonner";
 
-export const runtime = "edge";
-
 export const metadata: Metadata = {
   title: "missiAI | The Future of Human-AI Interaction",
   description: "The most powerful human AI assistant yet.",
