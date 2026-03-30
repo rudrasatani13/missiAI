@@ -355,9 +355,9 @@ export default function VoiceAssistantPage() {
     fetch(`/api/memory?userId=${user.id}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.memories) {
-          memoriesRef.current = data.memories
-          console.log("[Memory] Loaded memories for", user.id)
+        if (data.facts) {
+          memoriesRef.current = data.facts.map((f: any) => f.text).join("\n")
+          console.log("[Memory] Loaded", data.facts.length, "facts for", user.id)
         }
       })
       .catch(() => {})

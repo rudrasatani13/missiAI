@@ -373,9 +373,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       // Auto-save memory (fire-and-forget)
       if (userId && conversationRef.current.length >= 4) {
         const payload = JSON.stringify({
-          userId,
           conversation: conversationRef.current,
-          existingMemories: memoriesRef.current,
         })
         fetch("/api/memory", {
           method: "POST",
@@ -384,7 +382,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         })
           .then((r) => r.json())
           .then((data) => {
-            if (data.memories) memoriesRef.current = data.memories
+            if (data.store?.facts) {
+              memoriesRef.current = data.store.facts.map((f: any) => f.text).join("\n")
+            }
           })
           .catch(() => {})
       }
@@ -663,18 +663,14 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
     let messages = convo
     let payload = JSON.stringify({
-      userId: uid,
       conversation: messages,
-      existingMemories: memoriesRef.current,
     })
 
     // sendBeacon payloads should stay under 64 KB
     if (payload.length >= 60_000) {
       messages = convo.slice(-6)
       payload = JSON.stringify({
-        userId: uid,
         conversation: messages,
-        existingMemories: memoriesRef.current,
       })
     }
 
