@@ -21,11 +21,7 @@ export const chatSchema = z.object({
     .enum(["bestfriend", "professional", "playful", "mentor"])
     .optional()
     .default("bestfriend"),
-  memories: z
-    .string()
-    .max(5000, "Memory payload too large (max 5000 chars)")
-    .optional()
-    .default(""),
+  // memories are fetched server-side from KV — never accepted from the client
 })
 
 export type ChatInput = z.infer<typeof chatSchema>
@@ -59,20 +55,14 @@ export const sttSchema = z.object({
 export type STTFileInput = z.infer<typeof sttSchema>
 
 // ─── /api/memory ──────────────────────────────────────────────────────────────
-// userId is accepted here so Zod does not reject client bodies that include it,
-// but the route ignores it — the verified server-side userId is used exclusively.
+// Only the conversation is accepted from the client. userId and existingMemories
+// are resolved server-side — never trusted from the request body.
 
 export const memorySchema = z.object({
-  userId: z.string().optional(),
   conversation: z
     .array(messageSchema)
     .min(2, "Conversation must have at least 2 messages")
     .max(50, "Too many messages in conversation"),
-  existingMemories: z
-    .string()
-    .max(5000, "Existing memories too large")
-    .optional()
-    .default(""),
 })
 
 export type MemoryInput = z.infer<typeof memorySchema>

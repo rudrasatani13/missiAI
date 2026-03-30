@@ -1,63 +1,16 @@
-import type { Message, KVStore } from "@/types"
+import type { Message } from "@/types"
 import { callAIDirect } from "./ai.service"
 
-const MEMORY_KEY_PREFIX = "memories:"
 const MAX_MEMORY_FACTS = 30
 
-// ─── Sanitization ─────────────────────────────────────────────────────────────
-
 /**
- * Strip common prompt injection patterns before injecting memories into system prompt.
- * Memories come from KV storage — user could have crafted them via earlier conversations.
+ * Extract key facts from a conversation using AI and merge with existing memories.
+ * Does NOT touch KV — callers are responsible for fetching existing memories
+ * and persisting the result via saveUserMemories().
  */
-export function sanitizeMemory(memory: string): string {
-  return memory
-    // ── Instruction-format tags ──────────────────────────────────────────
-    .replace(/\[INST\]/gi, "")
-    .replace(/\[\/INST\]/gi, "")
-    .replace(/<<<[\s\S]*?>>>/g, "")
-    .replace(/<\|im_start\|>[\s\S]*?<\|im_end\|>/gi, "")
-    .replace(/<\|system\|>[\s\S]*?<\|end\|>/gi, "")
-    // ── Role prefixes ────────────────────────────────────────────────────
-    .replace(/\bSYSTEM\s*:/gi, "")
-    .replace(/\bUSER\s*:/gi, "")
-    .replace(/\bASSISTANT\s*:/gi, "")
-    .replace(/\bHUMAN\s*:/gi, "")
-    .replace(/\bAI\s*:/gi, "")
-    // ── Direct override commands ─────────────────────────────────────────
-    .replace(/\bIGNORE\s+(ALL\s+)?PREVIOUS\s+INSTRUCTIONS?\b/gi, "")
-    .replace(/\bDISREGARD\s+ALL\s+PREVIOUS\b/gi, "")
-    .replace(/\bFORGET\s+(EVERYTHING|ALL|PRIOR)\b/gi, "")
-    .replace(/\bYOU\s+ARE\s+NOW\b/gi, "")
-    .replace(/\bACT\s+AS\s+(IF\s+YOU\s+ARE|A|AN)\b/gi, "")
-    .replace(/\bNEW\s+INSTRUCTIONS?\b/gi, "")
-    .replace(/\bOVERRIDE\s+(SYSTEM|PROMPT|INSTRUCTIONS?)\b/gi, "")
-    .replace(/\bDO\s+NOT\s+FOLLOW\b/gi, "")
-    .replace(/\bIGNORE\s+SAFETY\b/gi, "")
-    // ── Markdown structure (keeps plain text only) ───────────────────────
-    .replace(/#{1,6}\s/g, "")
-    .trim()
-}
-
-// ─── Read ─────────────────────────────────────────────────────────────────────
-
-export async function getMemory(userId: string, kv: KVStore): Promise<string> {
-  const raw = await kv.get(`${MEMORY_KEY_PREFIX}${userId}`)
-  if (!raw) return ""
-  return sanitizeMemory(raw)
-}
-
-// ─── Write ────────────────────────────────────────────────────────────────────
-
-/**
- * Extract key facts from a conversation using AI, merge with existing memories, save to KV.
- * Returns the updated memory string.
- */
-export async function saveMemory(
-  userId: string,
+export async function extractMemories(
   conversation: Message[],
   existingMemories: string,
-  kv: KVStore
 ): Promise<string> {
   const convoText = conversation
     .map((m) => `${m.role}: ${m.content}`)
@@ -91,9 +44,5 @@ ${convoText}`
     maxOutputTokens: 1024,
   })
 
-  const newMemories = extracted.trim()
-  if (!newMemories) return existingMemories
-
-  await kv.put(`${MEMORY_KEY_PREFIX}${userId}`, newMemories)
-  return newMemories
+  return extracted.trim() || existingMemories
 }

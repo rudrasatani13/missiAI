@@ -1,12 +1,24 @@
 import { NextRequest } from "next/server"
+import { getRequestContext } from "@cloudflare/next-on-pages"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/auth"
 import { chatSchema, validationErrorResponse } from "@/lib/schemas"
 import { generateResponse } from "@/services/ai.service"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { getUserMemories } from "@/lib/kv-memory"
+import type { KVStore } from "@/types"
 
 export const runtime = "edge"
 
 const MAX_BODY_BYTES = 1_000_000 // 1 MB
+
+function getKV(): KVStore | null {
+  try {
+    const { env } = getRequestContext()
+    return (env as any).MISSI_MEMORY ?? null
+  } catch {
+    return null
+  }
+}
 
 export async function POST(req: NextRequest) {
   // ── 1. Auth: userId comes from Clerk session — never trust the client ─────
@@ -49,9 +61,13 @@ export async function POST(req: NextRequest) {
     return validationErrorResponse(parsed.error)
   }
 
-  const { messages, personality, memories } = parsed.data
+  const { messages, personality } = parsed.data
 
-  // ── 5. Call AI with timeout (15 s hard cap via AbortController) ───────────
+  // ── 5. Fetch memories server-side — client never supplies this ────────────
+  const kv = getKV()
+  const memories = kv ? await getUserMemories(kv, userId) : ""
+
+  // ── 6. Call AI with timeout (15 s hard cap via AbortController) ───────────
   try {
     const responseText = await generateResponse(messages, personality, memories, {
       timeoutMs: 15_000,
@@ -64,7 +80,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ── 6. Stream SSE back to the client ─────────────────────────────────
+    // ── 7. Stream SSE back to the client ─────────────────────────────────
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       start(controller) {

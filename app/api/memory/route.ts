@@ -2,7 +2,8 @@ import { NextRequest } from "next/server"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/auth"
 import { memorySchema, validationErrorResponse } from "@/lib/schemas"
 import { getRequestContext } from "@cloudflare/next-on-pages"
-import { getMemory, saveMemory } from "@/services/memory.service"
+import { getUserMemories, saveUserMemories } from "@/lib/kv-memory"
+import { extractMemories } from "@/services/memory.service"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import type { KVStore } from "@/types"
 
@@ -15,10 +16,19 @@ function jsonResponse(body: unknown, status = 200): Response {
   })
 }
 
+function getKV(): KVStore | null {
+  try {
+    const { env } = getRequestContext()
+    return (env as any).MISSI_MEMORY ?? null
+  } catch {
+    return null
+  }
+}
+
 // ─── GET — Load user memories ─────────────────────────────────────────────────
 
 export async function GET(_req: NextRequest) {
-  // userId comes from Clerk session — the query param is ignored entirely
+  // userId comes from Clerk session — query params are ignored entirely
   let userId: string
   try {
     userId = await getVerifiedUserId()
@@ -34,7 +44,7 @@ export async function GET(_req: NextRequest) {
       return jsonResponse({ memories: "" })
     }
 
-    const memories = await getMemory(userId, kv)
+    const memories = await getUserMemories(kv, userId)
     return jsonResponse({ memories })
   } catch (err) {
     console.error("Memory GET error:", err)
@@ -42,7 +52,7 @@ export async function GET(_req: NextRequest) {
   }
 }
 
-// ─── POST — Save memories from conversation ───────────────────────────────────
+// ─── POST — Extract and save memories from a conversation ────────────────────
 
 export async function POST(req: NextRequest) {
   // userId from Clerk — never accept from request body
@@ -60,8 +70,7 @@ export async function POST(req: NextRequest) {
     return rateLimitExceededResponse(rateResult)
   }
 
-  // Parse & validate — any client-supplied userId is stripped by Zod; we use
-  // the server-verified userId from Clerk exclusively.
+  // Parse & validate — only conversation is accepted from the client
   let body: unknown
   try {
     body = await req.json()
@@ -74,8 +83,7 @@ export async function POST(req: NextRequest) {
     return validationErrorResponse(parsed.error)
   }
 
-  // Destructure only what's needed; parsed.data.userId is intentionally ignored
-  const { conversation, existingMemories } = parsed.data
+  const { conversation } = parsed.data
 
   const kv = getKV()
   if (!kv) {
@@ -84,23 +92,19 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // KV key is derived from the server-verified userId only
-    const newMemories = await saveMemory(userId, conversation, existingMemories, kv)
+    // Fetch existing memories server-side — never from the client body
+    const existingMemories = await getUserMemories(kv, userId)
+
+    // AI extraction: merge conversation facts with existing memories
+    const newMemories = await extractMemories(conversation, existingMemories)
+
+    // Persist via the typed KV wrapper (sanitizes + enforces size cap)
+    await saveUserMemories(kv, userId, newMemories)
+
     return jsonResponse({ success: true, memories: newMemories })
   } catch (err) {
     console.error("Memory POST error:", err)
     const message = err instanceof Error ? err.message : "Internal server error"
     return jsonResponse({ success: false, error: message }, 500)
-  }
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getRequestContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
   }
 }
