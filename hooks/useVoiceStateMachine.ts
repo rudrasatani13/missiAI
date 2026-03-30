@@ -8,22 +8,9 @@ import {
   STT_TIMEOUT,
 } from "@/lib/fetch-with-timeout"
 import { getBestAudioMimeType } from "@/lib/browser-support"
+import type { VoiceState, ConversationEntry, PersonalityKey } from "@/types/chat"
 
-/* ── Types ────────────────────────────────────────────────────────────────── */
-
-export type VoiceState =
-  | "idle"
-  | "recording"
-  | "transcribing"
-  | "thinking"
-  | "speaking"
-
-interface ConversationEntry {
-  role: "user" | "assistant"
-  content: string
-}
-
-type PersonalityKey = "bestfriend" | "professional" | "playful" | "mentor"
+export type { VoiceState }
 
 export interface UseVoiceStateMachineOptions {
   userId?: string
