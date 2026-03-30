@@ -1,38 +1,33 @@
-# missiAI - PRD & Progress
+# Missi AI — PRD & Progress Tracker
 
 ## Original Problem Statement
-Login page on live site (https://missi.space/login) returns 500 Internal Server Error when deployed on Cloudflare Pages, but works fine on localhost.
+Replace flat KV memory string with a structured, cost-efficient memory architecture.
+- **Current state**: entire memory = one big string in KV, re-summarized after EVERY interaction
+- **Goal**: store individual facts, inject only relevant ones, summarize every 5th turn only
 
 ## Architecture
-- **Framework**: Next.js 16.1.6 (App Router)
-- **Auth**: Clerk (@clerk/nextjs ^6.39.0)
-- **Deployment**: Cloudflare Pages via @cloudflare/next-on-pages ^1.13.16
-- **AI**: Gemini 2.5 Flash (voice + chat)
-- **Storage**: Cloudflare KV (MISSI_MEMORY)
+- **Platform**: Next.js on Cloudflare Pages with KV bindings
+- **AI Provider**: Gemini (Flash for extraction, configurable model for chat)
+- **Auth**: Clerk
+- **Storage**: Cloudflare KV (`MISSI_MEMORY` binding)
 
-## Root Cause Analysis (Iteration 2)
-The 500 on `/login` was caused by the **catch-all route `[[...sign-in]]` forcing edge runtime SSR** of Clerk's `<SignIn>` component on Cloudflare Workers. This SSR crashes because Clerk's internal server-rendering logic is incompatible with Cloudflare's edge runtime.
+## Core Requirements
+1. `types/memory.ts` — MemoryFact + UserMemoryStore interfaces
+2. `lib/kv-memory.ts` — Structured store CRUD + relevance scoring + prompt formatting
+3. `lib/memory-extractor.ts` — Gemini Flash extraction every 5th interaction
+4. `app/api/memory/route.ts` — Structured store endpoints (GET full store, POST with conditional extraction)
+5. `app/api/chat/route.ts` — Relevant-facts-only injection into system prompt
 
-Evidence:
-- Homepage (/) loads fine → no edge runtime, static HTML shell + client hydration
-- Login (/login) → 500 → catch-all `[[...sign-in]]` = dynamic route = edge SSR = crash
-- CLERK_SECRET_KEY is correctly set in Cloudflare (confirmed by user)
+## What's Been Implemented (2026-03-30)
+- **types/memory.ts**: MemoryFact (id, text, tags, createdAt, accessCount) + UserMemoryStore (facts, lastExtractedAt, interactionCount)
+- **lib/kv-memory.ts**: getUserMemoryStore, saveUserMemoryStore (sanitize + cap 50), getRelevantFacts (tag scoring + accessCount bonus + fallback), formatFactsForPrompt ([MEMORY START/END] block)
+- **lib/memory-extractor.ts**: extractMemoryFacts — calls Gemini Flash on last 6 messages, JSON-only response, dedup via includes(), cap 50
+- **app/api/memory/route.ts**: POST increments interactionCount, conditionally extracts every 5th; GET returns full UserMemoryStore
+- **app/api/chat/route.ts**: Replaced getUserMemories() with getUserMemoryStore → getRelevantFacts → formatFactsForPrompt pipeline
+- **nanoid@3**: Installed for 8-char ID generation
+- All tests pass (17/17) — TypeScript compilation clean
 
-## Fix Applied
-Switched from `routing="path"` (requires catch-all route + edge SSR) to `routing="hash"` (static page + client-side routing). This eliminates edge SSR entirely.
-
-### Files Changed
-| File | Change |
-|------|--------|
-| `middleware.ts` | Try-catch error resilience wrapper around clerkMiddleware |
-| `app/layout.tsx` | Removed `export const runtime = "edge"` |
-| `next.config.mjs` | Removed deprecated `eslint.ignoreDuringBuilds` |
-| `app/login/page.tsx` | **NEW** — Replaced `[[...sign-in]]/page.tsx` with simple page using `routing="hash"` |
-| `app/sign-up/page.tsx` | **NEW** — Replaced `[[...sign-up]]/page.tsx` with simple page using `routing="hash"` |
-| `app/login/[[...sign-in]]/` | **DELETED** — catch-all route removed |
-| `app/sign-up/[[...sign-up]]/` | **DELETED** — catch-all route removed |
-
-## Backlog / Future
-- P1: Consider migrating from @cloudflare/next-on-pages to @opennextjs/cloudflare
-- P1: Consider migrating middleware.ts to proxy.ts (Next.js 16 deprecation)
-- P2: Add monitoring/logging for middleware errors in production
+## Backlog
+- P2: Remove dead `services/memory.service.ts` (old extraction service, no longer imported)
+- P2: Consider persisting updated accessCounts after chat route reads (currently only in-memory mutation)
+- P3: Upgrade relevance scoring with embeddings or TF-IDF if tag matching proves insufficient
