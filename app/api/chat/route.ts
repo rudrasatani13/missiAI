@@ -8,7 +8,10 @@ import { buildGeminiRequest, streamGeminiResponse } from "@/lib/gemini-stream"
 import { buildSystemPrompt } from "@/services/ai.service"
 import { estimateRequestTokens, estimateTokens, LIMITS, truncateToTokenLimit } from "@/lib/token-counter"
 import { buildCacheKey, getCachedResponse, setCachedResponse, isCacheable } from "@/lib/response-cache"
-import { selectGeminiModel, estimateRequestCost } from "@/lib/model-router"
+import { selectGeminiModel } from "@/lib/model-router"
+import { createTimer, logRequest, logError } from "@/lib/logger"
+import { calculateTotalCost, checkBudgetAlert } from "@/lib/cost-tracker"
+import { getEnv } from "@/lib/env"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
@@ -25,6 +28,8 @@ function getKV(): KVStore | null {
 }
 
 export async function POST(req: NextRequest) {
+  const elapsed = createTimer()
+
   // ── 1. Auth ────────────────────────────────────────────────────────────────
   let userId: string
   try {
@@ -85,9 +90,6 @@ export async function POST(req: NextRequest) {
 
   if (estimatedTokens > LIMITS.WARN_THRESHOLD) {
     messages = truncateToTokenLimit(messages, LIMITS.WARN_THRESHOLD)
-    console.log(
-      `[token-guard] Truncated from ${estimatedTokens} est. tokens → ${messages.length} messages`
-    )
   }
 
   // ── 7. Response cache check ───────────────────────────────────────────────
@@ -98,7 +100,7 @@ export async function POST(req: NextRequest) {
   if (cacheKey) {
     const cached = await getCachedResponse(cacheKey)
     if (cached) {
-      console.log(`[cache-hit] key=${cacheKey}`)
+      logRequest("chat.cache_hit", userId, Date.now() - elapsed(), { cacheKey })
       const encoder = new TextEncoder()
       const cachedStream = new ReadableStream({
         start(controller) {
@@ -121,17 +123,11 @@ export async function POST(req: NextRequest) {
 
   // ── 8. Select model dynamically ───────────────────────────────────────────
   const model = selectGeminiModel(messages, memories)
-  console.log(`[model-router] Selected: ${model}`)
 
   // ── 9. Build Gemini request & stream ──────────────────────────────────────
   try {
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ success: false, error: "GEMINI_API_KEY is not configured" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      )
-    }
+    const appEnv = getEnv()
+    const apiKey = appEnv.GEMINI_API_KEY
 
     const requestBody = buildGeminiRequest(messages, personality, memories, model)
     const textStream = await streamGeminiResponse(apiKey, model, requestBody)
@@ -152,16 +148,25 @@ export async function POST(req: NextRequest) {
               controller.enqueue(encoder.encode("data: [DONE]\n\n"))
               controller.close()
 
-              // ── Post-stream: cache + cost logging ──────────────────────
+              // ── Post-stream: cost tracking + logging ───────────────────
               const outputTokens = estimateTokens(fullResponse)
-              const cost = estimateRequestCost(model, inputTokens, outputTokens)
-              console.log(
-                `[cost] model=${model} in=${inputTokens} out=${outputTokens} est=$${cost.toFixed(6)}`
-              )
+              const costData = calculateTotalCost(model, inputTokens, outputTokens, 0)
+
+              logRequest("chat.completed", userId, Date.now() - elapsed(), {
+                model: costData.model,
+                inputTokens: costData.inputTokens,
+                outputTokens: costData.outputTokens,
+                costUsd: costData.costUsd,
+                ttsChars: costData.ttsChars,
+                ttsCostUsd: costData.ttsCostUsd,
+                totalCostUsd: costData.totalCostUsd,
+              })
+
+              // Budget alert check (non-blocking)
+              checkBudgetAlert(kv, costData.totalCostUsd).catch(() => {})
 
               if (cacheKey && isCacheable(userMessageText, fullResponse)) {
                 setCachedResponse(cacheKey, fullResponse).catch(() => {})
-                console.log(`[cache-set] key=${cacheKey}`)
               }
               return
             }
@@ -170,7 +175,8 @@ export async function POST(req: NextRequest) {
               encoder.encode(`data: ${JSON.stringify({ text: value })}\n\n`)
             )
           }
-        } catch {
+        } catch (streamErr) {
+          logError("chat.stream_error", streamErr, userId)
           try {
             controller.enqueue(encoder.encode("data: [DONE]\n\n"))
             controller.close()
@@ -189,7 +195,7 @@ export async function POST(req: NextRequest) {
       },
     })
   } catch (err) {
-    console.error("Chat route error:", err)
+    logError("chat.error", err, userId)
     return new Response(
       JSON.stringify({
         success: false,

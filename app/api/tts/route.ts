@@ -3,6 +3,8 @@ import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/
 import { ttsSchema, validationErrorResponse } from "@/lib/schemas"
 import { textToSpeech } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { createTimer, logRequest, logError } from "@/lib/logger"
+import { getEnv } from "@/lib/env"
 
 export const runtime = "edge"
 
@@ -19,6 +21,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 export async function POST(req: NextRequest) {
+  const elapsed = createTimer()
+
   // ── 1. Auth ───────────────────────────────────────────────────────────────
   let userId: string
   try {
@@ -57,14 +61,16 @@ export async function POST(req: NextRequest) {
   }
 
   const { text } = parsed.data
+  const charCount = text.length
 
   // ── 5. Env check ──────────────────────────────────────────────────────────
-  const apiKey = process.env.ELEVENLABS_API_KEY
+  const appEnv = getEnv()
+  const apiKey = appEnv.ELEVENLABS_API_KEY
   const voiceId = process.env.ELEVENLABS_VOICE_ID
 
-  if (!apiKey || !voiceId) {
+  if (!voiceId) {
     return NextResponse.json(
-      { success: false, error: "ElevenLabs not configured" },
+      { success: false, error: "ElevenLabs voice ID not configured" },
       { status: 500 }
     )
   }
@@ -76,6 +82,8 @@ export async function POST(req: NextRequest) {
       TTS_TIMEOUT_MS
     )
 
+    logRequest("tts.request", userId, Date.now() - elapsed(), { charCount })
+
     return new NextResponse(audioData, {
       headers: {
         "Content-Type": "audio/mpeg",
@@ -83,7 +91,7 @@ export async function POST(req: NextRequest) {
       },
     })
   } catch (err) {
-    console.error("TTS route error:", err)
+    logError("tts.error", err, userId)
     const message = err instanceof Error ? err.message : "Internal server error"
     return NextResponse.json({ success: false, error: message }, { status: 500 })
   }

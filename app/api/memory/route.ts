@@ -5,6 +5,8 @@ import { getRequestContext } from "@cloudflare/next-on-pages"
 import { getUserMemoryStore, saveUserMemoryStore } from "@/lib/kv-memory"
 import { extractMemoryFacts } from "@/lib/memory-extractor"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { createTimer, logRequest, logError } from "@/lib/logger"
+import { getEnv } from "@/lib/env"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
@@ -28,6 +30,8 @@ function getKV(): KVStore | null {
 // ─── GET — Load user memory store ─────────────────────────────────────────────
 
 export async function GET(_req: NextRequest) {
+  const elapsed = createTimer()
+
   let userId: string
   try {
     userId = await getVerifiedUserId()
@@ -39,14 +43,19 @@ export async function GET(_req: NextRequest) {
   try {
     const kv = getKV()
     if (!kv) {
-      console.error("KV binding MISSI_MEMORY not found")
+      logError("memory.error", "KV binding MISSI_MEMORY not found", userId)
       return jsonResponse({ facts: [], lastExtractedAt: 0, interactionCount: 0 })
     }
 
     const store = await getUserMemoryStore(kv, userId)
+
+    logRequest("memory.read", userId, Date.now() - elapsed(), {
+      factCount: store.facts.length,
+    })
+
     return jsonResponse(store)
   } catch (err) {
-    console.error("Memory GET error:", err)
+    logError("memory.error", err, userId)
     return jsonResponse({ facts: [], lastExtractedAt: 0, interactionCount: 0 })
   }
 }
@@ -54,6 +63,8 @@ export async function GET(_req: NextRequest) {
 // ─── POST — Increment interaction count, conditionally extract, save ─────────
 
 export async function POST(req: NextRequest) {
+  const elapsed = createTimer()
+
   let userId: string
   try {
     userId = await getVerifiedUserId()
@@ -83,7 +94,7 @@ export async function POST(req: NextRequest) {
 
   const kv = getKV()
   if (!kv) {
-    console.error("KV binding MISSI_MEMORY not found")
+    logError("memory.error", "KV binding MISSI_MEMORY not found", userId)
     return jsonResponse({ success: false, error: "Storage unavailable" }, 500)
   }
 
@@ -95,20 +106,22 @@ export async function POST(req: NextRequest) {
 
     // Extract new facts every 5th interaction
     if (store.interactionCount % 5 === 0) {
-      const apiKey = process.env.GEMINI_API_KEY
-      if (apiKey) {
-        store.facts = await extractMemoryFacts(conversation, store.facts, apiKey)
-        store.lastExtractedAt = Date.now()
-      } else {
-        console.error("GEMINI_API_KEY not configured — skipping memory extraction")
-      }
+      const appEnv = getEnv()
+      const apiKey = appEnv.GEMINI_API_KEY
+      store.facts = await extractMemoryFacts(conversation, store.facts, apiKey)
+      store.lastExtractedAt = Date.now()
     }
 
     await saveUserMemoryStore(kv, userId, store)
 
+    logRequest("memory.write", userId, Date.now() - elapsed(), {
+      factCount: store.facts.length,
+      interactionCount: store.interactionCount,
+    })
+
     return jsonResponse({ success: true, store })
   } catch (err) {
-    console.error("Memory POST error:", err)
+    logError("memory.error", err, userId)
     const message = err instanceof Error ? err.message : "Internal server error"
     return jsonResponse({ success: false, error: message }, 500)
   }

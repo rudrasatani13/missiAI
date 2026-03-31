@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import type { NextRequest, NextFetchEvent } from "next/server"
+import { log } from "@/lib/logger"
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -14,6 +15,9 @@ const isPublicRoute = createRouteMatcher([
 // redirect. Letting middleware's auth.protect() run here causes Clerk to issue a
 // page-style redirect, which sends HTML instead of a JSON error.
 const isAPIRoute = createRouteMatcher(["/api/(.*)"])
+
+// Health endpoint is public — no auth, no rate limiting
+const isHealthRoute = createRouteMatcher(["/api/health"])
 
 // ─── IP-based rate limiter (Map, Edge-runtime compatible) ─────────────────────
 //
@@ -59,11 +63,23 @@ function getClientIP(request: Request): string {
 // ─── Clerk handler ───────────────────────────────────────────────────────────
 
 const clerkHandler = clerkMiddleware(async (auth, request) => {
+  const startTime = Date.now()
+
   if (isAPIRoute(request)) {
+    // Let health checks through without rate limiting or auth
+    if (isHealthRoute(request)) return
+
     const ip = getClientIP(request)
     const { allowed, retryAfter } = checkIPRateLimit(ip)
 
     if (!allowed) {
+      log({
+        level: "warn",
+        event: "api.rate_limited",
+        metadata: { ip, path: request.nextUrl.pathname },
+        timestamp: Date.now(),
+      })
+
       return new NextResponse(
         JSON.stringify({ success: false, error: "Too many requests. Please slow down." }),
         {
@@ -93,10 +109,52 @@ const clerkHandler = clerkMiddleware(async (auth, request) => {
 // of returning a 500 Internal Server Error.
 
 export default async function middleware(request: NextRequest, event: NextFetchEvent) {
+  const startTime = Date.now()
+
   try {
-    return await clerkHandler(request, event)
+    const response = await clerkHandler(request, event)
+
+    // Log completed API requests
+    if (isAPIRoute(request)) {
+      const status = response?.status ?? 200
+      const userId = request.headers.get("x-clerk-user-id") ?? undefined
+
+      if (status === 401) {
+        log({
+          level: "warn",
+          event: "api.unauthorized",
+          metadata: { path: request.nextUrl.pathname },
+          timestamp: Date.now(),
+        })
+      }
+
+      log({
+        level: "info",
+        event: "api.request",
+        userId,
+        durationMs: Date.now() - startTime,
+        metadata: {
+          path: request.nextUrl.pathname,
+          method: request.method,
+          status,
+        },
+        timestamp: Date.now(),
+      })
+    }
+
+    return response
   } catch (error) {
     console.error("[Middleware] Clerk error on", request.nextUrl.pathname, ":", error)
+
+    log({
+      level: "error",
+      event: "middleware.error",
+      metadata: {
+        path: request.nextUrl.pathname,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      timestamp: Date.now(),
+    })
 
     // Public routes should still render even if Clerk fails
     if (isPublicRoute(request)) {

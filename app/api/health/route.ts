@@ -1,0 +1,101 @@
+// ─── Health Check Endpoint ────────────────────────────────────────────────────
+//
+// GET /api/health — no auth required.
+// Returns system status with KV and env checks.
+
+import { getRequestContext } from "@cloudflare/next-on-pages"
+import { envExists } from "@/lib/env"
+import { log } from "@/lib/logger"
+import type { KVStore } from "@/types"
+
+export const runtime = "edge"
+
+interface HealthResponse {
+  status: "ok" | "degraded" | "down"
+  version: string
+  checks: {
+    kv: "ok" | "error"
+    env: "ok" | "missing"
+  }
+  timestamp: number
+}
+
+function getKV(): KVStore | null {
+  try {
+    const { env } = getRequestContext()
+    return (env as any).MISSI_MEMORY ?? null
+  } catch {
+    return null
+  }
+}
+
+async function checkKV(kv: KVStore | null): Promise<"ok" | "error"> {
+  if (!kv) return "error"
+
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 2000)
+
+    // Attempt a small read — key doesn't need to exist
+    await Promise.race([
+      kv.get("health:ping"),
+      new Promise<never>((_, reject) => {
+        controller.signal.addEventListener("abort", () =>
+          reject(new Error("KV timeout")),
+        )
+      }),
+    ])
+
+    clearTimeout(timeout)
+    return "ok"
+  } catch {
+    return "error"
+  }
+}
+
+function checkEnvVars(): "ok" | "missing" {
+  const required = ["GEMINI_API_KEY", "ELEVENLABS_API_KEY", "CLERK_SECRET_KEY"]
+  for (const key of required) {
+    if (!envExists(key)) return "missing"
+  }
+  return "ok"
+}
+
+export async function GET() {
+  const kv = getKV()
+  const kvStatus = await checkKV(kv)
+  const envStatus = checkEnvVars()
+
+  let status: HealthResponse["status"]
+  if (kvStatus === "ok" && envStatus === "ok") {
+    status = "ok"
+  } else if (kvStatus === "error" && envStatus === "missing") {
+    status = "down"
+  } else {
+    status = "degraded"
+  }
+
+  const response: HealthResponse = {
+    status,
+    version: process.env.npm_package_version ?? "unknown",
+    checks: {
+      kv: kvStatus,
+      env: envStatus,
+    },
+    timestamp: Date.now(),
+  }
+
+  log({
+    level: status === "ok" ? "info" : "warn",
+    event: "health.check",
+    metadata: { status, kv: kvStatus, env: envStatus },
+    timestamp: Date.now(),
+  })
+
+  const httpStatus = status === "ok" ? 200 : status === "degraded" ? 207 : 503
+
+  return new Response(JSON.stringify(response), {
+    status: httpStatus,
+    headers: { "Content-Type": "application/json" },
+  })
+}
