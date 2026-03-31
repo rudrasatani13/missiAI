@@ -1,80 +1,47 @@
-# missiAI — Product Requirements Document
+# MissiAI - PRD & Implementation Log
 
 ## Original Problem Statement
-Replace flat KV memory with a real vector-based Life Graph — the foundational system that makes missiAI feel like JARVIS. Current memory is a flat string in Cloudflare KV. Goal: a living knowledge graph of the user's entire life — people, goals, habits, events, preferences, emotions — retrieved by semantic relevance, not keyword match.
+Add emotional voice intelligence — detect user mood from voice tone and adapt missi's response style, length, and TTS voice in real-time.
 
 ## Architecture
-- **Platform**: Next.js on Cloudflare Pages
+- **Platform**: Next.js 16 (edge runtime, Cloudflare Pages)
+- **AI**: Gemini 3 Flash Preview for chat, ElevenLabs for TTS/STT
 - **Auth**: Clerk
-- **Storage**: Cloudflare KV (MISSI_MEMORY) + Cloudflare Vectorize (LIFE_GRAPH)
-- **Embeddings**: Gemini text-embedding-004 (768 dimensions)
-- **AI**: Gemini 3 Flash Preview (chat + briefing generation)
-- **Fallback**: When Vectorize unavailable, degrades to enhanced KV scoring
+- **Memory**: Cloudflare KV + Vectorize for life graph
 
-## User Personas
-- Primary: Users who want a personal AI assistant that remembers their life context
-- Power users: People who use Missi daily and expect growing contextual awareness
+## Core Requirements
+1. Detect emotion from audio frequency/time-domain data (client-side, pure math)
+2. Map emotions to response adaptations (length, tone, TTS params, token limits)
+3. Smooth emotion readings to prevent flickering
+4. Pass emotion context through to AI (system prompt suffix) and TTS (stability/style params)
+5. Visual indicator (dot) during recording showing detected emotion
 
-## Core Requirements (Static)
-1. Life Graph data model with 10 memory categories
-2. Vector embedding for semantic search
-3. Automatic life node extraction from conversations
-4. Node merging/deduplication (title match + cosine similarity >0.9)
-5. KV fallback search when Vectorize unavailable
-6. Prompt injection protection in memory blocks
-7. Backward compatibility with legacy MemoryFact types
-8. Proactive intelligence — morning briefings, goal nudges, relationship reminders
-
-## What's Been Implemented
-
-### Performance & Reliability Fix (2026-02)
-- Rate limit: 10 → 25 req/min
-- maxOutputTokens: 4096 → 600 (voice responses are 1-3 sentences)
-- Auto-retry up to 2 times on 429/503/network errors
-- STT/TTS timeouts increased
-
-### Life Graph Foundation (2026-03-31)
-- [x] types/memory.ts — LifeNode, LifeGraph, MemorySearchResult
-- [x] lib/memory/embeddings.ts — Gemini embedding generation
-- [x] lib/memory/vectorize.ts — Cloudflare Vectorize operations
-- [x] lib/memory/life-graph.ts — Main Life Graph CRUD
-- [x] lib/memory/graph-extractor.ts — Extract life nodes via Gemini Flash
-- [x] app/api/v1/memory/route.ts — Updated GET/POST with Life Graph
-- [x] app/api/v1/chat/route.ts — Replaced old memory with Life Graph search
-
-### Proactive Intelligence — JARVIS Layer (2026-03-31)
-- [x] types/proactive.ts — BriefingItem, DailyBriefing, ProactiveConfig
-- [x] lib/proactive/briefing-generator.ts — AI-powered daily briefing via Gemini
-- [x] lib/proactive/nudge-engine.ts — Deterministic real-time nudge checking
-- [x] lib/proactive/config-store.ts — ProactiveConfig KV persistence
-- [x] app/api/v1/proactive/route.ts — GET/POST/PATCH/DELETE edge API
-- [x] hooks/useProactive.ts — React hook for briefings + nudges
-- [x] components/chat/StatusDisplay.tsx — Briefing card + nudge pill in idle state
-- [x] app/chat/page.tsx — Auto-speak first high-priority item (JARVIS moment)
-- [x] lib/validation/schemas.ts — proactiveConfigSchema, nudgeRequestSchema, dismissSchema
-- [x] next.config.mjs — ignoreBuildErrors: false
-- [x] .gitignore — duplicate -e lines removed
-- [x] tests/lib/proactive/nudge-engine.test.ts — 14 tests, all passing
-- [x] tests/lib/proactive/briefing-generator.test.ts — 14 tests, all passing
-- **Total: 167/167 tests passing**
+## What's Been Implemented (2026-03-31)
+- **types/emotion.ts**: EmotionState (8 states), EmotionProfile, EmotionAdaptation types
+- **lib/client/emotion-detector.ts**: Pure math detectEmotionFromAudio() and getEmotionAdaptation() - RMS energy, frequency bands, zero crossings, emotion mapping
+- **hooks/useEmotionDetector.ts**: React hook with history-based smoothing (last 5 readings, 2+ same = confirmed), confidence gating, reset
+- **hooks/useVoiceStateMachine.ts**: Integrated emotion detection - audio snapshots in monitor loop, analysis on stop, emotion context in AI request, TTS params in speak
+- **lib/validation/schemas.ts**: Added optional stability/similarityBoost/style to ttsSchema, maxOutputTokens/memories to chatSchema
+- **lib/ai/gemini-stream.ts**: buildGeminiRequest accepts optional maxOutputTokens (default 600)
+- **app/api/v1/tts/route.ts**: Passes emotion-adapted TTS params to ElevenLabs
+- **app/api/v1/chat/route.ts**: Reads maxOutputTokens and client memories (emotion context), passes to Gemini
+- **components/chat/StatusDisplay.tsx**: 6px emotion indicator dot with color mapping (8 emotions), fade transition
+- **app/chat/page.tsx**: Passes currentEmotion from voice state machine to StatusDisplay
+- **Tests**: 12 new tests (8 detector + 4 hook) - all passing. Full suite: 179/179 pass
 
 ## Prioritized Backlog
-### P0
-- Deploy and create Vectorize index in production
+### P0 (Critical)
+- None remaining
 
-### P1
-- Frontend memory dashboard UI (browse Life Graph nodes)
-- Proactive settings UI (configure briefing time, timezone, enable/disable)
+### P1 (Important)
+- Emotion history analytics/dashboard
+- Persistent emotion calibration per user
 
-### P2
-- Relationship edges between LifeNodes
-- Memory decay / confidence degradation over time
-- Bulk import (user can add facts explicitly)
-- Memory export/delete for GDPR compliance
-- Calendar integration for calendar_prep briefing items
-- Weather API for weather_heads_up briefing items
+### P2 (Nice to Have)
+- Visual emotion waveform overlay during recording
+- Emotion-based voice selection (different ElevenLabs voices per emotion)
+- Emotion trend tracking across sessions
 
 ## Next Tasks
-1. Production deployment + Vectorize index setup
-2. Proactive settings UI panel (expose ProactiveConfig to user)
-3. Memory Insights UI panel
+- User testing and calibration of emotion thresholds
+- Consider adding emotion data to memory/life graph for long-term personality adaptation
