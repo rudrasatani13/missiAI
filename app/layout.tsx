@@ -4,8 +4,8 @@ import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/sonner";
 import Link from "next/link";
 
-// Force all pages to be dynamic for Cloudflare Pages deployment
-// Clerk requires runtime access to env vars which aren't available at build time
+// Required for Cloudflare Pages deployment
+export const runtime = "edge"
 export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {

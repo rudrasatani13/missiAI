@@ -1,5 +1,7 @@
 "use client"
 
+export const runtime = "edge"
+
 import { WaitlistLayout } from "@/components/waitlist/layout"
 import { InputForm } from "@/components/waitlist/form"
 import Image from "next/image"

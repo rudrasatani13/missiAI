@@ -1,5 +1,6 @@
 "use client"
 
+export const runtime = "edge"
 export const dynamic = "force-dynamic"
 
 import { useRef, useEffect, useState } from "react"

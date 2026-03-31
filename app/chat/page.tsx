@@ -13,6 +13,7 @@ import { StatusDisplay } from "@/components/chat/StatusDisplay"
 import { SettingsPanel } from "@/components/chat/SettingsPanel"
 import { ConversationLog } from "@/components/chat/ConversationLog"
 
+export const runtime = "edge"
 export const dynamic = "force-dynamic"
 
 export default function VoiceAssistantPage() {
