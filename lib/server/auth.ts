@@ -1,5 +1,4 @@
-// Server-only utilities
-"use server"
+// Server-only utilities for authentication
 
 import { auth } from "@clerk/nextjs/server"
 

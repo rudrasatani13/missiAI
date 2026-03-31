@@ -4,6 +4,10 @@ import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/sonner";
 import Link from "next/link";
 
+// Force all pages to be dynamic for Cloudflare Pages deployment
+// Clerk requires runtime access to env vars which aren't available at build time
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "missiAI — AI with Memory",
   description:

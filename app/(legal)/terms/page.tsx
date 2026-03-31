@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "Terms of Service — missiAI",
   description: "Terms governing your use of missiAI voice assistant.",

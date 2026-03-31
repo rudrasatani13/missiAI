@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "Privacy Policy — missiAI",
   description: "How missiAI handles your data, voice recordings, and personal information.",

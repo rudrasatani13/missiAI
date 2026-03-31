@@ -1,5 +1,4 @@
-// Server-only utilities
-"use server"
+// Server-only utilities for logging
 
 // ─── Structured Logger (Edge-runtime compatible) ─────────────────────────────
 //

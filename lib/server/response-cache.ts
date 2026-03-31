@@ -1,5 +1,4 @@
-// Server-only utilities
-"use server"
+// Server-only utilities for response caching
 
 const CACHE_ORIGIN = "https://chat-cache.internal"
 
