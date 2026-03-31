@@ -1,67 +1,58 @@
-# missiAI — PRD & Progress Tracker
+# missiAI — Product Requirements Document
 
 ## Original Problem Statement
-Final production polish for missiAI — error pages, professional README, legal pages, and complete repo cleanup for investor and user readiness.
+Replace flat KV memory with a real vector-based Life Graph — the foundational system that makes missiAI feel like JARVIS. Current memory is a flat string in Cloudflare KV. Goal: a living knowledge graph of the user's entire life — people, goals, habits, events, preferences, emotions — retrieved by semantic relevance, not keyword match.
 
 ## Architecture
-- **Frontend**: Next.js 14 App Router, React 19, Tailwind CSS, Three.js
-- **AI**: Google Gemini 2.5 Flash (chat), Gemini Flash Lite (memory extraction)
-- **Voice**: ElevenLabs STT + TTS
+- **Platform**: Next.js on Cloudflare Pages
 - **Auth**: Clerk
-- **Storage**: Cloudflare KV
-- **Deployment**: Cloudflare Pages
+- **Storage**: Cloudflare KV (MISSI_MEMORY) + Cloudflare Vectorize (LIFE_GRAPH)
+- **Embeddings**: Gemini text-embedding-004 (768 dimensions)
+- **AI**: Gemini 2.5 Flash (chat), Gemini 2.0 Flash Lite (extraction)
+- **Fallback**: When Vectorize unavailable, degrades to enhanced KV scoring
 
 ## User Personas
-1. **End Users**: Hindi/English/Hinglish speakers seeking a personal voice AI assistant
-2. **Investors**: Reviewing code quality, documentation, and legal compliance
-3. **Developers**: Contributors needing clear setup docs and architecture overview
+- Primary: Users who want a personal AI assistant that remembers their life context
+- Power users: People who use Missi daily and expect growing contextual awareness
 
 ## Core Requirements (Static)
-- Voice AI assistant with persistent memory
-- Real-time STT/TTS with streaming responses
-- Multiple personality modes
-- Clerk-based authentication
-- Edge-deployed on Cloudflare Pages
+1. Life Graph data model with 10 memory categories
+2. Vector embedding for semantic search
+3. Automatic life node extraction from conversations
+4. Node merging/deduplication (title match + cosine similarity >0.9)
+5. KV fallback search when Vectorize unavailable
+6. Prompt injection protection in memory blocks
+7. Backward compatibility with legacy MemoryFact types
 
-## What's Been Implemented — March 2026
-
-### Session 1 (March 31, 2026) — Production Polish
-- [x] `app/not-found.tsx` — Branded 404 page with missiAI logo, "This page doesn't exist" message, "Back to missi.space" CTA
-- [x] `app/error.tsx` — Client-side error boundary with "Something went wrong" message, Try Again + Go Home buttons, console error logging
-- [x] `app/loading.tsx` — Animated pulse skeleton matching app layout to prevent layout shift
-- [x] `app/(legal)/layout.tsx` — Shared legal pages layout with back-to-home nav, max-width container, consistent styling
-- [x] `app/(legal)/privacy/page.tsx` — Full Privacy Policy with all required sections (data collection, usage, third parties, retention, rights, contact)
-- [x] `app/(legal)/terms/page.tsx` — Full Terms of Service with all required sections (acceptance, product description, acceptable use, availability, IP, termination, governing law, contact)
-- [x] Updated `app/layout.tsx` — Added global footer (Privacy, Terms, GitHub links), updated metadata (title, description, OG, Twitter cards)
-- [x] Updated `middleware.ts` — Added /privacy and /terms to public routes
-- [x] Updated `app/page.tsx` — Landing page footer updated with Privacy and Terms links, dynamic year
-- [x] Rewrote `README.md` — Professional structure with tech stack table, architecture, env vars, API endpoints, testing, deployment, security, roadmap
-- [x] Created `.env.example` — All required env vars with comments and source URLs
-- [x] Created `scripts/cleanup.sh` — Automated pre-release checklist (gitignore, api key scanning, package.json name, env verification)
-
-### Testing Status
-- All pages verified: 404, privacy, terms, loading skeleton, landing page
-- Meta tags (OG, Twitter) verified
-- Footer navigation verified
-- Contact email (rudrasatani@missi.space) confirmed in both legal pages
-- 95-100% test pass rate
+## What's Been Implemented (2026-03-31)
+- [x] types/memory.ts — Complete rewrite with LifeNode, LifeGraph, MemorySearchResult
+- [x] lib/memory/embeddings.ts — Gemini embedding generation + cosine similarity
+- [x] lib/memory/vectorize.ts — Cloudflare Vectorize operations
+- [x] lib/memory/life-graph.ts — Main Life Graph CRUD with KV fallback
+- [x] lib/memory/graph-extractor.ts — Extract life nodes via Gemini Flash
+- [x] app/api/v1/memory/route.ts — Updated GET/POST with Life Graph
+- [x] app/api/v1/chat/route.ts — Replaced old memory with Life Graph search
+- [x] lib/validation/schemas.ts — Added interactionCount to memorySchema
+- [x] services/ai.service.ts — Fixed buildSystemPrompt double-wrapping
+- [x] wrangler.toml — Added Vectorize binding
+- [x] scripts/setup-vectorize.sh — Vectorize index creation script
+- [x] 140/140 tests passing (95 new + 45 existing)
 
 ## Prioritized Backlog
+### P0
+- Deploy and create Vectorize index in production
 
-### P0 (Done)
-- Error pages (404, 500, loading) ✅
-- Legal pages (privacy, terms) ✅
-- README rewrite ✅
-- Footer + meta tags ✅
-- .env.example ✅
-- Cleanup script ✅
+### P1
+- Wire frontend memory.service.ts to send interactionCount
+- Memory dashboard UI to browse Life Graph nodes
 
-### P1 (Next)
-- Run cleanup script and address any warnings
-- Tag v1.0.0 release
-- Verify all pages on production (missi.space)
+### P2
+- Relationship edges between LifeNodes
+- Memory decay / confidence degradation over time
+- Bulk import (user can add facts explicitly)
+- Memory export/delete for GDPR compliance
 
-### P2 (Future)
-- Multi-device session sync
-- Proactive reminders
-- Plugin system for third-party integrations
+## Next Tasks
+1. Production deployment + Vectorize index setup
+2. Frontend integration (interactionCount in POST body)
+3. Memory Insights UI panel
