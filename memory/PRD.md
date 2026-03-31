@@ -24,6 +24,14 @@ Replace flat KV memory with a real vector-based Life Graph — the foundational 
 6. Prompt injection protection in memory blocks
 7. Backward compatibility with legacy MemoryFact types
 
+## What's Been Implemented (2026-02-current)
+
+### Bug Fix — Memory Not Persisting After Tab Close
+- **Root Cause 1**: `saveMemoryBeacon` was NOT sending `interactionCount` — server received 0, condition `interactionCount > 0` failed → NO extraction ever on tab close
+- **Root Cause 2**: Extraction threshold was every 5th interaction — too high for short sessions
+- **Fix 1** (`hooks/useVoiceStateMachine.ts`): `saveMemoryBeacon` now includes `interactionCount` in payload
+- **Fix 2** (`app/api/v1/memory/route.ts`): Extraction now triggers at `interactionCount >= 2` (was every 5th)
+
 ## What's Been Implemented (2026-03-31)
 - [x] types/memory.ts — Complete rewrite with LifeNode, LifeGraph, MemorySearchResult
 - [x] lib/memory/embeddings.ts — Gemini embedding generation + cosine similarity

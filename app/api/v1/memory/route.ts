@@ -182,8 +182,8 @@ export async function POST(req: NextRequest) {
     graph.totalInteractions = (graph.totalInteractions || 0) + 1
     await saveLifeGraph(kv, userId, graph)
 
-    // Extract new life nodes every 5th interaction (skip 0 — it's just the default)
-    if (interactionCount > 0 && interactionCount % 5 === 0) {
+    // Extract new life nodes when there are at least 2 user interactions
+    if (interactionCount >= 2) {
       let apiKey = ""
       try {
         apiKey = getEnv().GEMINI_API_KEY

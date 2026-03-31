@@ -662,9 +662,12 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     const convo = conversationRef.current
     if (!uid || convo.length < 2) return
 
+    const interactionCount = convo.filter((m) => m.role === "user").length
+
     let messages = convo
     let payload = JSON.stringify({
       conversation: messages,
+      interactionCount,
     })
 
     // sendBeacon payloads should stay under 64 KB
@@ -672,6 +675,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       messages = convo.slice(-6)
       payload = JSON.stringify({
         conversation: messages,
+        interactionCount,
       })
     }
 
