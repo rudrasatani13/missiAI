@@ -7,6 +7,7 @@ import type { VoiceState } from "@/types/chat"
 interface StatusDisplayProps {
   state: VoiceState
   streamingText: string
+  lastResponse: string
   errorMessage: string | null
   onDismissError: () => void
   userName: string
@@ -17,12 +18,15 @@ interface StatusDisplayProps {
 function StatusDisplayInner({
   state,
   streamingText,
+  lastResponse,
   errorMessage,
   onDismissError,
   userName,
   statusText,
   lastTranscript,
 }: StatusDisplayProps) {
+  const displayText = streamingText || lastResponse
+
   return (
     <>
       <p
@@ -43,10 +47,11 @@ function StatusDisplayInner({
               : "fadeIn 0.5s ease-out both",
         }}
       >
-        {state === "idle" && `Hey${userName ? ` ${userName}` : ""}`}
+        {state === "idle" && !displayText && `Hey${userName ? ` ${userName}` : ""}`}
+        {state === "idle" && displayText && ""}
         {state === "recording" && "Listening..."}
         {state === "transcribing" && "Processing..."}
-        {state === "thinking" && "Thinking..."}
+        {state === "thinking" && !streamingText && "Thinking..."}
         {state === "speaking" && "Speaking..."}
       </p>
 
@@ -60,7 +65,7 @@ function StatusDisplayInner({
         </p>
       )}
 
-      {state === "idle" && (
+      {state === "idle" && !displayText && (
         <p
           className="text-[11px] font-light tracking-wide mt-1 state-text"
           data-testid="idle-status-hint"
@@ -80,7 +85,7 @@ function StatusDisplayInner({
         </p>
       )}
 
-      {(state === "thinking" || state === "transcribing") && (
+      {(state === "thinking" || state === "transcribing") && !streamingText && (
         <p
           className="text-[10px] font-light tracking-wider mt-1"
           data-testid="interrupt-hint"
@@ -90,25 +95,31 @@ function StatusDisplayInner({
         </p>
       )}
 
-      {state === "thinking" && streamingText && (
+      {displayText && (state === "thinking" || state === "speaking" || state === "idle") && (
         <div
           className="max-w-sm mx-auto mt-3 px-4 overflow-hidden"
           data-testid="streaming-text-display"
-          style={{ animation: "fadeIn 0.3s ease-out both", maxHeight: "120px", overflowY: "auto" }}
+          style={{
+            animation: "fadeIn 0.3s ease-out both",
+            maxHeight: "200px",
+            overflowY: "auto",
+          }}
         >
           <p
             className="text-xs font-light leading-relaxed text-center"
-            style={{ color: "rgba(255,255,255,0.55)" }}
+            style={{ color: state === "idle" ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.55)" }}
           >
-            {streamingText}
-            <span
-              className="inline-block w-[2px] h-[0.9em] ml-0.5 align-text-bottom"
-              data-testid="streaming-cursor"
-              style={{
-                backgroundColor: "rgba(255,255,255,0.6)",
-                animation: "blink 1s step-end infinite",
-              }}
-            />
+            {displayText}
+            {streamingText && (
+              <span
+                className="inline-block w-[2px] h-[0.9em] ml-0.5 align-text-bottom"
+                data-testid="streaming-cursor"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.6)",
+                  animation: "blink 1s step-end infinite",
+                }}
+              />
+            )}
           </p>
         </div>
       )}

@@ -32,6 +32,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const [lastTranscript, setLastTranscript] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [streamingText, setStreamingText] = useState("")
+  const [lastResponse, setLastResponse] = useState("")
 
   /* ── Internal refs ──────────────────────────────────────────────────────── */
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -344,6 +345,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
       if (!full.trim()) {
         setStreamingText("")
+        setLastResponse("")
         if (continuousRef.current) {
           await fnRef.current.startRecording()
           return
@@ -353,6 +355,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       }
 
       setStreamingText("")
+      setLastResponse(full)
       conversationRef.current.push({ role: "assistant", content: full })
       if (conversationRef.current.length > 20) {
         conversationRef.current = conversationRef.current.slice(-20)
@@ -372,12 +375,12 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         }).catch(() => {})
       }
 
-      // TTS optimization: skip TTS for long/code/list responses
+      // TTS: speak the response (truncated if long)
       if (shouldUseTTS(full, true)) {
         const ttsText = truncateForTTS(full)
         await fnRef.current.speakText(ttsText)
       } else {
-        // Skip TTS — go directly to idle or continuous recording
+        // Code blocks or voice disabled — show text only, skip TTS
         if (continuousRef.current) {
           await fnRef.current.startRecording()
         } else {
@@ -387,10 +390,12 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         setStreamingText("")
+        setLastResponse("")
         resetToIdle()
         return
       }
       setStreamingText("")
+      setLastResponse("")
       setError("Failed to get response.")
       if (continuousRef.current) {
         setTimeout(() => {
@@ -484,6 +489,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       setStatusText("Listening...")
       setError(null)
       setLastTranscript("")
+      setLastResponse("")
       audioChunksRef.current = []
 
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -696,6 +702,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     error,
     setError,
     streamingText,
+    lastResponse,
     startRecording,
     stopRecording,
     cancelAll,

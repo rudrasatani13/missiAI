@@ -29,7 +29,7 @@ export default function VoiceAssistantPage() {
 
   const {
     state: voiceState, audioLevel, statusText, lastTranscript,
-    error, setError, streamingText, handleTap, cancelAll, greet, saveMemoryBeacon,
+    error, setError, streamingText, lastResponse, handleTap, cancelAll, greet, saveMemoryBeacon,
   } = useVoiceStateMachine({ userId: user?.id, personalityRef, memoriesRef, conversationRef })
 
   useEffect(() => { try { const s = localStorage.getItem("missi-personality") as PersonalityKey | null
@@ -104,7 +104,7 @@ export default function VoiceAssistantPage() {
       <ConversationLog messages={conversationRef.current} isVisible={false} />
       <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pb-10 md:pb-14 pointer-events-none">
         <VoiceButton state={voiceState} onPress={handleTap} onRelease={() => {}} disabled={false} />
-        <StatusDisplay state={voiceState} streamingText={streamingText} errorMessage={error}
+        <StatusDisplay state={voiceState} streamingText={streamingText} lastResponse={lastResponse} errorMessage={error}
           onDismissError={() => setError(null)} userName={user?.firstName || ""}
           statusText={statusText} lastTranscript={lastTranscript} />
         <div className="mt-4">
