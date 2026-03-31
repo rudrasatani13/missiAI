@@ -69,6 +69,38 @@ export const memorySchema = z.object({
 
 export type MemoryInput = z.infer<typeof memorySchema>
 
+// ─── /api/v1/proactive ───────────────────────────────────────────────────────
+
+export const proactiveConfigSchema = z.object({
+  enabled: z.boolean(),
+  briefingTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, 'Must be HH:MM 24-hour format'),
+  timezone: z.string().min(1, 'Timezone is required'),
+  nudgesEnabled: z.boolean(),
+  maxItemsPerBriefing: z
+    .number()
+    .int()
+    .min(1)
+    .max(10)
+    .default(5),
+})
+
+export type ProactiveConfigInput = z.infer<typeof proactiveConfigSchema>
+
+export const nudgeRequestSchema = z.object({
+  lastInteractionAt: z.number(),
+})
+
+export type NudgeRequestInput = z.infer<typeof nudgeRequestSchema>
+
+export const dismissSchema = z.object({
+  nodeId: z.string().optional(),
+  type: z.string().min(1, 'type is required'),
+})
+
+export type DismissInput = z.infer<typeof dismissSchema>
+
 // ─── Helper: return a 400 Response with the first Zod issue ──────────────────
 
 export function validationErrorResponse(error: z.ZodError): Response {

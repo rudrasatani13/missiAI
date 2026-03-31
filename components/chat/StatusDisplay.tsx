@@ -1,8 +1,9 @@
 "use client"
 
-import { memo } from "react"
+import { memo, useEffect, useRef } from "react"
 import { X } from "lucide-react"
 import type { VoiceState } from "@/types/chat"
+import type { DailyBriefing, BriefingItem } from "@/types/proactive"
 
 interface StatusDisplayProps {
   state: VoiceState
@@ -13,6 +14,10 @@ interface StatusDisplayProps {
   userName: string
   statusText: string
   lastTranscript: string
+  briefing?: DailyBriefing | null
+  nudges?: BriefingItem[]
+  onDismissItem?: (item: BriefingItem) => void
+  onBriefingDelivered?: () => void
 }
 
 function StatusDisplayInner({
@@ -22,7 +27,34 @@ function StatusDisplayInner({
   userName,
   statusText,
   lastTranscript,
+  briefing,
+  nudges = [],
+  onDismissItem,
+  onBriefingDelivered,
 }: StatusDisplayProps) {
+  const deliveredRef = useRef(false)
+
+  // Find first high-priority undismissed briefing item
+  const topBriefingItem =
+    briefing?.items.find(
+      (item) => item.priority === "high" && !item.dismissedAt,
+    ) ?? null
+
+  // Mark delivered once on first render with visible item
+  useEffect(() => {
+    if (
+      state === "idle" &&
+      topBriefingItem &&
+      !deliveredRef.current &&
+      !briefing?.deliveredAt
+    ) {
+      deliveredRef.current = true
+      onBriefingDelivered?.()
+    }
+  }, [state, topBriefingItem, briefing?.deliveredAt, onBriefingDelivered])
+
+  const firstNudge = nudges[0] ?? null
+
   return (
     <>
       <p
@@ -68,6 +100,91 @@ function StatusDisplayInner({
         >
           {statusText}
         </p>
+      )}
+
+      {/* ── Proactive briefing card ─────────────────────────────────────── */}
+      {state === "idle" && topBriefingItem && (
+        <div
+          className="flex items-center gap-2 mt-3 max-w-[300px] rounded-lg px-3 py-2 pointer-events-auto"
+          data-testid="briefing-card"
+          style={{
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            animation: "fadeIn 0.5s ease-out both",
+          }}
+        >
+          <p
+            className="text-[11px] font-light flex-1 leading-snug"
+            data-testid="briefing-card-message"
+            style={{ color: "rgba(255,255,255,0.55)" }}
+          >
+            {topBriefingItem.message}
+          </p>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onDismissItem?.(topBriefingItem)
+            }}
+            data-testid="briefing-card-dismiss-btn"
+            aria-label="Dismiss suggestion"
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "rgba(255,255,255,0.25)",
+              padding: "2px",
+              flexShrink: 0,
+            }}
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
+      {/* ── Nudge pill ──────────────────────────────────────────────────── */}
+      {state === "idle" && firstNudge && !topBriefingItem && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onDismissItem?.(firstNudge)
+          }}
+          className="mt-2 px-3 py-1 rounded-full pointer-events-auto"
+          data-testid="nudge-pill"
+          style={{
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            color: "rgba(255,255,255,0.35)",
+            fontSize: "10px",
+            fontWeight: 300,
+            cursor: "pointer",
+            animation: "fadeIn 0.6s ease-out both",
+          }}
+        >
+          {firstNudge.message}
+        </button>
+      )}
+
+      {/* Show nudge pill below briefing card if both exist */}
+      {state === "idle" && firstNudge && topBriefingItem && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onDismissItem?.(firstNudge)
+          }}
+          className="mt-1 px-3 py-1 rounded-full pointer-events-auto"
+          data-testid="nudge-pill"
+          style={{
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            color: "rgba(255,255,255,0.3)",
+            fontSize: "10px",
+            fontWeight: 300,
+            cursor: "pointer",
+            animation: "fadeIn 0.7s ease-out both",
+          }}
+        >
+          {firstNudge.message}
+        </button>
       )}
 
       {state === "recording" && (

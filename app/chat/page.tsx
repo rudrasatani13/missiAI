@@ -6,6 +6,7 @@ import Image from "next/image"
 import { ArrowLeft, Settings, X } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
+import { useProactive } from "@/hooks/useProactive"
 import { PERSONALITY_OPTIONS, type PersonalityKey, type ConversationEntry } from "@/types/chat"
 import { ParticleVisualizer } from "@/components/chat/ParticleVisualizer"
 import { VoiceButton } from "@/components/chat/VoiceButton"
@@ -26,11 +27,21 @@ export default function VoiceAssistantPage() {
   const memoriesRef = useRef("")
   const conversationRef = useRef<ConversationEntry[]>([])
   const greetedRef = useRef(false)
+  const proactiveSpokenRef = useRef(false)
+
+  // Track current voiceState in a ref for use in async callbacks / timeouts
+  const voiceStateRef = useRef<string>("idle")
 
   const {
     state: voiceState, audioLevel, statusText, lastTranscript,
     error, setError, streamingText, lastResponse, handleTap, cancelAll, greet, saveMemoryBeacon,
   } = useVoiceStateMachine({ userId: user?.id, personalityRef, memoriesRef, conversationRef })
+
+  // Keep voiceState ref in sync
+  useEffect(() => { voiceStateRef.current = voiceState }, [voiceState])
+
+  // Proactive intelligence
+  const { briefing, nudges, dismissItem, markDelivered } = useProactive()
 
   useEffect(() => { try { const s = localStorage.getItem("missi-personality") as PersonalityKey | null
     if (s && PERSONALITY_OPTIONS.some((p) => p.key === s)) { setPersonality(s); personalityRef.current = s }
@@ -63,11 +74,38 @@ export default function VoiceAssistantPage() {
     return () => { window.removeEventListener("beforeunload", bu); document.removeEventListener("visibilitychange", vc) }
   }, [saveMemoryBeacon])
 
+  // Initial greeting
   useEffect(() => { if (!isLoaded || greetedRef.current) return; greetedRef.current = true
     const n = user?.firstName || "", gs = [`Hey${n ? ` ${n}` : ""}! What's up, how's it going?`,
       `Hey${n ? ` ${n}` : ""}! Good to see you, what can I help with?`, `Hey${n ? ` ${n}` : ""}! How are you doing today?`]
     setTimeout(() => greet(gs[Math.floor(Math.random() * gs.length)]), 1200)
   }, [isLoaded, user, greet])
+
+  // Proactive JARVIS moment: auto-speak first high-priority briefing item
+  useEffect(() => {
+    if (!briefing || proactiveSpokenRef.current || !voiceEnabled) return
+    const highItem = briefing.items.find(
+      (item) => item.priority === "high" && !item.dismissedAt,
+    )
+    if (!highItem) return
+
+    const timer = setTimeout(() => {
+      // Only speak if state is idle at the time the timer fires
+      if (voiceStateRef.current === "idle") {
+        proactiveSpokenRef.current = true
+        greet(highItem.message)
+      }
+    }, 2000)
+
+    return () => clearTimeout(timer)
+  }, [briefing, voiceEnabled, greet])
+
+  // Store last interaction time for nudge engine
+  useEffect(() => {
+    if (voiceState === "recording") {
+      try { localStorage.setItem("missi-last-interaction-at", String(Date.now())) } catch {}
+    }
+  }, [voiceState])
 
   const handleLogout = useCallback(() => { cancelAll(); setShowSettings(false)
     signOut().catch(() => {}); setTimeout(() => { window.location.href = "/" }, 500)
@@ -104,9 +142,20 @@ export default function VoiceAssistantPage() {
       <ConversationLog messages={conversationRef.current} isVisible={false} />
       <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pb-10 md:pb-14 pointer-events-none">
         <VoiceButton state={voiceState} onPress={handleTap} onRelease={() => {}} disabled={false} />
-        <StatusDisplay state={voiceState} streamingText={streamingText} lastResponse={lastResponse} errorMessage={error}
-          onDismissError={() => setError(null)} userName={user?.firstName || ""}
-          statusText={statusText} lastTranscript={lastTranscript} />
+        <StatusDisplay
+          state={voiceState}
+          streamingText={streamingText}
+          lastResponse={lastResponse}
+          errorMessage={error}
+          onDismissError={() => setError(null)}
+          userName={user?.firstName || ""}
+          statusText={statusText}
+          lastTranscript={lastTranscript}
+          briefing={briefing}
+          nudges={nudges}
+          onDismissItem={dismissItem}
+          onBriefingDelivered={markDelivered}
+        />
         <div className="mt-4">
           <p className="text-[9px] font-light tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.06)" }}>
             <span className="hidden md:inline">Space to talk &middot; Esc to cancel</span>
