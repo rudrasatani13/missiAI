@@ -108,7 +108,7 @@ describe("vectorize", () => {
         }
       ]
 
-      mockVectorizeIndex.query.mockResolvedValueOnce({
+      vi.mocked(mockVectorizeIndex.query).mockResolvedValueOnce({
         matches: mockMatches,
         count: 2
       })
@@ -169,7 +169,7 @@ describe("vectorize", () => {
         }
       ]
 
-      mockVectorizeIndex.query.mockResolvedValueOnce({
+      vi.mocked(mockVectorizeIndex.query).mockResolvedValueOnce({
         matches: mockMatches,
         count: 2
       })
@@ -219,7 +219,7 @@ describe("vectorize", () => {
         }
       ]
 
-      mockVectorizeIndex.query.mockResolvedValueOnce({
+      vi.mocked(mockVectorizeIndex.query).mockResolvedValueOnce({
         matches: mockMatches,
         count: 2
       })
@@ -254,7 +254,7 @@ describe("vectorize", () => {
         }
       ]
 
-      mockVectorizeIndex.query.mockResolvedValueOnce({
+      vi.mocked(mockVectorizeIndex.query).mockResolvedValueOnce({
         matches: mockMatches,
         count: 1
       })
@@ -304,7 +304,7 @@ describe("vectorize", () => {
         }
       ]
 
-      mockVectorizeIndex.query.mockResolvedValueOnce({
+      vi.mocked(mockVectorizeIndex.query).mockResolvedValueOnce({
         matches: mockMatches,
         count: 2
       })
