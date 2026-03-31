@@ -3,7 +3,8 @@ import { getRequestContext } from "@cloudflare/next-on-pages"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { chatSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
-import { getUserMemoryStore, getRelevantFacts, formatFactsForPrompt } from "@/lib/memory/kv-memory"
+import { searchLifeGraph, formatLifeGraphForPrompt } from "@/lib/memory/life-graph"
+import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import { buildGeminiRequest, streamGeminiResponse } from "@/lib/ai/gemini-stream"
 import { buildSystemPrompt } from "@/services/ai.service"
 import { estimateRequestTokens, estimateTokens, LIMITS, truncateToTokenLimit } from "@/lib/memory/token-counter"
@@ -22,6 +23,17 @@ function getKV(): KVStore | null {
   try {
     const { env } = getRequestContext()
     return (env as any).MISSI_MEMORY ?? null
+  } catch {
+    return null
+  }
+}
+
+function getVectorizeEnv(): VectorizeEnv | null {
+  try {
+    const { env } = getRequestContext()
+    const lifeGraph = (env as any).LIFE_GRAPH
+    if (!lifeGraph) return null
+    return { LIFE_GRAPH: lifeGraph }
   } catch {
     return null
   }
@@ -79,16 +91,31 @@ export async function POST(req: NextRequest) {
   let { messages } = parsed.data
   const { personality } = parsed.data
 
-  // ── 5. Fetch structured memories & select relevant facts ──────────────────
+  // ── 5. Fetch Life Graph context via semantic search ─────────────────────────
   const kv = getKV()
   let memories = ""
   if (kv) {
     try {
-      const store = await getUserMemoryStore(kv, userId)
       const lastUserMessage = messages.filter((m) => m.role === "user").pop()
       const currentMessage = lastUserMessage?.content ?? ""
-      const relevantFacts = getRelevantFacts(store, currentMessage)
-      memories = formatFactsForPrompt(relevantFacts)
+
+      let apiKey = ""
+      try {
+        apiKey = getEnv().GEMINI_API_KEY
+      } catch {
+        apiKey = ""
+      }
+
+      const vectorizeEnv = getVectorizeEnv()
+      const results = await searchLifeGraph(
+        kv,
+        vectorizeEnv,
+        userId,
+        currentMessage,
+        apiKey,
+        { topK: 8 },
+      )
+      memories = formatLifeGraphForPrompt(results)
     } catch (e) {
       logError("chat.memory_fetch_error", e, userId)
       // Continue without memories

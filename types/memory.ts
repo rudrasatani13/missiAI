@@ -1,23 +1,82 @@
-// ─── Structured Memory Types ──────────────────────────────────────────────────
+// ─── Life Graph Memory Types ──────────────────────────────────────────────────
 
-export interface MemoryFact {
-  /** Unique identifier (nanoid, 8 chars) */
+export type MemoryCategory =
+  | 'person'
+  | 'goal'
+  | 'habit'
+  | 'preference'
+  | 'event'
+  | 'emotion'
+  | 'skill'
+  | 'place'
+  | 'belief'
+  | 'relationship'
+
+export interface LifeNode {
+  /** Unique identifier (nanoid, 12 chars) */
   id: string
-  /** The factual statement (max 200 chars) */
-  text: string
-  /** Topic keywords for relevance matching (max 5) */
+  /** Owner user ID from Clerk */
+  userId: string
+  /** What kind of life fact this represents */
+  category: MemoryCategory
+  /** Short label (max 80 chars) */
+  title: string
+  /** Rich context with nuance (max 500 chars) */
+  detail: string
+  /** Topic tags for retrieval (max 8) */
   tags: string[]
-  /** Unix timestamp (ms) when fact was created */
+  /** Names of people involved */
+  people: string[]
+  /** How emotionally significant (0-1) */
+  emotionalWeight: number
+  /** How certain AI is of this fact (0-1) */
+  confidence: number
+  /** Unix timestamp (ms) when node was created */
   createdAt: number
-  /** How many times this fact has been retrieved for a prompt */
+  /** Unix timestamp (ms) when node was last updated */
+  updatedAt: number
+  /** How many times this node has been retrieved for a prompt */
+  accessCount: number
+  /** Unix timestamp (ms) of last retrieval */
+  lastAccessedAt: number
+  /** How the fact was learned */
+  source: 'conversation' | 'explicit' | 'inferred'
+}
+
+export interface LifeGraph {
+  /** All stored life nodes for this user */
+  nodes: LifeNode[]
+  /** Rolling count of interactions */
+  totalInteractions: number
+  /** Unix timestamp (ms) of last graph update */
+  lastUpdatedAt: number
+  /** Schema version — incremented on every save */
+  version: number
+}
+
+export interface MemorySearchResult {
+  /** The matched life node */
+  node: LifeNode
+  /** Relevance score (0-1) */
+  score: number
+  /** Human-readable reason for the match */
+  reason: string
+}
+
+// ─── Legacy types (kept for backward compatibility with kv-memory.ts) ─────────
+
+/** @deprecated Use LifeNode instead */
+export interface MemoryFact {
+  id: string
+  text: string
+  tags: string[]
+  createdAt: number
   accessCount: number
 }
 
+/** @deprecated Use LifeGraph instead */
 export interface UserMemoryStore {
-  /** All stored memory facts for this user */
   facts: MemoryFact[]
-  /** Unix timestamp (ms) of last extraction run */
   lastExtractedAt: number
-  /** Rolling count of POST interactions (used to trigger extraction every 5th) */
   interactionCount: number
 }

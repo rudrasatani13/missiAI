@@ -64,6 +64,7 @@ export const memorySchema = z.object({
     .array(messageSchema)
     .min(2, "Conversation must have at least 2 messages")
     .max(50, "Too many messages in conversation"),
+  interactionCount: z.number().int().min(0).default(0),
 })
 
 export type MemoryInput = z.infer<typeof memorySchema>

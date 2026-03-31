@@ -1,13 +1,24 @@
 import { NextRequest } from "next/server"
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
+import {
+  getVerifiedUserId,
+  AuthenticationError,
+  unauthorizedResponse,
+} from "@/lib/server/auth"
 import { memorySchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { getRequestContext } from "@cloudflare/next-on-pages"
-import { getUserMemoryStore, saveUserMemoryStore } from "@/lib/memory/kv-memory"
-import { extractMemoryFacts } from "@/lib/ai/memory-extractor"
+import {
+  getLifeGraph,
+  saveLifeGraph,
+  addOrUpdateNode,
+  searchLifeGraph,
+} from "@/lib/memory/life-graph"
+import { extractLifeNodes } from "@/lib/memory/graph-extractor"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
-import { createTimer, logRequest, logError } from "@/lib/server/logger"
+import { logRequest, logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
 import type { KVStore } from "@/types"
+import type { VectorizeEnv } from "@/lib/memory/vectorize"
+import type { MemoryCategory } from "@/types/memory"
 
 export const runtime = "edge"
 
@@ -27,9 +38,20 @@ function getKV(): KVStore | null {
   }
 }
 
-// ─── GET — Load user memory store ─────────────────────────────────────────────
+function getVectorizeEnv(): VectorizeEnv | null {
+  try {
+    const { env } = getRequestContext()
+    const lifeGraph = (env as any).LIFE_GRAPH
+    if (!lifeGraph) return null
+    return { LIFE_GRAPH: lifeGraph }
+  } catch {
+    return null
+  }
+}
 
-export async function GET(_req: NextRequest) {
+// ─── GET — Load life graph or search by query ─────────────────────────────────
+
+export async function GET(req: NextRequest) {
   const startTime = Date.now()
 
   let userId: string
@@ -44,24 +66,60 @@ export async function GET(_req: NextRequest) {
   try {
     const kv = getKV()
     if (!kv) {
-      logError("memory.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
-      return jsonResponse({ success: true, data: { facts: [], lastExtractedAt: 0, interactionCount: 0 } })
+      logError(
+        "memory.kv_unavailable",
+        "KV binding MISSI_MEMORY not found",
+        userId,
+      )
+      return jsonResponse({
+        success: true,
+        data: { nodes: [], totalInteractions: 0, lastUpdatedAt: 0, version: 1 },
+      })
     }
 
-    const store = await getUserMemoryStore(kv, userId)
+    const query = req.nextUrl.searchParams.get("query")
+    const category = req.nextUrl.searchParams.get("category") as MemoryCategory | null
+
+    if (query) {
+      let apiKey = ""
+      try {
+        apiKey = getEnv().GEMINI_API_KEY
+      } catch {
+        apiKey = ""
+      }
+
+      const vectorizeEnv = getVectorizeEnv()
+      const results = await searchLifeGraph(
+        kv,
+        vectorizeEnv,
+        userId,
+        query,
+        apiKey,
+        { topK: 10, category: category ?? undefined },
+      )
+
+      logRequest("memory.read", userId, startTime, {
+        resultCount: results.length,
+      })
+      return jsonResponse({ success: true, data: results })
+    }
+
+    const graph = await getLifeGraph(kv, userId)
 
     logRequest("memory.read", userId, startTime, {
-      factCount: store.facts.length,
+      nodeCount: graph.nodes.length,
     })
-
-    return jsonResponse({ success: true, data: store })
+    return jsonResponse({ success: true, data: graph })
   } catch (err) {
     logError("memory.read_error", err, userId)
-    return jsonResponse({ success: true, data: { facts: [], lastExtractedAt: 0, interactionCount: 0 } })
+    return jsonResponse({
+      success: true,
+      data: { nodes: [], totalInteractions: 0, lastUpdatedAt: 0, version: 1 },
+    })
   }
 }
 
-// ─── POST — Increment interaction count, conditionally extract, save ─────────
+// ─── POST — Extract life nodes from conversation, add/update ──────────────────
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now()
@@ -86,7 +144,10 @@ export async function POST(req: NextRequest) {
     body = await req.json()
   } catch {
     logRequest("memory.invalid_json", userId, startTime)
-    return jsonResponse({ success: false, error: "Invalid JSON body", code: "VALIDATION_ERROR" }, 400)
+    return jsonResponse(
+      { success: false, error: "Invalid JSON body", code: "VALIDATION_ERROR" },
+      400,
+    )
   }
 
   const parsed = memorySchema.safeParse(body)
@@ -95,49 +156,82 @@ export async function POST(req: NextRequest) {
     return validationErrorResponse(parsed.error)
   }
 
-  const { conversation } = parsed.data
+  const { conversation, interactionCount } = parsed.data
 
   const kv = getKV()
   if (!kv) {
-    logError("memory.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
-    return jsonResponse({ success: false, error: "Storage unavailable", code: "INTERNAL_ERROR" }, 500)
+    logError(
+      "memory.kv_unavailable",
+      "KV binding MISSI_MEMORY not found",
+      userId,
+    )
+    return jsonResponse(
+      { success: false, error: "Storage unavailable", code: "INTERNAL_ERROR" },
+      500,
+    )
   }
 
   try {
-    const store = await getUserMemoryStore(kv, userId)
+    let graph = await getLifeGraph(kv, userId)
+    const vectorizeEnv = getVectorizeEnv()
 
-    // Increment interaction count
-    store.interactionCount += 1
+    let added = 0
+    let updated = 0
 
-    // Extract new facts every 5th interaction (not every turn)
-    if (store.interactionCount % 5 === 0) {
-      let apiKey: string
+    // Increment total interactions
+    graph.totalInteractions = (graph.totalInteractions || 0) + 1
+    await saveLifeGraph(kv, userId, graph)
+
+    // Extract new life nodes every 5th interaction
+    if (interactionCount % 5 === 0) {
+      let apiKey = ""
       try {
-        const appEnv = getEnv()
-        apiKey = appEnv.GEMINI_API_KEY
-      } catch (e) {
-        logError("memory.env_error", e, userId)
-        // Continue without extraction
+        apiKey = getEnv().GEMINI_API_KEY
+      } catch {
         apiKey = ""
       }
-      
+
       if (apiKey) {
-        store.facts = await extractMemoryFacts(conversation, store.facts, apiKey)
-        store.lastExtractedAt = Date.now()
+        const extractedNodes = await extractLifeNodes(
+          conversation,
+          graph,
+          apiKey,
+        )
+
+        const beforeCount = graph.nodes.length
+
+        for (const nodeInput of extractedNodes) {
+          await addOrUpdateNode(
+            kv,
+            vectorizeEnv,
+            userId,
+            { ...nodeInput, userId },
+            apiKey,
+          )
+        }
+
+        // Reload to count changes
+        graph = await getLifeGraph(kv, userId)
+        added = Math.max(0, graph.nodes.length - beforeCount)
+        updated = Math.max(0, extractedNodes.length - added)
       }
     }
 
-    await saveUserMemoryStore(kv, userId, store)
-
     logRequest("memory.write", userId, startTime, {
-      factCount: store.facts.length,
-      interactionCount: store.interactionCount,
+      nodeCount: graph.nodes.length,
+      added,
+      updated,
+      totalInteractions: graph.totalInteractions,
     })
 
-    return jsonResponse({ success: true, data: { store } })
+    return jsonResponse({ success: true, data: { added, updated } })
   } catch (err) {
     logError("memory.write_error", err, userId)
-    const message = err instanceof Error ? err.message : "Internal server error"
-    return jsonResponse({ success: false, error: message, code: "INTERNAL_ERROR" }, 500)
+    const message =
+      err instanceof Error ? err.message : "Internal server error"
+    return jsonResponse(
+      { success: false, error: message, code: "INTERNAL_ERROR" },
+      500,
+    )
   }
 }
