@@ -1,3 +1,4 @@
+// @ts-ignore
 import { nanoid } from "nanoid"
 import type { Message } from "@/types"
 import type { MemoryFact } from "@/types/memory"
