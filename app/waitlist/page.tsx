@@ -59,7 +59,7 @@ export default function WaitlistPage() {
               // Proper email validation
               if (!email || !EMAIL_REGEX.test(email)) {
                 return {
-                  success: false,
+                  success: false as const,
                   error: "Please enter a valid email address",
                 }
               }
@@ -68,7 +68,7 @@ export default function WaitlistPage() {
               const sanitizedEmail = email.toLowerCase().replace(/[<>]/g, "")
 
               const result = await joinWaitlist(sanitizedEmail)
-              return result
+              return result as { success: true } | { success: false; error: string }
             }}
             name="email"
             type="email"

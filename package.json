@@ -10,7 +10,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint app/ lib/ hooks/ components/ types/ --ext .ts,.tsx",
+    "lint": "eslint app/ lib/ hooks/ components/ types/",
     "build:cf": "npx @cloudflare/next-on-pages"
   },
   "dependencies": {
@@ -79,6 +79,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.2",
     "eslint": "^10.1.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5",

@@ -7,7 +7,6 @@ process.env.ELEVENLABS_API_KEY = "test-elevenlabs-key"
 process.env.CLERK_SECRET_KEY = "test-clerk-secret"
 process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "test-clerk-pub"
 process.env.DAILY_BUDGET_USD = "5.0"
-process.env.NODE_ENV = "test"
 
 // ─── Mock Cloudflare KV with in-memory Map ────────────────────────────────────
 

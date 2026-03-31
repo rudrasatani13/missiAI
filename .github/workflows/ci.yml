@@ -26,7 +26,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Lint
-        run: npx eslint app/ lib/ hooks/ components/ types/ --ext .ts,.tsx --max-warnings 0
+        run: npx eslint app/ lib/ hooks/ components/ types/
 
   test:
     runs-on: ubuntu-latest

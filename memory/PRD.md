@@ -1,53 +1,56 @@
-# Missi AI — PRD & Implementation Log
+# MissiAI - PRD & Implementation Log
 
 ## Original Problem Statement
-Add a full observability layer — structured logging, health checks, error tracking, and cost alerts — to a Next.js Cloudflare Pages AI chatbot project before real users onboard.
+Set up GitHub Actions CI/CD pipeline, automated API tests, and production deployment configuration for Cloudflare Pages for the missiAI Next.js project.
 
 ## Architecture
-- **Runtime**: Cloudflare Pages + Edge runtime (no Node.js process, no file system)
-- **Framework**: Next.js 16 with App Router
+- **Framework**: Next.js 16 (App Router, Edge Runtime)
+- **Deployment**: Cloudflare Pages via @cloudflare/next-on-pages
 - **Auth**: Clerk
-- **AI**: Google Gemini (2.5-pro / 2.0-flash-lite via model router)
-- **TTS**: ElevenLabs
-- **Storage**: Cloudflare Workers KV (MISSI_MEMORY binding)
-- **Package Manager**: pnpm
+- **AI**: Gemini (2.5-pro / 2.0-flash-lite)
+- **Voice**: ElevenLabs TTS/STT
+- **Storage**: Cloudflare KV (MISSI_MEMORY binding)
+- **Testing**: Vitest + @vitejs/plugin-react + v8 coverage
+- **CI/CD**: GitHub Actions → lint → typecheck → test → build → deploy
 
-## Core Requirements (Static)
-1. Structured JSON logging (edge-compatible, Cloudflare Workers Logs)
-2. Health check endpoint (GET /api/health) with KV + env validation
-3. Cost tracking per request (Gemini tokens + ElevenLabs TTS chars)
-4. Daily budget alerts via KV
-5. Typed environment variable access
-6. Request logging in middleware
-7. Observability hooks in all API routes (chat, tts, memory)
+## Core Requirements
+- CI/CD pipeline with 4 jobs: lint-and-typecheck, test, build, deploy
+- Automated test suites for core lib functions and health API
+- Cloudflare Pages deployment via wrangler
+- PR template with quality checklist
 
-## What's Been Implemented (2026-03-31)
-- **lib/logger.ts** — LogEvent interface, log(), logRequest(), logError(), createTimer()
-- **lib/cost-tracker.ts** — RequestCost interface, COST_CONSTANTS, calculateTotalCost(), DAILY_BUDGET_USD (env-configurable), checkBudgetAlert()
-- **lib/env.ts** — getEnv() typed env access, envExists() for health checks
-- **app/api/health/route.ts** — GET endpoint, KV connectivity + env presence checks, 200/207/503 status codes
-- **middleware.ts** — Extended with structured request logging (api.request, api.rate_limited, api.unauthorized, middleware.error), health route exempted from rate limiting
-- **app/api/chat/route.ts** — Timer, cost tracking via calculateTotalCost(), budget alert via checkBudgetAlert(), structured logging for chat.completed/chat.error/chat.stream_error
-- **app/api/tts/route.ts** — Logging tts.request with charCount/durationMs, logError on failures
-- **app/api/memory/route.ts** — Logging memory.read/memory.write with factCount, logError on failures
+## What's Been Implemented (Jan 2026)
+1. `.github/workflows/ci.yml` — 4-job CI/CD pipeline (lint→test→build→deploy)
+2. `.github/PULL_REQUEST_TEMPLATE.md` — Quality checklist
+3. `vitest.config.ts` — Test config with @vitejs/plugin-react, node env, v8 coverage, path aliases
+4. `tests/setup.ts` — Mock env vars, KV namespace (in-memory Map), global fetch
+5. `tests/lib/memory-sanitizer.test.ts` — 11 tests: injection stripping, preservation, truncation
+6. `tests/lib/token-counter.test.ts` — 10 tests: estimateTokens, truncateToTokenLimit, estimateRequestTokens
+7. `tests/lib/response-cache.test.ts` — 11 tests: buildCacheKey determinism/normalization, isCacheable logic
+8. `tests/lib/model-router.test.ts` — 9 tests: model selection routing, cost estimation
+9. `tests/api/health.test.ts` — 4 tests: 200 ok, 207 degraded (KV/env), 503 down
+10. `eslint.config.mjs` — ESLint v10 flat config with TypeScript + React Hooks plugins
+11. Updated `package.json` with 6 new scripts
+12. Fixed pre-existing TypeScript error in `components/waitlist/form.tsx`
 
-## Testing Status
-- TypeScript compilation: PASS (only pre-existing waitlist error)
-- All observability modules: 100% test pass rate
-- Code review: All interfaces, exports, and integrations verified
+**Total: 45 tests, all passing. 0 ESLint errors. Clean TypeScript check.**
+
+## Dev Dependencies Added
+- vitest, @vitejs/plugin-react, @vitest/coverage-v8
+- eslint, @typescript-eslint/parser, @typescript-eslint/eslint-plugin, eslint-plugin-react-hooks
+
+## Secrets Required for CI/CD Deploy Job
+- `CLOUDFLARE_API_TOKEN` (GitHub repo secret)
+- `CLOUDFLARE_ACCOUNT_ID` (GitHub repo secret)
 
 ## Prioritized Backlog
-### P0 (Next)
-- Wire up daily cost accumulation (aggregate costs per day in KV, pass running total to checkBudgetAlert)
-- Add cost tracking to TTS route (ttsChars integration with chat flow)
+- **P0**: Configure Cloudflare API token & account ID in GitHub repo secrets
+- **P1**: Add integration tests for /api/chat, /api/tts, /api/stt endpoints
+- **P1**: Add E2E tests with Playwright for critical user flows
+- **P2**: Add test coverage thresholds to CI (e.g., 80% minimum)
+- **P2**: Add Lighthouse CI for performance regression detection
 
-### P1
-- Add alerting webhook (Slack/Discord) when budget.alert fires
-- Add /api/health to uptime monitoring (e.g., Better Uptime, Checkly)
-- Dashboard UI for cost visualization
-
-### P2
-- Per-user cost tracking and quotas
-- Distributed rate limiting via KV (replace in-memory Map)
-- Error aggregation dashboard
-- Performance percentile tracking (p50/p95/p99 response times)
+## Next Tasks
+1. Push to GitHub and verify CI pipeline runs successfully
+2. Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to GitHub repo secrets
+3. Add more test coverage for remaining lib/ and API routes
