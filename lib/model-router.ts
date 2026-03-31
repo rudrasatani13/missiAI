@@ -1,6 +1,6 @@
 import type { Message } from "@/types"
 
-type GeminiModel = "gemini-2.5-flash" | "gemini-2.0-flash-lite"
+type GeminiModel = "gemini-2.5-pro" | "gemini-2.0-flash-lite"
 
 /**
  * Approximate costs per 1k tokens in USD.
@@ -9,7 +9,7 @@ export const MODEL_COSTS: Record<
   GeminiModel,
   { input: number; output: number }
 > = {
-  "gemini-2.5-flash": { input: 0.00015, output: 0.0006 },
+  "gemini-2.5-pro": { input: 0.00125, output: 0.01 },
   "gemini-2.0-flash-lite": { input: 0.000075, output: 0.0003 },
 }
 
@@ -38,7 +38,7 @@ export function selectGeminiModel(
     return "gemini-2.0-flash-lite"
   }
 
-  return "gemini-2.5-flash"
+  return "gemini-2.5-pro"
 }
 
 /**
@@ -49,7 +49,7 @@ export function estimateRequestCost(
   inputTokens: number,
   outputTokens: number
 ): number {
-  const costs = MODEL_COSTS[model] ?? MODEL_COSTS["gemini-2.5-flash"]
+  const costs = MODEL_COSTS[model] ?? MODEL_COSTS["gemini-2.5-pro"]
   const inputCost = (inputTokens / 1000) * costs.input
   const outputCost = (outputTokens / 1000) * costs.output
   return inputCost + outputCost
