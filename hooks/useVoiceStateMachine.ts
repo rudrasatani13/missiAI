@@ -360,21 +360,16 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
       // Auto-save memory (fire-and-forget)
       if (userId && conversationRef.current.length >= 4) {
+        const memInteractionCount = conversationRef.current.filter(m => m.role === "user").length
         const payload = JSON.stringify({
           conversation: conversationRef.current,
+          interactionCount: memInteractionCount,
         })
         fetch("/api/v1/memory", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: payload,
-        })
-          .then((r) => r.json())
-          .then((data) => {
-            if (data.store?.facts) {
-              memoriesRef.current = data.store.facts.map((f: any) => f.text).join("\n")
-            }
-          })
-          .catch(() => {})
+        }).catch(() => {})
       }
 
       // TTS optimization: skip TTS for long/code/list responses

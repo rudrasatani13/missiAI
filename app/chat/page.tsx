@@ -39,7 +39,11 @@ export default function VoiceAssistantPage() {
   useEffect(() => { if (!isLoaded || !user?.id) return
     // Memory is fetched server-side via getVerifiedUserId() - no userId in URL
     fetch(`/api/v1/memory`).then((r) => r.json())
-      .then((d) => { if (d.data?.facts) memoriesRef.current = d.data.facts.map((f: any) => f.text).join("\n") }).catch(() => {})
+      .then((d) => {
+        if (d.data?.nodes?.length) {
+          memoriesRef.current = d.data.nodes.map((n: any) => `${n.category}: ${n.title} — ${n.detail}`).join("\n")
+        }
+      }).catch(() => {})
   }, [isLoaded, user?.id])
 
   const updatePersonality = useCallback((key: PersonalityKey) => {
