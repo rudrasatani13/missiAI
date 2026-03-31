@@ -23,7 +23,7 @@ export const chatSchema = z.object({
     .optional()
     .default("bestfriend"),
   maxOutputTokens: z.number().min(100).max(2000).optional(),
-  memories: z.string().max(10000).optional(),
+  memories: z.string().optional(),
 })
 
 export type ChatInput = z.infer<typeof chatSchema>

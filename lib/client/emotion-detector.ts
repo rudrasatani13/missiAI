@@ -108,7 +108,7 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
       ttsStyle: 0.1,
       maxOutputTokens: 300,
       systemPromptSuffix:
-        'The user sounds stressed. Keep response very short (1-2 sentences max). Be calm and simple. No long explanations.',
+        'The user sounds stressed. Keep response very short (1-2 sentences max). Be calm and simple. No long explanations. Always address what the user actually asked about.',
     },
     excited: {
       responseLength: 'normal',
@@ -128,7 +128,7 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
       ttsStyle: 0.05,
       maxOutputTokens: 300,
       systemPromptSuffix:
-        'The user sounds tired. Be very gentle and brief. Maximum 2 sentences. Keep it warm and easy.',
+        'The user sounds tired. Be very gentle and brief. Maximum 2 sentences. Keep it warm and easy. Always address what the user actually asked about.',
     },
     frustrated: {
       responseLength: 'short',
@@ -138,7 +138,7 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
       ttsStyle: 0.2,
       maxOutputTokens: 300,
       systemPromptSuffix:
-        'The user sounds frustrated. Acknowledge briefly then give a direct helpful answer. No filler.',
+        'The user sounds frustrated. Acknowledge briefly then give a direct helpful answer to what they actually asked. No filler. Do not use web search unless they explicitly ask for factual information.',
     },
     hesitant: {
       responseLength: 'normal',

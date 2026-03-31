@@ -313,7 +313,11 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           resetToIdle()
           return
         }
+        // TTS failed — show error so user knows something went wrong
+        setError("Voice response failed — check text above")
         if (continuousRef.current) {
+          // Brief pause so user can see the error before next recording
+          await new Promise((r) => setTimeout(r, 2000))
           await fnRef.current.startRecording()
         } else {
           resetToIdle()
@@ -398,7 +402,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         if (!full.trim()) {
           setStreamingText("")
           setLastResponse("")
+          setError("Couldn't generate a response — try again")
           if (continuousRef.current) {
+            await new Promise((r) => setTimeout(r, 1500))
             await fnRef.current.startRecording()
             return
           }
