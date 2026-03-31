@@ -10,6 +10,8 @@ import {
 import { getBestAudioMimeType } from "@/lib/client/browser-support"
 import { shouldUseTTS, truncateForTTS } from "@/lib/ai/tts-optimizer"
 import type { VoiceState, ConversationEntry, PersonalityKey } from "@/types/chat"
+import { useEmotionDetector } from "@/hooks/useEmotionDetector"
+import type { EmotionAdaptation } from "@/types/emotion"
 
 export type { VoiceState }
 
@@ -34,6 +36,10 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const [streamingText, setStreamingText] = useState("")
   const [lastResponse, setLastResponse] = useState("")
 
+  /* ── Emotion detection ────────────────────────────────────────────────── */
+  const { analyzeRecording, getSmoothedAdaptation, resetEmotion, currentEmotion }
+    = useEmotionDetector()
+
   /* ── Internal refs ──────────────────────────────────────────────────────── */
   const abortControllerRef = useRef<AbortController | null>(null)
   const isTransitioningRef = useRef(false)
@@ -48,6 +54,10 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const levelAnimRef = useRef<number | null>(null)
   const hasSpokenRef = useRef(false)
+
+  const lastTimeDomainSnapshotRef = useRef<Float32Array | null>(null)
+  const lastFreqSnapshotRef = useRef<Uint8Array | null>(null)
+  const recordingStartRef = useRef<number>(0)
 
   const ttsContextRef = useRef<AudioContext | null>(null)
   const ttsAnalyserRef = useRef<AnalyserNode | null>(null)
@@ -91,11 +101,13 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     setState("idle")
     setStatusText("Tap anywhere to speak")
     isTransitioningRef.current = false
-  }, [])
+    resetEmotion()
+  }, [resetEmotion])
 
   /* ── Recording-input audio monitor ──────────────────────────────────────── */
 
   const startAudioMonitor = useCallback((stream: MediaStream) => {
+    recordingStartRef.current = Date.now()
     const AC = window.AudioContext || (window as any).webkitAudioContext
     const ctx = new AC()
     audioContextRef.current = ctx
@@ -134,6 +146,10 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       const vizLevel = Math.min(1, (fSum / freqData.length / 255) * 4)
       setAudioLevel(vizLevel)
 
+      // Snapshot audio data for emotion detection
+      lastTimeDomainSnapshotRef.current = new Float32Array(timeDomain)
+      lastFreqSnapshotRef.current = new Uint8Array(freqData)
+
       if (rms > SPEECH_THRESH) {
         hasSpokenRef.current = true
         if (silenceTimerRef.current) {
@@ -168,6 +184,17 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     if (analyserRef.current && (analyserRef.current as any)._maxTimer) {
       clearTimeout((analyserRef.current as any)._maxTimer)
     }
+
+    // Analyze emotion from last audio snapshot before clearing
+    if (lastTimeDomainSnapshotRef.current && lastFreqSnapshotRef.current) {
+      analyzeRecording(
+        lastTimeDomainSnapshotRef.current,
+        lastFreqSnapshotRef.current
+      )
+    }
+    lastTimeDomainSnapshotRef.current = null
+    lastFreqSnapshotRef.current = null
+
     silenceTimerRef.current = null
     levelAnimRef.current = null
     hasSpokenRef.current = false
@@ -175,7 +202,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     audioContextRef.current = null
     analyserRef.current = null
     setAudioLevel(0)
-  }, [])
+  }, [analyzeRecording])
 
   /* ── TTS playback audio monitor ─────────────────────────────────────────── */
 
@@ -230,12 +257,18 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       const ctrl = freshAbort()
 
       try {
+        const adaptation = getSmoothedAdaptation()
         const res = await fetchWithTimeout(
           "/api/v1/tts",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text }),
+            body: JSON.stringify({
+              text,
+              stability: adaptation.ttsStability,
+              similarityBoost: adaptation.ttsSimilarityBoost,
+              style: adaptation.ttsStyle,
+            }),
             signal: ctrl.signal,
           },
           TTS_TIMEOUT,
@@ -289,7 +322,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         isTransitioningRef.current = false
       }
     },
-    [freshAbort, cancelAbort, startTTSMonitor, stopTTSMonitor, resetToIdle],
+    [freshAbort, cancelAbort, startTTSMonitor, stopTTSMonitor, resetToIdle, getSmoothedAdaptation],
   )
 
   /* ── getAIResponse ──────────────────────────────────────────────────────── */
@@ -311,6 +344,11 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           content: m.content,
         }))
 
+        const adaptation = getSmoothedAdaptation()
+        const emotionSuffix = adaptation.systemPromptSuffix
+          ? `\n\nEMOTION CONTEXT:\n${adaptation.systemPromptSuffix}`
+          : ''
+
         const res = await fetchWithTimeout(
           "/api/v1/chat",
           {
@@ -319,6 +357,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
             body: JSON.stringify({
               messages: msgs,
               personality: personalityRef.current,
+              memories: memoriesRef.current + emotionSuffix,
+              maxOutputTokens: adaptation.maxOutputTokens,
             }),
             signal: ctrl.signal,
           },
@@ -436,6 +476,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     memoriesRef,
     userId,
     resetToIdle,
+    getSmoothedAdaptation,
   ])
 
   /* ── transcribeAudio ────────────────────────────────────────────────────── */
@@ -736,5 +777,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     handleTap,
     greet,
     saveMemoryBeacon,
+    currentEmotion,
   }
 }

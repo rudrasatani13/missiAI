@@ -4,6 +4,17 @@ import { memo, useEffect, useRef } from "react"
 import { X } from "lucide-react"
 import type { VoiceState } from "@/types/chat"
 import type { DailyBriefing, BriefingItem } from "@/types/proactive"
+import type { EmotionProfile } from "@/types/emotion"
+
+const EMOTION_DOT_COLORS: Record<string, string> = {
+  stressed: '#F59E0B',
+  excited: '#10B981',
+  fatigued: '#60A5FA',
+  frustrated: '#EF4444',
+  happy: '#FCD34D',
+  confident: '#A78BFA',
+  hesitant: '#9CA3AF',
+}
 
 interface StatusDisplayProps {
   state: VoiceState
@@ -18,6 +29,7 @@ interface StatusDisplayProps {
   nudges?: BriefingItem[]
   onDismissItem?: (item: BriefingItem) => void
   onBriefingDelivered?: () => void
+  currentEmotion?: EmotionProfile | null
 }
 
 function StatusDisplayInner({
@@ -31,6 +43,7 @@ function StatusDisplayInner({
   nudges = [],
   onDismissItem,
   onBriefingDelivered,
+  currentEmotion,
 }: StatusDisplayProps) {
   const deliveredRef = useRef(false)
 
@@ -195,6 +208,21 @@ function StatusDisplayInner({
         >
           Speak naturally &middot; auto-detects when you&apos;re done
         </p>
+      )}
+
+      {state === "recording" && currentEmotion && currentEmotion.confidence > 0.5 && currentEmotion.state !== 'neutral' && (
+        <div
+          data-testid="emotion-indicator-dot"
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            backgroundColor: EMOTION_DOT_COLORS[currentEmotion.state] || 'transparent',
+            marginTop: 6,
+            opacity: 1,
+            transition: 'opacity 0.3s ease',
+          }}
+        />
       )}
 
       {(state === "thinking" || state === "transcribing") && (

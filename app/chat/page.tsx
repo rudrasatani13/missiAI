@@ -35,6 +35,7 @@ export default function VoiceAssistantPage() {
   const {
     state: voiceState, audioLevel, statusText, lastTranscript,
     error, setError, streamingText, lastResponse, handleTap, cancelAll, greet, saveMemoryBeacon,
+    currentEmotion,
   } = useVoiceStateMachine({ userId: user?.id, personalityRef, memoriesRef, conversationRef })
 
   // Keep voiceState ref in sync
@@ -155,6 +156,7 @@ export default function VoiceAssistantPage() {
           nudges={nudges}
           onDismissItem={dismissItem}
           onBriefingDelivered={markDelivered}
+          currentEmotion={currentEmotion}
         />
         <div className="mt-4">
           <p className="text-[9px] font-light tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.06)" }}>

@@ -67,6 +67,9 @@ export async function POST(req: NextRequest) {
   }
 
   const { text } = parsed.data
+  const stability = parsed.data.stability ?? 0.5
+  const similarityBoost = parsed.data.similarityBoost ?? 0.75
+  const style = parsed.data.style ?? 0.3
   const charCount = text.length
 
   // ── 5. Env check ──────────────────────────────────────────────────────────
@@ -95,7 +98,7 @@ export async function POST(req: NextRequest) {
   // ── 6. Call ElevenLabs with timeout ───────────────────────────────────────
   try {
     const audioData = await withTimeout(
-      textToSpeech({ text, voiceId, apiKey }),
+      textToSpeech({ text, voiceId, apiKey, stability, similarityBoost, style }),
       TTS_TIMEOUT_MS
     )
 

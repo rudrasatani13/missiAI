@@ -22,7 +22,8 @@ export const chatSchema = z.object({
     .enum(["bestfriend", "professional", "playful", "mentor"])
     .optional()
     .default("bestfriend"),
-  // memories are fetched server-side from KV — never accepted from the client
+  maxOutputTokens: z.number().min(100).max(2000).optional(),
+  memories: z.string().max(10000).optional(),
 })
 
 export type ChatInput = z.infer<typeof chatSchema>
@@ -34,6 +35,9 @@ export const ttsSchema = z.object({
     .string()
     .min(1, "text is required")
     .max(5000, "text too long (max 5000 chars)"),
+  stability: z.number().min(0).max(1).optional(),
+  similarityBoost: z.number().min(0).max(1).optional(),
+  style: z.number().min(0).max(1).optional(),
 })
 
 export type TTSInput = z.infer<typeof ttsSchema>

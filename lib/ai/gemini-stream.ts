@@ -12,7 +12,8 @@ export function buildGeminiRequest(
   messages: Message[],
   personality: PersonalityKey,
   memories: string,
-  model: string = DEFAULT_MODEL
+  model: string = DEFAULT_MODEL,
+  maxOutputTokens: number = 600
 ): Record<string, unknown> {
   const systemPrompt = buildSystemPrompt(personality, memories)
 
@@ -28,7 +29,7 @@ export function buildGeminiRequest(
       temperature: 0.85,
       topP: 0.95,
       topK: 40,
-      maxOutputTokens: 600,
+      maxOutputTokens,
     },
     tools: [{ google_search: {} }],
   }

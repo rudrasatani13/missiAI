@@ -90,6 +90,8 @@ export async function POST(req: NextRequest) {
 
   let { messages } = parsed.data
   const { personality } = parsed.data
+  const maxOutputTokens = parsed.data.maxOutputTokens ?? 600
+  const clientMemories = parsed.data.memories ?? ""
 
   // ── 5. Fetch Life Graph context via semantic search ─────────────────────────
   const kv = getKV()
@@ -123,6 +125,11 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 6. Token budget guard ─────────────────────────────────────────────────
+  // Append client-side emotion context to server-side memories
+  if (clientMemories) {
+    memories = memories ? memories + "\n" + clientMemories : clientMemories
+  }
+
   const systemPrompt = buildSystemPrompt(personality, memories)
   const estimatedTokens = estimateRequestTokens(messages, systemPrompt, memories)
 
@@ -172,7 +179,7 @@ export async function POST(req: NextRequest) {
     const appEnv = getEnv()
     const apiKey = appEnv.GEMINI_API_KEY
 
-    const requestBody = buildGeminiRequest(messages, personality, memories, model)
+    const requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens)
     const textStream = await streamGeminiResponse(apiKey, model, requestBody)
 
     // Accumulate full response for post-stream cache + cost logging
