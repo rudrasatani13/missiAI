@@ -3,31 +3,31 @@ import { selectGeminiModel, estimateRequestCost } from "@/lib/ai/model-router"
 import type { Message } from "@/types"
 
 describe("selectGeminiModel", () => {
-  it("returns lite model for short message + no memories + under 4 turns", () => {
+  it("always returns gemini-3-flash-preview for short messages", () => {
     const messages: Message[] = [
       { role: "user", content: "Hi" },
     ]
     const result = selectGeminiModel(messages, "")
-    expect(result).toBe("gemini-2.0-flash-lite")
+    expect(result).toBe("gemini-3-flash-preview")
   })
 
-  it("returns flash model for a long message", () => {
+  it("returns gemini-3-flash-preview for long messages", () => {
     const messages: Message[] = [
       { role: "user", content: "x".repeat(100) },
     ]
     const result = selectGeminiModel(messages, "")
-    expect(result).toBe("gemini-2.5-pro")
+    expect(result).toBe("gemini-3-flash-preview")
   })
 
-  it("returns flash model when memories are present", () => {
+  it("returns gemini-3-flash-preview when memories are present", () => {
     const messages: Message[] = [
       { role: "user", content: "Hi" },
     ]
     const result = selectGeminiModel(messages, "User likes coffee.")
-    expect(result).toBe("gemini-2.5-pro")
+    expect(result).toBe("gemini-3-flash-preview")
   })
 
-  it("returns flash model when conversation has 4 or more turns", () => {
+  it("returns gemini-3-flash-preview for long conversations", () => {
     const messages: Message[] = [
       { role: "user", content: "Hi" },
       { role: "assistant", content: "Hello" },
@@ -35,39 +35,34 @@ describe("selectGeminiModel", () => {
       { role: "assistant", content: "Fine" },
     ]
     const result = selectGeminiModel(messages, "")
-    expect(result).toBe("gemini-2.5-pro")
+    expect(result).toBe("gemini-3-flash-preview")
   })
 
-  it("returns lite when all conditions met: short msg, no memories, few turns", () => {
+  it("returns gemini-3-flash-preview regardless of conditions", () => {
     const messages: Message[] = [
       { role: "user", content: "Hey" },
       { role: "assistant", content: "Hi!" },
       { role: "user", content: "Sup?" },
     ]
     const result = selectGeminiModel(messages, "  ")
-    expect(result).toBe("gemini-2.0-flash-lite")
+    expect(result).toBe("gemini-3-flash-preview")
   })
 })
 
 describe("estimateRequestCost", () => {
   it("returns a number greater than 0 for valid inputs", () => {
-    const cost = estimateRequestCost("gemini-2.5-pro", 1000, 500)
-    expect(cost).toBeGreaterThan(0)
-  })
-
-  it("returns a number greater than 0 for lite model", () => {
-    const cost = estimateRequestCost("gemini-2.0-flash-lite", 500, 200)
+    const cost = estimateRequestCost("gemini-3-flash-preview", 1000, 500)
     expect(cost).toBeGreaterThan(0)
   })
 
   it("returns 0 when tokens are 0", () => {
-    const cost = estimateRequestCost("gemini-2.5-pro", 0, 0)
+    const cost = estimateRequestCost("gemini-3-flash-preview", 0, 0)
     expect(cost).toBe(0)
   })
 
-  it("lite model is cheaper than pro for same token counts", () => {
-    const liteCost = estimateRequestCost("gemini-2.0-flash-lite", 1000, 500)
-    const proCost = estimateRequestCost("gemini-2.5-pro", 1000, 500)
-    expect(liteCost).toBeLessThan(proCost)
+  it("calculates cost correctly", () => {
+    // 1000 input tokens * 0.0001 + 500 output tokens * 0.0004 = 0.1 + 0.2 = 0.3
+    const cost = estimateRequestCost("gemini-3-flash-preview", 1000, 500)
+    expect(cost).toBeCloseTo(0.0003, 4)
   })
 })

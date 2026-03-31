@@ -1,6 +1,6 @@
 import type { Message } from "@/types"
 
-type GeminiModel = "gemini-2.5-pro" | "gemini-2.0-flash-lite"
+type GeminiModel = "gemini-3-flash-preview"
 
 /**
  * Approximate costs per 1k tokens in USD.
@@ -9,36 +9,18 @@ export const MODEL_COSTS: Record<
   GeminiModel,
   { input: number; output: number }
 > = {
-  "gemini-2.5-pro": { input: 0.00125, output: 0.01 },
-  "gemini-2.0-flash-lite": { input: 0.000075, output: 0.0003 },
+  "gemini-3-flash-preview": { input: 0.0001, output: 0.0004 },
 }
 
 /**
- * Pick the cheapest Gemini model that can handle the request.
- *
- * Use the LITE model when ALL of these are true:
- *  - Latest user message is under 80 chars
- *  - No memories injected (empty facts string)
- *  - Conversation is under 4 turns (messages.length < 4)
- *
- * Otherwise fall back to the full PRO model.
+ * Select the Gemini model for a request.
+ * Now unified on gemini-3-flash-preview — fast and capable for all use cases.
  */
 export function selectGeminiModel(
-  messages: Message[],
-  memories: string
+  _messages: Message[],
+  _memories: string
 ): GeminiModel {
-  const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")
-  const lastUserContent = lastUserMsg?.content ?? ""
-
-  const isShortMessage = lastUserContent.length < 80
-  const hasNoMemories = !memories.trim()
-  const isShortConversation = messages.length < 4
-
-  if (isShortMessage && hasNoMemories && isShortConversation) {
-    return "gemini-2.0-flash-lite"
-  }
-
-  return "gemini-2.5-pro"
+  return "gemini-3-flash-preview"
 }
 
 /**
@@ -49,7 +31,7 @@ export function estimateRequestCost(
   inputTokens: number,
   outputTokens: number
 ): number {
-  const costs = MODEL_COSTS[model] ?? MODEL_COSTS["gemini-2.5-pro"]
+  const costs = MODEL_COSTS[model] ?? MODEL_COSTS["gemini-3-flash-preview"]
   const inputCost = (inputTokens / 1000) * costs.input
   const outputCost = (outputTokens / 1000) * costs.output
   return inputCost + outputCost

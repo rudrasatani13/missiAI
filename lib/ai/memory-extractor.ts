@@ -4,7 +4,7 @@ import type { Message } from "@/types"
 import type { MemoryFact } from "@/types/memory"
 import { fetchWithTimeout } from "@/lib/client/fetch-with-timeout"
 
-const GEMINI_FLASH_MODEL = "gemini-2.5-flash"
+const GEMINI_FLASH_MODEL = "gemini-3-flash-preview"
 const MAX_FACTS = 50
 const EXTRACTION_TIMEOUT_MS = 15_000
 

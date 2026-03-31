@@ -108,7 +108,7 @@ const DEFAULT_PROVIDER: AIProviderName = "gemini"
 const DEFAULT_TIMEOUT_MS = 30_000
 
 const MODEL_DEFAULTS: Record<AIProviderName, string> = {
-  gemini: "gemini-2.5-pro",
+  gemini: "gemini-3-flash-preview",
   openai: "gpt-4o",
   claude: "claude-sonnet-4-6",
 }

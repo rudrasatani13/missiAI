@@ -61,7 +61,7 @@ export function calculateTotalCost(
 > {
   const costs =
     MODEL_COSTS[model as keyof typeof MODEL_COSTS] ??
-    MODEL_COSTS["gemini-2.5-pro"]
+    MODEL_COSTS["gemini-3-flash-preview"]
 
   const inputCost = (inputTokens / 1000) * costs.input
   const outputCost = (outputTokens / 1000) * costs.output

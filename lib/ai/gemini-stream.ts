@@ -1,7 +1,7 @@
 import { buildSystemPrompt } from "@/services/ai.service"
 import type { Message, PersonalityKey } from "@/types"
 
-const DEFAULT_MODEL = "gemini-2.5-flash"
+const DEFAULT_MODEL = "gemini-3-flash-preview"
 
 /**
  * Constructs the full Gemini REST request body.

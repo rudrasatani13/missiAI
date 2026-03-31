@@ -1,7 +1,7 @@
 import type { ConversationEntry } from '@/types/chat'
 import type { LifeNode, LifeGraph, MemoryCategory } from '@/types/memory'
 
-const GEMINI_FLASH_MODEL = 'gemini-2.0-flash-lite'
+const GEMINI_FLASH_MODEL = 'gemini-3-flash-preview'
 const EXTRACTION_TIMEOUT_MS = 15_000
 
 const VALID_CATEGORIES: MemoryCategory[] = [
