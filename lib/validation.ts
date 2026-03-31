@@ -6,9 +6,9 @@ export {
   sttSchema,
   memorySchema,
   validationErrorResponse,
-} from "@/lib/schemas"
+} from "@/lib/validation/schemas"
 
-export type { ChatInput, TTSInput, STTFileInput, MemoryInput } from "@/lib/schemas"
+export type { ChatInput, TTSInput, STTFileInput, MemoryInput } from "@/lib/validation/schemas"
 
 // memoryPostSchema alias — kept for backwards compatibility with memory route
-export { memorySchema as memoryPostSchema } from "@/lib/schemas"
+export { memorySchema as memoryPostSchema } from "@/lib/validation/schemas"

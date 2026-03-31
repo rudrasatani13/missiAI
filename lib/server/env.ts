@@ -1,3 +1,6 @@
+// Server-only utilities
+"use server"
+
 // ─── Typed Environment Variables ──────────────────────────────────────────────
 //
 // Single source of truth for required env vars. Throws a clear error with the

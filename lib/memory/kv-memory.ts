@@ -1,6 +1,6 @@
 import type { KVStore } from "@/types"
 import type { MemoryFact, UserMemoryStore } from "@/types/memory"
-import { sanitizeMemories } from "@/lib/memory-sanitizer"
+import { sanitizeMemories } from "@/lib/memory/memory-sanitizer"
 
 // All KV keys are derived server-side from the verified userId — never from
 // any client-supplied value.

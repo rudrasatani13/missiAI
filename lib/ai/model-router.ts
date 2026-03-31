@@ -21,7 +21,7 @@ export const MODEL_COSTS: Record<
  *  - No memories injected (empty facts string)
  *  - Conversation is under 4 turns (messages.length < 4)
  *
- * Otherwise fall back to the full FLASH model.
+ * Otherwise fall back to the full PRO model.
  */
 export function selectGeminiModel(
   messages: Message[],

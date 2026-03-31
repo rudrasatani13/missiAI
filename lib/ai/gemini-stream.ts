@@ -44,7 +44,8 @@ export function buildGeminiRequest(
 export async function streamGeminiResponse(
   apiKey: string,
   model: string,
-  requestBody: Record<string, unknown>
+  requestBody: Record<string, unknown>,
+  signal?: AbortSignal
 ): Promise<ReadableStream<string>> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`
 
@@ -55,6 +56,7 @@ export async function streamGeminiResponse(
       "x-goog-api-key": apiKey,
     },
     body: JSON.stringify(requestBody),
+    signal,
   })
 
   if (!res.ok) {

@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { API_ERROR_CODES, type ApiErrorCode } from "@/types/api"
 
 // ─── Shared ───────────────────────────────────────────────────────────────────
 
@@ -10,7 +11,7 @@ const messageSchema = z.object({
     .max(2000, "Message too long (max 2000 chars)"),
 })
 
-// ─── /api/chat ────────────────────────────────────────────────────────────────
+// ─── /api/v1/chat ────────────────────────────────────────────────────────────────
 
 export const chatSchema = z.object({
   messages: z
@@ -26,7 +27,7 @@ export const chatSchema = z.object({
 
 export type ChatInput = z.infer<typeof chatSchema>
 
-// ─── /api/tts ─────────────────────────────────────────────────────────────────
+// ─── /api/v1/tts ─────────────────────────────────────────────────────────────────
 
 export const ttsSchema = z.object({
   text: z
@@ -37,7 +38,7 @@ export const ttsSchema = z.object({
 
 export type TTSInput = z.infer<typeof ttsSchema>
 
-// ─── /api/stt ─────────────────────────────────────────────────────────────────
+// ─── /api/v1/stt ─────────────────────────────────────────────────────────────────
 // FormData cannot be parsed by Zod directly. Validate the extracted File fields.
 
 export const sttSchema = z.object({
@@ -54,7 +55,7 @@ export const sttSchema = z.object({
 
 export type STTFileInput = z.infer<typeof sttSchema>
 
-// ─── /api/memory ──────────────────────────────────────────────────────────────
+// ─── /api/v1/memory ──────────────────────────────────────────────────────────────
 // Only the conversation is accepted from the client. userId and existingMemories
 // are resolved server-side — never trusted from the request body.
 
@@ -76,7 +77,11 @@ export function validationErrorResponse(error: z.ZodError): Response {
     : "Invalid request body"
 
   return new Response(
-    JSON.stringify({ success: false, error: message }),
+    JSON.stringify({ 
+      success: false, 
+      error: message, 
+      code: API_ERROR_CODES.VALIDATION_ERROR as ApiErrorCode 
+    }),
     { status: 400, headers: { "Content-Type": "application/json" } }
   )
 }

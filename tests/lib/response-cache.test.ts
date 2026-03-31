@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { buildCacheKey, isCacheable } from "@/lib/response-cache"
+import { buildCacheKey, isCacheable } from "@/lib/server/response-cache"
 
 describe("buildCacheKey", () => {
   it("produces the same key for the same message and personality", () => {

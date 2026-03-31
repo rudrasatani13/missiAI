@@ -1,17 +1,17 @@
 import { NextRequest } from "next/server"
 import { getRequestContext } from "@cloudflare/next-on-pages"
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/auth"
-import { chatSchema, validationErrorResponse } from "@/lib/schemas"
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
+import { chatSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
-import { getUserMemoryStore, getRelevantFacts, formatFactsForPrompt } from "@/lib/kv-memory"
-import { buildGeminiRequest, streamGeminiResponse } from "@/lib/gemini-stream"
+import { getUserMemoryStore, getRelevantFacts, formatFactsForPrompt } from "@/lib/memory/kv-memory"
+import { buildGeminiRequest, streamGeminiResponse } from "@/lib/ai/gemini-stream"
 import { buildSystemPrompt } from "@/services/ai.service"
-import { estimateRequestTokens, estimateTokens, LIMITS, truncateToTokenLimit } from "@/lib/token-counter"
-import { buildCacheKey, getCachedResponse, setCachedResponse, isCacheable } from "@/lib/response-cache"
-import { selectGeminiModel } from "@/lib/model-router"
-import { createTimer, logRequest, logError } from "@/lib/logger"
-import { calculateTotalCost, checkBudgetAlert } from "@/lib/cost-tracker"
-import { getEnv } from "@/lib/env"
+import { estimateRequestTokens, estimateTokens, LIMITS, truncateToTokenLimit } from "@/lib/memory/token-counter"
+import { buildCacheKey, getCachedResponse, setCachedResponse, isCacheable } from "@/lib/server/response-cache"
+import { selectGeminiModel } from "@/lib/ai/model-router"
+import { createTimer, logRequest, logError } from "@/lib/server/logger"
+import { calculateTotalCost, checkBudgetAlert } from "@/lib/server/cost-tracker"
+import { getEnv } from "@/lib/server/env"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
@@ -29,6 +29,7 @@ function getKV(): KVStore | null {
 
 export async function POST(req: NextRequest) {
   const elapsed = createTimer()
+  const startTime = Date.now()
 
   // ── 1. Auth ────────────────────────────────────────────────────────────────
   let userId: string
@@ -36,14 +37,16 @@ export async function POST(req: NextRequest) {
     userId = await getVerifiedUserId()
   } catch (e) {
     if (e instanceof AuthenticationError) return unauthorizedResponse()
+    logError("chat.auth_error", e)
     throw e
   }
 
   // ── 2. Request size guard ──────────────────────────────────────────────────
   const contentLength = req.headers.get("content-length")
   if (contentLength && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
+    logRequest("chat.payload_too_large", userId, startTime, { size: contentLength })
     return new Response(
-      JSON.stringify({ success: false, error: "Payload too large (max 1 MB)" }),
+      JSON.stringify({ success: false, error: "Payload too large (max 1 MB)", code: "PAYLOAD_TOO_LARGE" }),
       { status: 413, headers: { "Content-Type": "application/json" } }
     )
   }
@@ -51,6 +54,7 @@ export async function POST(req: NextRequest) {
   // ── 3. Rate limit ─────────────────────────────────────────────────────────
   const rateResult = await checkRateLimit(userId, "free")
   if (!rateResult.allowed) {
+    logRequest("chat.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
   }
 
@@ -59,14 +63,16 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
+    logRequest("chat.invalid_json", userId, startTime)
     return new Response(
-      JSON.stringify({ success: false, error: "Invalid JSON body" }),
+      JSON.stringify({ success: false, error: "Invalid JSON body", code: "VALIDATION_ERROR" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     )
   }
 
   const parsed = chatSchema.safeParse(body)
   if (!parsed.success) {
+    logRequest("chat.validation_error", userId, startTime)
     return validationErrorResponse(parsed.error)
   }
 
@@ -77,11 +83,16 @@ export async function POST(req: NextRequest) {
   const kv = getKV()
   let memories = ""
   if (kv) {
-    const store = await getUserMemoryStore(kv, userId)
-    const lastUserMessage = messages.filter((m) => m.role === "user").pop()
-    const currentMessage = lastUserMessage?.content ?? ""
-    const relevantFacts = getRelevantFacts(store, currentMessage)
-    memories = formatFactsForPrompt(relevantFacts)
+    try {
+      const store = await getUserMemoryStore(kv, userId)
+      const lastUserMessage = messages.filter((m) => m.role === "user").pop()
+      const currentMessage = lastUserMessage?.content ?? ""
+      const relevantFacts = getRelevantFacts(store, currentMessage)
+      memories = formatFactsForPrompt(relevantFacts)
+    } catch (e) {
+      logError("chat.memory_fetch_error", e, userId)
+      // Continue without memories
+    }
   }
 
   // ── 6. Token budget guard ─────────────────────────────────────────────────
@@ -98,26 +109,31 @@ export async function POST(req: NextRequest) {
   const cacheKey = buildCacheKey(userMessageText, personality)
 
   if (cacheKey) {
-    const cached = await getCachedResponse(cacheKey)
-    if (cached) {
-      logRequest("chat.cache_hit", userId, Date.now() - elapsed(), { cacheKey })
-      const encoder = new TextEncoder()
-      const cachedStream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ text: cached })}\n\n`)
-          )
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"))
-          controller.close()
-        },
-      })
-      return new Response(cachedStream, {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          "X-Accel-Buffering": "no",
-        },
-      })
+    try {
+      const cached = await getCachedResponse(cacheKey)
+      if (cached) {
+        logRequest("chat.cache_hit", userId, startTime, { cacheKey })
+        const encoder = new TextEncoder()
+        const cachedStream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ text: cached })}\n\n`)
+            )
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+            controller.close()
+          },
+        })
+        return new Response(cachedStream, {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+          },
+        })
+      }
+    } catch (e) {
+      logError("chat.cache_error", e, userId)
+      // Continue without cache
     }
   }
 
@@ -152,7 +168,7 @@ export async function POST(req: NextRequest) {
               const outputTokens = estimateTokens(fullResponse)
               const costData = calculateTotalCost(model, inputTokens, outputTokens, 0)
 
-              logRequest("chat.completed", userId, Date.now() - elapsed(), {
+              logRequest("chat.completed", userId, startTime, {
                 model: costData.model,
                 inputTokens: costData.inputTokens,
                 outputTokens: costData.outputTokens,
@@ -200,6 +216,7 @@ export async function POST(req: NextRequest) {
       JSON.stringify({
         success: false,
         error: err instanceof Error ? err.message : "Internal server error",
+        code: "INTERNAL_ERROR",
       }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     )

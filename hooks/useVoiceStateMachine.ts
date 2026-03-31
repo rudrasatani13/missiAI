@@ -6,9 +6,9 @@ import {
   STREAM_CHAT_TIMEOUT,
   TTS_TIMEOUT,
   STT_TIMEOUT,
-} from "@/lib/fetch-with-timeout"
-import { getBestAudioMimeType } from "@/lib/browser-support"
-import { shouldUseTTS, truncateForTTS } from "@/lib/tts-optimizer"
+} from "@/lib/client/fetch-with-timeout"
+import { getBestAudioMimeType } from "@/lib/client/browser-support"
+import { shouldUseTTS, truncateForTTS } from "@/lib/ai/tts-optimizer"
 import type { VoiceState, ConversationEntry, PersonalityKey } from "@/types/chat"
 
 export type { VoiceState }
@@ -230,7 +230,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
       try {
         const res = await fetchWithTimeout(
-          "/api/tts",
+          "/api/v1/tts",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -306,7 +306,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       }))
 
       const res = await fetchWithTimeout(
-        "/api/chat",
+        "/api/v1/chat",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -363,7 +363,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         const payload = JSON.stringify({
           conversation: conversationRef.current,
         })
-        fetch("/api/memory", {
+        fetch("/api/v1/memory", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: payload,
@@ -429,14 +429,15 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         fd.append("audio", blob, "recording.webm")
 
         const res = await fetchWithTimeout(
-          "/api/stt",
+          "/api/v1/stt",
           { method: "POST", body: fd, signal: ctrl.signal },
           STT_TIMEOUT,
         )
         if (!res.ok) throw new Error("STT failed")
 
         const data = await res.json()
-        const text = data.text?.trim()
+        // Handle new API envelope format
+        const text = (data.data?.text ?? data.text)?.trim()
 
         if (!text) {
           if (continuousRef.current) {
@@ -596,7 +597,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
       try {
         const res = await fetchWithTimeout(
-          "/api/tts",
+          "/api/v1/tts",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -674,7 +675,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     }
 
     navigator.sendBeacon(
-      "/api/memory",
+      "/api/v1/memory",
       new Blob([payload], { type: "application/json" }),
     )
   }, [userId, conversationRef, memoriesRef])

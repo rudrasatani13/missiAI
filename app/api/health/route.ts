@@ -2,10 +2,11 @@
 //
 // GET /api/health — no auth required.
 // Returns system status with KV and env checks.
+// No versioning on health endpoint.
 
 import { getRequestContext } from "@cloudflare/next-on-pages"
-import { envExists } from "@/lib/env"
-import { log } from "@/lib/logger"
+import { envExists } from "@/lib/server/env"
+import { log } from "@/lib/server/logger"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
@@ -75,6 +76,7 @@ export async function GET() {
     status = "degraded"
   }
 
+  // Build response without exposing sensitive data or stack traces
   const response: HealthResponse = {
     status,
     version: process.env.npm_package_version ?? "unknown",

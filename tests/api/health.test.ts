@@ -5,8 +5,8 @@ vi.mock("@cloudflare/next-on-pages", () => ({
   getRequestContext: vi.fn(),
 }))
 
-// Mock @/lib/logger to avoid side effects
-vi.mock("@/lib/logger", () => ({
+// Mock @/lib/server/logger to avoid side effects
+vi.mock("@/lib/server/logger", () => ({
   log: vi.fn(),
 }))
 

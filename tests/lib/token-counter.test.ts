@@ -3,7 +3,7 @@ import {
   estimateTokens,
   truncateToTokenLimit,
   estimateRequestTokens,
-} from "@/lib/token-counter"
+} from "@/lib/memory/token-counter"
 import type { ConversationEntry } from "@/types/chat"
 
 describe("estimateTokens", () => {

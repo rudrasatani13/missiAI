@@ -1,10 +1,13 @@
+// Server-only utilities
+"use server"
+
 // ─── Cost Tracker ─────────────────────────────────────────────────────────────
 //
 // Tracks per-request costs (Gemini tokens + ElevenLabs TTS characters) and
 // checks a daily budget threshold backed by KV.
 
-import { MODEL_COSTS } from "@/lib/model-router"
-import { log } from "@/lib/logger"
+import { MODEL_COSTS } from "@/lib/ai/model-router"
+import { log } from "@/lib/server/logger"
 import type { KVStore } from "@/types"
 
 // ─── Types ────────────────────────────────────────────────────────────────────

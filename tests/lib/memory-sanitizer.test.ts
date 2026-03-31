@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { sanitizeMemories } from "@/lib/memory-sanitizer"
+import { sanitizeMemories } from "@/lib/memory/memory-sanitizer"
 
 describe("sanitizeMemories", () => {
   it("strips 'ignore all instructions'", () => {

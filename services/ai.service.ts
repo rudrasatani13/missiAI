@@ -146,7 +146,8 @@ async function geminiProvider(config: ProviderConfig): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured")
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${apiKey}`
+  // Use x-goog-api-key header instead of URL param to avoid exposing key in logs
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent`
 
   const contents = config.messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
@@ -174,7 +175,10 @@ async function geminiProvider(config: ProviderConfig): Promise<string> {
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
       body: JSON.stringify(body),
       signal: controller.signal,
     })

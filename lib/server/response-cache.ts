@@ -1,3 +1,6 @@
+// Server-only utilities
+"use server"
+
 const CACHE_ORIGIN = "https://chat-cache.internal"
 
 /**

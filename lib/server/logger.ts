@@ -1,3 +1,6 @@
+// Server-only utilities
+"use server"
+
 // ─── Structured Logger (Edge-runtime compatible) ─────────────────────────────
 //
 // In development: pretty-printed JSON to console.

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/auth"
-import { ttsSchema, validationErrorResponse } from "@/lib/schemas"
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
+import { ttsSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { textToSpeech } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
-import { createTimer, logRequest, logError } from "@/lib/logger"
-import { getEnv } from "@/lib/env"
+import { createTimer, logRequest, logError } from "@/lib/server/logger"
+import { getEnv } from "@/lib/server/env"
 
 export const runtime = "edge"
 
@@ -22,6 +22,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 export async function POST(req: NextRequest) {
   const elapsed = createTimer()
+  const startTime = Date.now()
 
   // ── 1. Auth ───────────────────────────────────────────────────────────────
   let userId: string
@@ -29,14 +30,16 @@ export async function POST(req: NextRequest) {
     userId = await getVerifiedUserId()
   } catch (e) {
     if (e instanceof AuthenticationError) return unauthorizedResponse()
+    logError("tts.auth_error", e)
     throw e
   }
 
   // ── 2. Request size guard ─────────────────────────────────────────────────
   const contentLength = req.headers.get("content-length")
   if (contentLength && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
+    logRequest("tts.payload_too_large", userId, startTime, { size: contentLength })
     return NextResponse.json(
-      { success: false, error: "Payload too large (max 1 MB)" },
+      { success: false, error: "Payload too large (max 1 MB)", code: "PAYLOAD_TOO_LARGE" },
       { status: 413 }
     )
   }
@@ -44,6 +47,7 @@ export async function POST(req: NextRequest) {
   // ── 3. Rate limit ─────────────────────────────────────────────────────────
   const rateResult = await checkRateLimit(userId, "free")
   if (!rateResult.allowed) {
+    logRequest("tts.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
   }
 
@@ -52,11 +56,13 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return NextResponse.json({ success: false, error: "Invalid JSON body" }, { status: 400 })
+    logRequest("tts.invalid_json", userId, startTime)
+    return NextResponse.json({ success: false, error: "Invalid JSON body", code: "VALIDATION_ERROR" }, { status: 400 })
   }
 
   const parsed = ttsSchema.safeParse(body)
   if (!parsed.success) {
+    logRequest("tts.validation_error", userId, startTime)
     return validationErrorResponse(parsed.error)
   }
 
@@ -64,13 +70,24 @@ export async function POST(req: NextRequest) {
   const charCount = text.length
 
   // ── 5. Env check ──────────────────────────────────────────────────────────
-  const appEnv = getEnv()
+  let appEnv
+  try {
+    appEnv = getEnv()
+  } catch (e) {
+    logError("tts.env_error", e, userId)
+    return NextResponse.json(
+      { success: false, error: "Server configuration error", code: "INTERNAL_ERROR" },
+      { status: 500 }
+    )
+  }
+  
   const apiKey = appEnv.ELEVENLABS_API_KEY
   const voiceId = process.env.ELEVENLABS_VOICE_ID
 
   if (!voiceId) {
+    logError("tts.missing_voice_id", "ELEVENLABS_VOICE_ID not configured", userId)
     return NextResponse.json(
-      { success: false, error: "ElevenLabs voice ID not configured" },
+      { success: false, error: "ElevenLabs voice ID not configured", code: "INTERNAL_ERROR" },
       { status: 500 }
     )
   }
@@ -82,7 +99,7 @@ export async function POST(req: NextRequest) {
       TTS_TIMEOUT_MS
     )
 
-    logRequest("tts.request", userId, Date.now() - elapsed(), { charCount })
+    logRequest("tts.completed", userId, startTime, { charCount })
 
     return new NextResponse(audioData, {
       headers: {
@@ -93,6 +110,6 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     logError("tts.error", err, userId)
     const message = err instanceof Error ? err.message : "Internal server error"
-    return NextResponse.json({ success: false, error: message }, { status: 500 })
+    return NextResponse.json({ success: false, error: message, code: "INTERNAL_ERROR" }, { status: 500 })
   }
 }

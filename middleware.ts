@@ -1,11 +1,12 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import type { NextRequest, NextFetchEvent } from "next/server"
-import { log } from "@/lib/logger"
+import { log } from "@/lib/server/logger"
 
 const isPublicRoute = createRouteMatcher([
   "/",
   "/login(.*)",
+  "/sign-in(.*)",
   "/sign-up(.*)",
   "/waitlist(.*)",
   "/manifesto(.*)",
@@ -16,7 +17,7 @@ const isPublicRoute = createRouteMatcher([
 // API routes handle their own Clerk auth and return JSON 401 — not a browser
 // redirect. Letting middleware's auth.protect() run here causes Clerk to issue a
 // page-style redirect, which sends HTML instead of a JSON error.
-const isAPIRoute = createRouteMatcher(["/api/(.*)"])
+const isAPIRoute = createRouteMatcher(["/api/(.*)", "/api/v1/(.*)"])
 
 // Health endpoint is public — no auth, no rate limiting
 const isHealthRoute = createRouteMatcher(["/api/health"])

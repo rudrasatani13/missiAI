@@ -1,8 +1,10 @@
 import { NextRequest } from "next/server"
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/auth"
-import { sttSchema, validationErrorResponse } from "@/lib/schemas"
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
+import { sttSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { speechToText } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { createTimer, logRequest, logError } from "@/lib/server/logger"
+import { getEnv } from "@/lib/server/env"
 
 export const runtime = "edge"
 
@@ -17,26 +19,30 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ])
 }
 
-function jsonError(message: string, status: number): Response {
-  return new Response(
-    JSON.stringify({ success: false, error: message }),
-    { status, headers: { "Content-Type": "application/json" } }
-  )
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  })
 }
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now()
+
   // ── 1. Auth ───────────────────────────────────────────────────────────────
   let userId: string
   try {
     userId = await getVerifiedUserId()
   } catch (e) {
     if (e instanceof AuthenticationError) return unauthorizedResponse()
+    logError("stt.auth_error", e)
     throw e
   }
 
   // ── 2. Rate limit ─────────────────────────────────────────────────────────
   const rateResult = await checkRateLimit(userId, "free")
   if (!rateResult.allowed) {
+    logRequest("stt.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
   }
 
@@ -45,12 +51,14 @@ export async function POST(req: NextRequest) {
   try {
     formData = await req.formData()
   } catch {
-    return jsonError("Invalid form data", 400)
+    logRequest("stt.invalid_form_data", userId, startTime)
+    return jsonResponse({ success: false, error: "Invalid form data", code: "VALIDATION_ERROR" }, 400)
   }
 
   const audioFile = formData.get("audio") as File | null
   if (!audioFile) {
-    return jsonError("No audio file provided", 400)
+    logRequest("stt.missing_audio", userId, startTime)
+    return jsonResponse({ success: false, error: "No audio file provided", code: "VALIDATION_ERROR" }, 400)
   }
 
   // ── 4. Validate audio file with Zod ──────────────────────────────────────
@@ -60,13 +68,18 @@ export async function POST(req: NextRequest) {
     type: audioFile.type,
   })
   if (!parsed.success) {
+    logRequest("stt.validation_error", userId, startTime)
     return validationErrorResponse(parsed.error)
   }
 
   // ── 5. Env check ──────────────────────────────────────────────────────────
-  const apiKey = process.env.ELEVENLABS_API_KEY
-  if (!apiKey) {
-    return jsonError("ElevenLabs API key not configured", 500)
+  let apiKey: string
+  try {
+    const appEnv = getEnv()
+    apiKey = appEnv.ELEVENLABS_API_KEY
+  } catch (e) {
+    logError("stt.env_error", e, userId)
+    return jsonResponse({ success: false, error: "Server configuration error", code: "INTERNAL_ERROR" }, 500)
   }
 
   // ── 6. Call ElevenLabs with timeout ───────────────────────────────────────
@@ -76,13 +89,15 @@ export async function POST(req: NextRequest) {
       STT_TIMEOUT_MS
     )
 
-    return new Response(
-      JSON.stringify({ success: true, ...result }),
-      { headers: { "Content-Type": "application/json" } }
-    )
+    logRequest("stt.completed", userId, startTime, { 
+      audioSize: audioFile.size,
+      textLength: result.text?.length ?? 0 
+    })
+
+    return jsonResponse({ success: true, data: result })
   } catch (err) {
-    console.error("STT route error:", err)
+    logError("stt.error", err, userId)
     const message = err instanceof Error ? err.message : "Internal server error"
-    return jsonError(message, 500)
+    return jsonResponse({ success: false, error: message, code: "INTERNAL_ERROR" }, 500)
   }
 }

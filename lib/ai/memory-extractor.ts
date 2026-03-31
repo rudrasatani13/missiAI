@@ -2,9 +2,11 @@
 import { nanoid } from "nanoid"
 import type { Message } from "@/types"
 import type { MemoryFact } from "@/types/memory"
+import { fetchWithTimeout } from "@/lib/client/fetch-with-timeout"
 
 const GEMINI_FLASH_MODEL = "gemini-2.5-flash"
 const MAX_FACTS = 50
+const EXTRACTION_TIMEOUT_MS = 15_000
 
 /**
  * Use Gemini Flash to extract factual statements from the last few messages,
@@ -46,21 +48,25 @@ Example output:
   let extracted: Array<{ text: string; tags: string[] }> = []
 
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: "user", parts: [{ text: userMessage }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 1024,
+    const res = await fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
         },
-      }),
-    })
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: "user", parts: [{ text: userMessage }] }],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 1024,
+          },
+        }),
+      },
+      EXTRACTION_TIMEOUT_MS
+    )
 
     if (!res.ok) {
       console.error(`Memory extraction Gemini error ${res.status}`)

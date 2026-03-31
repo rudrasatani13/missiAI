@@ -1,3 +1,6 @@
+// Server-only utilities
+"use server"
+
 import { auth } from "@clerk/nextjs/server"
 
 /**
@@ -25,7 +28,7 @@ export class AuthenticationError extends Error {
 /** Convenience: return the standard 401 JSON Response for route handlers. */
 export function unauthorizedResponse(): Response {
   return new Response(
-    JSON.stringify({ success: false, error: "Unauthorized" }),
+    JSON.stringify({ success: false, error: "Unauthorized", code: "UNAUTHORIZED" }),
     { status: 401, headers: { "Content-Type": "application/json" } }
   )
 }

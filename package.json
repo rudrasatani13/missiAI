@@ -2,16 +2,19 @@
   "name": "missiai",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:cf": "npx @cloudflare/next-on-pages",
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint app/ lib/ hooks/ components/ types/",
-    "build:cf": "npx @cloudflare/next-on-pages"
+    "lint": "eslint app/ lib/ hooks/ components/ types/"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.0",

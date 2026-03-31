@@ -1,3 +1,5 @@
+"use client"
+
 export const CHAT_TIMEOUT = 10_000
 export const STREAM_CHAT_TIMEOUT = 60_000
 export const TTS_TIMEOUT = 15_000

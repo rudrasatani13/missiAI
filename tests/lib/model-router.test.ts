@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { selectGeminiModel, estimateRequestCost } from "@/lib/model-router"
+import { selectGeminiModel, estimateRequestCost } from "@/lib/ai/model-router"
 import type { Message } from "@/types"
 
 describe("selectGeminiModel", () => {

@@ -1,3 +1,5 @@
+"use client"
+
 /**
  * Priority-ordered list of audio MIME types to try with MediaRecorder.
  */
