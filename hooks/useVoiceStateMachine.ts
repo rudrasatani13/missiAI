@@ -8,6 +8,7 @@ import {
   STT_TIMEOUT,
 } from "@/lib/fetch-with-timeout"
 import { getBestAudioMimeType } from "@/lib/browser-support"
+import { shouldUseTTS, truncateForTTS } from "@/lib/tts-optimizer"
 import type { VoiceState, ConversationEntry, PersonalityKey } from "@/types/chat"
 
 export type { VoiceState }
@@ -376,7 +377,18 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           .catch(() => {})
       }
 
-      await fnRef.current.speakText(full)
+      // TTS optimization: skip TTS for long/code/list responses
+      if (shouldUseTTS(full, true)) {
+        const ttsText = truncateForTTS(full)
+        await fnRef.current.speakText(ttsText)
+      } else {
+        // Skip TTS — go directly to idle or continuous recording
+        if (continuousRef.current) {
+          await fnRef.current.startRecording()
+        } else {
+          resetToIdle()
+        }
+      }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         setStreamingText("")

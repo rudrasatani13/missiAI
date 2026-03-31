@@ -5,11 +5,14 @@ import { chatSchema, validationErrorResponse } from "@/lib/schemas"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import { getUserMemoryStore, getRelevantFacts, formatFactsForPrompt } from "@/lib/kv-memory"
 import { buildGeminiRequest, streamGeminiResponse } from "@/lib/gemini-stream"
+import { buildSystemPrompt } from "@/services/ai.service"
+import { estimateRequestTokens, estimateTokens, LIMITS, truncateToTokenLimit } from "@/lib/token-counter"
+import { buildCacheKey, getCachedResponse, setCachedResponse, isCacheable } from "@/lib/response-cache"
+import { selectGeminiModel, estimateRequestCost } from "@/lib/model-router"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
 
-const DEFAULT_MODEL = "gemini-2.5-flash"
 const MAX_BODY_BYTES = 1_000_000 // 1 MB
 
 function getKV(): KVStore | null {
@@ -62,7 +65,8 @@ export async function POST(req: NextRequest) {
     return validationErrorResponse(parsed.error)
   }
 
-  const { messages, personality } = parsed.data
+  let { messages } = parsed.data
+  const { personality } = parsed.data
 
   // ── 5. Fetch structured memories & select relevant facts ──────────────────
   const kv = getKV()
@@ -75,7 +79,51 @@ export async function POST(req: NextRequest) {
     memories = formatFactsForPrompt(relevantFacts)
   }
 
-  // ── 6. Build Gemini request & stream natively ─────────────────────────────
+  // ── 6. Token budget guard ─────────────────────────────────────────────────
+  const systemPrompt = buildSystemPrompt(personality, memories)
+  const estimatedTokens = estimateRequestTokens(messages, systemPrompt, memories)
+
+  if (estimatedTokens > LIMITS.WARN_THRESHOLD) {
+    messages = truncateToTokenLimit(messages, LIMITS.WARN_THRESHOLD)
+    console.log(
+      `[token-guard] Truncated from ${estimatedTokens} est. tokens → ${messages.length} messages`
+    )
+  }
+
+  // ── 7. Response cache check ───────────────────────────────────────────────
+  const lastUserMsg = messages.filter((m) => m.role === "user").pop()
+  const userMessageText = lastUserMsg?.content ?? ""
+  const cacheKey = buildCacheKey(userMessageText, personality)
+
+  if (cacheKey) {
+    const cached = await getCachedResponse(cacheKey)
+    if (cached) {
+      console.log(`[cache-hit] key=${cacheKey}`)
+      const encoder = new TextEncoder()
+      const cachedStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ text: cached })}\n\n`)
+          )
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+          controller.close()
+        },
+      })
+      return new Response(cachedStream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "X-Accel-Buffering": "no",
+        },
+      })
+    }
+  }
+
+  // ── 8. Select model dynamically ───────────────────────────────────────────
+  const model = selectGeminiModel(messages, memories)
+  console.log(`[model-router] Selected: ${model}`)
+
+  // ── 9. Build Gemini request & stream ──────────────────────────────────────
   try {
     const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
@@ -85,9 +133,12 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const model = process.env.GEMINI_MODEL || DEFAULT_MODEL
     const requestBody = buildGeminiRequest(messages, personality, memories, model)
     const textStream = await streamGeminiResponse(apiKey, model, requestBody)
+
+    // Accumulate full response for post-stream cache + cost logging
+    let fullResponse = ""
+    const inputTokens = estimateRequestTokens(messages, systemPrompt, memories)
 
     // Transform text deltas into SSE events for the client
     const encoder = new TextEncoder()
@@ -100,8 +151,21 @@ export async function POST(req: NextRequest) {
             if (done) {
               controller.enqueue(encoder.encode("data: [DONE]\n\n"))
               controller.close()
+
+              // ── Post-stream: cache + cost logging ──────────────────────
+              const outputTokens = estimateTokens(fullResponse)
+              const cost = estimateRequestCost(model, inputTokens, outputTokens)
+              console.log(
+                `[cost] model=${model} in=${inputTokens} out=${outputTokens} est=$${cost.toFixed(6)}`
+              )
+
+              if (cacheKey && isCacheable(userMessageText, fullResponse)) {
+                setCachedResponse(cacheKey, fullResponse).catch(() => {})
+                console.log(`[cache-set] key=${cacheKey}`)
+              }
               return
             }
+            fullResponse += value
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ text: value })}\n\n`)
             )
