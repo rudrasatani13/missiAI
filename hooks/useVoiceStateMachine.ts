@@ -300,109 +300,132 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     setStatusText("Thinking...")
     const ctrl = freshAbort()
 
-    try {
-      const msgs = conversationRef.current.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }))
+    const MAX_RETRIES = 2
+    let attempt = 0
 
-      const res = await fetchWithTimeout(
-        "/api/v1/chat",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: msgs,
-            personality: personalityRef.current,
-          }),
-          signal: ctrl.signal,
-        },
-        STREAM_CHAT_TIMEOUT,
-      )
-      if (!res.ok) throw new Error(`Error ${res.status}`)
+    while (attempt < MAX_RETRIES) {
+      attempt++
+      try {
+        const msgs = conversationRef.current.map((m) => ({
+          role: m.role,
+          content: m.content,
+        }))
 
-      const reader = res.body?.getReader()
-      if (!reader) throw new Error("No stream")
+        const res = await fetchWithTimeout(
+          "/api/v1/chat",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: msgs,
+              personality: personalityRef.current,
+            }),
+            signal: ctrl.signal,
+          },
+          STREAM_CHAT_TIMEOUT,
+        )
 
-      const dec = new TextDecoder()
-      let full = ""
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        for (const line of dec.decode(value, { stream: true }).split("\n")) {
-          if (!line.startsWith("data: ")) continue
-          const d = line.slice(6).trim()
-          if (d === "[DONE]") continue
-          try {
-            const p = JSON.parse(d)
-            if (p.text) {
-              full += p.text
-              setStreamingText(full)
-            }
-          } catch {}
+        // Retryable server errors (429, 503) — wait then retry
+        if ((res.status === 429 || res.status === 503) && attempt < MAX_RETRIES) {
+          await new Promise((r) => setTimeout(r, 1000 * attempt))
+          continue
         }
-      }
 
-      if (!full.trim()) {
-        setStreamingText("")
-        setLastResponse("")
-        if (continuousRef.current) {
-          await fnRef.current.startRecording()
+        if (!res.ok) throw new Error(`Error ${res.status}`)
+
+        const reader = res.body?.getReader()
+        if (!reader) throw new Error("No stream")
+
+        const dec = new TextDecoder()
+        let full = ""
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          for (const line of dec.decode(value, { stream: true }).split("\n")) {
+            if (!line.startsWith("data: ")) continue
+            const d = line.slice(6).trim()
+            if (d === "[DONE]") continue
+            try {
+              const p = JSON.parse(d)
+              if (p.text) {
+                full += p.text
+                setStreamingText(full)
+              }
+            } catch {}
+          }
+        }
+
+        if (!full.trim()) {
+          setStreamingText("")
+          setLastResponse("")
+          if (continuousRef.current) {
+            await fnRef.current.startRecording()
+            return
+          }
+          resetToIdle()
           return
         }
-        resetToIdle()
-        return
-      }
 
-      setStreamingText("")
-      setLastResponse(full)
-      conversationRef.current.push({ role: "assistant", content: full })
-      if (conversationRef.current.length > 20) {
-        conversationRef.current = conversationRef.current.slice(-20)
-      }
+        setStreamingText("")
+        setLastResponse(full)
+        conversationRef.current.push({ role: "assistant", content: full })
+        if (conversationRef.current.length > 20) {
+          conversationRef.current = conversationRef.current.slice(-20)
+        }
 
-      // Auto-save memory (fire-and-forget)
-      if (userId && conversationRef.current.length >= 4) {
-        const memInteractionCount = conversationRef.current.filter(m => m.role === "user").length
-        const payload = JSON.stringify({
-          conversation: conversationRef.current,
-          interactionCount: memInteractionCount,
-        })
-        fetch("/api/v1/memory", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: payload,
-        }).catch(() => {})
-      }
+        // Auto-save memory (fire-and-forget)
+        if (userId && conversationRef.current.length >= 4) {
+          const memInteractionCount = conversationRef.current.filter(m => m.role === "user").length
+          const payload = JSON.stringify({
+            conversation: conversationRef.current,
+            interactionCount: memInteractionCount,
+          })
+          fetch("/api/v1/memory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+          }).catch(() => {})
+        }
 
-      // TTS: speak the response (truncated if long)
-      if (shouldUseTTS(full, true)) {
-        const ttsText = truncateForTTS(full)
-        await fnRef.current.speakText(ttsText)
-      } else {
-        // Code blocks or voice disabled — show text only, skip TTS
+        // TTS: speak the response (truncated if long)
+        if (shouldUseTTS(full, true)) {
+          const ttsText = truncateForTTS(full)
+          await fnRef.current.speakText(ttsText)
+        } else {
+          // Code blocks or voice disabled — show text only, skip TTS
+          if (continuousRef.current) {
+            await fnRef.current.startRecording()
+          } else {
+            resetToIdle()
+          }
+        }
+        return // success — exit retry loop
+
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          setStreamingText("")
+          setLastResponse("")
+          resetToIdle()
+          return
+        }
+
+        // If we have retries left, wait and retry silently
+        if (attempt < MAX_RETRIES) {
+          await new Promise((r) => setTimeout(r, 800 * attempt))
+          continue
+        }
+
+        // All retries exhausted
+        setStreamingText("")
+        setLastResponse("")
+        setError("Failed to get response.")
         if (continuousRef.current) {
-          await fnRef.current.startRecording()
+          setTimeout(() => {
+            if (continuousRef.current) fnRef.current.startRecording()
+          }, 1500)
         } else {
           resetToIdle()
         }
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        setStreamingText("")
-        setLastResponse("")
-        resetToIdle()
-        return
-      }
-      setStreamingText("")
-      setLastResponse("")
-      setError("Failed to get response.")
-      if (continuousRef.current) {
-        setTimeout(() => {
-          if (continuousRef.current) fnRef.current.startRecording()
-        }, 1500)
-      } else {
-        resetToIdle()
       }
     }
   }, [

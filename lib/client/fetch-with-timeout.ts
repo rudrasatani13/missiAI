@@ -1,9 +1,9 @@
 "use client"
 
 export const CHAT_TIMEOUT = 10_000
-export const STREAM_CHAT_TIMEOUT = 60_000
-export const TTS_TIMEOUT = 15_000
-export const STT_TIMEOUT = 10_000
+export const STREAM_CHAT_TIMEOUT = 90_000
+export const TTS_TIMEOUT = 20_000
+export const STT_TIMEOUT = 20_000
 
 /**
  * Fetch with an automatic timeout via AbortController.

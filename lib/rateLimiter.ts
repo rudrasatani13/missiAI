@@ -1,7 +1,7 @@
 // ─── Tier limits (requests per minute) ───────────────────────────────────────
 
 const RATE_LIMITS = {
-  free: 10,
+  free: 25,
   paid: 60,
 } as const
 

@@ -26,7 +26,17 @@ Replace flat KV memory with a real vector-based Life Graph — the foundational 
 
 ## What's Been Implemented (2026-02-current)
 
-### Bug Fix — Memory Not Persisting After Tab Close
+### Performance & Reliability Fix — Slow Response + Failed to Get Response (2026-02-current)
+- **Root Cause 1**: Rate limit was 10 req/min — too low for voice chat. Raised to 25 req/min
+- **Root Cause 2**: `maxOutputTokens: 4096` for a voice assistant = unnecessary long generation. Reduced to 600 (voice responses are 1-3 sentences)
+- **Root Cause 3**: No retry logic — single Gemini API failure = "Failed to get response" error
+- **Root Cause 4**: STT/TTS timeouts too short (10s/15s) causing failures on slow connections
+- **Fix 1** (`lib/rateLimiter.ts`): Free tier 10 → 25 req/min
+- **Fix 2** (`lib/ai/gemini-stream.ts`): maxOutputTokens 4096 → 600
+- **Fix 3** (`hooks/useVoiceStateMachine.ts`): Auto-retry up to 2 times on 429/503/network errors
+- **Fix 4** (`lib/client/fetch-with-timeout.ts`): STT 10s→20s, TTS 15s→20s, Stream 60s→90s
+
+
 - **Root Cause 1**: `saveMemoryBeacon` was NOT sending `interactionCount` — server received 0, condition `interactionCount > 0` failed → NO extraction ever on tab close
 - **Root Cause 2**: Extraction threshold was every 5th interaction — too high for short sessions
 - **Fix 1** (`hooks/useVoiceStateMachine.ts`): `saveMemoryBeacon` now includes `interactionCount` in payload
