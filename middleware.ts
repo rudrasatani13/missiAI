@@ -9,6 +9,8 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/waitlist(.*)",
   "/manifesto(.*)",
+  "/privacy(.*)",
+  "/terms(.*)",
 ])
 
 // API routes handle their own Clerk auth and return JSON 401 — not a browser

@@ -687,7 +687,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             <Image src="/images/logo-symbol.png" alt="missiAI" width={24} height={24} className="w-6 h-6 opacity-60 select-none pointer-events-none" draggable={false} />
             <span className="text-xs font-light" style={{ color: "rgba(255,255,255,0.25)" }}>
-              © 2025 missiAI. All rights reserved.
+              &copy; {new Date().getFullYear()} missiAI. All rights reserved.
             </span>
           </div>
           <div className="flex items-center gap-6">
@@ -695,6 +695,8 @@ export default function LandingPage() {
               { label: "Manifesto", href: "/manifesto" },
               { label: "Waitlist", href: "/waitlist" },
               { label: "Chat", href: "/chat" },
+              { label: "Privacy", href: "/privacy" },
+              { label: "Terms", href: "/terms" },
               { label: "GitHub", href: "https://github.com/rudrasatani13/missiAI" },
             ].map((link) => (
               <Link key={link.label} href={link.href} className="text-xs transition-colors hover:text-white/50" style={{ color: "rgba(255,255,255,0.25)" }}>{link.label}</Link>

@@ -1,218 +1,119 @@
-# missiAI — AI with Memory
+# missiAI
 
-<div align="center">
-  <img src="public/images/missiai-logo.png" alt="missiAI Logo" width="120" height="120" />
-  <h3>The most powerful human AI assistant yet.</h3>
-  <p><em>Pioneering new standards in intelligent assistance</em></p>
-  
-  ![TypeScript](https://img.shields.io/badge/TypeScript-95.8%25-blue)
-  ![CSS](https://img.shields.io/badge/CSS-4.0%25-purple)
-  ![JavaScript](https://img.shields.io/badge/JavaScript-0.2%25-yellow)
-  
-  [🌐 Live Demo](https://missi.space/) | [📋 Join Waitlist](https://missi.space/waitlist) | [📖 Manifesto](https://missi.space/manifesto)
-</div>
+> Voice AI assistant with persistent memory.
+> Speak naturally in Hindi, English, or Hinglish.
 
----
+## What it does
 
-## 🚀 About missiAI
+- **Remembers you** — extracts and stores key facts from conversations so every interaction builds on the last
+- **Speaks and listens** — real-time voice conversations with speech-to-text and text-to-speech, plus a text chat fallback
+- **Adapts to you** — multiple personality modes, emotional awareness, and context-aware responses that feel human
 
-missiAI is a **Next Generation AI Platform** that aims to deliver an advanced human-AI assistant with unprecedented intelligence, creativity, and human-like interaction. Our mission is to pioneer "AI with Memory" — creating intelligent systems that remember, learn, and adapt to provide truly personalized assistance.
+## Tech Stack
 
-### ✨ Key Features
+| Layer | Technology |
+|------------|----------------------------------------------|
+| Frontend | Next.js 14 App Router, React, Tailwind, Three.js |
+| AI | Google Gemini 2.5 Flash (chat), Gemini Flash Lite (memory) |
+| Voice | ElevenLabs STT + TTS |
+| Auth | Clerk |
+| Storage | Cloudflare KV |
+| Deployment | Cloudflare Pages |
 
-- **🧠 AI with Memory**: Revolutionary memory architecture that enables continuous learning
-- **🎨 Interactive Landing Page**: Beautiful animated particle/starfield background with responsive design
-- **📝 Waitlist System**: Early access signup for beta users
-- **📜 Vision Manifesto**: Comprehensive outlook on human-AI collaboration
-- **🎯 Mission-Driven**: Focused on delivering the most powerful human AI assistant
-- **📱 Responsive Design**: Seamless experience across all devices
+## Architecture
 
----
+missiAI is a Next.js edge application deployed on Cloudflare Pages. The frontend renders a full-screen voice interface with Three.js particle visualizations. When a user speaks, audio is sent to ElevenLabs for transcription, then the transcript is routed to Google Gemini with the user's stored memory context and selected personality. Gemini's response streams back via SSE and is simultaneously spoken aloud through ElevenLabs TTS. Every few interactions, a lightweight Gemini Flash Lite call extracts memorable facts from the conversation and persists them in Cloudflare KV, keyed to the user's Clerk ID. Clerk middleware protects all non-public routes, and an edge-based rate limiter guards API endpoints.
 
-## 🛠️ Tech Stack
+## Getting Started
 
-| Technology | Version | Purpose |
-|------------|---------|----------|
-| **Next.js** | 15.2.4 | React framework with App Router |
-| **React** | ^19 | UI library |
-| **TypeScript** | ^5 | Type-safe development |
-| **Tailwind CSS** | ^3.4.17 | Utility-first styling |
-| **Radix UI** | Various | Accessible component primitives |
-| **Framer Motion** | Via particles | Smooth animations |
-| **pnpm** | Latest | Fast, disk space efficient package manager |
-
-### 🔧 Additional Dependencies
-
-- **UI Components**: Comprehensive Radix UI suite for accessible interfaces
-- **Forms**: React Hook Form with Zod validation
-- **Styling**: Tailwind CSS with custom animations
-- **Icons**: Lucide React icon library
-- **Particles**: Custom missi-ai-particles component
-
----
-
-## 📁 Project Structure
-
-```
-missiAI/
-├── app/
-│   ├── manifesto/          # Vision and mission pages
-│   ├── waitlist/            # Early access signup
-│   ├── globals.css          # Global styles
-│   ├── clerk-layout.tsx           # Root layout component
-│   └── page.tsx             # Home page
-├── components/              # Reusable UI components
-├── hooks/                   # Custom React hooks
-├── lib/                     # Utility functions
-├── public/
-│   └── images/              # Static assets and logos
-├── styles/                  # Additional stylesheets
-├── missi-ai-particles.tsx   # Custom particle animation
-├── components.json          # Shadcn/ui configuration
-├── next.config.mjs          # Next.js configuration
-├── tailwind.config.ts       # Tailwind CSS configuration
-├── tsconfig.json            # TypeScript configuration
-└── package.json             # Project dependencies
-```
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- **Node.js** 18+ 
-- **pnpm** (recommended) or npm/yarn
-
-### Installation
-
-1. **Clone the repository**
+1. **Clone the repo**
    ```bash
    git clone https://github.com/rudrasatani13/missiAI.git
    cd missiAI
    ```
 
-2. **Install dependencies**
+2. **Copy `.env.example` and fill in your keys**
    ```bash
-   pnpm install
+   cp .env.example .env.local
    ```
 
-3. **Start development server**
+3. **Install dependencies**
    ```bash
-   pnpm dev
+   npm install
    ```
 
-4. **Open in browser**
-   ```
-   http://localhost:3000
+4. **Start the dev server**
+   ```bash
+   npm run dev
    ```
 
-### 🏗️ Build Commands
+Open [http://localhost:3000](http://localhost:3000) to see the app.
+
+## Environment Variables
+
+| Variable | Required | Description |
+|--------------------------------------|----------|------------------------------------------------|
+| `GEMINI_API_KEY` | Yes | Google AI Studio API key for Gemini models |
+| `ELEVENLABS_API_KEY` | Yes | ElevenLabs API key for STT and TTS |
+| `CLERK_SECRET_KEY` | Yes | Clerk secret key (server-side auth) |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Yes | Clerk publishable key (client-side auth) |
+| `DAILY_BUDGET_USD` | No | Max daily API spend in USD (default: 5.0) |
+
+## API Endpoints
+
+| Method | Route | Description | Auth |
+|--------|---------------|-------------------------------------------|----------|
+| POST | `/api/chat` | Stream AI chat response via SSE | Required |
+| GET | `/api/memory` | Retrieve user's stored memory facts | Required |
+| POST | `/api/memory` | Save conversation and extract new memories | Required |
+| POST | `/api/stt` | Speech-to-text transcription | Required |
+| POST | `/api/tts` | Text-to-speech audio generation | Required |
+| GET | `/api/health` | Health check (returns service status) | Public |
+
+## Running Tests
 
 ```bash
-# Development server
-pnpm dev
+# Run all tests
+npm test
 
-# Production build
-pnpm build
+# Watch mode
+npm run test:watch
 
-# Start production server
-pnpm start
+# Coverage report
+npm run test:coverage
 
-# Static export
-pnpm export
+# Type checking
+npm run typecheck
+
+# Lint
+npm run lint
 ```
 
----
+## Deployment
 
-## 🌍 Environment Variables
+missiAI is deployed on Cloudflare Pages using the `@cloudflare/next-on-pages` adapter.
 
-For future API integrations and configuration, create a `.env.local` file:
-
-```env
-# Example environment variables (to be configured as needed)
-# NEXT_PUBLIC_API_URL=https://api.missi.ai
-# NEXT_PUBLIC_ANALYTICS_ID=your_analytics_id
-# DATABASE_URL=your_database_connection
+```bash
+# Build for Cloudflare
+npm run build:cf
 ```
 
----
+Set all environment variables in the Cloudflare Pages dashboard under **Settings > Environment variables**. The `MISSI_MEMORY` KV namespace must be bound in your `wrangler.toml` or Cloudflare dashboard.
 
-## 📱 Usage
+## Security
 
-Once running locally, you'll have access to:
+- **Authentication**: All non-public routes protected by Clerk middleware
+- **Rate limiting**: Dual-layer — IP-based burst guard in middleware + per-user KV-backed limits in route handlers
+- **Input validation**: Zod schemas validate all API request bodies; payload size guards prevent abuse
+- **Memory sanitization**: Extracted facts are sanitized before storage to prevent injection
+- **Budget controls**: Daily API spend tracking with configurable alerts
 
-- **Home Page** (`/`) - Interactive landing with particle animations
-- **Waitlist** (`/waitlist`) - Early access signup form
-- **Manifesto** (`/manifesto`) - Vision and mission statement
+## Roadmap
 
-### 🎨 Features in Action
+- [ ] Multi-device session sync with real-time memory updates
+- [ ] Proactive reminders and time-aware suggestions
+- [ ] Plugin system for third-party integrations (calendar, music, smart home)
 
-- **Animated Background**: Custom particle system creates an immersive experience
-- **Protected Assets**: Logo and brand elements include protection against unauthorized use
-- **Responsive Navigation**: Seamless experience across desktop and mobile
-- **Modern UI**: Clean, minimal design with smooth transitions
+## License
 
----
-
-## 🤝 Contributing
-
-We welcome contributions to missiAI! Please follow these steps:
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/AmazingFeature`)
-3. **Commit** your changes (`git commit -m 'Add some AmazingFeature'`)
-4. **Push** to the branch (`git push origin feature/AmazingFeature`)
-5. **Open** a Pull Request
-
-### 📋 Development Guidelines
-
-- Follow TypeScript best practices
-- Use conventional commit messages
-- Ensure responsive design compatibility
-- Test across multiple browsers
-- Maintain accessibility standards
-
----
-
-## 📄 License
-
-This project is private and proprietary. All rights reserved by **Rudra Satani** and the missiAI team.
-
-For licensing inquiries, please contact: [rudrasatani@missi.space](mailto:rudrasatani@missi.space)
-
----
-
-## 👨‍💼 Leadership
-
-**CEO & Founder**: Rudra Satani ([@rudrasatani13](https://github.com/rudrasatani13))
-
-*Visionary leader driving the future of human-AI collaboration*
-
----
-
-## 🙏 Acknowledgments
-
-- **Next.js Team** for the incredible React framework
-- **Vercel** for seamless deployment platform
-- **Radix UI** for accessible component primitives
-- **Tailwind CSS** for utility-first styling
-- **Open Source Community** for continuous inspiration
-
----
-
-## 📞 Contact & Support
-
-- **Website**: [missi.space](https://missi.space)
-- **Email**: [rudrasatani@missi.space](mailto:rudrasatani@missi.space)
-- **GitHub**: [@rudrasatani13](https://github.com/rudrasatani13)
-- **Issues**: [GitHub Issues](https://github.com/rudrasatani13/missiAI/issues)
-
----
-
-<div align="center">
-  <p><strong>missiAI © 2025</strong></p>
-  <p><em>Pioneering the future of AI with Memory</em></p>
-  
-  ⭐ **Star this repo if you believe in the future of human-AI collaboration!** ⭐
-</div>
+MIT
