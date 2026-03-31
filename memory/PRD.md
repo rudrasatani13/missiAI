@@ -1,40 +1,53 @@
-# MissiAI - PRD & Architecture
+# Missi AI — PRD & Implementation Log
 
 ## Original Problem Statement
-Decompose monolithic `app/chat/page.tsx` (670 lines) into clean, focused components with proper state colocation and memoization.
+Add a full observability layer — structured logging, health checks, error tracking, and cost alerts — to a Next.js Cloudflare Pages AI chatbot project before real users onboard.
 
 ## Architecture
+- **Runtime**: Cloudflare Pages + Edge runtime (no Node.js process, no file system)
 - **Framework**: Next.js 16 with App Router
 - **Auth**: Clerk
-- **3D**: Three.js (WebGL particle visualizer)
-- **Styling**: Tailwind CSS + inline styles
-- **Voice**: Custom voice state machine hook (STT/TTS/chat streaming)
+- **AI**: Google Gemini (2.5-pro / 2.0-flash-lite via model router)
+- **TTS**: ElevenLabs
+- **Storage**: Cloudflare Workers KV (MISSI_MEMORY binding)
+- **Package Manager**: pnpm
 
-## What's Been Implemented (2026-03-30)
+## Core Requirements (Static)
+1. Structured JSON logging (edge-compatible, Cloudflare Workers Logs)
+2. Health check endpoint (GET /api/health) with KV + env validation
+3. Cost tracking per request (Gemini tokens + ElevenLabs TTS chars)
+4. Daily budget alerts via KV
+5. Typed environment variable access
+6. Request logging in middleware
+7. Observability hooks in all API routes (chat, tts, memory)
 
-### Component Decomposition
-| File | Lines | Purpose |
-|------|-------|---------|
-| `types/chat.ts` | 24 | Shared types: VoiceState, ConversationEntry, PersonalityKey, PERSONALITY_OPTIONS |
-| `components/chat/VoiceButton.tsx` | 76 | Memo-wrapped state indicator button (idle/recording/thinking/transcribing/speaking) |
-| `components/chat/StatusDisplay.tsx` | 140 | Memo-wrapped status text, streaming text, error display |
-| `components/chat/SettingsPanel.tsx` | 154 | Memo-wrapped settings panel with personality selector, voice toggle, logout |
-| `components/chat/ConversationLog.tsx` | 103 | Memo-wrapped (custom comparator) conversation history, virtualizes at 20+ msgs |
-| `components/chat/ParticleVisualizer.tsx` | 280 | Memo-wrapped Three.js visualizer with quality scaling + visibility API |
-| `app/chat/page.tsx` | 111 | Orchestrator only (down from 670 lines) |
+## What's Been Implemented (2026-03-31)
+- **lib/logger.ts** — LogEvent interface, log(), logRequest(), logError(), createTimer()
+- **lib/cost-tracker.ts** — RequestCost interface, COST_CONSTANTS, calculateTotalCost(), DAILY_BUDGET_USD (env-configurable), checkBudgetAlert()
+- **lib/env.ts** — getEnv() typed env access, envExists() for health checks
+- **app/api/health/route.ts** — GET endpoint, KV connectivity + env presence checks, 200/207/503 status codes
+- **middleware.ts** — Extended with structured request logging (api.request, api.rate_limited, api.unauthorized, middleware.error), health route exempted from rate limiting
+- **app/api/chat/route.ts** — Timer, cost tracking via calculateTotalCost(), budget alert via checkBudgetAlert(), structured logging for chat.completed/chat.error/chat.stream_error
+- **app/api/tts/route.ts** — Logging tts.request with charCount/durationMs, logError on failures
+- **app/api/memory/route.ts** — Logging memory.read/memory.write with factCount, logError on failures
 
-### Key Improvements
-- Page reduced from 670 to 111 lines (83% reduction)
-- All components wrapped in React.memo() for re-render prevention
-- ConversationLog uses custom comparator (only re-renders on length/visibility change)
-- ParticleVisualizer has dynamic quality scaling (LOW: 300 particles, HIGH: 1000)
-- ParticleVisualizer pauses render loop when tab is hidden (Visibility API)
-- Types centralized in `types/chat.ts`, imported everywhere
-- Hook updated to import from types/chat.ts (no inline type defs)
-- CSS animations moved from inline styled-jsx to globals.css
+## Testing Status
+- TypeScript compilation: PASS (only pre-existing waitlist error)
+- All observability modules: 100% test pass rate
+- Code review: All interfaces, exports, and integrations verified
 
 ## Prioritized Backlog
-- **P0**: None
-- **P1**: Wire ConversationLog to live conversation data (currently isVisible=false)
-- **P2**: Add hold-to-talk mode via VoiceButton onPointerDown/onPointerUp
-- **P2**: Add unit tests for individual components
+### P0 (Next)
+- Wire up daily cost accumulation (aggregate costs per day in KV, pass running total to checkBudgetAlert)
+- Add cost tracking to TTS route (ttsChars integration with chat flow)
+
+### P1
+- Add alerting webhook (Slack/Discord) when budget.alert fires
+- Add /api/health to uptime monitoring (e.g., Better Uptime, Checkly)
+- Dashboard UI for cost visualization
+
+### P2
+- Per-user cost tracking and quotas
+- Distributed rate limiting via KV (replace in-memory Map)
+- Error aggregation dashboard
+- Performance percentile tracking (p50/p95/p99 response times)
