@@ -106,9 +106,9 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
       ttsStability: 0.8,
       ttsSimilarityBoost: 0.6,
       ttsStyle: 0.1,
-      maxOutputTokens: 300,
+      maxOutputTokens: 800,
       systemPromptSuffix:
-        'The user sounds stressed. Keep response very short (1-2 sentences max). Be calm and simple. No long explanations. Always address what the user actually asked about.',
+        'The user sounds stressed. Keep response concise but complete (2-4 sentences). Be calm and simple. Always address what the user actually asked about.',
     },
     excited: {
       responseLength: 'normal',
@@ -116,7 +116,7 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
       ttsStability: 0.4,
       ttsSimilarityBoost: 0.8,
       ttsStyle: 0.6,
-      maxOutputTokens: 600,
+      maxOutputTokens: 1000,
       systemPromptSuffix:
         'The user sounds excited. Match their energy. Be upbeat and enthusiastic in your response.',
     },
@@ -126,9 +126,9 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
       ttsStability: 0.9,
       ttsSimilarityBoost: 0.5,
       ttsStyle: 0.05,
-      maxOutputTokens: 300,
+      maxOutputTokens: 800,
       systemPromptSuffix:
-        'The user sounds tired. Be very gentle and brief. Maximum 2 sentences. Keep it warm and easy. Always address what the user actually asked about.',
+        'The user sounds tired. Be gentle and concise but finish your thought completely. Always address what the user actually asked about.',
     },
     frustrated: {
       responseLength: 'short',
@@ -136,7 +136,7 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
       ttsStability: 0.7,
       ttsSimilarityBoost: 0.7,
       ttsStyle: 0.2,
-      maxOutputTokens: 300,
+      maxOutputTokens: 800,
       systemPromptSuffix:
         'The user sounds frustrated. Acknowledge briefly then give a direct helpful answer to what they actually asked. No filler. Do not use web search unless they explicitly ask for factual information.',
     },
@@ -146,7 +146,7 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
       ttsStability: 0.6,
       ttsSimilarityBoost: 0.7,
       ttsStyle: 0.3,
-      maxOutputTokens: 600,
+      maxOutputTokens: 1000,
       systemPromptSuffix:
         'The user sounds uncertain. Be encouraging. Validate their thoughts before responding.',
     },
@@ -156,7 +156,7 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
       ttsStability: 0.5,
       ttsSimilarityBoost: 0.8,
       ttsStyle: 0.4,
-      maxOutputTokens: 1000,
+      maxOutputTokens: 1200,
       systemPromptSuffix:
         'The user sounds confident. Match their energy. Give a thorough, substantive response.',
     },
@@ -166,7 +166,7 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
       ttsStability: 0.4,
       ttsSimilarityBoost: 0.8,
       ttsStyle: 0.5,
-      maxOutputTokens: 600,
+      maxOutputTokens: 1000,
       systemPromptSuffix: 'The user sounds happy. Be warm and cheerful.',
     },
     neutral: {
@@ -175,7 +175,7 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
       ttsStability: 0.5,
       ttsSimilarityBoost: 0.75,
       ttsStyle: 0.3,
-      maxOutputTokens: 600,
+      maxOutputTokens: 1000,
       systemPromptSuffix: '',
     },
   }

@@ -78,9 +78,9 @@ describe('getEmotionAdaptation', () => {
     detectedAt: Date.now(),
   })
 
-  it('stressed → maxOutputTokens 300, ttsStability 0.8', () => {
+  it('stressed → maxOutputTokens 800, ttsStability 0.8', () => {
     const adaptation = getEmotionAdaptation(makeProfile('stressed'))
-    expect(adaptation.maxOutputTokens).toBe(300)
+    expect(adaptation.maxOutputTokens).toBe(800)
     expect(adaptation.ttsStability).toBe(0.8)
   })
 
@@ -89,8 +89,8 @@ describe('getEmotionAdaptation', () => {
     expect(adaptation.systemPromptSuffix).toBe('')
   })
 
-  it('confident → maxOutputTokens 1000', () => {
+  it('confident → maxOutputTokens 1200', () => {
     const adaptation = getEmotionAdaptation(makeProfile('confident'))
-    expect(adaptation.maxOutputTokens).toBe(1000)
+    expect(adaptation.maxOutputTokens).toBe(1200)
   })
 })

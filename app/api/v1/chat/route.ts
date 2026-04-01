@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
 
   let { messages } = parsed.data
   const { personality } = parsed.data
-  const maxOutputTokens = parsed.data.maxOutputTokens ?? 600
+  const maxOutputTokens = parsed.data.maxOutputTokens ?? 1000
   const clientMemories = parsed.data.memories ?? ""
 
   // ── 5. Fetch Life Graph context via semantic search ─────────────────────────

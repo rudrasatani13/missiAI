@@ -88,7 +88,7 @@ describe('useEmotionDetector', () => {
     const adaptation = getSmoothedAdaptation()
     // Since confidence is 0.2 (< 0.4), should return neutral
     expect(adaptation.systemPromptSuffix).toBe('')
-    expect(adaptation.maxOutputTokens).toBe(600)
+    expect(adaptation.maxOutputTokens).toBe(1000)
   })
 
   it('resetEmotion → currentEmotion becomes null', () => {

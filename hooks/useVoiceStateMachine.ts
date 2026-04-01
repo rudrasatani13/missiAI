@@ -435,8 +435,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         setStreamingText("")
         setLastResponse(full)
         conversationRef.current.push({ role: "assistant", content: full })
-        if (conversationRef.current.length > 20) {
-          conversationRef.current = conversationRef.current.slice(-20)
+        if (conversationRef.current.length > 14) {
+          conversationRef.current = conversationRef.current.slice(-14)
         }
 
         // Auto-save memory (fire-and-forget)
@@ -481,17 +481,19 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           continue
         }
 
-        // All retries exhausted
+        // All retries exhausted — remove the last user message to prevent broken context
         setStreamingText("")
         setLastResponse("")
-        setError("Failed to get response.")
-        if (continuousRef.current) {
-          setTimeout(() => {
-            if (continuousRef.current) fnRef.current.startRecording()
-          }, 1500)
-        } else {
-          resetToIdle()
+        setError("Failed to get response — tap to try again")
+        // Remove the last user message that caused the failure
+        const lastMsg = conversationRef.current[conversationRef.current.length - 1]
+        if (lastMsg?.role === "user") {
+          conversationRef.current.pop()
         }
+        if (continuousRef.current) {
+          continuousRef.current = false // Stop continuous mode on persistent failure
+        }
+        resetToIdle()
       }
     }
   }, [
