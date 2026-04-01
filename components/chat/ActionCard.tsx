@@ -87,8 +87,10 @@ export function ActionCard({ result, onDismiss, onCopy }: ActionCardProps) {
   const label = getActionLabel(result.type)
   const showCopyBtn =
     (result.type === "draft_email" || result.type === "draft_message") && onCopy
+  const isLongContent = result.type === "draft_email" || result.type === "draft_message"
+  const previewLimit = isLongContent ? 200 : 100
   const displayOutput =
-    result.output.length > 100 ? result.output.slice(0, 100) + "..." : result.output
+    result.output.length > previewLimit ? result.output.slice(0, previewLimit) + "..." : result.output
 
   return (
     <div

@@ -141,16 +141,23 @@ async function handleWebSearch(intent: ActionIntent): Promise<ActionResult> {
 async function handleDraftEmail(intent: ActionIntent): Promise<ActionResult> {
   const { to = "", subject = "", tone = "professional", keyPoints = "" } = intent.parameters
   const fullDraft = await callAIDirect(
-    "You are an email writing assistant. Write a professional email based on the parameters. Return ONLY the email body text. No subject line, no To: field, no markdown. Just the body.",
-    `Write email to: ${to}, about: ${subject}, tone: ${tone}, key points: ${keyPoints}`,
-    { useGoogleSearch: false, maxOutputTokens: 500 },
+    `You are an email writing assistant. Write a complete, ready-to-send email based on the given details.
+Rules:
+- Write the FULL email: greeting, body paragraphs, closing, and sign-off
+- Use real content — DO NOT use placeholder text like [Name], [Date], [Manager's Name], [Your Name] etc.
+- If the recipient's actual name is unknown, use a generic but natural greeting like "Dear Manager," or "Dear Sir/Madam,"
+- If specific dates or details are missing, write natural placeholder text like "from [leave start date] to [leave end date]" only where absolutely necessary
+- Tone must match: ${tone}
+- Return ONLY the complete email text. No subject line header, no To: field, no markdown, no commentary.`,
+    `Write a complete email to: ${to || "the recipient"}, about: ${subject || keyPoints}, tone: ${tone}, details: ${keyPoints}`,
+    { useGoogleSearch: false, maxOutputTokens: 800 },
   )
   return {
     success: true,
     type: "draft_email",
-    output: truncate(fullDraft, 300),
+    output: fullDraft,
     data: { fullDraft, to, subject, tone },
-    actionTaken: `Drafted email to ${to} about ${subject}`,
+    actionTaken: `Drafted email to ${to || "recipient"} about ${subject || keyPoints}`,
     canUndo: false,
     executedAt: Date.now(),
   }
