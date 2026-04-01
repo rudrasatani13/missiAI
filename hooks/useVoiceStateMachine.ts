@@ -123,10 +123,19 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     const timeDomain = new Float32Array(analyser.fftSize)
     const freqData = new Uint8Array(analyser.frequencyBinCount)
 
-    const SPEECH_THRESH = 0.015
-    const SILENCE_THRESH = 0.008
-    const SILENCE_MS = 1800
+    const SPEECH_THRESH = 0.04
+    const SILENCE_THRESH = 0.025
+    const SILENCE_MS = 1500
     const MAX_RECORD_MS = 30_000
+    const NO_SPEECH_MS = 5000   // stop recording if no speech detected within 5s
+    let silentFrameCount = 0
+    const SILENT_FRAMES_NEEDED = 12  // ~200ms of consecutive silence at 60fps
+
+    const noSpeechTimer = setTimeout(() => {
+      if (!hasSpokenRef.current && mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop()
+      }
+    }, NO_SPEECH_MS)
 
     const maxTimer = setTimeout(() => {
       if (mediaRecorderRef.current?.state === "recording") {
@@ -152,6 +161,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
       if (rms > SPEECH_THRESH) {
         hasSpokenRef.current = true
+        silentFrameCount = 0
+        clearTimeout(noSpeechTimer)
         if (silenceTimerRef.current) {
           clearTimeout(silenceTimerRef.current)
           silenceTimerRef.current = null
@@ -159,22 +170,28 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       }
 
       if (hasSpokenRef.current && rms < SILENCE_THRESH) {
-        if (!silenceTimerRef.current) {
+        silentFrameCount++
+        // Only start silence timer after consistent silence (not single-frame dips)
+        if (silentFrameCount >= SILENT_FRAMES_NEEDED && !silenceTimerRef.current) {
           silenceTimerRef.current = setTimeout(() => {
             if (mediaRecorderRef.current?.state === "recording") {
               mediaRecorderRef.current.stop()
             }
           }, SILENCE_MS)
         }
-      } else if (rms >= SILENCE_THRESH && silenceTimerRef.current) {
-        clearTimeout(silenceTimerRef.current)
-        silenceTimerRef.current = null
+      } else if (rms >= SILENCE_THRESH) {
+        silentFrameCount = 0
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current)
+          silenceTimerRef.current = null
+        }
       }
 
       levelAnimRef.current = requestAnimationFrame(monitor)
     }
 
     ;(analyser as any)._maxTimer = maxTimer
+    ;(analyser as any)._noSpeechTimer = noSpeechTimer
     levelAnimRef.current = requestAnimationFrame(monitor)
   }, [])
 
@@ -183,6 +200,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
     if (analyserRef.current && (analyserRef.current as any)._maxTimer) {
       clearTimeout((analyserRef.current as any)._maxTimer)
+    }
+    if (analyserRef.current && (analyserRef.current as any)._noSpeechTimer) {
+      clearTimeout((analyserRef.current as any)._noSpeechTimer)
     }
 
     // Analyze emotion from last audio snapshot before clearing

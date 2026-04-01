@@ -68,14 +68,13 @@ export async function speechToText(options: STTOptions): Promise<STTResult> {
   const {
     audio,
     apiKey,
-    languageCode = "hin",
     keyterms = HINGLISH_KEYTERMS,
   } = options
 
   const form = new FormData()
   form.append("file", audio)
   form.append("model_id", "scribe_v2")
-  form.append("language_code", languageCode)
+  // Let Scribe auto-detect language — supports Hindi, English, and Hinglish
   for (const term of keyterms) {
     form.append("keyterms", term)
   }
@@ -95,7 +94,7 @@ export async function speechToText(options: STTOptions): Promise<STTResult> {
   const result = await res.json()
   return {
     text: (result.text as string) ?? "",
-    language: (result.language_code as string) ?? languageCode,
+    language: (result.language_code as string) ?? "auto",
     confidence: (result.language_probability as number) ?? 0,
   }
 }

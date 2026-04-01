@@ -14,23 +14,23 @@ export function shouldUseTTS(text: string, voiceEnabled: boolean): boolean {
 }
 
 /**
- * Truncate text for TTS: extract the first 3 complete sentences,
- * max 600 chars. Append "..." if truncated.
+ * Truncate text for TTS: extract the first 5 complete sentences,
+ * max 1200 chars. Append "..." if truncated.
  */
 export function truncateForTTS(text: string): string {
-  if (text.length <= 600) return text
+  if (text.length <= 1200) return text
 
   // Split on sentence-ending punctuation followed by a space
   const sentenceEnders = /(?<=[.!?])\s+/
   const sentences = text.split(sentenceEnders)
 
-  if (sentences.length <= 3) {
-    return text.slice(0, 600) + "..."
+  if (sentences.length <= 5) {
+    return text.slice(0, 1200) + "..."
   }
 
-  const truncated = sentences.slice(0, 3).join(" ")
-  if (truncated.length > 600) {
-    return truncated.slice(0, 600) + "..."
+  const truncated = sentences.slice(0, 5).join(" ")
+  if (truncated.length > 1200) {
+    return truncated.slice(0, 1200) + "..."
   }
   return truncated + "..."
 }
