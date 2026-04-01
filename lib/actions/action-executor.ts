@@ -140,6 +140,20 @@ async function handleWebSearch(intent: ActionIntent): Promise<ActionResult> {
 
 async function handleDraftEmail(intent: ActionIntent): Promise<ActionResult> {
   const { to = "", subject = "", tone = "professional", keyPoints = "" } = intent.parameters
+
+  // If no recipient and no purpose, return a clarification prompt instead of a blank email
+  if (!to.trim() && !keyPoints.trim() && !subject.trim()) {
+    return {
+      success: true,
+      type: "draft_email",
+      output: "Who should I send this email to, and what should it be about? Tell me and I'll draft it right away.",
+      data: { fullDraft: "", to, subject, tone },
+      actionTaken: "Needs more info to draft email",
+      canUndo: false,
+      executedAt: Date.now(),
+    }
+  }
+
   const fullDraft = await callAIDirect(
     `You are an email writing assistant. Write a complete, ready-to-send email based on the given details.
 Rules:

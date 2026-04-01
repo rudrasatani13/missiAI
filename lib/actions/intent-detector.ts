@@ -8,12 +8,11 @@ Return ONLY valid JSON, no markdown, no explanation:
 ActionTypes and when to use them:
 - web_search: user wants to find something online
   params: { "query": string }
-- draft_email: user wants to write an email AND has provided BOTH a recipient (to) AND a purpose/topic (keyPoints or subject)
+- draft_email: user wants to write/draft/send an email
   params: { "to": string, "subject": string, "tone": string, "keyPoints": string }
-  IMPORTANT: Only set confidence >= 0.75 for draft_email if BOTH recipient (to) AND purpose (keyPoints) are clearly specified. If user just says "send an email" or "draft an email" without saying who it's for or what it's about, return type "none" with confidence 0.2 so Missi can ask for details.
-- draft_message: user wants to write a WhatsApp/text message AND has provided recipient and purpose
+  Extract whatever details are mentioned. If recipient or purpose is not stated, leave as empty string.
+- draft_message: user wants to write a WhatsApp/text/SMS message
   params: { "to": string, "tone": string, "keyPoints": string }
-  IMPORTANT: Same rule as draft_email — only fire if recipient and purpose are both given.
 - set_reminder: user wants to remember something at a time
   params: { "task": string, "time": string }
 - take_note: user wants to save a note or idea
@@ -24,7 +23,7 @@ ActionTypes and when to use them:
   params: { "text": string, "targetLanguage": string }
 - summarize: user wants a summary of something they paste or describe
   params: { "content": string }
-- none: regular conversation, question, or chitchat — also use this when user asks to send/draft email/message but hasn't specified WHO it's for or WHAT it's about
+- none: regular conversation, question, or chitchat
 
 Only return type other than 'none' if confidence >= 0.75.
 For casual questions like 'what is the weather' → none (missi answers directly).
