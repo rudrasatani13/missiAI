@@ -105,6 +105,15 @@ export const dismissSchema = z.object({
 
 export type DismissInput = z.infer<typeof dismissSchema>
 
+// ─── /api/v1/actions ──────────────────────────────────────────────────────────
+
+export const actionSchema = z.object({
+  userMessage: z.string().min(1).max(2000),
+  conversationContext: z.string().max(3000).optional(),
+})
+
+export type ActionInput = z.infer<typeof actionSchema>
+
 // ─── Helper: return a 400 Response with the first Zod issue ──────────────────
 
 export function validationErrorResponse(error: z.ZodError): Response {

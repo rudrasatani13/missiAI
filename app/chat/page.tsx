@@ -7,12 +7,14 @@ import { ArrowLeft, Settings, X } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useProactive } from "@/hooks/useProactive"
+import { useActionEngine } from "@/hooks/useActionEngine"
 import { PERSONALITY_OPTIONS, type PersonalityKey, type ConversationEntry } from "@/types/chat"
 import { ParticleVisualizer } from "@/components/chat/ParticleVisualizer"
 import { VoiceButton } from "@/components/chat/VoiceButton"
 import { StatusDisplay } from "@/components/chat/StatusDisplay"
 import { SettingsPanel } from "@/components/chat/SettingsPanel"
 import { ConversationLog } from "@/components/chat/ConversationLog"
+import { ActionCard } from "@/components/chat/ActionCard"
 
 export const runtime = "edge"
 export const dynamic = "force-dynamic"
@@ -43,6 +45,10 @@ export default function VoiceAssistantPage() {
 
   // Proactive intelligence
   const { briefing, nudges, dismissItem, markDelivered } = useProactive()
+
+  // Action engine
+  const { detectAndExecute, lastResult, isExecuting, clearResult } = useActionEngine()
+  const lastResponseForActionRef = useRef("")
 
   useEffect(() => { try { const s = localStorage.getItem("missi-personality") as PersonalityKey | null
     if (s && PERSONALITY_OPTIONS.some((p) => p.key === s)) { setPersonality(s); personalityRef.current = s }
@@ -112,6 +118,25 @@ export default function VoiceAssistantPage() {
     signOut().catch(() => {}); setTimeout(() => { window.location.href = "/" }, 500)
   }, [signOut, cancelAll])
 
+  // Trigger action detection when user speaks (lastTranscript changes)
+  useEffect(() => {
+    if (!lastTranscript || lastTranscript === lastResponseForActionRef.current) return
+    lastResponseForActionRef.current = lastTranscript
+
+    const last3 = conversationRef.current
+      .slice(-6)
+      .map((e) => `${e.role}: ${e.content}`)
+      .join("\n")
+
+    detectAndExecute(lastTranscript, last3).catch(() => {})
+  }, [lastTranscript, detectAndExecute])
+
+  const handleActionCopy = useCallback(() => {
+    if (!lastResult) return
+    const text = (lastResult.data?.fullDraft as string) ?? lastResult.output
+    navigator.clipboard.writeText(text).catch(() => {})
+  }, [lastResult])
+
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"
       style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}>
@@ -142,7 +167,20 @@ export default function VoiceAssistantPage() {
         userImageUrl={user?.imageUrl || null} onLogout={handleLogout} />
       <ConversationLog messages={conversationRef.current} isVisible={false} />
       <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pb-10 md:pb-14 pointer-events-none">
-        <VoiceButton state={voiceState} onPress={handleTap} onRelease={() => {}} disabled={false} />
+        <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
+          {lastResult && (
+            <ActionCard
+              result={lastResult}
+              onDismiss={clearResult}
+              onCopy={
+                lastResult.type === "draft_email" || lastResult.type === "draft_message"
+                  ? handleActionCopy
+                  : undefined
+              }
+            />
+          )}
+          <VoiceButton state={voiceState} onPress={handleTap} onRelease={() => {}} disabled={false} />
+        </div>
         <StatusDisplay
           state={voiceState}
           streamingText={streamingText}
