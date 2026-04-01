@@ -237,7 +237,7 @@ function kvFallbackSearch(
     query
       .toLowerCase()
       .split(/[\s,.!?;:'"()\[\]{}<>\/\\|@#$%^&*+=~`\-_]+/)
-      .filter(Boolean),
+      .filter((w) => w.length > 2), // Ignore very short words (a, is, to, etc.)
   )
 
   let nodes = graph.nodes
@@ -246,49 +246,48 @@ function kvFallbackSearch(
   }
 
   const scored = nodes.map((node) => {
-    let score = 0
+    let keywordScore = 0
     // Tag matching (strong signal)
     for (const tag of node.tags) {
-      if (queryWords.has(tag.toLowerCase())) score += 2
+      if (queryWords.has(tag.toLowerCase())) keywordScore += 2
     }
     // Title word matching (strongest signal)
     const titleWords = node.title.toLowerCase().split(/\s+/)
     for (const word of titleWords) {
-      if (queryWords.has(word)) score += 3
+      if (queryWords.has(word)) keywordScore += 3
     }
     // Detail word matching (weak signal)
     const detailWords = node.detail.toLowerCase().split(/\s+/)
     for (const word of detailWords) {
-      if (queryWords.has(word)) score += 1
+      if (queryWords.has(word)) keywordScore += 1
     }
     // People name matching
     for (const person of node.people) {
-      if (queryWords.has(person.toLowerCase())) score += 4
+      if (queryWords.has(person.toLowerCase())) keywordScore += 4
     }
-    // Boost for frequently accessed nodes
-    if (node.accessCount > 3) score += 1
-    // Boost for emotional weight
-    score += node.emotionalWeight * 2
-    // Boost for confidence
-    score += node.confidence
-    return { node, score }
+
+    // Only add contextual boosts when there's at least one keyword match
+    let score = keywordScore
+    if (keywordScore > 0) {
+      if (node.accessCount > 3) score += 1
+      score += node.emotionalWeight * 2
+      score += node.confidence
+    }
+
+    return { node, score, hasKeywordMatch: keywordScore > 0 }
   })
 
   scored.sort((a, b) => b.score - a.score)
 
+  // Only return nodes that had actual keyword matches
   const maxScore = scored[0]?.score || 1
-  const topResults = scored.slice(0, topK).filter((s) => s.score > 0)
+  const topResults = scored
+    .filter((s) => s.hasKeywordMatch && s.score >= 2)
+    .slice(0, topK)
 
-  // If nothing scored, return 3 most recent nodes
+  // If nothing is relevant, return empty — don't force unrelated memories
   if (topResults.length === 0) {
-    const recent = [...nodes]
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .slice(0, 3)
-    return recent.map((node) => ({
-      node,
-      score: 0.5,
-      reason: 'Recent memory (no keyword match)',
-    }))
+    return []
   }
 
   return topResults.map((s) => ({

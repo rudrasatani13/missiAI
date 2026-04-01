@@ -55,6 +55,8 @@ export function useActionEngine() {
       userMessage: string,
       conversationContext: string,
     ): Promise<ActionResult | null> => {
+      if (!userMessage.trim()) return null
+
       setIsExecuting(true)
       setError(null)
 
@@ -65,10 +67,15 @@ export function useActionEngine() {
           body: JSON.stringify({ userMessage, conversationContext }),
         })
 
+        if (!res.ok) {
+          console.warn("[ActionEngine] API returned", res.status)
+          return null
+        }
+
         const data = await res.json()
 
         if (!data.success) {
-          setError(data.error ?? "Action failed")
+          console.warn("[ActionEngine] API error:", data.error)
           return null
         }
 
@@ -89,9 +96,7 @@ export function useActionEngine() {
 
         return result ?? null
       } catch (err) {
-        if (mountedRef.current) {
-          setError(err instanceof Error ? err.message : "Action failed")
-        }
+        console.warn("[ActionEngine] fetch error:", err)
         return null
       } finally {
         if (mountedRef.current) {

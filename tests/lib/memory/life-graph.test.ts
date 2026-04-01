@@ -440,7 +440,7 @@ describe("life-graph", () => {
       expect(results[0].node.category).toBe("person")
     })
 
-    it("should return recent memories when no matches", async () => {
+    it("should return empty when no keyword matches (not irrelevant memories)", async () => {
       const graphWithMultipleNodes = {
         ...testGraph,
         nodes: [
@@ -460,10 +460,8 @@ describe("life-graph", () => {
         "test-api-key"
       )
 
-      expect(results.length).toBe(3) // Should return 3 most recent
-      expect(results[0].reason).toBe("Recent memory (no keyword match)")
-      expect(results[0].score).toBe(0.5)
-      expect(results[0].node.title).toBe("Alpha") // Most recent
+      // Should NOT inject irrelevant memories — return empty instead
+      expect(results.length).toBe(0)
     })
   })
 

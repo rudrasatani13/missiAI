@@ -166,19 +166,25 @@ export default function VoiceAssistantPage() {
         userName={user?.fullName || "User"} userEmail={user?.primaryEmailAddress?.emailAddress || ""}
         userImageUrl={user?.imageUrl || null} onLogout={handleLogout} />
       <ConversationLog messages={conversationRef.current} isVisible={false} />
+
+      {/* ── Action Card Overlay — above everything ─── */}
+      {lastResult && (
+        <div className="fixed bottom-32 md:bottom-36 left-0 right-0 z-50 flex justify-center pointer-events-none"
+          data-testid="action-card-container">
+          <ActionCard
+            result={lastResult}
+            onDismiss={clearResult}
+            onCopy={
+              lastResult.type === "draft_email" || lastResult.type === "draft_message"
+                ? handleActionCopy
+                : undefined
+            }
+          />
+        </div>
+      )}
+
       <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pb-10 md:pb-14 pointer-events-none">
         <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
-          {lastResult && (
-            <ActionCard
-              result={lastResult}
-              onDismiss={clearResult}
-              onCopy={
-                lastResult.type === "draft_email" || lastResult.type === "draft_message"
-                  ? handleActionCopy
-                  : undefined
-              }
-            />
-          )}
           <VoiceButton state={voiceState} onPress={handleTap} onRelease={() => {}} disabled={false} />
         </div>
         <StatusDisplay

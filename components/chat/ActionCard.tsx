@@ -96,12 +96,9 @@ export function ActionCard({ result, onDismiss, onCopy }: ActionCardProps) {
       role="status"
       aria-label={`Action result: ${label}`}
       style={{
-        position: "absolute",
-        bottom: "100%",
-        left: "50%",
         transform: visible
-          ? "translate(-50%, -12px) translateY(0px)"
-          : "translate(-50%, -12px) translateY(20px)",
+          ? "translateY(0px)"
+          : "translateY(20px)",
         opacity: visible ? 1 : 0,
         transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
         background: "rgba(255,255,255,0.06)",
@@ -113,7 +110,6 @@ export function ActionCard({ result, onDismiss, onCopy }: ActionCardProps) {
         minWidth: "280px",
         maxWidth: "380px",
         width: "max-content",
-        zIndex: 50,
         pointerEvents: "auto",
       }}
     >
