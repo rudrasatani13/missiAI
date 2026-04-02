@@ -5,7 +5,6 @@ import { log } from "@/lib/server/logger"
 
 const isPublicRoute = createRouteMatcher([
   "/",
-  "/login(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/waitlist(.*)",
@@ -172,8 +171,8 @@ export default async function middleware(request: NextRequest, event: NextFetchE
       )
     }
 
-    // Protected page routes redirect to login
-    return NextResponse.redirect(new URL("/login", request.url))
+    // Protected page routes redirect to sign-in
+    return NextResponse.redirect(new URL("/sign-in", request.url))
   }
 }
 
