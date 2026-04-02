@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Settings, X } from "lucide-react"
+import { ArrowLeft, Brain, Settings, X } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useProactive } from "@/hooks/useProactive"
@@ -219,6 +219,15 @@ export default function VoiceAssistantPage() {
         </div>
         <div className="flex items-center gap-2 pointer-events-auto">
           <PluginBadge plugins={plugins} onManage={() => setShowSettings(true)} />
+          <Link
+            href="/memory"
+            onClick={(e) => e.stopPropagation()}
+            className="opacity-40 hover:opacity-70 transition-opacity"
+            title="Memory Graph"
+            style={{ display: 'flex', alignItems: 'center', color: 'white' }}
+          >
+            <Brain className="w-4 h-4" />
+          </Link>
           <button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings) }}
             className="opacity-40 hover:opacity-70 transition-opacity"
             data-testid="settings-toggle-btn"
