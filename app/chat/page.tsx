@@ -122,10 +122,10 @@ export default function VoiceAssistantPage() {
   }, [])
 
   useEffect(() => { const h = (e: KeyboardEvent) => {
-    if (e.code === "Space" && e.target === document.body) { e.preventDefault(); handleTap() }
+    if (e.code === "Space" && e.target === document.body) { e.preventDefault(); if (!isAtLimit) handleTap() }
     if (e.code === "Escape") cancelAll() }
     window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h)
-  }, [handleTap, cancelAll])
+  }, [handleTap, cancelAll, isAtLimit])
   useEffect(() => () => { cancelAll() }, [cancelAll])
   useEffect(() => { const bu = () => saveMemoryBeacon()
     const vc = () => { if (document.visibilityState === "hidden") saveMemoryBeacon() }
@@ -133,17 +133,17 @@ export default function VoiceAssistantPage() {
     return () => { window.removeEventListener("beforeunload", bu); document.removeEventListener("visibilitychange", vc) }
   }, [saveMemoryBeacon])
 
-  // Initial greeting
-  useEffect(() => { if (!isLoaded || greetedRef.current) return; greetedRef.current = true
+  // Initial greeting — skip if daily limit already reached
+  useEffect(() => { if (!isLoaded || greetedRef.current || isAtLimit) return; greetedRef.current = true
     try { sessionStorage.setItem('missi-greeted', '1') } catch {}
     const n = user?.firstName || "", gs = [`Hey${n ? ` ${n}` : ""}! What's up, how's it going?`,
       `Hey${n ? ` ${n}` : ""}! Good to see you, what can I help with?`, `Hey${n ? ` ${n}` : ""}! How are you doing today?`]
     setTimeout(() => greet(gs[Math.floor(Math.random() * gs.length)]), 1200)
-  }, [isLoaded, user, greet])
+  }, [isLoaded, user, greet, isAtLimit])
 
   // Proactive JARVIS moment: auto-speak first high-priority briefing item
   useEffect(() => {
-    if (!briefing || proactiveSpokenRef.current || !voiceEnabled) return
+    if (!briefing || proactiveSpokenRef.current || !voiceEnabled || isAtLimit) return
     const highItem = briefing.items.find(
       (item) => item.priority === "high" && !item.dismissedAt,
     )
@@ -159,7 +159,7 @@ export default function VoiceAssistantPage() {
     }, 2000)
 
     return () => clearTimeout(timer)
-  }, [briefing, voiceEnabled, greet])
+  }, [briefing, voiceEnabled, greet, isAtLimit])
 
   // Store last interaction time for nudge engine
   useEffect(() => {
@@ -228,8 +228,8 @@ export default function VoiceAssistantPage() {
     <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"
       style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}>
       <ParticleVisualizer state={voiceState} isActive={voiceState !== "idle"} audioLevel={audioLevel} />
-      <div className="fixed inset-0 z-10" onClick={handleTap} data-testid="voice-tap-area"
-        style={{ cursor: voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
+      <div className="fixed inset-0 z-10" onClick={isAtLimit ? undefined : handleTap} data-testid="voice-tap-area"
+        style={{ cursor: isAtLimit ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
       <nav className="relative z-20 flex items-center justify-between px-5 md:px-8 py-4 pointer-events-auto">
         <Link href="/" className="flex items-center gap-2 opacity-40 hover:opacity-70 transition-opacity" data-testid="home-link">
           <ArrowLeft className="w-4 h-4" />
@@ -315,25 +315,6 @@ export default function VoiceAssistantPage() {
             onRelease={() => {}}
             disabled={isAtLimit}
           />
-          {isAtLimit && (
-            <div
-              data-testid="voice-limit-tooltip"
-              style={{
-                position: 'absolute',
-                bottom: -28,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                whiteSpace: 'nowrap',
-                fontSize: 10,
-                color: '#EF4444',
-                fontWeight: 500,
-                pointerEvents: 'auto',
-              }}
-            >
-              Daily limit reached —{' '}
-              <a href="/pricing" style={{ color: '#F59E0B', textDecoration: 'underline' }}>upgrade to Pro</a>
-            </div>
-          )}
         </div>
         <StatusDisplay
           state={voiceState}

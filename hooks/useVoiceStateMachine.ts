@@ -399,6 +399,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
               setStreamingText("")
               setLastResponse("")
               setError("Daily voice limit reached — upgrade for unlimited access")
+              continuousRef.current = false  // stop continuous mode so recording doesn't restart
               resetToIdle()
               return
             }
