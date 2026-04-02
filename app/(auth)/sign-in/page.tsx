@@ -1,7 +1,6 @@
-import { SignIn } from "@clerk/nextjs"
+"use client"
 
-export const runtime = "edge"
-export const dynamic = "force-dynamic"
+import { SignIn } from "@clerk/nextjs"
 
 export default function SignInPage() {
   return (

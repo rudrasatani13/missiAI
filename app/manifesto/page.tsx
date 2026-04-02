@@ -1,7 +1,5 @@
 "use client"
 
-export const runtime = "edge"
-
 import { WaitlistLayout } from "@/components/waitlist/layout"
 import Image from "next/image"
 
