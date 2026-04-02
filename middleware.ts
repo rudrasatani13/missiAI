@@ -38,7 +38,7 @@ interface IPEntry {
 }
 
 const ipMap = new Map<string, IPEntry>()
-const IP_LIMIT = 10
+const IP_LIMIT = 60  // 60 requests per minute — voice assistant makes 3-4 calls per interaction
 const IP_WINDOW_MS = 60_000 // 60 seconds
 
 function checkIPRateLimit(ip: string): { allowed: boolean; retryAfter: number } {

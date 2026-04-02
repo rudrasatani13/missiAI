@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import type { LifeGraph, LifeNode, MemoryCategory } from '@/types/memory'
 
-export function useMemoryDashboard() {
+export function useMemoryDashboard(ready: boolean = true) {
   const [graph, setGraph] = useState<LifeGraph | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -16,6 +16,11 @@ export function useMemoryDashboard() {
     setError(null)
     try {
       const res = await fetch('/api/v1/memory')
+      // 401 means Clerk session not ready yet — show empty state, not error
+      if (res.status === 401) {
+        setGraph({ nodes: [], totalInteractions: 0, lastUpdatedAt: 0, version: 1 } as LifeGraph)
+        return
+      }
       const data = await res.json()
       if (data.success) {
         setGraph(data.data)
@@ -30,8 +35,8 @@ export function useMemoryDashboard() {
   }, [])
 
   useEffect(() => {
-    fetchGraph()
-  }, [fetchGraph])
+    if (ready) fetchGraph()
+  }, [fetchGraph, ready])
 
   const filteredNodes = useMemo((): LifeNode[] => {
     if (!graph) return []

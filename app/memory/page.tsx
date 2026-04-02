@@ -46,7 +46,7 @@ export default function MemoryPage() {
     updateSearch,
     updateCategory,
     refreshGraph,
-  } = useMemoryDashboard()
+  } = useMemoryDashboard(isLoaded && !!isSignedIn)
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)

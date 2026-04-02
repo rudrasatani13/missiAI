@@ -92,9 +92,20 @@ Failed: generating Pages Functions failed.
 | `/_not-found` | edge | 404 handler |
 | `/api/v1/*` | edge | API routes |
 
+## Bug Fixes Session 2
+
+| Bug | Root Cause | Fix |
+|-----|-----------|-----|
+| "Failed to get response" after 1-2 chats | `IP_LIMIT = 10/min` in middleware — voice interaction = 3-4 API calls | Raised to `IP_LIMIT = 60/min` |
+| Memory "Try again" error | Same rate limit hit memory API too | Fixed by rate limit raise + auth-ready guard in useMemoryDashboard |
+| Re-greeting on every /chat visit | `greetedRef = useRef(false)` resets on remount | sessionStorage persist |
+| Listening→Speaking loop | `proactiveSpokenRef` resets on remount → re-fires proactive greeting | sessionStorage persist |
+| Confusing error on daily limit | 429 USAGE_LIMIT_EXCEEDED shown as generic error | Specific message shown |
+
 ## Prioritized Backlog
 ### P0 (Critical)
 - [x] Bundle size fix for Cloudflare Pages deployment
+- [x] All runtime bugs fixed (rate limit, re-greeting, memory, voice loop)
 
 ### P1 (High)
 - None known

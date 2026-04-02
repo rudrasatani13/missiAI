@@ -63,6 +63,14 @@ export default function VoiceAssistantPage() {
   const greetedRef = useRef(false)
   const proactiveSpokenRef = useRef(false)
 
+  // Restore session state from sessionStorage so re-visiting chat doesn't replay greeting/proactive
+  useEffect(() => {
+    try {
+      greetedRef.current = sessionStorage.getItem('missi-greeted') === '1'
+      proactiveSpokenRef.current = sessionStorage.getItem('missi-proactive-spoken') === '1'
+    } catch {}
+  }, [])
+
   // Track current voiceState in a ref for use in async callbacks / timeouts
   const voiceStateRef = useRef<string>("idle")
 
@@ -127,6 +135,7 @@ export default function VoiceAssistantPage() {
 
   // Initial greeting
   useEffect(() => { if (!isLoaded || greetedRef.current) return; greetedRef.current = true
+    try { sessionStorage.setItem('missi-greeted', '1') } catch {}
     const n = user?.firstName || "", gs = [`Hey${n ? ` ${n}` : ""}! What's up, how's it going?`,
       `Hey${n ? ` ${n}` : ""}! Good to see you, what can I help with?`, `Hey${n ? ` ${n}` : ""}! How are you doing today?`]
     setTimeout(() => greet(gs[Math.floor(Math.random() * gs.length)]), 1200)
@@ -144,6 +153,7 @@ export default function VoiceAssistantPage() {
       // Only speak if state is idle at the time the timer fires
       if (voiceStateRef.current === "idle") {
         proactiveSpokenRef.current = true
+        try { sessionStorage.setItem('missi-proactive-spoken', '1') } catch {}
         greet(highItem.message)
       }
     }, 2000)

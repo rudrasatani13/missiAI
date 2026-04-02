@@ -389,8 +389,26 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           STREAM_CHAT_TIMEOUT,
         )
 
-        // Retryable server errors (429, 503) — wait then retry
-        if ((res.status === 429 || res.status === 503) && attempt < MAX_RETRIES) {
+        // Retryable server errors (503 only) — wait then retry
+        // Note: 429 from voice limit should NOT be retried — show specific error
+        if (res.status === 429 && attempt < MAX_RETRIES) {
+          // Check if it's a hard voice limit vs soft rate limit
+          try {
+            const errData = await res.clone().json()
+            if (errData.code === 'USAGE_LIMIT_EXCEEDED') {
+              setStreamingText("")
+              setLastResponse("")
+              setError("Daily voice limit reached — upgrade for unlimited access")
+              resetToIdle()
+              return
+            }
+          } catch {}
+          // Soft rate limit — wait and retry
+          await new Promise((r) => setTimeout(r, 1000 * attempt))
+          continue
+        }
+
+        if (res.status === 503 && attempt < MAX_RETRIES) {
           await new Promise((r) => setTimeout(r, 1000 * attempt))
           continue
         }
