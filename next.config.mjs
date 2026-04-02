@@ -9,7 +9,6 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: [
       'lucide-react',
-      'three',
       'recharts',
       '@radix-ui/react-accordion',
       '@radix-ui/react-alert-dialog',
@@ -23,6 +22,7 @@ const nextConfig = {
       'date-fns',
     ],
   },
+  serverExternalPackages: ['three'],
 }
 
 export default nextConfig

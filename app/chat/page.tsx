@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import dynamic from "next/dynamic"
 import { ArrowLeft, Brain, Settings, X, Crown } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
@@ -11,7 +12,6 @@ import { useActionEngine } from "@/hooks/useActionEngine"
 import { usePlugins } from "@/hooks/usePlugins"
 import { useBilling } from "@/hooks/useBilling"
 import { PERSONALITY_OPTIONS, type PersonalityKey, type ConversationEntry } from "@/types/chat"
-import { ParticleVisualizer } from "@/components/chat/ParticleVisualizer"
 import { VoiceButton } from "@/components/chat/VoiceButton"
 import { StatusDisplay } from "@/components/chat/StatusDisplay"
 import { SettingsPanel } from "@/components/chat/SettingsPanel"
@@ -22,6 +22,12 @@ import { UsageBar } from "@/components/chat/UsageBar"
 import { detectPluginCommand } from "@/lib/plugins/plugin-registry"
 import type { ActionResult } from "@/types/actions"
 import type { PluginId, PluginResult } from "@/types/plugins"
+
+// Dynamic import — keeps three.js OUT of the server/edge bundle (~5MB saved)
+const ParticleVisualizer = dynamic(
+  () => import("@/components/chat/ParticleVisualizer").then((m) => m.ParticleVisualizer),
+  { ssr: false }
+)
 
 export const runtime = "edge"
 export const dynamic = "force-dynamic"
