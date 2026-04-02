@@ -178,7 +178,7 @@ export default function PricingPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isSignedIn } = useUser()
-  const { plan, usage, isLoading, isUpgrading, createCheckoutSession, createPortalSession } = useBilling()
+  const { plan, isLoading, isUpgrading, createCheckoutSession, createPortalSession } = useBilling()
 
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
 

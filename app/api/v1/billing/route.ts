@@ -43,7 +43,7 @@ export async function GET() {
   })
 
   // Strip stripeCustomerId from response
-  const { stripeCustomerId: _, ...safeBilling } = billingData
+  const { stripeCustomerId: _stripeCustId, ...safeBilling } = billingData
 
   return new Response(
     JSON.stringify({
