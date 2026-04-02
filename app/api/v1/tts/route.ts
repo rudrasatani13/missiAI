@@ -5,6 +5,11 @@ import { textToSpeech } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import { createTimer, logRequest, logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
+import { getRequestContext } from "@cloudflare/next-on-pages"
+import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
+import { getTodayDate } from "@/lib/billing/usage-tracker"
+import { COST_CONSTANTS } from "@/lib/server/cost-tracker"
+import type { KVStore } from "@/types"
 
 export const runtime = "edge"
 
@@ -103,6 +108,22 @@ export async function POST(req: NextRequest) {
     )
 
     logRequest("tts.completed", userId, startTime, { charCount })
+
+    // Analytics: fire-and-forget
+    try {
+      const { env } = getRequestContext()
+      const kv = (env as any).MISSI_MEMORY as KVStore | null
+      if (kv) {
+        recordEvent(kv, {
+          type: 'tts',
+          userId,
+          costUsd: charCount * COST_CONSTANTS.TTS_COST_PER_CHAR,
+        }).catch(() => {})
+        recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
+      }
+    } catch {
+      // KV unavailable, skip analytics
+    }
 
     return new NextResponse(audioData, {
       headers: {

@@ -14,7 +14,8 @@ import { createTimer, logRequest, logError } from "@/lib/server/logger"
 import { calculateTotalCost, checkBudgetAlert } from "@/lib/server/cost-tracker"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { checkVoiceLimit, incrementVoiceUsage } from "@/lib/billing/usage-tracker"
+import { checkVoiceLimit, incrementVoiceUsage, getTodayDate } from "@/lib/billing/usage-tracker"
+import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
@@ -242,6 +243,15 @@ export async function POST(req: NextRequest) {
               // Increment voice usage after successful response
               if (kv) {
                 incrementVoiceUsage(kv, userId).catch(() => {})
+
+                // Analytics: fire-and-forget
+                recordEvent(kv, {
+                  type: 'chat',
+                  userId,
+                  costUsd: costData.totalCostUsd,
+                  metadata: { model: costData.model, tokensIn: costData.inputTokens, tokensOut: costData.outputTokens },
+                }).catch(() => {})
+                recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
               }
 
               if (cacheKey && isCacheable(userMessageText, fullResponse)) {

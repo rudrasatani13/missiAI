@@ -6,6 +6,8 @@ import { actionSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { detectIntent, isActionable } from "@/lib/actions/intent-detector"
 import { executeAction } from "@/lib/actions/action-executor"
 import { successResponse, standardErrors } from "@/types/api"
+import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
+import { getTodayDate } from "@/lib/billing/usage-tracker"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
@@ -99,6 +101,16 @@ export async function POST(req: Request) {
       success: result.success,
       durationMs,
     })
+
+    // Analytics: fire-and-forget
+    if (kv) {
+      recordEvent(kv, {
+        type: 'action',
+        userId,
+        metadata: { actionType: result.type },
+      }).catch(() => {})
+      recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
+    }
 
     return successResponse({ actionable: true, intent, result })
   } catch (e) {

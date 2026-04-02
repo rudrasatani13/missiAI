@@ -15,6 +15,9 @@ const isPublicRoute = createRouteMatcher([
   "/pricing(.*)",
 ])
 
+// Admin routes require Clerk auth (admin check happens server-side in API route)
+const isAdminRoute = createRouteMatcher(["/admin(.*)"])
+
 // API routes handle their own Clerk auth and return JSON 401 — not a browser
 // redirect. Letting middleware's auth.protect() run here causes Clerk to issue a
 // page-style redirect, which sends HTML instead of a JSON error.

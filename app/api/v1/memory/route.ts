@@ -16,6 +16,8 @@ import { extractLifeNodes } from "@/lib/memory/graph-extractor"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import { logRequest, logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
+import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
+import { getTodayDate } from "@/lib/billing/usage-tracker"
 import type { KVStore } from "@/types"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { MemoryCategory } from "@/types/memory"
@@ -101,6 +103,13 @@ export async function GET(req: NextRequest) {
       logRequest("memory.read", userId, startTime, {
         resultCount: results.length,
       })
+
+      // Analytics: fire-and-forget
+      if (kv) {
+        recordEvent(kv, { type: 'memory_read', userId }).catch(() => {})
+        recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
+      }
+
       return jsonResponse({ success: true, data: results })
     }
 
@@ -109,6 +118,13 @@ export async function GET(req: NextRequest) {
     logRequest("memory.read", userId, startTime, {
       nodeCount: graph.nodes.length,
     })
+
+    // Analytics: fire-and-forget
+    if (kv) {
+      recordEvent(kv, { type: 'memory_read', userId }).catch(() => {})
+      recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
+    }
+
     return jsonResponse({ success: true, data: graph })
   } catch (err) {
     logError("memory.read_error", err, userId)
@@ -223,6 +239,12 @@ export async function POST(req: NextRequest) {
       updated,
       totalInteractions: graph.totalInteractions,
     })
+
+    // Analytics: fire-and-forget
+    if (kv) {
+      recordEvent(kv, { type: 'memory_write', userId }).catch(() => {})
+      recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
+    }
 
     return jsonResponse({ success: true, data: { added, updated } })
   } catch (err) {
