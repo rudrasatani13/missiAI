@@ -119,7 +119,7 @@ describe('DELETE /api/v1/memory/[nodeId]', () => {
     mockGetLifeGraph.mockResolvedValueOnce(makeGraph([node]))
 
     const req = makeRequest('DELETE', TEST_NODE_ID)
-    const res = await DELETE(req, { params: { nodeId: TEST_NODE_ID } })
+    const res = await DELETE(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const body = await res.json()
 
     expect(res.status).toBe(200)
@@ -137,7 +137,7 @@ describe('DELETE /api/v1/memory/[nodeId]', () => {
     mockGetLifeGraph.mockResolvedValueOnce(makeGraph([]))
 
     const req = makeRequest('DELETE', TEST_NODE_ID)
-    const res = await DELETE(req, { params: { nodeId: TEST_NODE_ID } })
+    const res = await DELETE(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const body = await res.json()
 
     expect(res.status).toBe(404)
@@ -150,7 +150,7 @@ describe('DELETE /api/v1/memory/[nodeId]', () => {
     mockGetLifeGraph.mockResolvedValueOnce(makeGraph([node]))
 
     const req = makeRequest('DELETE', TEST_NODE_ID)
-    const res = await DELETE(req, { params: { nodeId: TEST_NODE_ID } })
+    const res = await DELETE(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const body = await res.json()
 
     expect(res.status).toBe(404)
@@ -162,14 +162,14 @@ describe('DELETE /api/v1/memory/[nodeId]', () => {
     mockGetVerifiedUserId.mockRejectedValueOnce(new AuthenticationError())
 
     const req = makeRequest('DELETE', TEST_NODE_ID)
-    await DELETE(req, { params: { nodeId: TEST_NODE_ID } })
+    await DELETE(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
 
     expect(unauthorizedResponse).toHaveBeenCalled()
   })
 
   it('nodeId empty string → 400 validation error', async () => {
     const req = makeRequest('DELETE', ' ')
-    const res = await DELETE(req, { params: { nodeId: '' } })
+    const res = await DELETE(req, { params: Promise.resolve({ nodeId: '' }) })
     const body = await res.json()
 
     expect(res.status).toBe(400)
@@ -179,7 +179,7 @@ describe('DELETE /api/v1/memory/[nodeId]', () => {
   it('nodeId too long → 400 validation error', async () => {
     const longId = 'a'.repeat(51)
     const req = makeRequest('DELETE', longId)
-    const res = await DELETE(req, { params: { nodeId: longId } })
+    const res = await DELETE(req, { params: Promise.resolve({ nodeId: longId }) })
     const body = await res.json()
 
     expect(res.status).toBe(400)
@@ -194,7 +194,7 @@ describe('DELETE /api/v1/memory/[nodeId]', () => {
     } as any)
 
     const req = makeRequest('DELETE', TEST_NODE_ID)
-    const res = await DELETE(req, { params: { nodeId: TEST_NODE_ID } })
+    const res = await DELETE(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const body = await res.json()
 
     expect(res.status).toBe(500)
@@ -207,7 +207,7 @@ describe('DELETE /api/v1/memory/[nodeId]', () => {
     mockGetLifeGraph.mockResolvedValueOnce(makeGraph([targetNode, otherNode]))
 
     const req = makeRequest('DELETE', TEST_NODE_ID)
-    await DELETE(req, { params: { nodeId: TEST_NODE_ID } })
+    await DELETE(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
 
     const savedGraph = mockSaveLifeGraph.mock.calls[0][2] as LifeGraph
     expect(savedGraph.nodes).toHaveLength(1)
@@ -225,7 +225,7 @@ describe('PATCH /api/v1/memory/[nodeId]', () => {
     const req = makeRequest('PATCH', TEST_NODE_ID, {
       detail: 'Updated detail about TypeScript mastery',
     })
-    const res = await PATCH(req, { params: { nodeId: TEST_NODE_ID } })
+    const res = await PATCH(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const body = await res.json()
 
     expect(res.status).toBe(200)
@@ -238,7 +238,7 @@ describe('PATCH /api/v1/memory/[nodeId]', () => {
     const req = makeRequest('PATCH', TEST_NODE_ID, {
       tags: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'],
     })
-    const res = await PATCH(req, { params: { nodeId: TEST_NODE_ID } })
+    const res = await PATCH(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const body = await res.json()
 
     expect(res.status).toBe(400)
@@ -252,7 +252,7 @@ describe('PATCH /api/v1/memory/[nodeId]', () => {
     const req = makeRequest('PATCH', TEST_NODE_ID, {
       tags: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'],
     })
-    const res = await PATCH(req, { params: { nodeId: TEST_NODE_ID } })
+    const res = await PATCH(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const body = await res.json()
 
     expect(res.status).toBe(200)
@@ -263,7 +263,7 @@ describe('PATCH /api/v1/memory/[nodeId]', () => {
     const req = makeRequest('PATCH', TEST_NODE_ID, {
       detail: 'x'.repeat(501),
     })
-    const res = await PATCH(req, { params: { nodeId: TEST_NODE_ID } })
+    const res = await PATCH(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const body = await res.json()
 
     expect(res.status).toBe(400)
@@ -274,7 +274,7 @@ describe('PATCH /api/v1/memory/[nodeId]', () => {
     mockGetLifeGraph.mockResolvedValueOnce(makeGraph([]))
 
     const req = makeRequest('PATCH', TEST_NODE_ID, { detail: 'new detail' })
-    const res = await PATCH(req, { params: { nodeId: TEST_NODE_ID } })
+    const res = await PATCH(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const body = await res.json()
 
     expect(res.status).toBe(404)
@@ -285,7 +285,7 @@ describe('PATCH /api/v1/memory/[nodeId]', () => {
     mockGetVerifiedUserId.mockRejectedValueOnce(new AuthenticationError())
 
     const req = makeRequest('PATCH', TEST_NODE_ID, { detail: 'new detail' })
-    await PATCH(req, { params: { nodeId: TEST_NODE_ID } })
+    await PATCH(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
 
     expect(unauthorizedResponse).toHaveBeenCalled()
   })
@@ -297,7 +297,7 @@ describe('PATCH /api/v1/memory/[nodeId]', () => {
 
     const before = Date.now()
     const req = makeRequest('PATCH', TEST_NODE_ID, { detail: 'new detail' })
-    await PATCH(req, { params: { nodeId: TEST_NODE_ID } })
+    await PATCH(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const after = Date.now()
 
     const savedGraph = mockSaveLifeGraph.mock.calls[0][2] as LifeGraph
@@ -311,7 +311,7 @@ describe('PATCH /api/v1/memory/[nodeId]', () => {
       `http://localhost/api/v1/memory/${TEST_NODE_ID}`,
       { method: 'PATCH', body: 'not-json', headers: { 'Content-Type': 'application/json' } },
     )
-    const res = await PATCH(req, { params: { nodeId: TEST_NODE_ID } })
+    const res = await PATCH(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const body = await res.json()
 
     expect(res.status).toBe(400)

@@ -39,7 +39,7 @@ const patchBodySchema = z.object({
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { nodeId: string } },
+  { params }: { params: Promise<{ nodeId: string }> },
 ) {
   const startTime = Date.now()
 
@@ -52,7 +52,7 @@ export async function DELETE(
     throw e
   }
 
-  const { nodeId } = params
+  const { nodeId } = await params
   const parsed = nodeIdSchema.safeParse(nodeId)
   if (!parsed.success) {
     return jsonResponse(
@@ -107,7 +107,7 @@ export async function DELETE(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { nodeId: string } },
+  { params }: { params: Promise<{ nodeId: string }> },
 ) {
   const startTime = Date.now()
 
@@ -120,7 +120,7 @@ export async function PATCH(
     throw e
   }
 
-  const { nodeId } = params
+  const { nodeId } = await params
   const nodeIdParsed = nodeIdSchema.safeParse(nodeId)
   if (!nodeIdParsed.success) {
     return jsonResponse(
