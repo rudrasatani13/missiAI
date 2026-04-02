@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import dynamic from "next/dynamic"
+import nextDynamic from "next/dynamic"
 import { ArrowLeft, Brain, Settings, X, Crown } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
@@ -24,7 +24,7 @@ import type { ActionResult } from "@/types/actions"
 import type { PluginId, PluginResult } from "@/types/plugins"
 
 // Dynamic import — keeps three.js OUT of the server/edge bundle (~5MB saved)
-const ParticleVisualizer = dynamic(
+const ParticleVisualizer = nextDynamic(
   () => import("@/components/chat/ParticleVisualizer").then((m) => m.ParticleVisualizer),
   { ssr: false }
 )
