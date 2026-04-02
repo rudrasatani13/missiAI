@@ -131,6 +131,15 @@ export const executePluginSchema = z.object({
 
 export type ExecutePluginInput = z.infer<typeof executePluginSchema>
 
+// ─── /api/v1/billing ──────────────────────────────────────────────────────────
+
+export const billingCheckoutSchema = z.object({
+  planId: z.enum(['pro', 'business']),
+  email: z.string().email().optional(),
+})
+
+export type BillingCheckoutInput = z.infer<typeof billingCheckoutSchema>
+
 // ─── Helper: return a 400 Response with the first Zod issue ──────────────────
 
 export function validationErrorResponse(error: z.ZodError): Response {

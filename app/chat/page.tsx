@@ -3,12 +3,13 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Brain, Settings, X } from "lucide-react"
+import { ArrowLeft, Brain, Settings, X, Crown } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useProactive } from "@/hooks/useProactive"
 import { useActionEngine } from "@/hooks/useActionEngine"
 import { usePlugins } from "@/hooks/usePlugins"
+import { useBilling } from "@/hooks/useBilling"
 import { PERSONALITY_OPTIONS, type PersonalityKey, type ConversationEntry } from "@/types/chat"
 import { ParticleVisualizer } from "@/components/chat/ParticleVisualizer"
 import { VoiceButton } from "@/components/chat/VoiceButton"
@@ -17,6 +18,7 @@ import { SettingsPanel } from "@/components/chat/SettingsPanel"
 import { ConversationLog } from "@/components/chat/ConversationLog"
 import { ActionCard } from "@/components/chat/ActionCard"
 import { PluginBadge } from "@/components/chat/PluginBadge"
+import { UsageBar } from "@/components/chat/UsageBar"
 import { detectPluginCommand } from "@/lib/plugins/plugin-registry"
 import type { ActionResult } from "@/types/actions"
 import type { PluginId, PluginResult } from "@/types/plugins"
@@ -45,6 +47,7 @@ function pluginResultToActionResult(result: PluginResult): ActionResult {
 export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
+  const { plan, usage, isAtLimit, createCheckoutSession } = useBilling()
   const [showSettings, setShowSettings] = useState(false)
   const [personality, setPersonality] = useState<PersonalityKey>("bestfriend")
   const [voiceEnabled, setVoiceEnabled] = useState(true)
@@ -218,6 +221,26 @@ export default function VoiceAssistantPage() {
           <span className="text-[11px] font-medium tracking-wider">MISSI</span>
         </div>
         <div className="flex items-center gap-2 pointer-events-auto">
+          {plan?.id === 'free' && (
+            <Link
+              href="/pricing"
+              onClick={(e) => e.stopPropagation()}
+              data-testid="upgrade-to-pro-link"
+              className="flex items-center gap-1 px-2 py-1 rounded-full transition-opacity hover:opacity-90"
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                fontSize: 10,
+                color: 'rgba(255,255,255,0.6)',
+                fontWeight: 500,
+                letterSpacing: '0.03em',
+                textDecoration: 'none',
+              }}
+            >
+              <Crown className="w-3 h-3" style={{ color: '#F59E0B' }} />
+              Pro
+            </Link>
+          )}
           <PluginBadge plugins={plugins} onManage={() => setShowSettings(true)} />
           <Link
             href="/memory"
@@ -263,9 +286,34 @@ export default function VoiceAssistantPage() {
         </div>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pb-10 md:pb-14 pointer-events-none">
+      <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pb-10 md:pb-14 pointer-events-none"
+        style={{ paddingBottom: plan?.id === 'free' ? 52 : undefined }}>
         <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
-          <VoiceButton state={voiceState} onPress={handleTap} onRelease={() => {}} disabled={false} />
+          <VoiceButton
+            state={voiceState}
+            onPress={handleTap}
+            onRelease={() => {}}
+            disabled={isAtLimit}
+          />
+          {isAtLimit && (
+            <div
+              data-testid="voice-limit-tooltip"
+              style={{
+                position: 'absolute',
+                bottom: -28,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                whiteSpace: 'nowrap',
+                fontSize: 10,
+                color: '#EF4444',
+                fontWeight: 500,
+                pointerEvents: 'auto',
+              }}
+            >
+              Daily limit reached —{' '}
+              <a href="/pricing" style={{ color: '#F59E0B', textDecoration: 'underline' }}>upgrade to Pro</a>
+            </div>
+          )}
         </div>
         <StatusDisplay
           state={voiceState}
@@ -289,6 +337,11 @@ export default function VoiceAssistantPage() {
           </p>
         </div>
       </div>
-    </div>
-  )
+      <UsageBar
+        used={usage?.voiceInteractions ?? 0}
+        limit={plan?.voiceInteractionsPerDay ?? 10}
+        planId={plan?.id ?? 'free'}
+        onUpgrade={() => createCheckoutSession('pro')}
+      />
+    </div>  )
 }

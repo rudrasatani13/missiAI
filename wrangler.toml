@@ -9,9 +9,14 @@ compatibility_flags = ["nodejs_compat"]
 # - ELEVENLABS_VOICE_ID
 # - CLERK_SECRET_KEY
 # - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+# - STRIPE_SECRET_KEY
+# - STRIPE_WEBHOOK_SECRET
+# - STRIPE_PRO_PRICE_ID
+# - STRIPE_BUSINESS_PRICE_ID
 
 [vars]
 DAILY_BUDGET_USD = "5.0"
+NEXT_PUBLIC_APP_URL = "https://missi.space"
 
 [[kv_namespaces]]
 binding = "MISSI_MEMORY"

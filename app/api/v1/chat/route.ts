@@ -13,6 +13,8 @@ import { selectGeminiModel } from "@/lib/ai/model-router"
 import { createTimer, logRequest, logError } from "@/lib/server/logger"
 import { calculateTotalCost, checkBudgetAlert } from "@/lib/server/cost-tracker"
 import { getEnv } from "@/lib/server/env"
+import { getUserPlan } from "@/lib/billing/tier-checker"
+import { checkVoiceLimit, incrementVoiceUsage } from "@/lib/billing/usage-tracker"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
@@ -63,14 +65,37 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ── 3. Rate limit ─────────────────────────────────────────────────────────
-  const rateResult = await checkRateLimit(userId, "free")
+  // ── 3. Voice usage gating ───────────────────────────────────────────────────
+  const planId = await getUserPlan(userId)
+  const kv = getKV()
+
+  if (kv) {
+    const voiceLimit = await checkVoiceLimit(kv, userId, planId)
+    if (!voiceLimit.allowed) {
+      logRequest("chat.voice_limit", userId, startTime)
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Daily voice limit reached",
+          code: "USAGE_LIMIT_EXCEEDED",
+          upgrade: "/pricing",
+          used: voiceLimit.used,
+          limit: voiceLimit.limit,
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      )
+    }
+  }
+
+  // ── 4. Rate limit ─────────────────────────────────────────────────────────
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     logRequest("chat.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
   }
 
-  // ── 4. Parse & validate body ──────────────────────────────────────────────
+  // ── 5. Parse & validate body ──────────────────────────────────────────────
   let body: unknown
   try {
     body = await req.json()
@@ -93,8 +118,7 @@ export async function POST(req: NextRequest) {
   const maxOutputTokens = parsed.data.maxOutputTokens ?? 1000
   const clientMemories = parsed.data.memories ?? ""
 
-  // ── 5. Fetch Life Graph context via semantic search ─────────────────────────
-  const kv = getKV()
+  // ── 6. Fetch Life Graph context via semantic search ─────────────────────────
   let memories = ""
   if (kv) {
     try {
@@ -214,6 +238,11 @@ export async function POST(req: NextRequest) {
 
               // Budget alert check (non-blocking)
               checkBudgetAlert(kv, costData.totalCostUsd).catch(() => {})
+
+              // Increment voice usage after successful response
+              if (kv) {
+                incrementVoiceUsage(kv, userId).catch(() => {})
+              }
 
               if (cacheKey && isCacheable(userMessageText, fullResponse)) {
                 setCachedResponse(cacheKey, fullResponse).catch(() => {})
