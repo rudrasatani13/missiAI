@@ -5,6 +5,7 @@ import { log } from "@/lib/server/logger"
 
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/login(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/waitlist(.*)",
