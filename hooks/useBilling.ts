@@ -90,6 +90,14 @@ export function useBilling() {
     return Math.max(0, plan.voiceInteractionsPerDay - usage.voiceInteractions)
   }, [usage, plan])
 
+  // Called after each successful voice interaction to keep UI in sync
+  // (server already incremented via incrementVoiceUsage — this just updates local state)
+  const incrementUsageLocally = useCallback(() => {
+    setUsage((prev) =>
+      prev ? { ...prev, voiceInteractions: prev.voiceInteractions + 1 } : prev
+    )
+  }, [])
+
   return {
     plan,
     usage,
@@ -101,5 +109,6 @@ export function useBilling() {
     createPortalSession,
     isAtLimit,
     remainingInteractions,
+    incrementUsageLocally,
   }
 }

@@ -53,7 +53,7 @@ function pluginResultToActionResult(result: PluginResult): ActionResult {
 export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
-  const { plan, usage, isAtLimit, createCheckoutSession } = useBilling()
+  const { plan, usage, isAtLimit, createCheckoutSession, incrementUsageLocally } = useBilling()
   const [showSettings, setShowSettings] = useState(false)
   const [personality, setPersonality] = useState<PersonalityKey>("bestfriend")
   const [voiceEnabled, setVoiceEnabled] = useState(true)
@@ -190,6 +190,10 @@ export default function VoiceAssistantPage() {
     if (!lastResponse || lastResponse === lastResponseForPluginRef.current) return
     lastResponseForPluginRef.current = lastResponse
 
+    // Increment local usage counter so UsageBar updates immediately
+    // (server already incremented via incrementVoiceUsage in the chat API)
+    if (plan?.id === 'free') incrementUsageLocally()
+
     if (!lastTranscript) return
 
     const connectedIds = plugins
@@ -202,7 +206,7 @@ export default function VoiceAssistantPage() {
     if (matchedPlugin) {
       executeVoiceCommand(matchedPlugin, lastTranscript).catch(() => {})
     }
-  }, [lastResponse, lastTranscript, plugins, executeVoiceCommand])
+  }, [lastResponse, lastTranscript, plugins, executeVoiceCommand, plan?.id, incrementUsageLocally])
 
   const handleActionCopy = useCallback(() => {
     if (!lastResult) return
