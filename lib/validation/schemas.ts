@@ -114,6 +114,23 @@ export const actionSchema = z.object({
 
 export type ActionInput = z.infer<typeof actionSchema>
 
+// ─── /api/v1/plugins ──────────────────────────────────────────────────────────
+
+export const pluginSchema = z.object({
+  id: z.enum(["notion", "google_calendar", "webhook"]),
+  credentials: z.record(z.string().max(500)),
+  settings: z.record(z.string().max(500)).optional(),
+})
+
+export type PluginInput = z.infer<typeof pluginSchema>
+
+export const executePluginSchema = z.object({
+  pluginId: z.enum(["notion", "google_calendar", "webhook"]),
+  userMessage: z.string().min(1).max(2000),
+})
+
+export type ExecutePluginInput = z.infer<typeof executePluginSchema>
+
 // ─── Helper: return a 400 Response with the first Zod issue ──────────────────
 
 export function validationErrorResponse(error: z.ZodError): Response {

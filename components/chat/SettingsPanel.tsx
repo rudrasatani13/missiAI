@@ -1,9 +1,13 @@
 "use client"
 
-import { memo } from "react"
+import { memo, useState } from "react"
 import { LogOut } from "lucide-react"
 import type { PersonalityKey } from "@/types/chat"
 import { PERSONALITY_OPTIONS } from "@/types/chat"
+import { PLUGIN_METADATA } from "@/lib/plugins/plugin-registry"
+import type { PluginConfig, PluginId } from "@/types/plugins"
+
+type SafePlugin = Omit<PluginConfig, "credentials">
 
 interface SettingsPanelProps {
   personality: PersonalityKey
@@ -16,6 +20,207 @@ interface SettingsPanelProps {
   userEmail: string
   userImageUrl: string | null
   onLogout: () => void
+  plugins?: SafePlugin[]
+  onConnectPlugin?: (
+    id: PluginId,
+    credentials: Record<string, string>,
+    settings?: Record<string, string>,
+  ) => Promise<boolean>
+  onDisconnectPlugin?: (id: PluginId) => Promise<void>
+}
+
+const PLUGIN_IDS: PluginId[] = ["notion", "google_calendar", "webhook"]
+
+function PluginRow({
+  pluginId,
+  connectedPlugin,
+  onConnect,
+  onDisconnect,
+}: {
+  pluginId: PluginId
+  connectedPlugin: SafePlugin | undefined
+  onConnect: (
+    id: PluginId,
+    credentials: Record<string, string>,
+    settings?: Record<string, string>,
+  ) => Promise<boolean>
+  onDisconnect: (id: PluginId) => Promise<void>
+}) {
+  const meta = PLUGIN_METADATA[pluginId]
+  const isConnected = connectedPlugin?.status === "connected"
+  const [showForm, setShowForm] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  // Credential fields
+  const [notionKey, setNotionKey] = useState("")
+  const [calToken, setCalToken] = useState("")
+  const [webhookUrl, setWebhookUrl] = useState("")
+  const [webhookSecret, setWebhookSecret] = useState("")
+
+  async function handleConnect() {
+    setSaving(true)
+    let credentials: Record<string, string> = {}
+    let settings: Record<string, string> = {}
+
+    if (pluginId === "notion") {
+      credentials = { apiKey: notionKey }
+    } else if (pluginId === "google_calendar") {
+      credentials = { accessToken: calToken }
+    } else if (pluginId === "webhook") {
+      credentials = { url: webhookUrl }
+      if (webhookSecret) settings = { secret: webhookSecret }
+    }
+
+    const ok = await onConnect(pluginId, credentials, settings)
+    setSaving(false)
+    if (ok) {
+      setShowForm(false)
+      setNotionKey("")
+      setCalToken("")
+      setWebhookUrl("")
+      setWebhookSecret("")
+    }
+  }
+
+  return (
+    <div
+      style={{
+        borderRadius: "10px",
+        padding: "8px 10px",
+        background: "rgba(255,255,255,0.03)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        marginBottom: "6px",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p
+            style={{
+              fontSize: "11px",
+              fontWeight: 500,
+              color: isConnected ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.4)",
+              margin: 0,
+            }}
+          >
+            {meta.name}
+          </p>
+          <p
+            style={{
+              fontSize: "9px",
+              color: isConnected ? "rgba(0,255,140,0.6)" : "rgba(255,255,255,0.2)",
+              margin: "1px 0 0",
+            }}
+          >
+            {isConnected ? "Connected" : "Disconnected"}
+          </p>
+        </div>
+        {isConnected ? (
+          <button
+            onClick={() => onDisconnect(pluginId)}
+            data-testid={`plugin-disconnect-${pluginId}`}
+            style={{
+              fontSize: "10px",
+              color: "rgba(255,80,80,0.7)",
+              background: "none",
+              border: "1px solid rgba(255,80,80,0.2)",
+              borderRadius: "6px",
+              padding: "3px 8px",
+              cursor: "pointer",
+            }}
+          >
+            Disconnect
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            data-testid={`plugin-connect-${pluginId}`}
+            style={{
+              fontSize: "10px",
+              color: "rgba(255,255,255,0.5)",
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "6px",
+              padding: "3px 8px",
+              cursor: "pointer",
+            }}
+          >
+            Connect
+          </button>
+        )}
+      </div>
+
+      {/* Inline credential form */}
+      {showForm && !isConnected && (
+        <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
+          {pluginId === "notion" && (
+            <input
+              type="password"
+              placeholder="Notion API Key (starts with secret_...)"
+              value={notionKey}
+              onChange={(e) => setNotionKey(e.target.value)}
+              style={inputStyle}
+            />
+          )}
+          {pluginId === "google_calendar" && (
+            <input
+              type="password"
+              placeholder="Google OAuth Access Token"
+              value={calToken}
+              onChange={(e) => setCalToken(e.target.value)}
+              style={inputStyle}
+            />
+          )}
+          {pluginId === "webhook" && (
+            <>
+              <input
+                type="text"
+                placeholder="Webhook URL (https://...)"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                style={inputStyle}
+              />
+              <input
+                type="password"
+                placeholder="Secret (optional)"
+                value={webhookSecret}
+                onChange={(e) => setWebhookSecret(e.target.value)}
+                style={inputStyle}
+              />
+            </>
+          )}
+          <button
+            onClick={handleConnect}
+            disabled={saving}
+            data-testid={`plugin-save-${pluginId}`}
+            style={{
+              fontSize: "10px",
+              color: saving ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)",
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: "6px",
+              padding: "5px 10px",
+              cursor: saving ? "default" : "pointer",
+              alignSelf: "flex-end",
+            }}
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const inputStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  borderRadius: "6px",
+  padding: "5px 8px",
+  fontSize: "10px",
+  color: "rgba(255,255,255,0.7)",
+  outline: "none",
+  width: "100%",
+  boxSizing: "border-box",
 }
 
 function SettingsPanelInner({
@@ -28,6 +233,9 @@ function SettingsPanelInner({
   userEmail,
   userImageUrl,
   onLogout,
+  plugins = [],
+  onConnectPlugin,
+  onDisconnectPlugin,
 }: SettingsPanelProps) {
   return (
     <div
@@ -42,6 +250,8 @@ function SettingsPanelInner({
         opacity: isOpen ? 1 : 0,
         pointerEvents: isOpen ? "auto" : "none",
         transition: "transform 0.25s ease-out, opacity 0.25s ease-out",
+        maxHeight: "80vh",
+        overflowY: "auto",
       }}
     >
       <div
@@ -147,6 +357,27 @@ function SettingsPanelInner({
           />
         </button>
       </div>
+
+      {/* ── Plugins section ── */}
+      {(onConnectPlugin || onDisconnectPlugin) && (
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "12px", marginBottom: "4px" }}>
+          <p
+            className="text-[10px] font-medium tracking-wider uppercase mb-2.5"
+            style={{ color: "rgba(255,255,255,0.3)" }}
+          >
+            Plugins
+          </p>
+          {PLUGIN_IDS.map((id) => (
+            <PluginRow
+              key={id}
+              pluginId={id}
+              connectedPlugin={plugins.find((p) => p.id === id)}
+              onConnect={onConnectPlugin ?? (async () => false)}
+              onDisconnect={onDisconnectPlugin ?? (async () => {})}
+            />
+          ))}
+        </div>
+      )}
 
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "12px" }}>
         <button

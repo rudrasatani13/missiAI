@@ -8,6 +8,7 @@ import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useProactive } from "@/hooks/useProactive"
 import { useActionEngine } from "@/hooks/useActionEngine"
+import { usePlugins } from "@/hooks/usePlugins"
 import { PERSONALITY_OPTIONS, type PersonalityKey, type ConversationEntry } from "@/types/chat"
 import { ParticleVisualizer } from "@/components/chat/ParticleVisualizer"
 import { VoiceButton } from "@/components/chat/VoiceButton"
@@ -15,9 +16,31 @@ import { StatusDisplay } from "@/components/chat/StatusDisplay"
 import { SettingsPanel } from "@/components/chat/SettingsPanel"
 import { ConversationLog } from "@/components/chat/ConversationLog"
 import { ActionCard } from "@/components/chat/ActionCard"
+import { PluginBadge } from "@/components/chat/PluginBadge"
+import { detectPluginCommand } from "@/lib/plugins/plugin-registry"
+import type { ActionResult } from "@/types/actions"
+import type { PluginId, PluginResult } from "@/types/plugins"
 
 export const runtime = "edge"
 export const dynamic = "force-dynamic"
+
+/** Convert a PluginResult to an ActionResult shape for display in ActionCard. */
+function pluginResultToActionResult(result: PluginResult): ActionResult {
+  const typeMap: Record<PluginId, ActionResult["type"]> = {
+    notion: "take_note",
+    google_calendar: "set_reminder",
+    webhook: "web_search",
+  }
+  return {
+    success: result.success,
+    type: typeMap[result.pluginId] ?? "none",
+    output: result.output,
+    data: result.url ? { url: result.url } : undefined,
+    actionTaken: `${result.pluginId}: ${result.action}`,
+    canUndo: false,
+    executedAt: result.executedAt,
+  }
+}
 
 export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
@@ -49,6 +72,18 @@ export default function VoiceAssistantPage() {
   // Action engine
   const { detectAndExecute, lastResult, isExecuting, clearResult } = useActionEngine()
   const lastResponseForActionRef = useRef("")
+
+  // Plugin system
+  const {
+    plugins,
+    executeVoiceCommand,
+    isConnected,
+    lastResult: pluginResult,
+    clearResult: clearPluginResult,
+    connectPlugin,
+    disconnectPlugin,
+  } = usePlugins()
+  const lastResponseForPluginRef = useRef("")
 
   useEffect(() => { try { const s = localStorage.getItem("missi-personality") as PersonalityKey | null
     if (s && PERSONALITY_OPTIONS.some((p) => p.key === s)) { setPersonality(s); personalityRef.current = s }
@@ -131,11 +166,40 @@ export default function VoiceAssistantPage() {
     detectAndExecute(lastTranscript, last3).catch(() => {})
   }, [lastTranscript, detectAndExecute])
 
+  // Check for plugin commands after each AI response
+  useEffect(() => {
+    if (!lastResponse || lastResponse === lastResponseForPluginRef.current) return
+    lastResponseForPluginRef.current = lastResponse
+
+    if (!lastTranscript) return
+
+    const connectedIds = plugins
+      .filter((p) => p.status === "connected")
+      .map((p) => p.id as PluginId)
+
+    if (connectedIds.length === 0) return
+
+    const matchedPlugin = detectPluginCommand(lastTranscript, connectedIds)
+    if (matchedPlugin) {
+      executeVoiceCommand(matchedPlugin, lastTranscript).catch(() => {})
+    }
+  }, [lastResponse, lastTranscript, plugins, executeVoiceCommand])
+
   const handleActionCopy = useCallback(() => {
     if (!lastResult) return
     const text = (lastResult.data?.fullDraft as string) ?? lastResult.output
     navigator.clipboard.writeText(text).catch(() => {})
   }, [lastResult])
+
+  // Determine what to show in ActionCard: prefer plugin result if present, else action result
+  const displayResult = pluginResult
+    ? pluginResultToActionResult(pluginResult)
+    : lastResult
+
+  const handleDismissDisplay = useCallback(() => {
+    if (pluginResult) clearPluginResult()
+    else clearResult()
+  }, [pluginResult, clearPluginResult, clearResult])
 
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"
@@ -153,29 +217,36 @@ export default function VoiceAssistantPage() {
             className="w-5 h-5 pointer-events-none" priority draggable={false} />
           <span className="text-[11px] font-medium tracking-wider">MISSI</span>
         </div>
-        <button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings) }}
-          className="opacity-40 hover:opacity-70 transition-opacity pointer-events-auto"
-          data-testid="settings-toggle-btn"
-          style={{ background: "none", border: "none", cursor: "pointer", color: "white" }}>
-          {showSettings ? <X className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
-        </button>
+        <div className="flex items-center gap-2 pointer-events-auto">
+          <PluginBadge plugins={plugins} onManage={() => setShowSettings(true)} />
+          <button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings) }}
+            className="opacity-40 hover:opacity-70 transition-opacity"
+            data-testid="settings-toggle-btn"
+            style={{ background: "none", border: "none", cursor: "pointer", color: "white" }}>
+            {showSettings ? <X className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
+          </button>
+        </div>
       </nav>
       <SettingsPanel personality={personality} onPersonalityChange={updatePersonality}
         voiceEnabled={voiceEnabled} onVoiceToggle={() => setVoiceEnabled((v) => !v)}
         isOpen={showSettings} onClose={() => setShowSettings(false)}
         userName={user?.fullName || "User"} userEmail={user?.primaryEmailAddress?.emailAddress || ""}
-        userImageUrl={user?.imageUrl || null} onLogout={handleLogout} />
+        userImageUrl={user?.imageUrl || null} onLogout={handleLogout}
+        plugins={plugins}
+        onConnectPlugin={connectPlugin}
+        onDisconnectPlugin={disconnectPlugin}
+      />
       <ConversationLog messages={conversationRef.current} isVisible={false} />
 
       {/* ── Action Card Overlay — above everything ─── */}
-      {lastResult && (
+      {displayResult && (
         <div className="fixed bottom-32 md:bottom-36 left-0 right-0 z-50 flex justify-center pointer-events-none"
           data-testid="action-card-container">
           <ActionCard
-            result={lastResult}
-            onDismiss={clearResult}
+            result={displayResult}
+            onDismiss={handleDismissDisplay}
             onCopy={
-              lastResult.type === "draft_email" || lastResult.type === "draft_message"
+              !pluginResult && (lastResult?.type === "draft_email" || lastResult?.type === "draft_message")
                 ? handleActionCopy
                 : undefined
             }
