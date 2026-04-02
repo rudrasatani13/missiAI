@@ -4,10 +4,6 @@ import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/sonner";
 import Link from "next/link";
 
-// Required for Cloudflare Pages deployment
-export const runtime = "edge"
-export const dynamic = "force-dynamic"
-
 export const metadata: Metadata = {
   title: "missiAI — AI with Memory",
   description:

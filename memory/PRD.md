@@ -1,47 +1,104 @@
-# missiAI Admin Analytics Dashboard - PRD
+# missiAI — PRD & Architecture Notes
 
 ## Original Problem Statement
-Build an admin analytics dashboard showing platform health, usage metrics, revenue, and cost data for the missiAI voice AI assistant platform.
+Cloudflare Pages deployment failing because the generated Pages Functions bundle size (~28.2 MiB) exceeds the 25 MiB limit.
+
+Build error:
+```
+Generated Pages Functions bundle size (28234285) is over the limit of 25.0 MiB
+Failed: generating Pages Functions failed.
+```
+
+## Root Cause
+`app/layout.tsx` had `export const runtime = "edge"` and `export const dynamic = "force-dynamic"` at the root layout level. This forced ALL pages (including purely static ones like /terms, /privacy, /manifesto, /pricing, /sign-in, /sign-up, and the homepage) to become edge functions, each bundling ~1.7 MB of dependencies (including @clerk/nextjs).
+
+## Tech Stack
+- Next.js 16.1.6
+- React 19
+- @clerk/nextjs 6.39.0 (auth)
+- @cloudflare/next-on-pages 1.13.16
+- Cloudflare Pages (Workers)
+- Stripe (billing)
+- Google Gemini (AI)
+- ElevenLabs (TTS/STT)
 
 ## Architecture
-- **Stack**: Next.js 16 + Cloudflare Workers (edge runtime) + Clerk auth + KV storage
-- **No Node.js**: Edge runtime only, no background jobs
-- **Model**: gemini-3-flash-preview (unchanged)
+- Frontend: Next.js App Router, all pages under `/app/`
+- Backend: Next.js API routes under `/app/app/api/`
+- Database: Cloudflare KV (MISSI_MEMORY) + Cloudflare Vectorize (LIFE_GRAPH)
+- Auth: Clerk
 
-## Core Requirements
-1. Analytics types (DailyStats, LifetimeTotals, AnalyticsSnapshot, FeatureUsage)
-2. KV-backed event store with fire-and-forget recording
-3. Aggregator with snapshot caching (5-min TTL)
-4. Admin-protected API (ADMIN_USER_ID env var, 403 for unauthorized)
-5. Dashboard UI with 6 sections (dark glass style)
-6. Analytics events in all main API routes (chat, tts, memory, actions)
-7. Middleware protection for /admin routes
-8. 29 new unit tests (all passing)
+## What Was Implemented (Bundle Fix - April 2026)
 
-## What's Been Implemented (Jan 2026)
-- [x] `types/analytics.ts` - All analytics types + helper constructors
-- [x] `lib/analytics/event-store.ts` - recordEvent, getDailyStats, getLifetimeTotals, recordUserSeen, getUniqueUserCount
-- [x] `lib/analytics/aggregator.ts` - buildAnalyticsSnapshot, calculateGrowthRate, formatCostUsd
-- [x] `app/api/v1/admin/analytics/route.ts` - Admin API with 403 protection, date query support
-- [x] `hooks/useAnalytics.ts` - Client-side hook with formatNumber
-- [x] `app/admin/page.tsx` - Full dashboard with KPIs, plan breakdown, 7-day trend, cost table, lifetime stats, recent activity
-- [x] Updated chat/tts/memory/actions routes with fire-and-forget analytics events
-- [x] Updated middleware.ts for /admin route protection
-- [x] 29 new tests in tests/lib/analytics/ (event-store + aggregator)
-- [x] All 378 tests passing (349 existing + 29 new)
+### Changes Made
+1. **`app/layout.tsx`**: Removed `export const runtime = "edge"` and `export const dynamic = "force-dynamic"` from the root layout
+   - These were incorrectly forcing ALL 24 pages/routes into edge runtime
+   - Only pages with EXPLICIT `runtime = "edge"` should be edge functions
 
-## User Personas
-- **Admin**: Platform owner viewing analytics dashboard
-- **End Users**: Voice AI users whose interactions are tracked anonymously
+2. **`app/pricing/page.tsx`**: Added `export const dynamic = "force-static"`
+   - This page uses `useSearchParams()` which could prevent static generation
+   - `force-static` explicitly tells Next.js to pre-render it as static HTML
+   - `useSearchParams` returns empty during pre-render but works correctly after client hydration
 
-## Backlog
-- P0: None (all spec items complete)
-- P1: Real-time WebSocket updates for dashboard
-- P2: Export analytics to CSV/PDF
-- P2: Custom date range picker for analytics
-- P3: Alert system for budget threshold notifications
+### Pages that become STATIC (no longer edge functions after fix):
+- `/` (homepage) — 1,740 KiB saved
+- `/manifesto` — 1,711 KiB saved
+- `/pricing` — 1,711 KiB saved
+- `/privacy` — 1,707 KiB saved
+- `/sign-in` — 1,702 KiB saved
+- `/sign-up` — 1,702 KiB saved
+- `/terms` — 1,707 KiB saved
+- **Total savings: ~11,980 KiB (~11.7 MB)**
 
-## Next Tasks
-- Set ADMIN_USER_ID in .env with actual Clerk user ID
-- Monitor analytics data accumulation in KV
-- Consider adding email alerts for budget thresholds
+### Pages that REMAIN as edge functions (explicit `runtime = "edge"`):
+- `/chat` (1,759 KiB) — voice AI interface
+- `/memory` (1,770 KiB) — memory graph
+- `/admin` (1,713 KiB) — analytics dashboard
+- `/waitlist` (1,752 KiB) — uses Clerk server action
+- `/_not-found` (1,574 KiB) — 404 handler
+- All `/api/v1/*` routes — API handlers (~6,597 KiB)
+- Middleware (~298 KiB)
+- **Total remaining: ~15,463 KiB (~15.1 MB)**
+
+### Result
+- Before: 28.2 MB (over 25 MB limit)
+- After: ~15.5 MB (well under 25 MB limit)
+
+## Core Features (App Functionality)
+- Voice AI assistant (ElevenLabs STT + Gemini AI + ElevenLabs TTS)
+- Persistent memory graph (Cloudflare KV + Vectorize)
+- Multi-personality AI modes
+- Proactive intelligence / briefings
+- Action engine (calendar, notes, etc.)
+- Plugin integrations (Notion, Google Calendar, Webhook)
+- Billing/subscriptions (Stripe)
+- Admin analytics dashboard
+- Waitlist management (Clerk)
+
+## Pages Overview
+| Route | Runtime | Type |
+|-------|---------|------|
+| `/` | static | Landing page |
+| `/chat` | edge | Voice AI interface |
+| `/memory` | edge | Memory graph |
+| `/admin` | edge | Analytics |
+| `/waitlist` | edge | Waitlist (server action) |
+| `/pricing` | static (force-static) | Pricing page |
+| `/manifesto` | static | Manifesto |
+| `/terms` | static | Terms of service |
+| `/privacy` | static | Privacy policy |
+| `/sign-in` | static | Clerk sign-in |
+| `/sign-up` | static | Clerk sign-up |
+| `/_not-found` | edge | 404 handler |
+| `/api/v1/*` | edge | API routes |
+
+## Prioritized Backlog
+### P0 (Critical)
+- [x] Bundle size fix for Cloudflare Pages deployment
+
+### P1 (High)
+- None known
+
+### P2 (Nice to have)
+- Further bundle optimization if new pages are added
+- Consider `serverExternalPackages` additions in next.config.mjs for future heavy deps
