@@ -170,8 +170,9 @@ export async function POST(req: Request) {
       metadata: { error: err instanceof Error ? err.message : String(err) },
       timestamp: Date.now(),
     })
+    const detail = err instanceof Error ? err.message : String(err)
     return new Response(
-      JSON.stringify({ success: false, error: 'Failed to create checkout session' }),
+      JSON.stringify({ success: false, error: `Failed to create checkout session: ${detail}` }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
