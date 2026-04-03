@@ -113,7 +113,12 @@ export async function POST(req: Request) {
     )
   }
 
-  const productId = PLANS[planId].dodoPriceId
+  // Read product IDs at request time — edge runtime may not have env vars at module init
+  const productIdMap: Record<string, string | undefined> = {
+    pro: process.env.DODO_PRO_PRODUCT_ID,
+    business: process.env.DODO_BUSINESS_PRODUCT_ID,
+  }
+  const productId = productIdMap[planId]
   if (!productId) {
     return new Response(
       JSON.stringify({ success: false, error: 'Plan not configured' }),

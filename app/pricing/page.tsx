@@ -212,7 +212,7 @@ export default function PricingPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isSignedIn } = useUser()
-  const { plan, isLoading, isUpgrading, createCheckoutSession, createPortalSession } = useBilling()
+  const { plan, isLoading, isUpgrading, error: billingError, createCheckoutSession, createPortalSession } = useBilling()
 
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
@@ -326,6 +326,25 @@ export default function PricingPage() {
             }}
           >
             {statusMessage}
+          </div>
+        )}
+
+        {/* Billing error */}
+        {billingError && (
+          <div
+            data-testid="billing-error-message"
+            style={{
+              textAlign: 'center',
+              marginBottom: 32,
+              padding: '12px 20px',
+              borderRadius: 10,
+              background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.2)',
+              fontSize: 13,
+              color: 'rgba(239,68,68,0.9)',
+            }}
+          >
+            {billingError}
           </div>
         )}
 
