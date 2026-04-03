@@ -110,6 +110,7 @@ export function useReferral() {
 
   // Check if pending referral discount should be shown
   const hasReferralDiscount = useCallback(() => {
+    if (typeof window === 'undefined') return false
     const storedCode = localStorage.getItem('missi-referral-code')
     return isReferred || !!storedCode
   }, [isReferred])
