@@ -145,6 +145,14 @@ export const billingCheckoutSchema = z.object({
 
 export type BillingCheckoutInput = z.infer<typeof billingCheckoutSchema>
 
+// ─── /api/v1/streak ───────────────────────────────────────────────────────────
+
+export const checkInSchema = z.object({
+  nodeId: z.string().min(1).max(50),
+  habitTitle: z.string().min(1).max(80),
+})
+export type CheckInInput = z.infer<typeof checkInSchema>
+
 // ─── Helper: return a 400 Response with the first Zod issue ──────────────────
 
 export function validationErrorResponse(error: z.ZodError): Response {
