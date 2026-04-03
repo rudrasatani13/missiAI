@@ -3,6 +3,19 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import type { PlanConfig, DailyUsage, UserBilling } from '@/types/billing'
 
+// localStorage key for today's usage — resets automatically each new day
+function todayStorageKey(): string {
+  return `missi-usage-${new Date().toISOString().split('T')[0]}`
+}
+
+function getLocalCount(): number {
+  try { return parseInt(localStorage.getItem(todayStorageKey()) ?? '0', 10) || 0 } catch { return 0 }
+}
+
+function setLocalCount(count: number): void {
+  try { localStorage.setItem(todayStorageKey(), String(count)) } catch {}
+}
+
 export function useBilling() {
   const [plan, setPlan] = useState<PlanConfig | null>(null)
   const [usage, setUsage] = useState<DailyUsage | null>(null)
@@ -18,13 +31,33 @@ export function useBilling() {
       try {
         const res = await fetch('/api/v1/billing')
         if (!res.ok) {
-          if (res.status === 401) return // Not logged in
+          if (res.status === 401) {
+            // Not logged in — still load local count so limit is enforced
+            const localCount = getLocalCount()
+            if (localCount > 0) {
+              setUsage({ userId: '', date: todayStorageKey().replace('missi-usage-', ''), voiceInteractions: localCount, lastUpdatedAt: Date.now() })
+            }
+            return
+          }
           throw new Error('Failed to fetch billing')
         }
         const data = await res.json()
         if (cancelled) return
         setPlan(data.plan ?? null)
-        setUsage(data.usage ?? null)
+
+        // Merge server count with localStorage — take the HIGHER value.
+        // If KV write failed silently, localStorage still has the correct count.
+        if (data.usage) {
+          const localCount = getLocalCount()
+          const serverCount = data.usage.voiceInteractions ?? 0
+          const merged = { ...data.usage, voiceInteractions: Math.max(serverCount, localCount) }
+          // Keep localStorage in sync with the merged value
+          if (localCount < merged.voiceInteractions) setLocalCount(merged.voiceInteractions)
+          setUsage(merged)
+        } else {
+          setUsage(null)
+        }
+
         setBilling(data.billing ?? null)
       } catch (err) {
         if (!cancelled) {
@@ -91,11 +124,14 @@ export function useBilling() {
   }, [usage, plan])
 
   // Called after each successful voice interaction to keep UI in sync
-  // (server already incremented via incrementVoiceUsage — this just updates local state)
+  // Also persists to localStorage so count survives page navigation
   const incrementUsageLocally = useCallback(() => {
-    setUsage((prev) =>
-      prev ? { ...prev, voiceInteractions: prev.voiceInteractions + 1 } : prev
-    )
+    setUsage((prev) => {
+      if (!prev) return prev
+      const newCount = prev.voiceInteractions + 1
+      setLocalCount(newCount)
+      return { ...prev, voiceInteractions: newCount }
+    })
   }, [])
 
   return {
