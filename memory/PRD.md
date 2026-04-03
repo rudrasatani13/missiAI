@@ -1,66 +1,78 @@
 # missiAI - PRD & Implementation Log
 
-## Original Problem Statement
-Remove all Stripe/Dodo billing code and replace with Razorpay. Razorpay uses a JS popup widget (not page redirect) for checkout. Replace all Dodo Payments integration with Razorpay across types, client library, API routes, webhooks, frontend hooks, pricing page, middleware, validation schemas, and tests.
+## Overview
+missiAI is an AI voice companion application built with Next.js 16, Clerk authentication, Cloudflare KV storage, and Razorpay billing integration.
 
 ## Architecture
-- **Framework**: Next.js 16 with Edge Runtime (Cloudflare Workers)
-- **Auth**: Clerk (publicMetadata stores billing data)
-- **Payment**: Razorpay (subscriptions with JS popup checkout widget)
-- **KV Store**: Cloudflare KV (MISSI_MEMORY namespace)
-- **Testing**: Vitest (30 test files, 384 tests)
+- **Frontend**: Next.js 16 (React, TypeScript)
+- **Auth**: Clerk
+- **Storage**: Cloudflare KV (MISSI_MEMORY namespace)
+- **Billing**: Razorpay (subscriptions)
+- **Deployment**: Cloudflare Workers/Pages
+- **AI**: Gemini API, ElevenLabs (voice)
 
-## User Personas
-- Free tier users (10 voice interactions/day)
-- Pro subscribers ($9/mo via Razorpay)
-- Business subscribers ($49/mo via Razorpay)
+## What's Been Implemented (Jan 2026)
 
-## Core Requirements
-- Razorpay subscription billing with popup checkout widget
-- HMAC-SHA256 webhook & payment verification (crypto.subtle)
-- Edge-runtime compatible (fetch only, no Node.js-specific packages)
-- All billing metadata stored in Clerk publicMetadata
+### Bug Fix Session - 28 Fixes Applied
 
-## What's Been Implemented (2026-04-03)
+**CRITICAL BUGS (P0):**
+1. BUG-1: Removed `process.env` from shared `types/billing.ts` — added `getServerRazorpayPlanId()` server-only helper
+2. BUG-2: Removed contradictory `force-static` from client component `pricing/page.tsx`
+3. BUG-3: Removed `razorpayCustomerId` from POST `/api/v1/billing` response
 
-### Dodo → Razorpay Migration (Complete)
-- **Deleted**: `lib/billing/dodo-client.ts`, `app/api/webhooks/dodo/route.ts`, `tests/lib/billing/dodo-client.test.ts`
-- **Created**: `lib/billing/razorpay-client.ts` (8 exported functions)
-- **Created**: `app/api/v1/billing/verify/route.ts` (payment verification endpoint)
-- **Created**: `app/api/webhooks/razorpay/route.ts` (4 webhook events)
-- **Created**: `tests/lib/billing/razorpay-client.test.ts` (13 tests)
-- **Updated**: `types/billing.ts` (razorpayPlanId, razorpayCustomerId, razorpaySubscriptionId)
-- **Updated**: `lib/billing/tier-checker.ts` (razorpay field references)
-- **Updated**: `app/api/v1/billing/route.ts` (Razorpay customer + subscription creation)
-- **Updated**: `hooks/useBilling.ts` (initiateRazorpayCheckout with popup widget)
-- **Updated**: `app/pricing/page.tsx` (Razorpay branding, payment badges, cancel flow)
-- **Updated**: `app/chat/page.tsx` (initiateRazorpayCheckout reference)
-- **Updated**: `middleware.ts` (/api/webhooks/razorpay route)
-- **Updated**: `lib/validation/billing-schemas.ts` (verifyPaymentSchema)
-- **Updated**: `tests/lib/billing/tier-checker.test.ts` (razorpay fields)
+**SECURITY VULNERABILITIES (P0):**
+4. SEC-1: Replaced `===` with constant-time `timingSafeCompare()` for HMAC signature verification
+5. SEC-2: Verify endpoint now derives plan from Razorpay subscription's `plan_id`, not client-sent value
+6. SEC-3: Added rate limiting to payment verify endpoint
+7. SEC-4: Server count is now source of truth — removed `Math.max` localStorage merge
+8. SEC-5: Webhook now logs and returns 401 for invalid/missing signatures
+9. SEC-6: Added webhook event idempotency via KV store
+10. SEC-7: Stripped `razorpaySubscriptionId` from GET billing response
 
-### Test Results
-- 30 test files, 384 tests all passing
-- Zero Dodo/Stripe references remaining in codebase
+**CLIENT-SIDE BUGS (P1):**
+11. CLI-1: Specific error feedback when Razorpay SDK fails to load
+12. CLI-2: Added `isCancelling` loading state for subscription cancellation
+13. CLI-3: Replaced `window.confirm()` with custom CancelModal component
+14. CLI-4: ondismiss handler now cleans up orphaned subscriptions
+15. CLI-5: Added mountedRef to prevent state updates after component unmount
+16. CLI-6: Razorpay checkout now prefills user name/email from Clerk
 
-## Environment Variables Required
-```
-RAZORPAY_KEY_ID=          # Razorpay Dashboard → Settings → API Keys
-RAZORPAY_KEY_SECRET=      # Razorpay Dashboard → Settings → API Keys
-RAZORPAY_WEBHOOK_SECRET=  # Razorpay Dashboard → Webhooks → Secret
-RAZORPAY_PRO_PLAN_ID=     # Create via Dashboard → Subscriptions → Plans
-RAZORPAY_BUSINESS_PLAN_ID= # Create via Dashboard → Subscriptions → Plans
-```
+**SERVER-SIDE BUGS (P1):**
+17. SRV-1: Checkout now cancels Razorpay subscription if Clerk metadata save fails
+18. SRV-2: `determinePlanFromRazorpayPlan` defaults to 'free' for unknown plans
+19. SRV-3: Verify endpoint validates subscription status ('active'/'authenticated')
+20. SRV-4: Added `subscription.halted` and `payment.failed` webhook handlers
+21. SRV-5: Cancel endpoint updates `cancelAtPeriodEnd` in Clerk metadata
 
-## Prioritized Backlog
-- **P0**: Add Razorpay API keys to production environment
-- **P1**: Configure Razorpay webhook URL in dashboard pointing to `/api/webhooks/razorpay`
-- **P1**: Create subscription plans in Razorpay dashboard (Pro $9/mo, Business $49/mo)
-- **P2**: Add Razorpay test mode end-to-end testing with real test keys
-- **P2**: Add subscription status badges on user profile/settings page
+**CLEANUP & CONFIGURATION (P2):**
+22. CFG-1: Replaced stale DODO references with Razorpay in `wrangler.toml`
+23. CFG-2: Added all Razorpay env vars to `AppEnv` interface in `env.ts`
+24. CFG-3: `setUserPlan` now stores `cancelAtPeriodEnd` in Clerk metadata
 
-## Next Tasks
-1. Configure real Razorpay API keys in production environment
-2. Create Razorpay plans in dashboard and set RAZORPAY_PRO_PLAN_ID / RAZORPAY_BUSINESS_PLAN_ID
-3. Set up webhook endpoint URL in Razorpay dashboard
-4. End-to-end test with Razorpay test mode
+**VALIDATION & INPUT SANITIZATION (P1):**
+25. VAL-1: Added regex format validation for Razorpay IDs (pay_, sub_, hex sig)
+26. VAL-2: Added max length limits on all billing schema fields
+
+**ERROR HANDLING (P1):**
+27. ERR-1: Error responses no longer leak internal Razorpay details to client
+28. ERR-2: Added `parseRazorpayError()` to parse and log Razorpay API error bodies
+
+## Files Modified
+- `/app/types/billing.ts`
+- `/app/hooks/useBilling.ts`
+- `/app/app/pricing/page.tsx`
+- `/app/app/api/v1/billing/route.ts`
+- `/app/app/api/v1/billing/verify/route.ts`
+- `/app/app/api/webhooks/razorpay/route.ts`
+- `/app/lib/billing/razorpay-client.ts`
+- `/app/lib/billing/tier-checker.ts`
+- `/app/lib/server/env.ts`
+- `/app/lib/validation/billing-schemas.ts`
+- `/app/wrangler.toml`
+
+## Backlog / Future
+- P0: Add webhook signature verification integration tests
+- P1: Implement proper subscription cancellation flow with grace period
+- P1: Add Razorpay subscription status sync cron job
+- P2: Add billing analytics dashboard for admin
+- P2: Add email notifications for payment events
