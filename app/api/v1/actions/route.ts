@@ -6,6 +6,7 @@ import { actionSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { detectIntent, isActionable } from "@/lib/actions/intent-detector"
 import { executeAction } from "@/lib/actions/action-executor"
 import { successResponse, standardErrors } from "@/types/api"
+import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { getTodayDate } from "@/lib/billing/usage-tracker"
 import type { KVStore } from "@/types"
@@ -49,6 +50,13 @@ export async function POST(req: Request) {
     if (e instanceof AuthenticationError) return standardErrors.unauthorized()
     logError("actions.auth_error", e)
     return standardErrors.internalError()
+  }
+
+  // OWASP API4: rate-limit action detection — each call invokes Gemini
+  const rateResult = await checkRateLimit(userId, "free")
+  if (!rateResult.allowed) {
+    logRequest("actions.post.rate_limited", userId, startTime)
+    return rateLimitExceededResponse(rateResult)
   }
 
   let body: unknown
@@ -120,6 +128,8 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
+  const startTime = Date.now()
+
   let userId: string
   try {
     userId = await getVerifiedUserId()
@@ -127,6 +137,13 @@ export async function GET() {
     if (e instanceof AuthenticationError) return standardErrors.unauthorized()
     logError("actions.get.auth_error", e)
     return standardErrors.internalError()
+  }
+
+  // OWASP API4: rate-limit reads to prevent bulk history scraping
+  const rateResult = await checkRateLimit(userId, "free")
+  if (!rateResult.allowed) {
+    logRequest("actions.get.rate_limited", userId, startTime)
+    return rateLimitExceededResponse(rateResult)
   }
 
   try {

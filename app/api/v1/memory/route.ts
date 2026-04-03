@@ -51,6 +51,12 @@ function getVectorizeEnv(): VectorizeEnv | null {
   }
 }
 
+// Allowlist of valid memory categories (mirrors the MemoryCategory union type)
+const VALID_CATEGORIES = new Set([
+  'person', 'goal', 'habit', 'preference', 'event',
+  'emotion', 'skill', 'place', 'belief', 'relationship',
+])
+
 // ─── GET — Load life graph or search by query ─────────────────────────────────
 
 export async function GET(req: NextRequest) {
@@ -63,6 +69,33 @@ export async function GET(req: NextRequest) {
     if (e instanceof AuthenticationError) return unauthorizedResponse()
     logError("memory.auth_error", e)
     throw e
+  }
+
+  // OWASP API4: rate-limit memory reads — search calls may invoke Gemini embeddings
+  const rateResult = await checkRateLimit(userId, "free")
+  if (!rateResult.allowed) {
+    logRequest("memory.get.rate_limited", userId, startTime)
+    return rateLimitExceededResponse(rateResult)
+  }
+
+  // OWASP A03: validate query params before passing to downstream functions
+  const rawQuery = req.nextUrl.searchParams.get("query")
+  const rawCategory = req.nextUrl.searchParams.get("category")
+
+  // Reject oversized query strings to prevent embedding abuse
+  if (rawQuery !== null && rawQuery.length > 500) {
+    return jsonResponse(
+      { success: false, error: "Query too long (max 500 chars)", code: "VALIDATION_ERROR" },
+      400,
+    )
+  }
+
+  // Reject unknown category values to prevent unexpected KV key patterns
+  if (rawCategory !== null && !VALID_CATEGORIES.has(rawCategory)) {
+    return jsonResponse(
+      { success: false, error: "Invalid category", code: "VALIDATION_ERROR" },
+      400,
+    )
   }
 
   try {
@@ -79,8 +112,8 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    const query = req.nextUrl.searchParams.get("query")
-    const category = req.nextUrl.searchParams.get("category") as MemoryCategory | null
+    const query = rawQuery
+    const category = rawCategory as MemoryCategory | null
 
     if (query) {
       let apiKey = ""

@@ -7,6 +7,7 @@ import { PLUGIN_METADATA } from "@/lib/plugins/plugin-registry"
 import { getUserPlugins, upsertPlugin, disconnectPlugin, getConnectedPlugin, stripCredentials } from "@/lib/plugins/plugin-store"
 import { buildPluginCommand, executePluginCommand } from "@/lib/plugins/plugin-executor"
 import { successResponse, standardErrors } from "@/types/api"
+import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import type { KVStore } from "@/types"
 import type { PluginConfig, PluginId } from "@/types/plugins"
 
@@ -33,6 +34,13 @@ export async function GET() {
     if (e instanceof AuthenticationError) return standardErrors.unauthorized()
     logError("plugins.get.auth_error", e)
     return standardErrors.internalError()
+  }
+
+  // OWASP API4: rate-limit per user to prevent enumeration/abuse
+  const rateResult = await checkRateLimit(userId, "free")
+  if (!rateResult.allowed) {
+    logRequest("plugins.get.rate_limited", userId, startTime)
+    return rateLimitExceededResponse(rateResult)
   }
 
   try {
@@ -64,6 +72,13 @@ export async function POST(req: Request) {
     if (e instanceof AuthenticationError) return standardErrors.unauthorized()
     logError("plugins.post.auth_error", e)
     return standardErrors.internalError()
+  }
+
+  // OWASP API4: rate-limit plugin connections to prevent credential-stuffing
+  const rateResult = await checkRateLimit(userId, "free")
+  if (!rateResult.allowed) {
+    logRequest("plugins.post.rate_limited", userId, startTime)
+    return rateLimitExceededResponse(rateResult)
   }
 
   let body: unknown
@@ -119,6 +134,13 @@ export async function DELETE(req: Request) {
     return standardErrors.internalError()
   }
 
+  // OWASP API4: rate-limit to prevent bulk disconnection abuse
+  const rateResult = await checkRateLimit(userId, "free")
+  if (!rateResult.allowed) {
+    logRequest("plugins.delete.rate_limited", userId, startTime)
+    return rateLimitExceededResponse(rateResult)
+  }
+
   let body: unknown
   try {
     body = await req.json()
@@ -160,6 +182,13 @@ export async function PATCH(req: Request) {
     if (e instanceof AuthenticationError) return standardErrors.unauthorized()
     logError("plugins.patch.auth_error", e)
     return standardErrors.internalError()
+  }
+
+  // OWASP API4: rate-limit plugin execution — each call may trigger external API requests
+  const rateResult = await checkRateLimit(userId, "free")
+  if (!rateResult.allowed) {
+    logRequest("plugins.patch.rate_limited", userId, startTime)
+    return rateLimitExceededResponse(rateResult)
   }
 
   let body: unknown

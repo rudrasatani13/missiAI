@@ -6,6 +6,7 @@ import { createCheckoutSession, createCustomerPortalSession } from '@/lib/billin
 import { PLANS } from '@/types/billing'
 import { billingCheckoutSchema } from '@/lib/validation/billing-schemas'
 import { log } from '@/lib/server/logger'
+import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
 import type { KVStore } from '@/types'
 
 export const runtime = 'edge'
@@ -20,12 +21,21 @@ function getKV(): KVStore | null {
 }
 
 export async function GET() {
+  const startTime = Date.now()
+
   let userId: string
   try {
     userId = await getVerifiedUserId()
   } catch (e) {
     if (e instanceof AuthenticationError) return unauthorizedResponse()
     throw e
+  }
+
+  // OWASP API4: rate-limit billing status reads — each call hits Clerk + KV
+  const rateResult = await checkRateLimit(userId, 'free')
+  if (!rateResult.allowed) {
+    log({ level: 'warn', event: 'billing.get.rate_limited', userId, timestamp: Date.now() })
+    return rateLimitExceededResponse(rateResult)
   }
 
   const planId = await getUserPlan(userId)
@@ -57,12 +67,21 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const startTime = Date.now()
+
   let userId: string
   try {
     userId = await getVerifiedUserId()
   } catch (e) {
     if (e instanceof AuthenticationError) return unauthorizedResponse()
     throw e
+  }
+
+  // OWASP API4: rate-limit checkout creation — creates Stripe sessions
+  const rateResult = await checkRateLimit(userId, 'free')
+  if (!rateResult.allowed) {
+    log({ level: 'warn', event: 'billing.post.rate_limited', userId, timestamp: Date.now() })
+    return rateLimitExceededResponse(rateResult)
   }
 
   let body: unknown
@@ -142,12 +161,21 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE() {
+  const startTime = Date.now()
+
   let userId: string
   try {
     userId = await getVerifiedUserId()
   } catch (e) {
     if (e instanceof AuthenticationError) return unauthorizedResponse()
     throw e
+  }
+
+  // OWASP API4: rate-limit portal session creation — creates Stripe sessions
+  const rateResult = await checkRateLimit(userId, 'free')
+  if (!rateResult.allowed) {
+    log({ level: 'warn', event: 'billing.delete.rate_limited', userId, timestamp: Date.now() })
+    return rateLimitExceededResponse(rateResult)
   }
 
   const billingData = await getUserBillingData(userId)

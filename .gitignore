@@ -16,14 +16,17 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (all .local files contain secrets — never commit)
+# Environment files — all *.local files contain secrets; NEVER commit them.
+# If a key is accidentally committed, rotate it immediately (see .env.example).
 .env
 .env.local
 .env.development.local
 .env.production.local
 .env.*.local
+*.env
+*.env.*
 
-# Allow .env.example (template without secrets)
+# Allow the safe template (no real values)
 !.env.example
 
 # vercel
@@ -47,79 +50,3 @@ next-env.d.ts
 
 # Cloudflare
 .wrangler/
-
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*

@@ -80,7 +80,8 @@ export const proactiveConfigSchema = z.object({
   briefingTime: z
     .string()
     .regex(/^\d{2}:\d{2}$/, 'Must be HH:MM 24-hour format'),
-  timezone: z.string().min(1, 'Timezone is required'),
+  // Max 64 chars covers all valid IANA timezone IDs (e.g. "America/New_York")
+  timezone: z.string().min(1, 'Timezone is required').max(64, 'Timezone too long'),
   nudgesEnabled: z.boolean(),
   maxItemsPerBriefing: z
     .number()
@@ -99,8 +100,10 @@ export const nudgeRequestSchema = z.object({
 export type NudgeRequestInput = z.infer<typeof nudgeRequestSchema>
 
 export const dismissSchema = z.object({
-  nodeId: z.string().optional(),
-  type: z.string().min(1, 'type is required'),
+  // nodeId follows the same constraint as other node IDs in the codebase
+  nodeId: z.string().max(50).optional(),
+  // type is an internal briefing-item type; cap to prevent oversized strings
+  type: z.string().min(1, 'type is required').max(50, 'type too long'),
 })
 
 export type DismissInput = z.infer<typeof dismissSchema>

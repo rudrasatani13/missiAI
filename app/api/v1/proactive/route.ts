@@ -17,6 +17,7 @@ import { checkForNudges } from '@/lib/proactive/nudge-engine'
 import { getProactiveConfig, saveProactiveConfig } from '@/lib/proactive/config-store'
 import { logRequest, logError } from '@/lib/server/logger'
 import { getEnv } from '@/lib/server/env'
+import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
 import type { KVStore } from '@/types'
 import type { DailyBriefing } from '@/types/proactive'
 
@@ -58,6 +59,13 @@ export async function GET(_req: NextRequest) {
     if (e instanceof AuthenticationError) return unauthorizedResponse()
     logError('proactive.auth_error', e)
     throw e
+  }
+
+  // OWASP API4: rate-limit briefing fetches — may trigger Gemini calls
+  const rateResult = await checkRateLimit(userId, 'free')
+  if (!rateResult.allowed) {
+    logRequest('proactive.get.rate_limited', userId, startTime)
+    return rateLimitExceededResponse(rateResult)
   }
 
   const kv = getKV()
@@ -117,6 +125,13 @@ export async function POST(req: NextRequest) {
     throw e
   }
 
+  // OWASP API4: rate-limit nudge checks to prevent constant polling abuse
+  const rateResult = await checkRateLimit(userId, 'free')
+  if (!rateResult.allowed) {
+    logRequest('proactive.post.rate_limited', userId, startTime)
+    return rateLimitExceededResponse(rateResult)
+  }
+
   let body: unknown
   try {
     body = await req.json()
@@ -169,6 +184,13 @@ export async function PATCH(req: NextRequest) {
     throw e
   }
 
+  // OWASP API4: rate-limit config updates — writes to KV on every call
+  const rateResult = await checkRateLimit(userId, 'free')
+  if (!rateResult.allowed) {
+    logRequest('proactive.patch.rate_limited', userId, startTime)
+    return rateLimitExceededResponse(rateResult)
+  }
+
   let body: unknown
   try {
     body = await req.json()
@@ -212,6 +234,13 @@ export async function DELETE(req: NextRequest) {
     if (e instanceof AuthenticationError) return unauthorizedResponse()
     logError('proactive.auth_error', e)
     throw e
+  }
+
+  // OWASP API4: rate-limit dismissals to prevent KV write flooding
+  const rateResult = await checkRateLimit(userId, 'free')
+  if (!rateResult.allowed) {
+    logRequest('proactive.delete.rate_limited', userId, startTime)
+    return rateLimitExceededResponse(rateResult)
   }
 
   let body: unknown

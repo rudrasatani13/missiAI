@@ -7,6 +7,7 @@ import {
 import { getRequestContext } from "@cloudflare/next-on-pages"
 import { getLifeGraph, saveLifeGraph } from "@/lib/memory/life-graph"
 import { logRequest, logError } from "@/lib/server/logger"
+import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import { z } from "zod"
 import type { KVStore } from "@/types"
 
@@ -50,6 +51,13 @@ export async function DELETE(
     if (e instanceof AuthenticationError) return unauthorizedResponse()
     logError("memory.node.auth_error", e)
     throw e
+  }
+
+  // OWASP API4: rate-limit node deletions to prevent bulk memory wiping
+  const rateResult = await checkRateLimit(userId, "free")
+  if (!rateResult.allowed) {
+    logRequest("memory.node.delete.rate_limited", userId, startTime)
+    return rateLimitExceededResponse(rateResult)
   }
 
   const { nodeId } = await params
@@ -118,6 +126,13 @@ export async function PATCH(
     if (e instanceof AuthenticationError) return unauthorizedResponse()
     logError("memory.node.auth_error", e)
     throw e
+  }
+
+  // OWASP API4: rate-limit node updates — each writes the full life graph to KV
+  const rateResult = await checkRateLimit(userId, "free")
+  if (!rateResult.allowed) {
+    logRequest("memory.node.patch.rate_limited", userId, startTime)
+    return rateLimitExceededResponse(rateResult)
   }
 
   const { nodeId } = await params
