@@ -14,33 +14,43 @@ missiAI is an AI voice companion application built with Next.js 16, Clerk authen
 ## What's Been Implemented
 
 ### Session 1 — Bug Fix (28 Fixes)
-All 28 bugs from PDF audit fixed across security, client-side, server-side, config, validation, and error handling.
+All 28 bugs from PDF audit fixed: security (timing attacks, plan tampering, data leaks), client-side (SDK errors, race conditions, orphaned subs), server-side (orphan cleanup, status validation, webhook handlers), config (DODO→Razorpay), validation (regex, length limits), error handling (generic client errors, parsed API errors).
 
 ### Session 2 — UX Improvements
-1. **Navbar pricing link always visible** — Free: "Upgrade to Pro", Pro: "Pro Plan" badge, Business: "Business Plan" badge
-2. **Celebration animation** on plan upgrade — confetti particles, Crown icon, "Welcome to {plan}!" text
-3. **Button text fixed** — "Upgrade to Pro" (not just "Pro")
-4. **Better pricing page for paid users** — "Current Plan" badge, gradient card, header changes to "You're on Pro", cancel pending banner
-5. **Razorpay customer creation fix** — removed empty `contact`/`gstin` fields that Razorpay was rejecting
-6. **Debug endpoint** — created and used for live debugging, then removed
+- Navbar pricing link always visible (Upgrade to Pro / Pro Plan / Business Plan)
+- Celebration animation on upgrade (confetti + Crown + welcome text)
+- Better pricing page for paid users (Current Plan badge, manage options)
+- Razorpay customer creation fix (empty contact/gstin)
 
-## Files Modified
-- `/app/types/billing.ts`
-- `/app/hooks/useBilling.ts`
-- `/app/app/pricing/page.tsx`
-- `/app/app/chat/page.tsx`
-- `/app/app/api/v1/billing/route.ts`
-- `/app/app/api/v1/billing/verify/route.ts`
-- `/app/app/api/webhooks/razorpay/route.ts`
-- `/app/lib/billing/razorpay-client.ts`
-- `/app/lib/billing/tier-checker.ts`
-- `/app/lib/server/env.ts`
-- `/app/lib/validation/billing-schemas.ts`
-- `/app/wrangler.toml`
-- `/app/components/ui/CelebrationOverlay.tsx` (new)
+### Session 3 — Referral System
+**Features:**
+- Referrer gets 7 extra free days when referred friend upgrades
+- New user gets 20% off (6 days free via delayed Razorpay subscription start)
+- Max 5 referrals per user
+- Link format: `missi.space/?ref=CODE`
+- Referral section in pricing/manage plan page with stats
+- Auto-capture ?ref= on landing page and pricing page
+
+**Files Created:**
+- `/app/lib/billing/referral.ts` — Core referral logic (KV-backed)
+- `/app/app/api/v1/referral/route.ts` — GET/POST API endpoints
+- `/app/hooks/useReferral.ts` — Client hook
+- `/app/components/ui/CelebrationOverlay.tsx` — Upgrade celebration
+
+**Files Modified:**
+- `/app/app/pricing/page.tsx` — Referral section, discount banner, stats
+- `/app/app/page.tsx` — Referral capture on landing
+- `/app/app/api/v1/billing/route.ts` — Referral discount on checkout
+- `/app/app/api/v1/billing/verify/route.ts` — Referral reward on verification
+- `/app/lib/billing/razorpay-client.ts` — startAt parameter support
+
+## KV Storage Keys (Referral)
+- `referral:user:{userId}` → ReferralData JSON
+- `referral:code:{code}` → userId (reverse lookup)
+- `referral:referred-by:{newUserId}` → referrerUserId
 
 ## Backlog / Future
 - P1: Subscription status sync cron job
 - P1: Email notifications for payment events
 - P2: Billing analytics admin dashboard
-- P2: Referral/discount system
+- P2: Referral sharing via WhatsApp/Twitter buttons
