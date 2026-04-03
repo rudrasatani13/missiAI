@@ -12,18 +12,26 @@ export async function getUserPlan(userId: string): Promise<PlanId> {
   return 'free'
 }
 
+// CFG-3 FIX: Now stores cancelAtPeriodEnd in Clerk metadata
 export async function setUserPlan(
   userId: string,
   planId: PlanId,
   billingData?: Partial<UserBilling>
 ): Promise<void> {
   const client = await clerkClient()
+
+  // Get existing metadata to preserve fields not being updated
+  const user = await client.users.getUser(userId)
+  const existingMeta = (user.publicMetadata ?? {}) as Record<string, unknown>
+
   await client.users.updateUser(userId, {
     publicMetadata: {
+      ...existingMeta,
       plan: planId,
-      razorpayCustomerId: billingData?.razorpayCustomerId,
-      razorpaySubscriptionId: billingData?.razorpaySubscriptionId,
-      currentPeriodEnd: billingData?.currentPeriodEnd,
+      ...(billingData?.razorpayCustomerId !== undefined && { razorpayCustomerId: billingData.razorpayCustomerId }),
+      ...(billingData?.razorpaySubscriptionId !== undefined && { razorpaySubscriptionId: billingData.razorpaySubscriptionId }),
+      ...(billingData?.currentPeriodEnd !== undefined && { currentPeriodEnd: billingData.currentPeriodEnd }),
+      ...(billingData?.cancelAtPeriodEnd !== undefined && { cancelAtPeriodEnd: billingData.cancelAtPeriodEnd }),
     },
   })
 }

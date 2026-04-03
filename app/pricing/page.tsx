@@ -1,13 +1,13 @@
 'use client'
 
-export const dynamic = 'force-static'
+// BUG-2 FIX: Removed `export const dynamic = 'force-static'` — contradictory in client component
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useBilling } from '@/hooks/useBilling'
-import { Check, X, Sparkles, ChevronDown } from 'lucide-react'
+import { Check, X, Sparkles, ChevronDown, AlertTriangle } from 'lucide-react'
 import type { PlanId } from '@/types/billing'
 
 function PaymentBadges() {
@@ -37,6 +37,102 @@ function PaymentBadges() {
           {badge}
         </span>
       ))}
+    </div>
+  )
+}
+
+// CLI-3 FIX: Custom confirmation modal instead of window.confirm()
+function CancelModal({
+  planName,
+  isOpen,
+  onConfirm,
+  onCancel,
+  isLoading,
+}: {
+  planName: string
+  isOpen: boolean
+  onConfirm: () => void
+  onCancel: () => void
+  isLoading: boolean
+}) {
+  if (!isOpen) return null
+
+  return (
+    <div
+      data-testid="cancel-modal-overlay"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.7)',
+        backdropFilter: 'blur(8px)',
+      }}
+      onClick={onCancel}
+    >
+      <div
+        data-testid="cancel-modal-content"
+        style={{
+          background: '#111',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 16,
+          padding: '32px 28px',
+          maxWidth: 400,
+          width: '90%',
+          textAlign: 'center',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <AlertTriangle style={{ width: 32, height: 32, color: '#f59e0b' }} />
+        </div>
+        <h3 style={{ fontSize: 18, fontWeight: 600, color: '#fff', marginBottom: 8 }}>
+          Cancel {planName} Subscription?
+        </h3>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 24, lineHeight: 1.6 }}>
+          Your subscription will remain active until the end of the current billing period. After that, you&apos;ll be downgraded to the Free plan.
+        </p>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button
+            data-testid="cancel-modal-keep-btn"
+            onClick={onCancel}
+            style={{
+              flex: 1,
+              padding: '10px 0',
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 600,
+              border: '1px solid rgba(255,255,255,0.15)',
+              background: 'transparent',
+              color: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            Keep Plan
+          </button>
+          <button
+            data-testid="cancel-modal-confirm-btn"
+            onClick={onConfirm}
+            disabled={isLoading}
+            style={{
+              flex: 1,
+              padding: '10px 0',
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 600,
+              border: 'none',
+              background: 'rgba(239,68,68,0.8)',
+              color: '#fff',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              opacity: isLoading ? 0.6 : 1,
+            }}
+          >
+            {isLoading ? 'Cancelling...' : 'Yes, Cancel'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -211,12 +307,17 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 export default function PricingPage() {
   const router = useRouter()
   const { isSignedIn } = useUser()
-  const { plan, isLoading, isUpgrading, error: billingError, initiateRazorpayCheckout, cancelSubscription } = useBilling()
+  const {
+    plan, isLoading, isUpgrading, isCancelling,
+    error: billingError, initiateRazorpayCheckout, cancelSubscription
+  } = useBilling()
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const prevPlanRef = useRef<string | null>(null)
+  // CLI-3 FIX: State for cancel modal
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const [cancelPlanName, setCancelPlanName] = useState('')
 
-  // Show success toast when plan upgrades from free to pro/business
   useEffect(() => {
     if (plan) {
       if (prevPlanRef.current === 'free' && (plan.id === 'pro' || plan.id === 'business')) {
@@ -238,11 +339,11 @@ export default function PricingPage() {
     }
   }
 
+  // CLI-3 FIX: Use custom modal instead of window.confirm()
   const handleProPlan = () => {
     if (currentPlanId === 'pro') {
-      if (confirm('Cancel your Pro subscription at the end of the current billing period?')) {
-        cancelSubscription()
-      }
+      setCancelPlanName('Pro')
+      setCancelModalOpen(true)
     } else {
       initiateRazorpayCheckout('pro')
     }
@@ -250,22 +351,31 @@ export default function PricingPage() {
 
   const handleBusinessPlan = () => {
     if (currentPlanId === 'business') {
-      if (confirm('Cancel your Business subscription at the end of the current billing period?')) {
-        cancelSubscription()
-      }
+      setCancelPlanName('Business')
+      setCancelModalOpen(true)
     } else {
       window.location.href = 'mailto:rudrasatani@missi.space'
     }
   }
 
+  const handleConfirmCancel = () => {
+    setCancelModalOpen(false)
+    cancelSubscription()
+  }
+
   const freeButtonLabel =
     currentPlanId === 'free' ? 'Current Plan' : 'Get Started'
 
+  // CLI-2 FIX: Show cancelling state in button
   const proButtonLabel =
-    currentPlanId === 'pro' ? 'Cancel Subscription' : 'Upgrade to Pro'
+    currentPlanId === 'pro'
+      ? (isCancelling ? 'Cancelling...' : 'Cancel Subscription')
+      : 'Upgrade to Pro'
 
   const businessButtonLabel =
-    currentPlanId === 'business' ? 'Cancel Subscription' : 'Contact Us'
+    currentPlanId === 'business'
+      ? (isCancelling ? 'Cancelling...' : 'Cancel Subscription')
+      : 'Contact Us'
 
   return (
     <div
@@ -277,6 +387,15 @@ export default function PricingPage() {
         fontFamily: 'var(--font-inter), system-ui, sans-serif',
       }}
     >
+      {/* CLI-3 FIX: Custom cancel confirmation modal */}
+      <CancelModal
+        planName={cancelPlanName}
+        isOpen={cancelModalOpen}
+        onConfirm={handleConfirmCancel}
+        onCancel={() => setCancelModalOpen(false)}
+        isLoading={isCancelling}
+      />
+
       <nav
         style={{
           display: 'flex',
@@ -312,7 +431,6 @@ export default function PricingPage() {
       </nav>
 
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 20px 80px' }}>
-        {/* Success message after payment */}
         {successMessage && (
           <div
             data-testid="pricing-success-message"
@@ -331,7 +449,6 @@ export default function PricingPage() {
           </div>
         )}
 
-        {/* Billing error */}
         {billingError && (
           <div
             data-testid="billing-error-message"
@@ -350,7 +467,6 @@ export default function PricingPage() {
           </div>
         )}
 
-        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <div
             style={{
@@ -380,7 +496,6 @@ export default function PricingPage() {
           </p>
         </div>
 
-        {/* Plan cards */}
         <div
           data-testid="plan-cards-grid"
           style={{
@@ -427,7 +542,7 @@ export default function PricingPage() {
               'Priority response speed',
             ]}
             onSelect={handleProPlan}
-            isLoading={isLoading || isUpgrading}
+            isLoading={isLoading || isUpgrading || isCancelling}
             buttonLabel={isUpgrading ? 'Processing...' : proButtonLabel}
           />
 
@@ -445,12 +560,11 @@ export default function PricingPage() {
               'Custom integrations',
             ]}
             onSelect={handleBusinessPlan}
-            isLoading={isLoading}
+            isLoading={isLoading || isCancelling}
             buttonLabel={businessButtonLabel}
           />
         </div>
 
-        {/* Powered by */}
         <div
           data-testid="powered-by-razorpay"
           style={{
@@ -463,7 +577,6 @@ export default function PricingPage() {
           Powered by Razorpay
         </div>
 
-        {/* FAQ */}
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
           <h2
             data-testid="faq-heading"

@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useUser } from '@clerk/nextjs'
 import type { PlanConfig, DailyUsage, UserBilling } from '@/types/billing'
 
-// localStorage key for today's usage — resets automatically each new day
+// SEC-4 FIX: localStorage is used ONLY for optimistic UI, server is the source of truth.
+// We no longer merge with Math.max — server count always wins.
 function todayStorageKey(): string {
   return `missi-usage-${new Date().toISOString().split('T')[0]}`
 }
@@ -25,7 +27,8 @@ function loadRazorpayScript(): Promise<void> {
     const script = document.createElement('script')
     script.src = 'https://checkout.razorpay.com/v1/checkout.js'
     script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Failed to load Razorpay SDK'))
+    // CLI-1 FIX: Provide specific error message for SDK load failure
+    script.onerror = () => reject(new Error('Failed to load payment gateway. Please check your internet connection or disable ad blocker and try again.'))
     document.head.appendChild(script)
   })
 }
@@ -37,20 +40,32 @@ export function useBilling() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isUpgrading, setIsUpgrading] = useState(false)
+  // CLI-2 FIX: Add isCancelling loading state
+  const [isCancelling, setIsCancelling] = useState(false)
+  // CLI-5 FIX: Track mounted state to prevent state updates after unmount
+  const mountedRef = useRef(true)
+
+  // CLI-6 FIX: Get user info for Razorpay prefill
+  const { user } = useUser()
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   const refreshBilling = useCallback(async () => {
     try {
       const res = await fetch('/api/v1/billing')
       if (!res.ok) return
       const data = await res.json()
+      if (!mountedRef.current) return
       setPlan(data.plan ?? null)
 
       if (data.usage) {
-        const localCount = getLocalCount()
+        // SEC-4 FIX: Server count is source of truth — use it directly
         const serverCount = data.usage.voiceInteractions ?? 0
-        const merged = { ...data.usage, voiceInteractions: Math.max(serverCount, localCount) }
-        if (localCount < merged.voiceInteractions) setLocalCount(merged.voiceInteractions)
-        setUsage(merged)
+        setLocalCount(serverCount) // Sync local for optimistic UI only
+        setUsage(data.usage)
       } else {
         setUsage(null)
       }
@@ -69,7 +84,6 @@ export function useBilling() {
         const res = await fetch('/api/v1/billing')
         if (!res.ok) {
           if (res.status === 401) {
-            // Not logged in — still load local count so limit is enforced
             const localCount = getLocalCount()
             if (localCount > 0) {
               setUsage({ userId: '', date: todayStorageKey().replace('missi-usage-', ''), voiceInteractions: localCount, lastUpdatedAt: Date.now() })
@@ -82,13 +96,11 @@ export function useBilling() {
         if (cancelled) return
         setPlan(data.plan ?? null)
 
-        // Merge server count with localStorage — take the HIGHER value.
+        // SEC-4 FIX: Server is source of truth — no Math.max merge with localStorage
         if (data.usage) {
-          const localCount = getLocalCount()
           const serverCount = data.usage.voiceInteractions ?? 0
-          const merged = { ...data.usage, voiceInteractions: Math.max(serverCount, localCount) }
-          if (localCount < merged.voiceInteractions) setLocalCount(merged.voiceInteractions)
-          setUsage(merged)
+          setLocalCount(serverCount)
+          setUsage(data.usage)
         } else {
           setUsage(null)
         }
@@ -110,6 +122,9 @@ export function useBilling() {
   const initiateRazorpayCheckout = useCallback(async (planId: 'pro' | 'business') => {
     setIsUpgrading(true)
     setError(null)
+
+    let createdSubscriptionId: string | null = null
+
     try {
       const res = await fetch('/api/v1/billing', {
         method: 'POST',
@@ -122,7 +137,9 @@ export function useBilling() {
       }
 
       const { subscriptionId, keyId } = data
+      createdSubscriptionId = subscriptionId
 
+      // CLI-1 FIX: loadRazorpayScript now provides specific error messages
       await loadRazorpayScript()
 
       const rzp = new (window as any).Razorpay({
@@ -148,31 +165,58 @@ export function useBilling() {
               }),
             })
             const verifyData = await verifyRes.json()
+            // CLI-5 FIX: Check mounted before updating state
+            if (!mountedRef.current) return
             if (verifyData.success) {
               await refreshBilling()
             } else {
               setError('Payment verification failed. Contact support.')
             }
           } catch {
-            setError('Payment verification failed. Contact support.')
+            if (mountedRef.current) {
+              setError('Payment verification failed. Contact support.')
+            }
           } finally {
-            setIsUpgrading(false)
+            if (mountedRef.current) {
+              setIsUpgrading(false)
+            }
           }
         },
-        prefill: {},
+        // CLI-6 FIX: Prefill user data from Clerk for better UX
+        prefill: {
+          name: user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : '',
+          email: user?.emailAddresses?.[0]?.emailAddress ?? '',
+        },
         theme: { color: '#7C3AED' },
         modal: {
-          ondismiss: () => { setIsUpgrading(false) },
+          // CLI-4 FIX: On dismiss, cancel the orphaned subscription on the backend
+          ondismiss: async () => {
+            if (mountedRef.current) {
+              setIsUpgrading(false)
+            }
+            // Clean up the subscription that was created but never paid
+            if (createdSubscriptionId) {
+              try {
+                await fetch('/api/v1/billing', { method: 'DELETE' })
+              } catch {
+                // Best-effort cleanup — webhook will eventually handle it
+              }
+            }
+          },
         },
       })
       rzp.open()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Checkout failed')
-      setIsUpgrading(false)
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Checkout failed')
+        setIsUpgrading(false)
+      }
     }
-  }, [refreshBilling])
+  }, [refreshBilling, user])
 
+  // CLI-2 FIX: cancelSubscription now has loading state
   const cancelSubscription = useCallback(async () => {
+    setIsCancelling(true)
     setError(null)
     try {
       const res = await fetch('/api/v1/billing', { method: 'DELETE' })
@@ -182,7 +226,13 @@ export function useBilling() {
       }
       await refreshBilling()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Cancel failed')
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Cancel failed')
+      }
+    } finally {
+      if (mountedRef.current) {
+        setIsCancelling(false)
+      }
     }
   }, [refreshBilling])
 
@@ -215,6 +265,7 @@ export function useBilling() {
     isLoading,
     error,
     isUpgrading,
+    isCancelling,
     initiateRazorpayCheckout,
     cancelSubscription,
     isAtLimit,

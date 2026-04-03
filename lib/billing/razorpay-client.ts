@@ -11,6 +11,20 @@ export function getRazorpayAuth(): string {
   return 'Basic ' + btoa(keyId + ':' + keySecret)
 }
 
+// ERR-2 FIX: Parse Razorpay API error responses for detailed logging
+async function parseRazorpayError(res: Response, fallbackMessage: string): Promise<Error> {
+  try {
+    const body = await res.json()
+    const description = body?.error?.description ?? body?.error?.reason ?? fallbackMessage
+    const code = body?.error?.code ?? res.status
+    // Log detailed error server-side but return sanitized message
+    console.error(`[Razorpay API Error] code=${code} description=${description} status=${res.status}`)
+    return new Error(`${fallbackMessage} (code: ${code})`)
+  } catch {
+    return new Error(`${fallbackMessage} (HTTP ${res.status})`)
+  }
+}
+
 export async function createRazorpayCustomer(params: {
   name: string
   email: string
@@ -36,13 +50,13 @@ export async function createRazorpayCustomer(params: {
     })
 
     if (!res.ok) {
-      throw new Error('Razorpay customer creation failed')
+      throw await parseRazorpayError(res, 'Razorpay customer creation failed')
     }
 
     const data = await res.json()
     return { id: data.id }
   } catch (err) {
-    if (err instanceof Error && err.message === 'Razorpay customer creation failed') throw err
+    if (err instanceof Error && err.message.startsWith('Razorpay customer creation failed')) throw err
     throw new Error('Razorpay customer creation failed')
   } finally {
     clearTimeout(timeout)
@@ -81,13 +95,13 @@ export async function createRazorpaySubscription(params: {
     })
 
     if (!res.ok) {
-      throw new Error('Razorpay subscription creation failed')
+      throw await parseRazorpayError(res, 'Razorpay subscription creation failed')
     }
 
     const data = await res.json()
     return { id: data.id, status: data.status, short_url: data.short_url }
   } catch (err) {
-    if (err instanceof Error && err.message === 'Razorpay subscription creation failed') throw err
+    if (err instanceof Error && err.message.startsWith('Razorpay subscription creation failed')) throw err
     throw new Error('Razorpay subscription creation failed')
   } finally {
     clearTimeout(timeout)
@@ -113,7 +127,7 @@ export async function getRazorpaySubscription(
   })
 
   if (!res.ok) {
-    throw new Error('Razorpay subscription fetch failed')
+    throw await parseRazorpayError(res, 'Razorpay subscription fetch failed')
   }
 
   return res.json()
@@ -133,17 +147,29 @@ export async function cancelRazorpaySubscription(
   })
 
   if (!res.ok) {
-    throw new Error('Razorpay cancel failed')
+    throw await parseRazorpayError(res, 'Razorpay cancel failed')
   }
 }
 
+// SRV-2 FIX: Default to 'free' for unknown plan IDs instead of 'pro'
 export function determinePlanFromRazorpayPlan(planId: string): PlanId {
   const businessPlanId = process.env.RAZORPAY_BUSINESS_PLAN_ID
   const proPlanId = process.env.RAZORPAY_PRO_PLAN_ID
 
   if (planId === businessPlanId) return 'business'
   if (planId === proPlanId) return 'pro'
-  return 'pro'
+  // Unknown plan IDs default to 'free' — never silently upgrade a user
+  return 'free'
+}
+
+// SEC-1 FIX: Constant-time comparison to prevent timing attacks
+function timingSafeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let result = 0
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+  return result === 0
 }
 
 export async function verifyRazorpayWebhook(
@@ -171,7 +197,8 @@ export async function verifyRazorpayWebhook(
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('')
 
-    return computedSig === signature
+    // SEC-1: Use constant-time comparison instead of ===
+    return timingSafeCompare(computedSig, signature)
   } catch {
     return false
   }
@@ -204,7 +231,8 @@ export async function verifyRazorpayPayment(
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('')
 
-    return computedSig === signature
+    // SEC-1: Use constant-time comparison instead of ===
+    return timingSafeCompare(computedSig, signature)
   } catch {
     return false
   }

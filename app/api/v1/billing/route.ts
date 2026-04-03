@@ -3,7 +3,7 @@ import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/
 import { getUserPlan, getUserBillingData, setUserPlan } from '@/lib/billing/tier-checker'
 import { getDailyUsage } from '@/lib/billing/usage-tracker'
 import { createRazorpayCustomer, createRazorpaySubscription, cancelRazorpaySubscription } from '@/lib/billing/razorpay-client'
-import { PLANS } from '@/types/billing'
+import { PLANS, getServerRazorpayPlanId } from '@/types/billing'
 import { billingCheckoutSchema } from '@/lib/validation/billing-schemas'
 import { log } from '@/lib/server/logger'
 import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
@@ -30,7 +30,6 @@ export async function GET() {
     throw e
   }
 
-  // OWASP API4: rate-limit billing status reads — each call hits Clerk + KV
   const rateResult = await checkRateLimit(userId, 'free')
   if (!rateResult.allowed) {
     log({ level: 'warn', event: 'billing.get.rate_limited', userId, timestamp: Date.now() })
@@ -51,8 +50,8 @@ export async function GET() {
     timestamp: Date.now(),
   })
 
-  // Strip razorpayCustomerId from response
-  const { razorpayCustomerId: _rpCustId, ...safeBilling } = billingData
+  // SEC-7 FIX: Strip both razorpayCustomerId AND razorpaySubscriptionId from response
+  const { razorpayCustomerId: _rpCustId, razorpaySubscriptionId: _rpSubId, ...safeBilling } = billingData
 
   return new Response(
     JSON.stringify({
@@ -74,7 +73,6 @@ export async function POST(req: Request) {
     throw e
   }
 
-  // OWASP API4: rate-limit checkout creation — creates Razorpay sessions
   const rateResult = await checkRateLimit(userId, 'free')
   if (!rateResult.allowed) {
     log({ level: 'warn', event: 'billing.post.rate_limited', userId, timestamp: Date.now() })
@@ -110,7 +108,8 @@ export async function POST(req: Request) {
     )
   }
 
-  const razorpayPlanId = PLANS[planId].razorpayPlanId
+  // BUG-1 FIX: Use server-side helper instead of PLANS constant for razorpayPlanId
+  const razorpayPlanId = getServerRazorpayPlanId(planId)
   if (!razorpayPlanId) {
     return new Response(
       JSON.stringify({ success: false, error: 'Plan not configured' }),
@@ -118,13 +117,11 @@ export async function POST(req: Request) {
     )
   }
 
-  // Get user info from Clerk for customer creation
   const client = await clerkClient()
   const user = await client.users.getUser(userId)
   const email = user.emailAddresses[0]?.emailAddress ?? ''
   const name = ((user.firstName ?? '') + ' ' + (user.lastName ?? '')).trim()
 
-  // Get or create Razorpay customer
   const billingData = await getUserBillingData(userId)
   let razorpayCustomerId = billingData.razorpayCustomerId
 
@@ -140,45 +137,22 @@ export async function POST(req: Request) {
         metadata: { error: err instanceof Error ? err.message : String(err) },
         timestamp: Date.now(),
       })
+      // ERR-1 FIX: Return generic error to client
       return new Response(
-        JSON.stringify({ success: false, error: 'Failed to create customer' }),
+        JSON.stringify({ success: false, error: 'Failed to create customer. Please try again.' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       )
     }
   }
 
+  let subscription: { id: string; status: string; short_url: string }
   try {
-    const subscription = await createRazorpaySubscription({
+    subscription = await createRazorpaySubscription({
       planId: razorpayPlanId,
       customerId: razorpayCustomerId,
       totalCount: 120,
       notes: { userId },
     })
-
-    // Save razorpayCustomerId to Clerk immediately
-    await setUserPlan(userId, billingData.planId, {
-      razorpayCustomerId,
-      razorpaySubscriptionId: subscription.id,
-      currentPeriodEnd: billingData.currentPeriodEnd,
-    })
-
-    log({
-      level: 'info',
-      event: 'billing.checkout.created',
-      userId,
-      metadata: { planId },
-      timestamp: Date.now(),
-    })
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        subscriptionId: subscription.id,
-        keyId: process.env.RAZORPAY_KEY_ID,
-        razorpayCustomerId,
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    )
   } catch (err) {
     log({
       level: 'error',
@@ -187,12 +161,57 @@ export async function POST(req: Request) {
       metadata: { error: err instanceof Error ? err.message : String(err) },
       timestamp: Date.now(),
     })
-    const detail = err instanceof Error ? err.message : String(err)
+    // ERR-1 FIX: Return generic error, don't leak internal details
     return new Response(
-      JSON.stringify({ success: false, error: `Failed to create checkout session: ${detail}` }),
+      JSON.stringify({ success: false, error: 'Failed to create checkout session. Please try again.' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
+
+  // SRV-1 FIX: If saving to Clerk fails, cancel the Razorpay subscription to prevent orphans
+  try {
+    await setUserPlan(userId, billingData.planId, {
+      razorpayCustomerId,
+      razorpaySubscriptionId: subscription.id,
+      currentPeriodEnd: billingData.currentPeriodEnd,
+    })
+  } catch (err) {
+    log({
+      level: 'error',
+      event: 'billing.checkout.metadata_save_failed',
+      userId,
+      metadata: { subscriptionId: subscription.id, error: err instanceof Error ? err.message : String(err) },
+      timestamp: Date.now(),
+    })
+    // Clean up orphaned subscription
+    try {
+      await cancelRazorpaySubscription(subscription.id, false)
+    } catch {
+      log({ level: 'error', event: 'billing.checkout.orphan_cleanup_failed', userId, metadata: { subscriptionId: subscription.id }, timestamp: Date.now() })
+    }
+    return new Response(
+      JSON.stringify({ success: false, error: 'Failed to save subscription details. Please try again.' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
+  log({
+    level: 'info',
+    event: 'billing.checkout.created',
+    userId,
+    metadata: { planId },
+    timestamp: Date.now(),
+  })
+
+  // BUG-3 FIX: Don't leak razorpayCustomerId to client
+  return new Response(
+    JSON.stringify({
+      success: true,
+      subscriptionId: subscription.id,
+      keyId: process.env.RAZORPAY_KEY_ID,
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } }
+  )
 }
 
 export async function DELETE() {
@@ -204,7 +223,6 @@ export async function DELETE() {
     throw e
   }
 
-  // OWASP API4: rate-limit cancel requests
   const rateResult = await checkRateLimit(userId, 'free')
   if (!rateResult.allowed) {
     log({ level: 'warn', event: 'billing.delete.rate_limited', userId, timestamp: Date.now() })
@@ -222,6 +240,11 @@ export async function DELETE() {
   try {
     await cancelRazorpaySubscription(billingData.razorpaySubscriptionId, true)
 
+    // SRV-5 FIX: Update Clerk metadata with cancelAtPeriodEnd flag
+    await setUserPlan(userId, billingData.planId, {
+      cancelAtPeriodEnd: true,
+    })
+
     log({
       level: 'info',
       event: 'billing.subscription.cancel_requested',
@@ -230,7 +253,7 @@ export async function DELETE() {
     })
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Subscription will cancel at period end' }),
+      JSON.stringify({ success: true, message: 'Subscription will cancel at period end', cancelAtPeriodEnd: true }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     )
   } catch (err) {

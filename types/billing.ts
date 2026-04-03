@@ -13,6 +13,9 @@ export interface PlanConfig {
   razorpayPlanId: string
 }
 
+// BUG-1 FIX: Removed process.env from shared type file — this file is imported
+// by 'use client' components where server env vars are undefined.
+// Server-side code resolves Razorpay plan IDs via process.env directly.
 export const PLANS: Record<PlanId, PlanConfig> = {
   free: {
     id: 'free',
@@ -32,7 +35,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     personalitiesAllowed: 4,
     maxMemoryFacts: 999999,
     apiAccess: false,
-    razorpayPlanId: process.env.RAZORPAY_PRO_PLAN_ID ?? '',
+    razorpayPlanId: '',
   },
   business: {
     id: 'business',
@@ -42,8 +45,15 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     personalitiesAllowed: 4,
     maxMemoryFacts: 999999,
     apiAccess: true,
-    razorpayPlanId: process.env.RAZORPAY_BUSINESS_PLAN_ID ?? '',
+    razorpayPlanId: '',
   },
+}
+
+/** Server-only helper: resolve the actual Razorpay plan ID from env vars */
+export function getServerRazorpayPlanId(planId: PlanId): string {
+  if (planId === 'pro') return process.env.RAZORPAY_PRO_PLAN_ID ?? ''
+  if (planId === 'business') return process.env.RAZORPAY_BUSINESS_PLAN_ID ?? ''
+  return ''
 }
 
 export interface UserBilling {
