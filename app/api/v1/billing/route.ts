@@ -103,7 +103,7 @@ export async function POST(req: Request) {
     )
   }
 
-  const { planId, email } = parsed.data
+  const { planId, email: bodyEmail } = parsed.data
 
   const dodoKey = process.env.DODO_API_KEY
   if (!dodoKey) {
@@ -126,6 +126,19 @@ export async function POST(req: Request) {
     )
   }
 
+  // Dodo requires a valid customer email. Prefer the email from the request
+  // body; fall back to the verified Clerk email so it is never empty.
+  let customerEmail = bodyEmail || ''
+  if (!customerEmail) {
+    try {
+      const client = await clerkClient()
+      const user = await client.users.getUser(userId)
+      customerEmail = user.emailAddresses[0]?.emailAddress ?? ''
+    } catch {
+      // Non-fatal — proceed without email if Clerk lookup fails
+    }
+  }
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://missi.space'
 
   try {
@@ -134,7 +147,7 @@ export async function POST(req: Request) {
       successUrl: `${appUrl}/pricing?success=true`,
       cancelUrl: `${appUrl}/pricing?canceled=true`,
       customerUserId: userId,
-      customerEmail: email || undefined,
+      customerEmail: customerEmail || undefined,
     })
 
     log({

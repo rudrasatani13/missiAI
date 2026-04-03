@@ -109,7 +109,8 @@ function getClientIP(request: Request): string {
 
 // ─── Clerk handler ───────────────────────────────────────────────────────────
 
-const clerkHandler = clerkMiddleware(async (auth, request) => {
+const clerkHandler = clerkMiddleware(
+  async (auth, request) => {
   const startTime = Date.now()
 
   if (isAPIRoute(request)) {
@@ -166,7 +167,14 @@ const clerkHandler = clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
     await auth.protect()
   }
-})
+  },
+  {
+    // Explicitly declare sign-in/sign-up URLs so auth.protect() redirects
+    // to the correct path and never falls back to an unexpected default.
+    signInUrl: "/sign-in",
+    signUpUrl: "/sign-up",
+  },
+)
 
 // ─── Middleware wrapper with error resilience ─────────────────────────────────
 //
@@ -219,6 +227,17 @@ export default async function middleware(request: NextRequest, event: NextFetchE
 
     return response
   } catch (error) {
+    // Next.js redirect() throws a special error with digest "NEXT_REDIRECT".
+    // Re-throw it so the framework handles the redirect correctly instead of
+    // the catch block swallowing it and issuing a plain /sign-in redirect.
+    if (
+      error != null &&
+      typeof (error as Record<string, unknown>).digest === "string" &&
+      ((error as Record<string, unknown>).digest as string).startsWith("NEXT_REDIRECT")
+    ) {
+      throw error
+    }
+
     console.error("[Middleware] Clerk error on", request.nextUrl.pathname, ":", error)
 
     log({
@@ -240,6 +259,20 @@ export default async function middleware(request: NextRequest, event: NextFetchE
     if (isAPIRoute(request)) {
       return new NextResponse(
         JSON.stringify({ success: false, error: "Authentication service unavailable" }),
+        { status: 503, headers: { "Content-Type": "application/json" } }
+      )
+    }
+
+    // Loop-detection: if the request is already coming from the sign-in page
+    // (e.g. the user just authenticated but the session still can't be verified),
+    // stop redirecting and return a 503 instead.  This breaks the infinite
+    // /sign-in → /chat → /sign-in cycle that occurs when Clerk env vars are
+    // missing or misconfigured in the edge runtime.
+    const referer = request.headers.get("referer") ?? ""
+    const signInOrigin = new URL("/sign-in", request.url).href
+    if (referer.startsWith(signInOrigin)) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Authentication service unavailable. Please check your configuration." }),
         { status: 503, headers: { "Content-Type": "application/json" } }
       )
     }

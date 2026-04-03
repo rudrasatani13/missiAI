@@ -28,7 +28,8 @@ export async function createDodoCheckout(params: {
   const body = {
     billing: { city: '', country: 'IN', state: '', street: '', zipcode: '' },
     customer: {
-      email: params.customerEmail ?? '',
+      // Dodo rejects empty-string emails — omit the field entirely when absent
+      ...(params.customerEmail ? { email: params.customerEmail } : {}),
       name: '',
       create_new_customer: true,
     },
@@ -51,7 +52,14 @@ export async function createDodoCheckout(params: {
     })
 
     if (!res.ok) {
-      throw new Error(`Dodo checkout failed: ${res.status}`)
+      let detail = ''
+      try {
+        const errBody = await res.json()
+        detail = errBody.message ?? errBody.error ?? JSON.stringify(errBody)
+      } catch {
+        detail = await res.text().catch(() => '')
+      }
+      throw new Error(`Dodo checkout failed: ${res.status}${detail ? ` — ${detail}` : ''}`)
     }
 
     const data = await res.json()
