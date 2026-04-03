@@ -89,6 +89,8 @@ export const proactiveConfigSchema = z.object({
     .min(1)
     .max(10)
     .default(5),
+  windDownEnabled: z.boolean(),
+  windDownTime: z.string().regex(/^\d{2}:\d{2}$/, 'Must be HH:MM 24-hour format'),
 })
 
 export type ProactiveConfigInput = z.infer<typeof proactiveConfigSchema>

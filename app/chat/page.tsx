@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import nextDynamic from "next/dynamic"
-import { ArrowLeft, Brain, Settings, X, Crown } from "lucide-react"
+import { ArrowLeft, Brain, Settings, X, Crown, Moon } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useProactive } from "@/hooks/useProactive"
@@ -272,6 +272,15 @@ export default function VoiceAssistantPage() {
             style={{ display: 'flex', alignItems: 'center', color: 'white' }}
           >
             <Brain className="w-4 h-4" />
+          </Link>
+          <Link
+            href="/wind-down"
+            onClick={(e) => e.stopPropagation()}
+            className="opacity-40 hover:opacity-70 transition-opacity"
+            title="Good night"
+            style={{ display: 'flex', alignItems: 'center', color: 'white' }}
+          >
+            <Moon className="w-4 h-4" />
           </Link>
           <button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings) }}
             className="opacity-40 hover:opacity-70 transition-opacity"
