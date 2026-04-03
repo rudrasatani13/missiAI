@@ -1,8 +1,8 @@
 import { getRequestContext } from '@cloudflare/next-on-pages'
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
-import { getUserPlan, getUserBillingData } from '@/lib/billing/tier-checker'
+import { getUserPlan, getUserBillingData, setUserPlan } from '@/lib/billing/tier-checker'
 import { getDailyUsage } from '@/lib/billing/usage-tracker'
-import { createDodoCheckout, createDodoCustomerPortal } from '@/lib/billing/dodo-client'
+import { createRazorpayCustomer, createRazorpaySubscription, cancelRazorpaySubscription } from '@/lib/billing/razorpay-client'
 import { PLANS } from '@/types/billing'
 import { billingCheckoutSchema } from '@/lib/validation/billing-schemas'
 import { log } from '@/lib/server/logger'
@@ -22,8 +22,6 @@ function getKV(): KVStore | null {
 }
 
 export async function GET() {
-  const startTime = Date.now()
-
   let userId: string
   try {
     userId = await getVerifiedUserId()
@@ -53,8 +51,8 @@ export async function GET() {
     timestamp: Date.now(),
   })
 
-  // Strip dodoCustomerId from response
-  const { dodoCustomerId: _dodoCustId, ...safeBilling } = billingData
+  // Strip razorpayCustomerId from response
+  const { razorpayCustomerId: _rpCustId, ...safeBilling } = billingData
 
   return new Response(
     JSON.stringify({
@@ -68,8 +66,6 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const startTime = Date.now()
-
   let userId: string
   try {
     userId = await getVerifiedUserId()
@@ -78,7 +74,7 @@ export async function POST(req: Request) {
     throw e
   }
 
-  // OWASP API4: rate-limit checkout creation — creates Dodo sessions
+  // OWASP API4: rate-limit checkout creation — creates Razorpay sessions
   const rateResult = await checkRateLimit(userId, 'free')
   if (!rateResult.allowed) {
     log({ level: 'warn', event: 'billing.post.rate_limited', userId, timestamp: Date.now() })
@@ -103,51 +99,67 @@ export async function POST(req: Request) {
     )
   }
 
-  const { planId, email: bodyEmail } = parsed.data
+  const { planId } = parsed.data
 
-  const dodoKey = process.env.DODO_API_KEY
-  if (!dodoKey) {
+  const keyId = process.env.RAZORPAY_KEY_ID
+  const keySecret = process.env.RAZORPAY_KEY_SECRET
+  if (!keyId || !keySecret) {
     return new Response(
       JSON.stringify({ success: false, error: 'Payment not configured' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
 
-  // Read product IDs at request time — edge runtime may not have env vars at module init
-  const productIdMap: Record<string, string | undefined> = {
-    pro: process.env.DODO_PRO_PRODUCT_ID,
-    business: process.env.DODO_BUSINESS_PRODUCT_ID,
-  }
-  const productId = productIdMap[planId]
-  if (!productId) {
+  const razorpayPlanId = PLANS[planId].razorpayPlanId
+  if (!razorpayPlanId) {
     return new Response(
       JSON.stringify({ success: false, error: 'Plan not configured' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     )
   }
 
-  // Dodo requires a valid customer email. Prefer the email from the request
-  // body; fall back to the verified Clerk email so it is never empty.
-  let customerEmail = bodyEmail || ''
-  if (!customerEmail) {
+  // Get user info from Clerk for customer creation
+  const client = await clerkClient()
+  const user = await client.users.getUser(userId)
+  const email = user.emailAddresses[0]?.emailAddress ?? ''
+  const name = ((user.firstName ?? '') + ' ' + (user.lastName ?? '')).trim()
+
+  // Get or create Razorpay customer
+  const billingData = await getUserBillingData(userId)
+  let razorpayCustomerId = billingData.razorpayCustomerId
+
+  if (!razorpayCustomerId) {
     try {
-      const client = await clerkClient()
-      const user = await client.users.getUser(userId)
-      customerEmail = user.emailAddresses[0]?.emailAddress ?? ''
-    } catch {
-      // Non-fatal — proceed without email if Clerk lookup fails
+      const customer = await createRazorpayCustomer({ name, email })
+      razorpayCustomerId = customer.id
+    } catch (err) {
+      log({
+        level: 'error',
+        event: 'billing.customer.error',
+        userId,
+        metadata: { error: err instanceof Error ? err.message : String(err) },
+        timestamp: Date.now(),
+      })
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to create customer' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      )
     }
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://missi.space'
-
   try {
-    const result = await createDodoCheckout({
-      productId,
-      successUrl: `${appUrl}/pricing?success=true`,
-      cancelUrl: `${appUrl}/pricing?canceled=true`,
-      customerUserId: userId,
-      customerEmail: customerEmail || undefined,
+    const subscription = await createRazorpaySubscription({
+      planId: razorpayPlanId,
+      customerId: razorpayCustomerId,
+      totalCount: 120,
+      notes: { userId },
+    })
+
+    // Save razorpayCustomerId to Clerk immediately
+    await setUserPlan(userId, billingData.planId, {
+      razorpayCustomerId,
+      razorpaySubscriptionId: subscription.id,
+      currentPeriodEnd: billingData.currentPeriodEnd,
     })
 
     log({
@@ -159,7 +171,12 @@ export async function POST(req: Request) {
     })
 
     return new Response(
-      JSON.stringify({ success: true, checkoutUrl: result.checkoutUrl }),
+      JSON.stringify({
+        success: true,
+        subscriptionId: subscription.id,
+        keyId: process.env.RAZORPAY_KEY_ID,
+        razorpayCustomerId,
+      }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     )
   } catch (err) {
@@ -179,8 +196,6 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE() {
-  const startTime = Date.now()
-
   let userId: string
   try {
     userId = await getVerifiedUserId()
@@ -189,7 +204,7 @@ export async function DELETE() {
     throw e
   }
 
-  // OWASP API4: rate-limit portal session creation
+  // OWASP API4: rate-limit cancel requests
   const rateResult = await checkRateLimit(userId, 'free')
   if (!rateResult.allowed) {
     log({ level: 'warn', event: 'billing.delete.rate_limited', userId, timestamp: Date.now() })
@@ -197,39 +212,37 @@ export async function DELETE() {
   }
 
   const billingData = await getUserBillingData(userId)
-  if (!billingData.dodoCustomerId) {
+  if (!billingData.razorpaySubscriptionId) {
     return new Response(
       JSON.stringify({ success: false, error: 'No active subscription' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     )
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://missi.space'
-
   try {
-    const client = await clerkClient()
-    const user = await client.users.getUser(userId)
-    const email = user.emailAddresses[0]?.emailAddress ?? ''
+    await cancelRazorpaySubscription(billingData.razorpaySubscriptionId, true)
 
-    const session = await createDodoCustomerPortal({
-      customerEmail: email,
-      returnUrl: `${appUrl}/pricing`,
+    log({
+      level: 'info',
+      event: 'billing.subscription.cancel_requested',
+      userId,
+      timestamp: Date.now(),
     })
 
     return new Response(
-      JSON.stringify({ success: true, portalUrl: session.url }),
+      JSON.stringify({ success: true, message: 'Subscription will cancel at period end' }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     )
   } catch (err) {
     log({
       level: 'error',
-      event: 'billing.portal.error',
+      event: 'billing.cancel.error',
       userId,
       metadata: { error: err instanceof Error ? err.message : String(err) },
       timestamp: Date.now(),
     })
     return new Response(
-      JSON.stringify({ success: false, error: 'Failed to create portal session' }),
+      JSON.stringify({ success: false, error: 'Failed to cancel subscription' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }

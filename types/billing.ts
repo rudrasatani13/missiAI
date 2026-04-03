@@ -10,7 +10,7 @@ export interface PlanConfig {
   personalitiesAllowed: number
   maxMemoryFacts: number
   apiAccess: boolean
-  dodoPriceId: string
+  razorpayPlanId: string
 }
 
 export const PLANS: Record<PlanId, PlanConfig> = {
@@ -22,7 +22,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     personalitiesAllowed: 1,
     maxMemoryFacts: 20,
     apiAccess: false,
-    dodoPriceId: '',
+    razorpayPlanId: '',
   },
   pro: {
     id: 'pro',
@@ -32,7 +32,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     personalitiesAllowed: 4,
     maxMemoryFacts: 999999,
     apiAccess: false,
-    dodoPriceId: process.env.DODO_PRO_PRODUCT_ID ?? '',
+    razorpayPlanId: process.env.RAZORPAY_PRO_PLAN_ID ?? '',
   },
   business: {
     id: 'business',
@@ -42,15 +42,15 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     personalitiesAllowed: 4,
     maxMemoryFacts: 999999,
     apiAccess: true,
-    dodoPriceId: process.env.DODO_BUSINESS_PRODUCT_ID ?? '',
+    razorpayPlanId: process.env.RAZORPAY_BUSINESS_PLAN_ID ?? '',
   },
 }
 
 export interface UserBilling {
   userId: string
   planId: PlanId
-  dodoCustomerId?: string
-  dodoSubscriptionId?: string
+  razorpayCustomerId?: string
+  razorpaySubscriptionId?: string
   currentPeriodEnd?: number
   cancelAtPeriodEnd?: boolean
   updatedAt: number

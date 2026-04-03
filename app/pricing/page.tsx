@@ -2,16 +2,16 @@
 
 export const dynamic = 'force-static'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useBilling } from '@/hooks/useBilling'
 import { Check, X, Sparkles, ChevronDown } from 'lucide-react'
 import type { PlanId } from '@/types/billing'
 
 function PaymentBadges() {
-  const badges = ['UPI', 'Cards', 'NetBanking', '150+ countries']
+  const badges = ['UPI', 'Debit/Credit Card', 'Net Banking', 'Wallets']
   return (
     <div
       data-testid="payment-badges"
@@ -210,19 +210,23 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 
 export default function PricingPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { isSignedIn } = useUser()
-  const { plan, isLoading, isUpgrading, error: billingError, createCheckoutSession, createPortalSession } = useBilling()
+  const { plan, isLoading, isUpgrading, error: billingError, initiateRazorpayCheckout, cancelSubscription } = useBilling()
 
-  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const prevPlanRef = useRef<string | null>(null)
 
+  // Show success toast when plan upgrades from free to pro/business
   useEffect(() => {
-    if (searchParams.get('success') === 'true') {
-      setStatusMessage('Subscription activated! Welcome to Pro.')
-    } else if (searchParams.get('canceled') === 'true') {
-      setStatusMessage('Checkout canceled. No changes were made.')
+    if (plan) {
+      if (prevPlanRef.current === 'free' && (plan.id === 'pro' || plan.id === 'business')) {
+        setSuccessMessage(`Welcome to ${plan.name}!`)
+        const timer = setTimeout(() => setSuccessMessage(null), 5000)
+        return () => clearTimeout(timer)
+      }
+      prevPlanRef.current = plan.id
     }
-  }, [searchParams])
+  }, [plan])
 
   const currentPlanId = plan?.id ?? 'free'
 
@@ -236,15 +240,19 @@ export default function PricingPage() {
 
   const handleProPlan = () => {
     if (currentPlanId === 'pro') {
-      createPortalSession()
+      if (confirm('Cancel your Pro subscription at the end of the current billing period?')) {
+        cancelSubscription()
+      }
     } else {
-      createCheckoutSession('pro')
+      initiateRazorpayCheckout('pro')
     }
   }
 
   const handleBusinessPlan = () => {
     if (currentPlanId === 'business') {
-      createPortalSession()
+      if (confirm('Cancel your Business subscription at the end of the current billing period?')) {
+        cancelSubscription()
+      }
     } else {
       window.location.href = 'mailto:rudrasatani@missi.space'
     }
@@ -254,10 +262,10 @@ export default function PricingPage() {
     currentPlanId === 'free' ? 'Current Plan' : 'Get Started'
 
   const proButtonLabel =
-    currentPlanId === 'pro' ? 'Manage Subscription' : 'Upgrade to Pro'
+    currentPlanId === 'pro' ? 'Cancel Subscription' : 'Upgrade to Pro'
 
   const businessButtonLabel =
-    currentPlanId === 'business' ? 'Manage Subscription' : 'Contact Us'
+    currentPlanId === 'business' ? 'Cancel Subscription' : 'Contact Us'
 
   return (
     <div
@@ -304,28 +312,22 @@ export default function PricingPage() {
       </nav>
 
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 20px 80px' }}>
-        {/* Status message */}
-        {statusMessage && (
+        {/* Success message after payment */}
+        {successMessage && (
           <div
-            data-testid="pricing-status-message"
+            data-testid="pricing-success-message"
             style={{
               textAlign: 'center',
               marginBottom: 32,
               padding: '12px 20px',
               borderRadius: 10,
-              background: searchParams.get('success')
-                ? 'rgba(34,197,94,0.1)'
-                : 'rgba(255,255,255,0.05)',
-              border: searchParams.get('success')
-                ? '1px solid rgba(34,197,94,0.2)'
-                : '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(34,197,94,0.1)',
+              border: '1px solid rgba(34,197,94,0.2)',
               fontSize: 13,
-              color: searchParams.get('success')
-                ? 'rgba(34,197,94,0.9)'
-                : 'rgba(255,255,255,0.6)',
+              color: 'rgba(34,197,94,0.9)',
             }}
           >
-            {statusMessage}
+            {successMessage}
           </div>
         )}
 
@@ -426,7 +428,7 @@ export default function PricingPage() {
             ]}
             onSelect={handleProPlan}
             isLoading={isLoading || isUpgrading}
-            buttonLabel={isUpgrading ? 'Redirecting...' : proButtonLabel}
+            buttonLabel={isUpgrading ? 'Processing...' : proButtonLabel}
           />
 
           <PlanCard
@@ -450,7 +452,7 @@ export default function PricingPage() {
 
         {/* Powered by */}
         <div
-          data-testid="powered-by-dodo"
+          data-testid="powered-by-razorpay"
           style={{
             textAlign: 'center',
             marginBottom: 48,
@@ -458,7 +460,7 @@ export default function PricingPage() {
             color: 'rgba(255,255,255,0.2)',
           }}
         >
-          Powered by Dodo Payments
+          Powered by Razorpay
         </div>
 
         {/* FAQ */}
@@ -471,7 +473,7 @@ export default function PricingPage() {
           </h2>
           <FAQItem
             question="Can I cancel anytime?"
-            answer="Yes, cancel from the billing portal anytime. Your plan stays active until the end of the billing period."
+            answer="Yes, cancel from your subscription settings anytime. Your plan stays active until the end of the billing period."
           />
           <FAQItem
             question="What happens to my memories if I downgrade?"
@@ -480,6 +482,10 @@ export default function PricingPage() {
           <FAQItem
             question="Is there a free trial?"
             answer="The free tier is permanent — no credit card needed. Use it as long as you want, and upgrade whenever you're ready."
+          />
+          <FAQItem
+            question="What payment methods are supported?"
+            answer="We accept UPI, debit/credit cards, net banking, and popular wallets through Razorpay's secure payment gateway."
           />
         </div>
       </div>

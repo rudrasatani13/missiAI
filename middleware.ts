@@ -11,7 +11,7 @@ const isPublicRoute = createRouteMatcher([
   "/manifesto(.*)",
   "/privacy(.*)",
   "/terms(.*)",
-  "/api/webhooks/dodo",
+  "/api/webhooks/razorpay",
   "/pricing(.*)",
 ])
 

@@ -21,8 +21,8 @@ export async function setUserPlan(
   await client.users.updateUser(userId, {
     publicMetadata: {
       plan: planId,
-      dodoCustomerId: billingData?.dodoCustomerId,
-      dodoSubscriptionId: billingData?.dodoSubscriptionId,
+      razorpayCustomerId: billingData?.razorpayCustomerId,
+      razorpaySubscriptionId: billingData?.razorpaySubscriptionId,
       currentPeriodEnd: billingData?.currentPeriodEnd,
     },
   })
@@ -36,8 +36,8 @@ export async function getUserBillingData(userId: string): Promise<UserBilling> {
   return {
     userId,
     planId: (meta?.plan as PlanId) ?? 'free',
-    dodoCustomerId: meta?.dodoCustomerId as string | undefined,
-    dodoSubscriptionId: meta?.dodoSubscriptionId as string | undefined,
+    razorpayCustomerId: meta?.razorpayCustomerId as string | undefined,
+    razorpaySubscriptionId: meta?.razorpaySubscriptionId as string | undefined,
     currentPeriodEnd: meta?.currentPeriodEnd as number | undefined,
     cancelAtPeriodEnd: meta?.cancelAtPeriodEnd as boolean | undefined,
     updatedAt: Date.now(),

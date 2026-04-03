@@ -53,7 +53,7 @@ function pluginResultToActionResult(result: PluginResult): ActionResult {
 export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
-  const { plan, usage, isAtLimit, isLoading: billingLoading, createCheckoutSession, incrementUsageLocally } = useBilling()
+  const { plan, usage, isAtLimit, isLoading: billingLoading, initiateRazorpayCheckout, incrementUsageLocally } = useBilling()
   const [showSettings, setShowSettings] = useState(false)
   const [personality, setPersonality] = useState<PersonalityKey>("bestfriend")
   const [voiceEnabled, setVoiceEnabled] = useState(true)
@@ -342,7 +342,7 @@ export default function VoiceAssistantPage() {
         used={usage?.voiceInteractions ?? 0}
         limit={plan?.voiceInteractionsPerDay ?? 10}
         planId={plan?.id ?? 'free'}
-        onUpgrade={() => createCheckoutSession('pro')}
+        onUpgrade={() => initiateRazorpayCheckout('pro')}
       />
     </div>  )
 }

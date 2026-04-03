@@ -16,6 +16,20 @@ function setLocalCount(count: number): void {
   try { localStorage.setItem(todayStorageKey(), String(count)) } catch {}
 }
 
+function loadRazorpayScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if ((window as any).Razorpay) {
+      resolve()
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('Failed to load Razorpay SDK'))
+    document.head.appendChild(script)
+  })
+}
+
 export function useBilling() {
   const [plan, setPlan] = useState<PlanConfig | null>(null)
   const [usage, setUsage] = useState<DailyUsage | null>(null)
@@ -23,6 +37,29 @@ export function useBilling() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isUpgrading, setIsUpgrading] = useState(false)
+
+  const refreshBilling = useCallback(async () => {
+    try {
+      const res = await fetch('/api/v1/billing')
+      if (!res.ok) return
+      const data = await res.json()
+      setPlan(data.plan ?? null)
+
+      if (data.usage) {
+        const localCount = getLocalCount()
+        const serverCount = data.usage.voiceInteractions ?? 0
+        const merged = { ...data.usage, voiceInteractions: Math.max(serverCount, localCount) }
+        if (localCount < merged.voiceInteractions) setLocalCount(merged.voiceInteractions)
+        setUsage(merged)
+      } else {
+        setUsage(null)
+      }
+
+      setBilling(data.billing ?? null)
+    } catch {
+      // Silent refresh failure
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -46,12 +83,10 @@ export function useBilling() {
         setPlan(data.plan ?? null)
 
         // Merge server count with localStorage — take the HIGHER value.
-        // If KV write failed silently, localStorage still has the correct count.
         if (data.usage) {
           const localCount = getLocalCount()
           const serverCount = data.usage.voiceInteractions ?? 0
           const merged = { ...data.usage, voiceInteractions: Math.max(serverCount, localCount) }
-          // Keep localStorage in sync with the merged value
           if (localCount < merged.voiceInteractions) setLocalCount(merged.voiceInteractions)
           setUsage(merged)
         } else {
@@ -72,7 +107,7 @@ export function useBilling() {
     return () => { cancelled = true }
   }, [])
 
-  const createCheckoutSession = useCallback(async (planId: 'pro' | 'business') => {
+  const initiateRazorpayCheckout = useCallback(async (planId: 'pro' | 'business') => {
     setIsUpgrading(true)
     setError(null)
     try {
@@ -85,31 +120,71 @@ export function useBilling() {
       if (!res.ok) {
         throw new Error(data.error ?? 'Failed to create checkout')
       }
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl
-      }
+
+      const { subscriptionId, keyId } = data
+
+      await loadRazorpayScript()
+
+      const rzp = new (window as any).Razorpay({
+        key: keyId,
+        subscription_id: subscriptionId,
+        name: 'missiAI',
+        description: planId === 'pro' ? 'Pro Plan' : 'Business Plan',
+        image: '/missi-ai-logo.png',
+        handler: async (response: {
+          razorpay_payment_id: string
+          razorpay_subscription_id: string
+          razorpay_signature: string
+        }) => {
+          try {
+            const verifyRes = await fetch('/api/v1/billing/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_subscription_id: response.razorpay_subscription_id,
+                razorpay_signature: response.razorpay_signature,
+                planId,
+              }),
+            })
+            const verifyData = await verifyRes.json()
+            if (verifyData.success) {
+              await refreshBilling()
+            } else {
+              setError('Payment verification failed. Contact support.')
+            }
+          } catch {
+            setError('Payment verification failed. Contact support.')
+          } finally {
+            setIsUpgrading(false)
+          }
+        },
+        prefill: {},
+        theme: { color: '#7C3AED' },
+        modal: {
+          ondismiss: () => { setIsUpgrading(false) },
+        },
+      })
+      rzp.open()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Checkout failed')
-    } finally {
       setIsUpgrading(false)
     }
-  }, [])
+  }, [refreshBilling])
 
-  const createPortalSession = useCallback(async () => {
+  const cancelSubscription = useCallback(async () => {
     setError(null)
     try {
       const res = await fetch('/api/v1/billing', { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data.error ?? 'Failed to open portal')
+        throw new Error(data.error ?? 'Failed to cancel subscription')
       }
-      if (data.portalUrl) {
-        window.location.href = data.portalUrl
-      }
+      await refreshBilling()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Portal failed')
+      setError(err instanceof Error ? err.message : 'Cancel failed')
     }
-  }, [])
+  }, [refreshBilling])
 
   const isAtLimit = useMemo(() => {
     if (!usage || !plan) return false
@@ -124,7 +199,6 @@ export function useBilling() {
   }, [usage, plan])
 
   // Called after each successful voice interaction to keep UI in sync
-  // Also persists to localStorage so count survives page navigation
   const incrementUsageLocally = useCallback(() => {
     setUsage((prev) => {
       if (!prev) return prev
@@ -141,8 +215,8 @@ export function useBilling() {
     isLoading,
     error,
     isUpgrading,
-    createCheckoutSession,
-    createPortalSession,
+    initiateRazorpayCheckout,
+    cancelSubscription,
     isAtLimit,
     remainingInteractions,
     incrementUsageLocally,
