@@ -67,6 +67,7 @@ export async function createRazorpaySubscription(params: {
   customerId: string
   totalCount?: number
   notes?: Record<string, string>
+  startAt?: number // Unix timestamp — delays first charge for referral discount
 }): Promise<{
   id: string
   status: string
@@ -76,20 +77,25 @@ export async function createRazorpaySubscription(params: {
   const timeout = setTimeout(() => controller.abort(), 10000)
 
   try {
+    const body: Record<string, unknown> = {
+      plan_id: params.planId,
+      customer_id: params.customerId,
+      total_count: params.totalCount ?? 120,
+      quantity: 1,
+      customer_notify: 1,
+      notes: params.notes ?? {},
+    }
+    if (params.startAt) {
+      body.start_at = params.startAt
+    }
+
     const res = await fetch(`${RAZORPAY_API_BASE}/subscriptions`, {
       method: 'POST',
       headers: {
         'Authorization': getRazorpayAuth(),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        plan_id: params.planId,
-        customer_id: params.customerId,
-        total_count: params.totalCount ?? 120,
-        quantity: 1,
-        customer_notify: 1,
-        notes: params.notes ?? {},
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     })
 

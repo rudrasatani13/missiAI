@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useBilling } from '@/hooks/useBilling'
-import { Check, X, Sparkles, ChevronDown, AlertTriangle, Crown, ArrowRight } from 'lucide-react'
+import { useReferral } from '@/hooks/useReferral'
+import { Check, X, Sparkles, ChevronDown, AlertTriangle, Crown, ArrowRight, Gift, Copy, Users, Award } from 'lucide-react'
 import { CelebrationOverlay } from '@/components/ui/CelebrationOverlay'
 import type { PlanId } from '@/types/billing'
 
@@ -357,6 +358,10 @@ export default function PricingPage() {
     error: billingError, initiateRazorpayCheckout, cancelSubscription, refreshBilling,
   } = useBilling()
 
+  const {
+    referral, isReferred, copied, getReferralLink, copyReferralLink, hasReferralDiscount,
+  } = useReferral()
+
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const prevPlanRef = useRef<string | null>(null)
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
@@ -667,6 +672,172 @@ export default function PricingPage() {
         >
           Powered by Razorpay
         </div>
+
+        {/* Referral Discount Banner — shown if user came via referral link and is on free plan */}
+        {hasReferralDiscount() && currentPlanId === 'free' && (
+          <div
+            data-testid="referral-discount-banner"
+            style={{
+              textAlign: 'center',
+              marginBottom: 48,
+              padding: '16px 24px',
+              borderRadius: 12,
+              background: 'linear-gradient(135deg, rgba(245,158,11,0.1), rgba(124,58,237,0.08))',
+              border: '1px solid rgba(245,158,11,0.2)',
+            }}
+          >
+            <Gift style={{ width: 20, height: 20, color: '#F59E0B', display: 'inline', marginBottom: 4 }} />
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#F59E0B', marginBottom: 4 }}>
+              You have a 20% referral discount!
+            </p>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+              Upgrade now and get 6 extra free days on your first month
+            </p>
+          </div>
+        )}
+
+        {/* Referral Section — Invite Friends */}
+        {isSignedIn && (
+          <div
+            data-testid="referral-section"
+            style={{
+              marginBottom: 48,
+              padding: '28px 24px',
+              borderRadius: 16,
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <Gift style={{ width: 16, height: 16, color: '#F59E0B' }} />
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>
+                Invite Friends, Earn Rewards
+              </h3>
+            </div>
+
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20, lineHeight: 1.6 }}>
+              Share your referral link. When a friend upgrades, you get <span style={{ color: '#F59E0B', fontWeight: 600 }}>7 extra free days</span> and they get <span style={{ color: '#F59E0B', fontWeight: 600 }}>20% off</span> their first month.
+            </p>
+
+            {/* Referral Link */}
+            {referral && (
+              <>
+                <div
+                  data-testid="referral-link-box"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 20,
+                    padding: '10px 14px',
+                    borderRadius: 10,
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                >
+                  <input
+                    readOnly
+                    value={getReferralLink()}
+                    data-testid="referral-link-input"
+                    style={{
+                      flex: 1,
+                      background: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      color: 'rgba(255,255,255,0.6)',
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                    }}
+                  />
+                  <button
+                    data-testid="copy-referral-btn"
+                    onClick={copyReferralLink}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: copied ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.1)',
+                      color: copied ? '#22c55e' : '#fff',
+                      transition: 'all 0.2s ease',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <Copy style={{ width: 12, height: 12 }} />
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+
+                {/* Referral Stats */}
+                <div
+                  data-testid="referral-stats"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '12px 8px',
+                      borderRadius: 10,
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                    }}
+                  >
+                    <Users style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.3)', margin: '0 auto 6px' }} />
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>
+                      {referral.successfulReferred}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                      Friends Joined
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '12px 8px',
+                      borderRadius: 10,
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                    }}
+                  >
+                    <Award style={{ width: 14, height: 14, color: '#F59E0B', margin: '0 auto 6px' }} />
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#F59E0B' }}>
+                      {referral.rewardDaysEarned}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                      Days Earned
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '12px 8px',
+                      borderRadius: 10,
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                    }}
+                  >
+                    <Gift style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.3)', margin: '0 auto 6px' }} />
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>
+                      {referral.remainingSlots}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                      Slots Left
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {/* FAQ */}
         <div style={{ maxWidth: 560, margin: '0 auto' }}>

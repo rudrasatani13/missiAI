@@ -1,12 +1,24 @@
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
 import { verifyRazorpayPayment, getRazorpaySubscription, determinePlanFromRazorpayPlan } from '@/lib/billing/razorpay-client'
-import { setUserPlan } from '@/lib/billing/tier-checker'
+import { setUserPlan, getUserBillingData } from '@/lib/billing/tier-checker'
 import { PLANS } from '@/types/billing'
 import { log } from '@/lib/server/logger'
 import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
 import { verifyPaymentSchema } from '@/lib/validation/billing-schemas'
+import { convertReferral, REWARD_DAYS } from '@/lib/billing/referral'
+import { getRequestContext } from '@cloudflare/next-on-pages'
+import type { KVStore } from '@/types'
 
 export const runtime = 'edge'
+
+function getKV(): KVStore | null {
+  try {
+    const { env } = getRequestContext()
+    return (env as any).MISSI_MEMORY ?? null
+  } catch {
+    return null
+  }
+}
 
 export async function POST(req: Request) {
   let userId: string
@@ -111,6 +123,40 @@ export async function POST(req: Request) {
       currentPeriodEnd: subscription.current_end * 1000,
       cancelAtPeriodEnd: false,
     })
+
+    // Process referral reward — extend referrer's plan by 7 days
+    const kv = getKV()
+    if (kv) {
+      try {
+        const referralResult = await convertReferral(kv, userId)
+        if (referralResult) {
+          // Extend referrer's subscription end date by REWARD_DAYS
+          const referrerBilling = await getUserBillingData(referralResult.referrerUserId)
+          if (referrerBilling.currentPeriodEnd) {
+            const extendedEnd = referrerBilling.currentPeriodEnd + (REWARD_DAYS * 24 * 60 * 60 * 1000)
+            await setUserPlan(referralResult.referrerUserId, referrerBilling.planId, {
+              currentPeriodEnd: extendedEnd,
+            })
+            log({
+              level: 'info',
+              event: 'referral.reward.applied',
+              userId: referralResult.referrerUserId,
+              metadata: { referredUser: userId, rewardDays: REWARD_DAYS },
+              timestamp: Date.now(),
+            })
+          }
+        }
+      } catch (err) {
+        // Non-critical — don't fail the payment verification
+        log({
+          level: 'warn',
+          event: 'referral.reward.error',
+          userId,
+          metadata: { error: err instanceof Error ? err.message : String(err) },
+          timestamp: Date.now(),
+        })
+      }
+    }
 
     log({
       level: 'info',

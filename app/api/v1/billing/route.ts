@@ -8,6 +8,7 @@ import { billingCheckoutSchema } from '@/lib/validation/billing-schemas'
 import { log } from '@/lib/server/logger'
 import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
 import { clerkClient } from '@clerk/nextjs/server'
+import { getReferrer, DISCOUNT_PERCENT } from '@/lib/billing/referral'
 import type { KVStore } from '@/types'
 
 export const runtime = 'edge'
@@ -145,13 +146,31 @@ export async function POST(req: Request) {
     }
   }
 
+  // Check if user was referred — apply delayed start for discount
+  let hasReferralDiscount = false
+  const kv = getKV()
+  if (kv) {
+    try {
+      const referrer = await getReferrer(kv, userId)
+      if (referrer) hasReferralDiscount = true
+    } catch {
+      // Non-critical
+    }
+  }
+
   let subscription: { id: string; status: string; short_url: string }
   try {
+    // 20% off on monthly = ~6 days free trial via delayed start
+    const startAt = hasReferralDiscount
+      ? Math.floor(Date.now() / 1000) + (6 * 24 * 60 * 60) // 6 days from now
+      : undefined
+
     subscription = await createRazorpaySubscription({
       planId: razorpayPlanId,
       customerId: razorpayCustomerId,
       totalCount: 120,
       notes: { userId },
+      startAt,
     })
   } catch (err) {
     log({
@@ -209,6 +228,7 @@ export async function POST(req: Request) {
       success: true,
       subscriptionId: subscription.id,
       keyId: process.env.RAZORPAY_KEY_ID,
+      referralDiscount: hasReferralDiscount,
     }),
     { status: 200, headers: { 'Content-Type': 'application/json' } }
   )

@@ -6,6 +6,20 @@ import Image from "next/image"
 import { ArrowRight, Mic, MessageSquare, Volume2, Waves, ChevronRight, Lock, Zap, Clock, Globe, Sparkles } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 
+// Capture referral code from URL on landing page
+function useReferralCapture() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const refCode = params.get('ref')
+    if (refCode) {
+      localStorage.setItem('missi-referral-code', refCode)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('ref')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [])
+}
+
 /* ─────────────────────────────────────────────────
    Starfield Canvas
    ───────────────────────────────────────────────── */
@@ -316,6 +330,8 @@ function NavButtons() {
    MAIN LANDING PAGE
    ───────────────────────────────────────────────── */
 export default function LandingPage() {
+  useReferralCapture()
+
   return (
     <div className="bg-black text-white overflow-x-hidden" style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}>
 
