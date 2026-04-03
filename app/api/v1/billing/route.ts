@@ -2,11 +2,12 @@ import { getRequestContext } from '@cloudflare/next-on-pages'
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
 import { getUserPlan, getUserBillingData } from '@/lib/billing/tier-checker'
 import { getDailyUsage } from '@/lib/billing/usage-tracker'
-import { createCheckoutSession, createCustomerPortalSession } from '@/lib/billing/stripe-client'
+import { createDodoCheckout, createDodoCustomerPortal } from '@/lib/billing/dodo-client'
 import { PLANS } from '@/types/billing'
 import { billingCheckoutSchema } from '@/lib/validation/billing-schemas'
 import { log } from '@/lib/server/logger'
 import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
+import { clerkClient } from '@clerk/nextjs/server'
 import type { KVStore } from '@/types'
 
 export const runtime = 'edge'
@@ -52,8 +53,8 @@ export async function GET() {
     timestamp: Date.now(),
   })
 
-  // Strip stripeCustomerId from response
-  const { stripeCustomerId: _stripeCustId, ...safeBilling } = billingData
+  // Strip dodoCustomerId from response
+  const { dodoCustomerId: _dodoCustId, ...safeBilling } = billingData
 
   return new Response(
     JSON.stringify({
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
     throw e
   }
 
-  // OWASP API4: rate-limit checkout creation — creates Stripe sessions
+  // OWASP API4: rate-limit checkout creation — creates Dodo sessions
   const rateResult = await checkRateLimit(userId, 'free')
   if (!rateResult.allowed) {
     log({ level: 'warn', event: 'billing.post.rate_limited', userId, timestamp: Date.now() })
@@ -104,32 +105,30 @@ export async function POST(req: Request) {
 
   const { planId, email } = parsed.data
 
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY
-  if (!stripeSecretKey) {
+  const dodoKey = process.env.DODO_API_KEY
+  if (!dodoKey) {
     return new Response(
-      JSON.stringify({ success: false, error: 'Stripe not configured' }),
+      JSON.stringify({ success: false, error: 'Payment not configured' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
 
-  const priceId = PLANS[planId].stripePriceId
-  if (!priceId) {
+  const productId = PLANS[planId].dodoPriceId
+  if (!productId) {
     return new Response(
       JSON.stringify({ success: false, error: 'Plan not configured' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     )
   }
 
-  const billingData = await getUserBillingData(userId)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://missi.space'
 
   try {
-    const session = await createCheckoutSession({
-      priceId,
+    const result = await createDodoCheckout({
+      productId,
       successUrl: `${appUrl}/pricing?success=true`,
       cancelUrl: `${appUrl}/pricing?canceled=true`,
-      clientReferenceId: userId,
-      customerId: billingData.stripeCustomerId || undefined,
+      customerUserId: userId,
       customerEmail: email || undefined,
     })
 
@@ -142,7 +141,7 @@ export async function POST(req: Request) {
     })
 
     return new Response(
-      JSON.stringify({ success: true, checkoutUrl: session.url }),
+      JSON.stringify({ success: true, checkoutUrl: result.checkoutUrl }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     )
   } catch (err) {
@@ -171,7 +170,7 @@ export async function DELETE() {
     throw e
   }
 
-  // OWASP API4: rate-limit portal session creation — creates Stripe sessions
+  // OWASP API4: rate-limit portal session creation
   const rateResult = await checkRateLimit(userId, 'free')
   if (!rateResult.allowed) {
     log({ level: 'warn', event: 'billing.delete.rate_limited', userId, timestamp: Date.now() })
@@ -179,7 +178,7 @@ export async function DELETE() {
   }
 
   const billingData = await getUserBillingData(userId)
-  if (!billingData.stripeCustomerId) {
+  if (!billingData.dodoCustomerId) {
     return new Response(
       JSON.stringify({ success: false, error: 'No active subscription' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -189,8 +188,12 @@ export async function DELETE() {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://missi.space'
 
   try {
-    const session = await createCustomerPortalSession({
-      customerId: billingData.stripeCustomerId,
+    const client = await clerkClient()
+    const user = await client.users.getUser(userId)
+    const email = user.emailAddresses[0]?.emailAddress ?? ''
+
+    const session = await createDodoCustomerPortal({
+      customerEmail: email,
       returnUrl: `${appUrl}/pricing`,
     })
 

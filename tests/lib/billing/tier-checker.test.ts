@@ -62,22 +62,22 @@ describe('tier-checker', () => {
       const billing = await getUserBillingData('user_456')
       expect(billing.userId).toBe('user_456')
       expect(billing.planId).toBe('free')
-      expect(billing.stripeCustomerId).toBeUndefined()
+      expect(billing.dodoCustomerId).toBeUndefined()
     })
 
-    it('returns billing data with stripe info for pro user', async () => {
+    it('returns billing data with dodo info for pro user', async () => {
       mockGetUser.mockResolvedValue({
         publicMetadata: {
           plan: 'pro',
-          stripeCustomerId: 'cus_abc',
-          stripeSubscriptionId: 'sub_xyz',
+          dodoCustomerId: 'cus_dodo_abc',
+          dodoSubscriptionId: 'sub_dodo_xyz',
           currentPeriodEnd: 1700000000000,
         },
       })
       const billing = await getUserBillingData('user_789')
       expect(billing.planId).toBe('pro')
-      expect(billing.stripeCustomerId).toBe('cus_abc')
-      expect(billing.stripeSubscriptionId).toBe('sub_xyz')
+      expect(billing.dodoCustomerId).toBe('cus_dodo_abc')
+      expect(billing.dodoSubscriptionId).toBe('sub_dodo_xyz')
       expect(billing.currentPeriodEnd).toBe(1700000000000)
     })
   })
@@ -86,15 +86,15 @@ describe('tier-checker', () => {
     it('calls updateUser with correct metadata', async () => {
       mockUpdateUser.mockResolvedValue({})
       await setUserPlan('user_123', 'pro', {
-        stripeCustomerId: 'cus_test',
-        stripeSubscriptionId: 'sub_test',
+        dodoCustomerId: 'cus_dodo_test',
+        dodoSubscriptionId: 'sub_dodo_test',
         currentPeriodEnd: 1234567890,
       })
       expect(mockUpdateUser).toHaveBeenCalledWith('user_123', {
         publicMetadata: {
           plan: 'pro',
-          stripeCustomerId: 'cus_test',
-          stripeSubscriptionId: 'sub_test',
+          dodoCustomerId: 'cus_dodo_test',
+          dodoSubscriptionId: 'sub_dodo_test',
           currentPeriodEnd: 1234567890,
         },
       })

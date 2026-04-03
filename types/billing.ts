@@ -10,7 +10,7 @@ export interface PlanConfig {
   personalitiesAllowed: number
   maxMemoryFacts: number
   apiAccess: boolean
-  stripePriceId: string
+  dodoPriceId: string
 }
 
 export const PLANS: Record<PlanId, PlanConfig> = {
@@ -22,7 +22,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     personalitiesAllowed: 1,
     maxMemoryFacts: 20,
     apiAccess: false,
-    stripePriceId: '',
+    dodoPriceId: '',
   },
   pro: {
     id: 'pro',
@@ -32,7 +32,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     personalitiesAllowed: 4,
     maxMemoryFacts: 999999,
     apiAccess: false,
-    stripePriceId: process.env.STRIPE_PRO_PRICE_ID ?? '',
+    dodoPriceId: process.env.DODO_PRO_PRODUCT_ID ?? '',
   },
   business: {
     id: 'business',
@@ -42,15 +42,15 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     personalitiesAllowed: 4,
     maxMemoryFacts: 999999,
     apiAccess: true,
-    stripePriceId: process.env.STRIPE_BUSINESS_PRICE_ID ?? '',
+    dodoPriceId: process.env.DODO_BUSINESS_PRODUCT_ID ?? '',
   },
 }
 
 export interface UserBilling {
   userId: string
   planId: PlanId
-  stripeCustomerId?: string
-  stripeSubscriptionId?: string
+  dodoCustomerId?: string
+  dodoSubscriptionId?: string
   currentPeriodEnd?: number
   cancelAtPeriodEnd?: boolean
   updatedAt: number

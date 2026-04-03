@@ -22,7 +22,7 @@ export interface LifetimeTotals {
   totalUsers: number                     // unique user IDs ever seen
   totalInteractions: number
   totalCostUsd: number
-  totalRevenue: number                   // from Stripe subscription data
+  totalRevenue: number                   // from Dodo Payments subscription data
   planBreakdown: Record<PlanId, number>  // count per plan
   lastUpdatedAt: number
 }

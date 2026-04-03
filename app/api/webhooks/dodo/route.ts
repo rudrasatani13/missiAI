@@ -1,9 +1,8 @@
 import { getRequestContext } from '@cloudflare/next-on-pages'
-import { verifyWebhookSignature, retrieveSubscription } from '@/lib/billing/stripe-client'
+import { verifyDodoWebhook, determinePlanFromProduct } from '@/lib/billing/dodo-client'
 import { setUserPlan } from '@/lib/billing/tier-checker'
 import { log } from '@/lib/server/logger'
 import type { KVStore } from '@/types'
-import type { PlanId } from '@/types/billing'
 
 export const runtime = 'edge'
 
@@ -19,7 +18,7 @@ function getKV(): KVStore | null {
 async function storeCustomerMapping(kv: KVStore | null, customerId: string, userId: string): Promise<void> {
   if (!kv) return
   try {
-    await kv.put(`stripe:customer:${customerId}`, userId)
+    await kv.put(`dodo:customer:${customerId}`, userId)
   } catch {
     // Non-critical
   }
@@ -28,19 +27,10 @@ async function storeCustomerMapping(kv: KVStore | null, customerId: string, user
 async function lookupUserByCustomer(kv: KVStore | null, customerId: string): Promise<string | null> {
   if (!kv) return null
   try {
-    return await kv.get(`stripe:customer:${customerId}`)
+    return await kv.get(`dodo:customer:${customerId}`)
   } catch {
     return null
   }
-}
-
-function determinePlanFromPrice(priceId: string): PlanId {
-  const proPriceId = process.env.STRIPE_PRO_PRICE_ID
-  const businessPriceId = process.env.STRIPE_BUSINESS_PRICE_ID
-
-  if (priceId === businessPriceId) return 'business'
-  if (priceId === proPriceId) return 'pro'
-  return 'pro' // Default to pro for unknown paid subscriptions
 }
 
 export async function POST(req: Request) {
@@ -56,8 +46,8 @@ export async function POST(req: Request) {
     )
   }
 
-  const signature = req.headers.get('Stripe-Signature') ?? req.headers.get('stripe-signature')
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+  const signature = req.headers.get('webhook-signature') ?? ''
+  const webhookSecret = process.env.DODO_WEBHOOK_SECRET
 
   if (!signature || !webhookSecret) {
     return new Response(
@@ -66,7 +56,7 @@ export async function POST(req: Request) {
     )
   }
 
-  const isValid = await verifyWebhookSignature(rawBody, signature, webhookSecret)
+  const isValid = await verifyDodoWebhook(rawBody, signature, webhookSecret)
   if (!isValid) {
     return new Response(
       JSON.stringify({ error: 'Invalid signature' }),
@@ -86,29 +76,32 @@ export async function POST(req: Request) {
 
   try {
     switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object
-        const userId = session.client_reference_id as string
-        const subscriptionId = session.subscription as string
-        const customerId = session.customer as string
+      case 'subscription.active': {
+        const data = event.data
+        const userId =
+          data.metadata?.userId ??
+          (await lookupUserByCustomer(kv, data.customer?.customer_id))
 
-        if (!userId || !subscriptionId) break
+        if (!userId) {
+          log({
+            level: 'warn',
+            event: 'billing.subscription.active.no_user',
+            metadata: { subscriptionId: data.subscription_id },
+            timestamp: Date.now(),
+          })
+          break
+        }
 
-        const subscription = await retrieveSubscription(subscriptionId)
-
-        // Determine plan from the subscription's price
-        const items = (subscription as any).items?.data
-        const priceId = items?.[0]?.price?.id ?? ''
-        const planId = determinePlanFromPrice(priceId)
+        const productId = data.product_id
+        const planId = determinePlanFromProduct(productId)
 
         await setUserPlan(userId, planId, {
-          stripeCustomerId: customerId,
-          stripeSubscriptionId: subscriptionId,
-          currentPeriodEnd: subscription.current_period_end * 1000,
+          dodoCustomerId: data.customer?.customer_id,
+          dodoSubscriptionId: data.subscription_id,
+          currentPeriodEnd: new Date(data.current_period_end).getTime(),
         })
 
-        // Store reverse lookup
-        await storeCustomerMapping(kv, customerId, userId)
+        await storeCustomerMapping(kv, data.customer?.customer_id, userId)
 
         log({
           level: 'info',
@@ -120,36 +113,30 @@ export async function POST(req: Request) {
         break
       }
 
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object
-        const customerId = subscription.customer as string
-        const subscriptionId = subscription.id as string
-
-        // Try to find userId from metadata or KV lookup
+      case 'subscription.updated': {
+        const data = event.data
         const userId =
-          subscription.metadata?.userId ??
-          (await lookupUserByCustomer(kv, customerId))
+          data.metadata?.userId ??
+          (await lookupUserByCustomer(kv, data.customer?.customer_id))
 
         if (!userId) {
           log({
             level: 'warn',
             event: 'billing.subscription.updated.no_user',
-            metadata: { subscriptionId },
+            metadata: { subscriptionId: data.subscription_id },
             timestamp: Date.now(),
           })
           break
         }
 
-        const items = subscription.items?.data
-        const priceId = items?.[0]?.price?.id ?? ''
-        const planId = determinePlanFromPrice(priceId)
+        if (data.status === 'active') {
+          const productId = data.product_id
+          const planId = determinePlanFromProduct(productId)
 
-        if (subscription.status === 'active') {
           await setUserPlan(userId, planId, {
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscriptionId,
-            currentPeriodEnd: subscription.current_period_end * 1000,
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            dodoCustomerId: data.customer?.customer_id,
+            dodoSubscriptionId: data.subscription_id,
+            currentPeriodEnd: new Date(data.current_period_end).getTime(),
           })
         }
 
@@ -157,24 +144,24 @@ export async function POST(req: Request) {
           level: 'info',
           event: 'billing.subscription.updated',
           userId,
-          metadata: {
-            status: subscription.status,
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
-          },
+          metadata: { status: data.status },
           timestamp: Date.now(),
         })
         break
       }
 
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object
-        const customerId = subscription.customer as string
+      case 'subscription.cancelled': {
+        const data = event.data
+        const customerId = data.customer?.customer_id
 
-        const userId = await lookupUserByCustomer(kv, customerId)
+        const userId =
+          data.metadata?.userId ??
+          (await lookupUserByCustomer(kv, customerId))
+
         if (!userId) {
           log({
             level: 'warn',
-            event: 'billing.subscription.deleted.no_user',
+            event: 'billing.subscription.cancelled.no_user',
             metadata: { customerId },
             timestamp: Date.now(),
           })
@@ -187,6 +174,22 @@ export async function POST(req: Request) {
           level: 'info',
           event: 'billing.subscription.cancelled',
           userId,
+          timestamp: Date.now(),
+        })
+        break
+      }
+
+      case 'payment.succeeded': {
+        const data = event.data
+        const userId =
+          data.metadata?.userId ??
+          (await lookupUserByCustomer(kv, data.customer?.customer_id))
+
+        log({
+          level: 'info',
+          event: 'billing.payment.succeeded',
+          userId: userId ?? undefined,
+          metadata: { amount: data.amount },
           timestamp: Date.now(),
         })
         break
@@ -206,7 +209,7 @@ export async function POST(req: Request) {
       },
       timestamp: Date.now(),
     })
-    // Return 200 even on error — Stripe retries on non-200
+    // Return 200 even on error — Dodo retries on non-200
   }
 
   return new Response(

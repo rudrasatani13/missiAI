@@ -10,6 +10,37 @@ import { useBilling } from '@/hooks/useBilling'
 import { Check, X, Sparkles, ChevronDown } from 'lucide-react'
 import type { PlanId } from '@/types/billing'
 
+function PaymentBadges() {
+  const badges = ['UPI', 'Cards', 'NetBanking', '150+ countries']
+  return (
+    <div
+      data-testid="payment-badges"
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginTop: 10,
+      }}
+    >
+      {badges.map((badge) => (
+        <span
+          key={badge}
+          style={{
+            fontSize: 10,
+            color: 'rgba(255,255,255,0.35)',
+            background: 'rgba(255,255,255,0.06)',
+            padding: '3px 8px',
+            borderRadius: 20,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {badge}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 function PlanCard({
   name,
   price,
@@ -21,6 +52,7 @@ function PlanCard({
   onSelect,
   isLoading,
   buttonLabel,
+  showPaymentBadges,
 }: {
   name: string
   price: number
@@ -32,6 +64,7 @@ function PlanCard({
   onSelect: () => void
   isLoading: boolean
   buttonLabel: string
+  showPaymentBadges?: boolean
 }) {
   const isCurrent = planId === currentPlanId
 
@@ -80,6 +113,7 @@ function PlanCard({
           <span style={{ fontSize: 36, fontWeight: 700, color: '#fff' }}>${price}</span>
           <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>/month</span>
         </div>
+        {showPaymentBadges && <PaymentBadges />}
       </div>
 
       <div style={{ flex: 1, marginBottom: 24 }}>
@@ -362,6 +396,7 @@ export default function PricingPage() {
             planId="pro"
             currentPlanId={currentPlanId}
             isMostPopular
+            showPaymentBadges
             features={[
               'Unlimited voice interactions',
               'All 4 personalities',
@@ -380,6 +415,7 @@ export default function PricingPage() {
             price={49}
             planId="business"
             currentPlanId={currentPlanId}
+            showPaymentBadges
             features={[
               'Everything in Pro',
               'API access',
@@ -391,6 +427,19 @@ export default function PricingPage() {
             isLoading={isLoading}
             buttonLabel={businessButtonLabel}
           />
+        </div>
+
+        {/* Powered by */}
+        <div
+          data-testid="powered-by-dodo"
+          style={{
+            textAlign: 'center',
+            marginBottom: 48,
+            fontSize: 11,
+            color: 'rgba(255,255,255,0.2)',
+          }}
+        >
+          Powered by Dodo Payments
         </div>
 
         {/* FAQ */}

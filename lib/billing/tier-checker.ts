@@ -21,8 +21,8 @@ export async function setUserPlan(
   await client.users.updateUser(userId, {
     publicMetadata: {
       plan: planId,
-      stripeCustomerId: billingData?.stripeCustomerId,
-      stripeSubscriptionId: billingData?.stripeSubscriptionId,
+      dodoCustomerId: billingData?.dodoCustomerId,
+      dodoSubscriptionId: billingData?.dodoSubscriptionId,
       currentPeriodEnd: billingData?.currentPeriodEnd,
     },
   })
@@ -36,8 +36,8 @@ export async function getUserBillingData(userId: string): Promise<UserBilling> {
   return {
     userId,
     planId: (meta?.plan as PlanId) ?? 'free',
-    stripeCustomerId: meta?.stripeCustomerId as string | undefined,
-    stripeSubscriptionId: meta?.stripeSubscriptionId as string | undefined,
+    dodoCustomerId: meta?.dodoCustomerId as string | undefined,
+    dodoSubscriptionId: meta?.dodoSubscriptionId as string | undefined,
     currentPeriodEnd: meta?.currentPeriodEnd as number | undefined,
     cancelAtPeriodEnd: meta?.cancelAtPeriodEnd as boolean | undefined,
     updatedAt: Date.now(),
