@@ -1,48 +1,66 @@
-# missiAI — PRD (Product Requirements Document)
+# missiAI - PRD & Implementation Log
 
 ## Original Problem Statement
-Replace Stripe completely with Dodo Payments in the missiAI application. Same freemium model (Free/$0, Pro/$9, Business/$49), same tier structure, same user experience. Dodo Payments supports India (UPI, cards) + 150+ countries globally.
+Remove all Stripe/Dodo billing code and replace with Razorpay. Razorpay uses a JS popup widget (not page redirect) for checkout. Replace all Dodo Payments integration with Razorpay across types, client library, API routes, webhooks, frontend hooks, pricing page, middleware, validation schemas, and tests.
 
 ## Architecture
-- **Stack**: Next.js 16 + Cloudflare Workers (edge runtime) + Clerk Auth + KV storage
-- **Payment Provider**: Dodo Payments (previously Stripe)
-- **AI Model**: gemini-3-flash-preview (unchanged)
-- **Deployment**: Cloudflare Pages + Workers
+- **Framework**: Next.js 16 with Edge Runtime (Cloudflare Workers)
+- **Auth**: Clerk (publicMetadata stores billing data)
+- **Payment**: Razorpay (subscriptions with JS popup checkout widget)
+- **KV Store**: Cloudflare KV (MISSI_MEMORY namespace)
+- **Testing**: Vitest (30 test files, 384 tests)
+
+## User Personas
+- Free tier users (10 voice interactions/day)
+- Pro subscribers ($9/mo via Razorpay)
+- Business subscribers ($49/mo via Razorpay)
+
+## Core Requirements
+- Razorpay subscription billing with popup checkout widget
+- HMAC-SHA256 webhook & payment verification (crypto.subtle)
+- Edge-runtime compatible (fetch only, no Node.js-specific packages)
+- All billing metadata stored in Clerk publicMetadata
 
 ## What's Been Implemented (2026-04-03)
 
-### Stripe → Dodo Payments Migration (Complete)
-- **types/billing.ts**: `stripePriceId` → `dodoPriceId`, `stripeCustomerId` → `dodoCustomerId`, `stripeSubscriptionId` → `dodoSubscriptionId`
-- **lib/billing/dodo-client.ts**: New edge-compatible Dodo Payments client
-- **lib/billing/tier-checker.ts**: Updated to use Dodo field names in Clerk metadata
-- **app/api/v1/billing/route.ts**: Updated handlers - now reads product IDs at request time (not module init) for edge runtime compatibility
-- **app/api/webhooks/dodo/route.ts**: New webhook handler
-- **middleware.ts**: Public route updated to `/api/webhooks/dodo`
-- **app/pricing/page.tsx**: Added payment badges, "Powered by Dodo Payments", error message display
-- **.env.example & wrangler.toml**: Updated for Dodo vars
+### Dodo → Razorpay Migration (Complete)
+- **Deleted**: `lib/billing/dodo-client.ts`, `app/api/webhooks/dodo/route.ts`, `tests/lib/billing/dodo-client.test.ts`
+- **Created**: `lib/billing/razorpay-client.ts` (8 exported functions)
+- **Created**: `app/api/v1/billing/verify/route.ts` (payment verification endpoint)
+- **Created**: `app/api/webhooks/razorpay/route.ts` (4 webhook events)
+- **Created**: `tests/lib/billing/razorpay-client.test.ts` (13 tests)
+- **Updated**: `types/billing.ts` (razorpayPlanId, razorpayCustomerId, razorpaySubscriptionId)
+- **Updated**: `lib/billing/tier-checker.ts` (razorpay field references)
+- **Updated**: `app/api/v1/billing/route.ts` (Razorpay customer + subscription creation)
+- **Updated**: `hooks/useBilling.ts` (initiateRazorpayCheckout with popup widget)
+- **Updated**: `app/pricing/page.tsx` (Razorpay branding, payment badges, cancel flow)
+- **Updated**: `app/chat/page.tsx` (initiateRazorpayCheckout reference)
+- **Updated**: `middleware.ts` (/api/webhooks/razorpay route)
+- **Updated**: `lib/validation/billing-schemas.ts` (verifyPaymentSchema)
+- **Updated**: `tests/lib/billing/tier-checker.test.ts` (razorpay fields)
 
-### Bug Fixes (2026-04-03)
-- **Payment button fix**: Product IDs now read at request time via `process.env` directly in the billing route handler, not from PLANS constant (which evaluates at module load time and may be empty in edge runtime)
-- **Error display**: Pricing page now shows billing errors (was silently swallowing them)
+### Test Results
+- 30 test files, 384 tests all passing
+- Zero Dodo/Stripe references remaining in codebase
 
-## Test Status
-- **382/382 tests passing** (30 test files)
-- Zero Stripe references in codebase
+## Environment Variables Required
+```
+RAZORPAY_KEY_ID=          # Razorpay Dashboard → Settings → API Keys
+RAZORPAY_KEY_SECRET=      # Razorpay Dashboard → Settings → API Keys
+RAZORPAY_WEBHOOK_SECRET=  # Razorpay Dashboard → Webhooks → Secret
+RAZORPAY_PRO_PLAN_ID=     # Create via Dashboard → Subscriptions → Plans
+RAZORPAY_BUSINESS_PLAN_ID= # Create via Dashboard → Subscriptions → Plans
+```
 
-## Environment Variables Required (Cloudflare)
-- `DODO_API_KEY` — Dodo Payments API key
-- `DODO_WEBHOOK_SECRET` — Webhook signing secret
-- `DODO_PRO_PRODUCT_ID` — Product ID for Pro plan
-- `DODO_BUSINESS_PRODUCT_ID` — Product ID for Business plan
-- `CLERK_SECRET_KEY` — Clerk auth secret (verify after redeployment!)
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` — Clerk publishable key
+## Prioritized Backlog
+- **P0**: Add Razorpay API keys to production environment
+- **P1**: Configure Razorpay webhook URL in dashboard pointing to `/api/webhooks/razorpay`
+- **P1**: Create subscription plans in Razorpay dashboard (Pro $9/mo, Business $49/mo)
+- **P2**: Add Razorpay test mode end-to-end testing with real test keys
+- **P2**: Add subscription status badges on user profile/settings page
 
-## Known Issue: Login Redirect Loop
-- NOT caused by code changes — Clerk middleware and auth pages are unchanged
-- Most likely caused by CLERK_SECRET_KEY being missing/expired on Cloudflare after redeployment
-- Fix: Verify Clerk keys on Cloudflare dashboard, clear Cloudflare cache
-
-## Backlog
-- P0: Verify all Cloudflare secrets after redeployment
-- P1: End-to-end payment flow testing with real Dodo test keys
-- P2: Add subscription management UI
+## Next Tasks
+1. Configure real Razorpay API keys in production environment
+2. Create Razorpay plans in dashboard and set RAZORPAY_PRO_PLAN_ID / RAZORPAY_BUSINESS_PLAN_ID
+3. Set up webhook endpoint URL in Razorpay dashboard
+4. End-to-end test with Razorpay test mode
