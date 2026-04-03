@@ -41,10 +41,9 @@ export async function createRazorpayCustomer(params: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: params.name,
+        name: params.name || 'Customer',
         email: params.email,
-        contact: params.contact ?? '',
-        gstin: '',
+        ...(params.contact ? { contact: params.contact } : {}),
       }),
       signal: controller.signal,
     })
