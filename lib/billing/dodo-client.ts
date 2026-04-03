@@ -26,11 +26,12 @@ export async function createDodoCheckout(params: {
   quantity?: number
 }): Promise<{ subscriptionId: string; checkoutUrl: string }> {
   const body = {
-    billing: { city: '', country: 'IN', state: '', street: '', zipcode: '' },
+    // Dodo's API expects zipcode as an integer; empty strings cause 422 errors.
+    // city/state/street are optional strings — omit them when blank.
+    billing: { country: 'IN', zipcode: 0 },
     customer: {
       // Dodo rejects empty-string emails — omit the field entirely when absent
       ...(params.customerEmail ? { email: params.customerEmail } : {}),
-      name: '',
       create_new_customer: true,
     },
     metadata: { userId: params.customerUserId },
