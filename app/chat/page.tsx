@@ -241,26 +241,28 @@ export default function VoiceAssistantPage() {
           <span className="text-[11px] font-medium tracking-wider">MISSI</span>
         </div>
         <div className="flex items-center gap-2 pointer-events-auto">
-          {plan?.id === 'free' && (
-            <Link
-              href="/pricing"
-              onClick={(e) => e.stopPropagation()}
-              data-testid="upgrade-to-pro-link"
-              className="flex items-center gap-1 px-2 py-1 rounded-full transition-opacity hover:opacity-90"
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                fontSize: 10,
-                color: 'rgba(255,255,255,0.6)',
-                fontWeight: 500,
-                letterSpacing: '0.03em',
-                textDecoration: 'none',
-              }}
-            >
-              <Crown className="w-3 h-3" style={{ color: '#F59E0B' }} />
-              Pro
-            </Link>
-          )}
+          <Link
+            href="/pricing"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="upgrade-to-pro-link"
+            className="flex items-center gap-1 px-2 py-1 rounded-full transition-opacity hover:opacity-90"
+            style={{
+              background: plan?.id === 'free'
+                ? 'rgba(255,255,255,0.08)'
+                : 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(245,158,11,0.15))',
+              border: plan?.id === 'free'
+                ? '1px solid rgba(255,255,255,0.12)'
+                : '1px solid rgba(124,58,237,0.3)',
+              fontSize: 10,
+              color: plan?.id === 'free' ? 'rgba(255,255,255,0.6)' : 'rgba(245,158,11,0.9)',
+              fontWeight: 500,
+              letterSpacing: '0.03em',
+              textDecoration: 'none',
+            }}
+          >
+            <Crown className="w-3 h-3" style={{ color: '#F59E0B' }} />
+            {plan?.id === 'free' ? 'Upgrade to Pro' : plan?.id === 'pro' ? 'Pro Plan' : plan?.id === 'business' ? 'Business Plan' : 'Pricing'}
+          </Link>
           <PluginBadge plugins={plugins} onManage={() => setShowSettings(true)} />
           <Link
             href="/memory"

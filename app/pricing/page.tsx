@@ -1,13 +1,12 @@
 'use client'
 
-// BUG-2 FIX: Removed `export const dynamic = 'force-static'` — contradictory in client component
-
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useBilling } from '@/hooks/useBilling'
-import { Check, X, Sparkles, ChevronDown, AlertTriangle } from 'lucide-react'
+import { Check, X, Sparkles, ChevronDown, AlertTriangle, Crown, ArrowRight } from 'lucide-react'
+import { CelebrationOverlay } from '@/components/ui/CelebrationOverlay'
 import type { PlanId } from '@/types/billing'
 
 function PaymentBadges() {
@@ -41,7 +40,6 @@ function PaymentBadges() {
   )
 }
 
-// CLI-3 FIX: Custom confirmation modal instead of window.confirm()
 function CancelModal({
   planName,
   isOpen,
@@ -149,6 +147,7 @@ function PlanCard({
   isLoading,
   buttonLabel,
   showPaymentBadges,
+  isCurrentPlan,
 }: {
   name: string
   price: number
@@ -161,26 +160,64 @@ function PlanCard({
   isLoading: boolean
   buttonLabel: string
   showPaymentBadges?: boolean
+  isCurrentPlan?: boolean
 }) {
-  const isCurrent = planId === currentPlanId
-
   return (
     <div
       data-testid={`plan-card-${planId}`}
       style={{
         position: 'relative',
-        background: 'rgba(0,0,0,0.4)',
+        background: isCurrentPlan
+          ? 'linear-gradient(135deg, rgba(124,58,237,0.08), rgba(245,158,11,0.05))'
+          : 'rgba(0,0,0,0.4)',
         backdropFilter: 'blur(20px)',
-        border: isMostPopular ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.08)',
+        border: isCurrentPlan
+          ? '1px solid rgba(124,58,237,0.3)'
+          : isMostPopular
+            ? '1px solid rgba(255,255,255,0.2)'
+            : '1px solid rgba(255,255,255,0.08)',
         borderRadius: 16,
         padding: '32px 24px',
         display: 'flex',
         flexDirection: 'column',
         transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
-        boxShadow: isMostPopular ? '0 0 40px rgba(255,255,255,0.03)' : 'none',
+        boxShadow: isCurrentPlan
+          ? '0 0 40px rgba(124,58,237,0.08)'
+          : isMostPopular
+            ? '0 0 40px rgba(255,255,255,0.03)'
+            : 'none',
       }}
     >
-      {isMostPopular && (
+      {/* Current Plan Badge */}
+      {isCurrentPlan && (
+        <div
+          data-testid="current-plan-badge"
+          style={{
+            position: 'absolute',
+            top: -12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'linear-gradient(135deg, #7C3AED, #F59E0B)',
+            color: '#fff',
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            padding: '4px 14px',
+            borderRadius: 20,
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          <Crown style={{ width: 10, height: 10 }} />
+          Current Plan
+        </div>
+      )}
+
+      {/* Most Popular Badge — only show if not the current plan */}
+      {isMostPopular && !isCurrentPlan && (
         <div
           data-testid="most-popular-badge"
           style={{
@@ -215,7 +252,7 @@ function PlanCard({
       <div style={{ flex: 1, marginBottom: 24 }}>
         {features.map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
-            <Check style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.5)', flexShrink: 0, marginTop: 2 }} />
+            <Check style={{ width: 14, height: 14, color: isCurrentPlan ? 'rgba(124,58,237,0.7)' : 'rgba(255,255,255,0.5)', flexShrink: 0, marginTop: 2 }} />
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{f}</span>
           </div>
         ))}
@@ -230,22 +267,30 @@ function PlanCard({
       <button
         data-testid={`plan-btn-${planId}`}
         onClick={onSelect}
-        disabled={isLoading || (isCurrent && planId === 'free')}
+        disabled={isLoading || (isCurrentPlan && planId === 'free')}
         style={{
           width: '100%',
           padding: '12px 0',
           borderRadius: 10,
           fontSize: 13,
           fontWeight: 600,
-          cursor: isLoading || (isCurrent && planId === 'free') ? 'default' : 'pointer',
+          cursor: isLoading || (isCurrentPlan && planId === 'free') ? 'default' : 'pointer',
           border: 'none',
           transition: 'all 0.2s ease',
-          background: isMostPopular
-            ? 'rgba(255,255,255,0.9)'
-            : isCurrent
+          background: isCurrentPlan
+            ? planId === 'free'
               ? 'rgba(255,255,255,0.06)'
+              : 'rgba(239,68,68,0.15)'
+            : isMostPopular
+              ? 'rgba(255,255,255,0.9)'
               : 'rgba(255,255,255,0.1)',
-          color: isMostPopular ? '#000' : '#fff',
+          color: isCurrentPlan
+            ? planId === 'free'
+              ? 'rgba(255,255,255,0.4)'
+              : 'rgba(239,68,68,0.9)'
+            : isMostPopular
+              ? '#000'
+              : '#fff',
           opacity: isLoading ? 0.6 : 1,
         }}
       >
@@ -308,28 +353,34 @@ export default function PricingPage() {
   const router = useRouter()
   const { isSignedIn } = useUser()
   const {
-    plan, isLoading, isUpgrading, isCancelling,
-    error: billingError, initiateRazorpayCheckout, cancelSubscription
+    plan, billing, isLoading, isUpgrading, isCancelling,
+    error: billingError, initiateRazorpayCheckout, cancelSubscription, refreshBilling,
   } = useBilling()
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const prevPlanRef = useRef<string | null>(null)
-  // CLI-3 FIX: State for cancel modal
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
   const [cancelPlanName, setCancelPlanName] = useState('')
+  const [showCelebration, setShowCelebration] = useState(false)
+  const [celebrationPlanName, setCelebrationPlanName] = useState('')
 
+  // Detect plan upgrade and trigger celebration
   useEffect(() => {
     if (plan) {
       if (prevPlanRef.current === 'free' && (plan.id === 'pro' || plan.id === 'business')) {
-        setSuccessMessage(`Welcome to ${plan.name}!`)
-        const timer = setTimeout(() => setSuccessMessage(null), 5000)
-        return () => clearTimeout(timer)
+        setCelebrationPlanName(plan.name)
+        setShowCelebration(true)
       }
       prevPlanRef.current = plan.id
     }
   }, [plan])
 
+  const handleCelebrationComplete = useCallback(() => {
+    setShowCelebration(false)
+  }, [])
+
   const currentPlanId = plan?.id ?? 'free'
+  const cancelAtPeriodEnd = billing?.cancelAtPeriodEnd ?? false
 
   const handleFreePlan = () => {
     if (isSignedIn) {
@@ -339,7 +390,6 @@ export default function PricingPage() {
     }
   }
 
-  // CLI-3 FIX: Use custom modal instead of window.confirm()
   const handleProPlan = () => {
     if (currentPlanId === 'pro') {
       setCancelPlanName('Pro')
@@ -363,18 +413,18 @@ export default function PricingPage() {
     cancelSubscription()
   }
 
+  // Button labels
   const freeButtonLabel =
     currentPlanId === 'free' ? 'Current Plan' : 'Get Started'
 
-  // CLI-2 FIX: Show cancelling state in button
   const proButtonLabel =
     currentPlanId === 'pro'
-      ? (isCancelling ? 'Cancelling...' : 'Cancel Subscription')
+      ? (isCancelling ? 'Cancelling...' : cancelAtPeriodEnd ? 'Cancellation Pending' : 'Cancel Subscription')
       : 'Upgrade to Pro'
 
   const businessButtonLabel =
     currentPlanId === 'business'
-      ? (isCancelling ? 'Cancelling...' : 'Cancel Subscription')
+      ? (isCancelling ? 'Cancelling...' : cancelAtPeriodEnd ? 'Cancellation Pending' : 'Cancel Subscription')
       : 'Contact Us'
 
   return (
@@ -387,7 +437,15 @@ export default function PricingPage() {
         fontFamily: 'var(--font-inter), system-ui, sans-serif',
       }}
     >
-      {/* CLI-3 FIX: Custom cancel confirmation modal */}
+      {/* Celebration Animation */}
+      {showCelebration && (
+        <CelebrationOverlay
+          planName={celebrationPlanName}
+          onComplete={handleCelebrationComplete}
+        />
+      )}
+
+      {/* Cancel Modal */}
       <CancelModal
         planName={cancelPlanName}
         isOpen={cancelModalOpen}
@@ -424,13 +482,37 @@ export default function PricingPage() {
             color: 'rgba(255,255,255,0.4)',
             textDecoration: 'none',
             transition: 'color 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
           }}
         >
           Back to Chat
+          <ArrowRight style={{ width: 10, height: 10 }} />
         </Link>
       </nav>
 
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 20px 80px' }}>
+        {/* Cancellation pending banner */}
+        {cancelAtPeriodEnd && currentPlanId !== 'free' && (
+          <div
+            data-testid="cancel-pending-banner"
+            style={{
+              textAlign: 'center',
+              marginBottom: 32,
+              padding: '12px 20px',
+              borderRadius: 10,
+              background: 'rgba(245,158,11,0.1)',
+              border: '1px solid rgba(245,158,11,0.2)',
+              fontSize: 13,
+              color: 'rgba(245,158,11,0.9)',
+            }}
+          >
+            Your {plan?.name} subscription will cancel at the end of the current billing period.
+          </div>
+        )}
+
+        {/* Success message */}
         {successMessage && (
           <div
             data-testid="pricing-success-message"
@@ -449,6 +531,7 @@ export default function PricingPage() {
           </div>
         )}
 
+        {/* Billing error */}
         {billingError && (
           <div
             data-testid="billing-error-message"
@@ -467,6 +550,7 @@ export default function PricingPage() {
           </div>
         )}
 
+        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <div
             style={{
@@ -482,20 +566,23 @@ export default function PricingPage() {
           >
             <Sparkles style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.4)' }} />
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 500 }}>
-              Pricing
+              {currentPlanId === 'free' ? 'Pricing' : 'Manage Plan'}
             </span>
           </div>
           <h1
             data-testid="pricing-heading"
             style={{ fontSize: 28, fontWeight: 600, marginBottom: 10, letterSpacing: '-0.02em' }}
           >
-            Simple, honest pricing
+            {currentPlanId === 'free' ? 'Simple, honest pricing' : `You're on ${plan?.name ?? 'Pro'}`}
           </h1>
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', maxWidth: 400, margin: '0 auto' }}>
-            Start free. Upgrade when missiAI becomes part of your life.
+            {currentPlanId === 'free'
+              ? 'Start free. Upgrade when missiAI becomes part of your life.'
+              : 'Manage your subscription or explore other plans.'}
           </p>
         </div>
 
+        {/* Plan cards */}
         <div
           data-testid="plan-cards-grid"
           style={{
@@ -510,6 +597,7 @@ export default function PricingPage() {
             price={0}
             planId="free"
             currentPlanId={currentPlanId}
+            isCurrentPlan={currentPlanId === 'free'}
             features={[
               '10 voice interactions/day',
               '1 personality mode',
@@ -531,8 +619,9 @@ export default function PricingPage() {
             price={9}
             planId="pro"
             currentPlanId={currentPlanId}
-            isMostPopular
-            showPaymentBadges
+            isCurrentPlan={currentPlanId === 'pro'}
+            isMostPopular={currentPlanId === 'free'}
+            showPaymentBadges={currentPlanId !== 'pro'}
             features={[
               'Unlimited voice interactions',
               'All 4 personalities',
@@ -551,7 +640,8 @@ export default function PricingPage() {
             price={49}
             planId="business"
             currentPlanId={currentPlanId}
-            showPaymentBadges
+            isCurrentPlan={currentPlanId === 'business'}
+            showPaymentBadges={currentPlanId !== 'business'}
             features={[
               'Everything in Pro',
               'API access',
@@ -565,6 +655,7 @@ export default function PricingPage() {
           />
         </div>
 
+        {/* Powered by */}
         <div
           data-testid="powered-by-razorpay"
           style={{
@@ -577,6 +668,7 @@ export default function PricingPage() {
           Powered by Razorpay
         </div>
 
+        {/* FAQ */}
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
           <h2
             data-testid="faq-heading"

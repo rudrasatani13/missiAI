@@ -268,6 +268,7 @@ export function useBilling() {
     isCancelling,
     initiateRazorpayCheckout,
     cancelSubscription,
+    refreshBilling,
     isAtLimit,
     remainingInteractions,
     incrementUsageLocally,
