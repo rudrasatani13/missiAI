@@ -53,7 +53,7 @@ function pluginResultToActionResult(result: PluginResult): ActionResult {
 export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
-  const { plan, usage, isAtLimit, createCheckoutSession, incrementUsageLocally } = useBilling()
+  const { plan, usage, isAtLimit, isLoading: billingLoading, createCheckoutSession, incrementUsageLocally } = useBilling()
   const [showSettings, setShowSettings] = useState(false)
   const [personality, setPersonality] = useState<PersonalityKey>("bestfriend")
   const [voiceEnabled, setVoiceEnabled] = useState(true)
@@ -122,10 +122,10 @@ export default function VoiceAssistantPage() {
   }, [])
 
   useEffect(() => { const h = (e: KeyboardEvent) => {
-    if (e.code === "Space" && e.target === document.body) { e.preventDefault(); if (!isAtLimit) handleTap() }
+    if (e.code === "Space" && e.target === document.body) { e.preventDefault(); if (!isAtLimit && !billingLoading) handleTap() }
     if (e.code === "Escape") cancelAll() }
     window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h)
-  }, [handleTap, cancelAll, isAtLimit])
+  }, [handleTap, cancelAll, isAtLimit, billingLoading])
   useEffect(() => () => { cancelAll() }, [cancelAll])
   useEffect(() => { const bu = () => saveMemoryBeacon()
     const vc = () => { if (document.visibilityState === "hidden") saveMemoryBeacon() }
@@ -133,17 +133,17 @@ export default function VoiceAssistantPage() {
     return () => { window.removeEventListener("beforeunload", bu); document.removeEventListener("visibilitychange", vc) }
   }, [saveMemoryBeacon])
 
-  // Initial greeting — skip if daily limit already reached
-  useEffect(() => { if (!isLoaded || greetedRef.current || isAtLimit) return; greetedRef.current = true
+  // Initial greeting — skip if daily limit already reached or billing still loading
+  useEffect(() => { if (!isLoaded || greetedRef.current || isAtLimit || billingLoading) return; greetedRef.current = true
     try { sessionStorage.setItem('missi-greeted', '1') } catch {}
     const n = user?.firstName || "", gs = [`Hey${n ? ` ${n}` : ""}! What's up, how's it going?`,
       `Hey${n ? ` ${n}` : ""}! Good to see you, what can I help with?`, `Hey${n ? ` ${n}` : ""}! How are you doing today?`]
     setTimeout(() => greet(gs[Math.floor(Math.random() * gs.length)]), 1200)
-  }, [isLoaded, user, greet, isAtLimit])
+  }, [isLoaded, user, greet, isAtLimit, billingLoading])
 
   // Proactive JARVIS moment: auto-speak first high-priority briefing item
   useEffect(() => {
-    if (!briefing || proactiveSpokenRef.current || !voiceEnabled || isAtLimit) return
+    if (!briefing || proactiveSpokenRef.current || !voiceEnabled || isAtLimit || billingLoading) return
     const highItem = briefing.items.find(
       (item) => item.priority === "high" && !item.dismissedAt,
     )
@@ -159,7 +159,7 @@ export default function VoiceAssistantPage() {
     }, 2000)
 
     return () => clearTimeout(timer)
-  }, [briefing, voiceEnabled, greet, isAtLimit])
+  }, [briefing, voiceEnabled, greet, isAtLimit, billingLoading])
 
   // Store last interaction time for nudge engine
   useEffect(() => {
@@ -228,8 +228,8 @@ export default function VoiceAssistantPage() {
     <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"
       style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}>
       <ParticleVisualizer state={voiceState} isActive={voiceState !== "idle"} audioLevel={audioLevel} />
-      <div className="fixed inset-0 z-10" onClick={isAtLimit ? undefined : handleTap} data-testid="voice-tap-area"
-        style={{ cursor: isAtLimit ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
+      <div className="fixed inset-0 z-10" onClick={isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
+        style={{ cursor: isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
       <nav className="relative z-20 flex items-center justify-between px-5 md:px-8 py-4 pointer-events-auto">
         <Link href="/" className="flex items-center gap-2 opacity-40 hover:opacity-70 transition-opacity" data-testid="home-link">
           <ArrowLeft className="w-4 h-4" />
@@ -313,7 +313,7 @@ export default function VoiceAssistantPage() {
             state={voiceState}
             onPress={handleTap}
             onRelease={() => {}}
-            disabled={isAtLimit}
+            disabled={isAtLimit || billingLoading}
           />
         </div>
         <StatusDisplay
