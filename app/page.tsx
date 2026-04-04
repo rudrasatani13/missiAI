@@ -333,10 +333,10 @@ export default function LandingPage() {
   useReferralCapture()
 
   return (
-    <div className="bg-black text-white overflow-x-hidden" style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}>
+    <div className="bg-black text-white overflow-x-hidden" style={{ fontFamily: "var(--font-inter), system-ui, sans-serif", backgroundColor: '#000000', color: '#ffffff' }}>
 
       {/* ═══════════════ HERO ═══════════════ */}
-      <section className="relative min-h-screen flex flex-col">
+      <section className="relative min-h-screen flex flex-col" style={{ backgroundColor: '#000000' }}>
         <HeroStarfield />
 
         <nav className="relative z-10 flex items-center justify-between px-6 md:px-10 py-5">
