@@ -36,7 +36,9 @@ body {
 .clerk-form-container [class*="watermark"],
 .clerk-form-container .cl-internal-b3al4t,
 .clerk-form-container .cl-internal-xgx4q9,
-.clerk-form-container .cl-internal-18yxylj {
+.clerk-form-container .cl-internal-18yxylj,
+.clerk-form-container .cl-footer + div,
+.clerk-form-container .cl-card > div:last-child:not(:has(.cl-footerActionText)):not(:has(.cl-footerActionLink)) {
   display: none !important;
   opacity: 0 !important;
   visibility: hidden !important;
@@ -44,6 +46,7 @@ body {
   height: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
+  border: none !important;
 }
 
 .logo-protected::selection {
