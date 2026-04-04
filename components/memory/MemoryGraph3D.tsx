@@ -109,8 +109,9 @@ export default function MemoryGraph3D({ nodes }: { nodes: LifeNode[] }) {
       </div>
 
       <div className="absolute bottom-4 left-4 z-10 pointer-events-none flex flex-col gap-1">
-        <div className="text-white/30 text-[10px] uppercase tracking-widest px-2 py-1 bg-white/5 rounded backdrop-blur-md">Scroll to Zoom</div>
-        <div className="text-white/30 text-[10px] uppercase tracking-widest px-2 py-1 bg-white/5 rounded backdrop-blur-md">Drag to Rotate</div>
+        <div className="text-white/30 text-[10px] uppercase tracking-widest px-2 py-1 bg-white/5 rounded backdrop-blur-md border border-white/10">Drag node to Pin</div>
+        <div className="text-white/30 text-[10px] uppercase tracking-widest px-2 py-1 bg-white/5 rounded backdrop-blur-md border border-white/10">Click node to Unpin</div>
+        <div className="text-white/30 text-[10px] uppercase tracking-widest px-2 py-1 bg-white/5 rounded backdrop-blur-md border border-white/10 mt-2">Scroll/Drag Background to Rotate</div>
       </div>
 
       <ForceGraph3D
@@ -129,8 +130,18 @@ export default function MemoryGraph3D({ nodes }: { nodes: LifeNode[] }) {
         linkDirectionalParticleWidth={1.5}
         linkDirectionalParticleColor={() => '#4ade80'} // Bright green photons
         backgroundColor="#000000"
+        enableNodeDrag={true}
+        onNodeDragEnd={(node: any) => {
+          // Pin the node at the dropped location by setting fixed coordinates
+          node.fx = node.x
+          node.fy = node.y
+          node.fz = node.z
+        }}
         onNodeClick={(node: any) => {
-           console.log("Memory Node:", node)
+          // Unpin node on click so it snaps back to the physics cluster
+          node.fx = undefined
+          node.fy = undefined
+          node.fz = undefined
         }}
         showNavInfo={false}
       />
