@@ -75,37 +75,47 @@ export default function VoiceAssistantPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      if (typeof ev.target?.result === 'string') {
-        const img = new Image()
-        img.onload = () => {
-          const canvas = document.createElement("canvas")
-          let width = img.width
-          let height = img.height
-          const maxSize = 800
+    // Use createObjectURL instead of readAsDataURL — drastically more
+    // memory-efficient on mobile (iPhone 12MP photos are 10-12MB as data URLs
+    // which crash mobile Safari's Image loader)
+    const objectUrl = URL.createObjectURL(file)
+    const img = new Image()
 
-          if (width > height && width > maxSize) {
-            height *= maxSize / width
-            width = maxSize
-          } else if (height > maxSize) {
-            width *= maxSize / height
-            height = maxSize
-          }
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl) // free memory immediately
 
-          canvas.width = width
-          canvas.height = height
-          const ctx = canvas.getContext("2d")
-          ctx?.drawImage(img, 0, 0, width, height)
+      const canvas = document.createElement("canvas")
+      let width = img.width
+      let height = img.height
+      // 512px is plenty for Gemini vision and keeps base64 small (~30-60KB)
+      const maxSize = 512
 
-          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7)
-          imagePayloadRef.current = compressedBase64
-          setThumbnail(compressedBase64)
-        }
-        img.src = ev.target.result
+      if (width > height && width > maxSize) {
+        height = Math.round(height * maxSize / width)
+        width = maxSize
+      } else if (height > maxSize) {
+        width = Math.round(width * maxSize / height)
+        height = maxSize
       }
+
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext("2d")
+      if (!ctx) return
+      ctx.drawImage(img, 0, 0, width, height)
+
+      // JPEG at 0.5 quality — keeps payload under 50KB for fast upload
+      const compressedBase64 = canvas.toDataURL("image/jpeg", 0.5)
+      imagePayloadRef.current = compressedBase64
+      setThumbnail(compressedBase64)
     }
-    reader.readAsDataURL(file)
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      console.error("Failed to load image for compression")
+    }
+
+    img.src = objectUrl
   }
 
   useEffect(() => {
