@@ -8,6 +8,7 @@ export default function SetupPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [name, setName] = useState('')
+  const [dob, setDob] = useState('')
   const [occupation, setOccupation] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -18,7 +19,7 @@ export default function SetupPage() {
       return
     }
     setError(null)
-    setStep(2)
+    setStep((s) => s + 1)
   }
 
   const handleSubmit = async () => {
@@ -30,7 +31,7 @@ export default function SetupPage() {
       const res = await fetch('/api/v1/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), occupation: occupation.trim() }),
+        body: JSON.stringify({ name: name.trim(), dob: dob.trim(), occupation: occupation.trim() }),
       })
 
       const data = await res.json()
@@ -67,7 +68,13 @@ export default function SetupPage() {
           <div className="h-1 flex-1 rounded-full bg-white/20 overflow-hidden">
             <div 
               className="h-full bg-white transition-all duration-500" 
-              style={{ width: step === 2 ? '100%' : '0%' }}
+              style={{ width: step >= 2 ? '100%' : '0%' }}
+            />
+          </div>
+          <div className="h-1 flex-1 rounded-full bg-white/20 overflow-hidden">
+            <div 
+              className="h-full bg-white transition-all duration-500" 
+              style={{ width: step >= 3 ? '100%' : '0%' }}
             />
           </div>
         </div>
@@ -104,8 +111,47 @@ export default function SetupPage() {
           </div>
         )}
 
-        {/* Step 2: Occupation/Profile */}
+        {/* Step 2: Date of Birth */}
         {step === 2 && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h1 className="text-2xl mb-2 font-medium tracking-tight">When were you born?</h1>
+            <p className="text-white/50 text-sm mb-6">This helps Missi understand your age and astrology context. (Optional)</p>
+            
+            <input
+              type="date"
+              value={dob}
+              onChange={(e) => {
+                setDob(e.target.value)
+                setError(null)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleNext()
+              }}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-lg outline-none focus:border-white/30 transition-colors mb-6 text-white"
+              style={{ colorScheme: 'dark' }}
+              autoFocus
+            />
+
+            {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+
+            <button
+              onClick={handleNext}
+              className="w-full flex items-center justify-center gap-2 bg-white text-black py-3 px-4 rounded-xl font-medium transition-transform hover:scale-[1.02] active:scale-95"
+            >
+              Continue <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => setStep(1)}
+              className="w-full text-white/40 text-sm mt-4 hover:text-white/70 transition-colors"
+            >
+              Back
+            </button>
+          </div>
+        )}
+
+        {/* Step 3: Occupation/Profile */}
+        {step === 3 && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-2xl mb-2 font-medium tracking-tight">What do you do?</h1>
             <p className="text-white/50 text-sm mb-6">e.g. Student, Software Engineer, Designer. This personalizes Missi's context.</p>
@@ -144,7 +190,7 @@ export default function SetupPage() {
             </button>
 
             <button
-              onClick={() => setStep(1)}
+              onClick={() => setStep(2)}
               className="w-full text-white/40 text-sm mt-4 hover:text-white/70 transition-colors"
             >
               Back

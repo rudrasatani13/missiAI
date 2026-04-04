@@ -40,6 +40,7 @@ function getVectorizeEnv(): VectorizeEnv | null {
 
 const setupSchema = z.object({
   name: z.string().min(1).max(100),
+  dob: z.string().max(20).optional(),
   occupation: z.string().max(200).optional(),
 })
 
@@ -73,10 +74,10 @@ export async function POST(req: NextRequest) {
       return jsonResponse({ success: false, error: 'Invalid input' }, 400)
     }
 
-    const { name, occupation } = parsed.data
+    const { name, dob, occupation } = parsed.data
 
     // 1. Mark setup as completed in KV
-    const profile = { name, occupation, setupCompleted: true, timestamp: Date.now() }
+    const profile = { name, dob, occupation, setupCompleted: true, timestamp: Date.now() }
     await kv.put(`profile:${userId}`, JSON.stringify(profile))
 
     // 2. Add memories to LifeGraph
@@ -101,6 +102,21 @@ export async function POST(req: NextRequest) {
       confidence: 1.0,
       source: 'explicit'
     }, apiKey)
+
+    // Add DOB Memory if provided
+    if (dob && dob.trim().length > 0) {
+      await addOrUpdateNode(kv, vectorizeEnv, userId, {
+        userId,
+        title: "User's Birthday",
+        detail: `The user was born on ${dob}.`,
+        category: 'event',
+        tags: ['birthday', 'age', 'astrology'],
+        people: [name],
+        emotionalWeight: 0.8,
+        confidence: 1.0,
+        source: 'explicit'
+      }, apiKey)
+    }
 
     // Add Occupation Memory if provided
     if (occupation && occupation.trim().length > 0) {
