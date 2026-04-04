@@ -229,20 +229,16 @@ export default function VoiceAssistantPage() {
       <ParticleVisualizer state={voiceState} isActive={voiceState !== "idle"} audioLevel={audioLevel} />
       <div className="fixed inset-0 z-10" onClick={isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
         style={{ cursor: isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
-      <nav className="relative z-20 flex items-center justify-between px-5 md:px-8 py-4 pointer-events-auto">
-        <Link href="/" className="flex items-center gap-2 opacity-40 hover:opacity-70 transition-opacity" data-testid="home-link">
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-[11px] font-light hidden sm:inline tracking-wide">Home</span>
-        </Link>
-        <div
-          style={{
-            position: 'absolute',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            pointerEvents: 'none',
-          }}
-        >
-          <svg width="120" height="28" viewBox="0 0 120 28" xmlns="http://www.w3.org/2000/svg">
+      <nav className="relative z-20 grid grid-cols-[1fr_auto_1fr] items-center px-4 md:px-8 py-4 pointer-events-auto w-full">
+        <div className="flex justify-start">
+          <Link href="/" className="flex items-center gap-2 opacity-40 hover:opacity-70 transition-opacity" data-testid="home-link">
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-[11px] font-light hidden sm:inline tracking-wide">Home</span>
+          </Link>
+        </div>
+        
+        <div className="flex justify-center select-none">
+          <svg width="120" height="28" viewBox="0 0 120 28" xmlns="http://www.w3.org/2000/svg" className="w-[100px] md:w-[120px]">
             <defs>
               <pattern id="led-nav" width="3" height="2" patternUnits="userSpaceOnUse">
                 <rect x="0.25" y="0.25" width="2.5" height="1.5" rx="0.4" fill="rgba(255,255,255,1)" />
@@ -262,7 +258,8 @@ export default function VoiceAssistantPage() {
             <rect width="100%" height="100%" fill="url(#led-nav)" mask="url(#text-mask-nav)" />
           </svg>
         </div>
-        <div className="flex items-center gap-2 pointer-events-auto">
+
+        <div className="flex items-center justify-end gap-1.5 md:gap-2">
           <Link
             href="/pricing"
             onClick={(e) => e.stopPropagation()}
@@ -280,10 +277,13 @@ export default function VoiceAssistantPage() {
               fontWeight: 500,
               letterSpacing: '0.03em',
               textDecoration: 'none',
+              borderRadius: '20px'
             }}
           >
             <Crown className="w-3 h-3" style={{ color: '#F59E0B' }} />
-            {plan?.id === 'free' ? 'Upgrade to Pro' : plan?.id === 'pro' ? 'Pro Plan' : plan?.id === 'business' ? 'Business Plan' : 'Pricing'}
+            <span className="hidden md:inline">
+              {plan?.id === 'free' ? 'Upgrade to Pro' : plan?.id === 'pro' ? 'Pro Plan' : plan?.id === 'business' ? 'Business Plan' : 'Pricing'}
+            </span>
           </Link>
           <PluginBadge plugins={plugins} onManage={() => setActivePanel(activePanel === 'plugins' ? null : 'plugins')} />
           <button onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'settings' ? null : 'settings') }}

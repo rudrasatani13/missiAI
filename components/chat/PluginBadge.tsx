@@ -1,6 +1,7 @@
 "use client"
 
 import type { PluginConfig, PluginId } from "@/types/plugins"
+import { Plus } from "lucide-react"
 
 type SafePlugin = Omit<PluginConfig, "credentials">
 
@@ -54,7 +55,10 @@ export function PluginBadge({ plugins, onManage }: PluginBadgeProps) {
       }}
     >
       {count === 0 ? (
-        <span>Add plugins</span>
+        <>
+          <Plus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Add plugins</span>
+        </>
       ) : (
         <>
           {/* Colored dots for each connected plugin */}
@@ -80,7 +84,7 @@ export function PluginBadge({ plugins, onManage }: PluginBadgeProps) {
             )}
           </span>
           <span>
-            {count} {count === 1 ? "plugin" : "plugins"}
+            {count} <span className="hidden sm:inline">{count === 1 ? "plugin" : "plugins"}</span>
           </span>
         </>
       )}
