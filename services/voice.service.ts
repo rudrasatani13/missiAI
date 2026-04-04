@@ -74,8 +74,7 @@ export async function speechToText(options: STTOptions): Promise<STTResult> {
   const form = new FormData()
   form.append("file", audio)
   form.append("model_id", "scribe_v2")
-  // Auto-detect language — supports Hindi, English, and Hinglish seamlessly
-  form.append("language_code", "auto")
+  // Omit language_code entirely — scribe_v2 auto-detects language when not provided
   for (const term of keyterms) {
     form.append("keyterms", term)
   }
