@@ -9,6 +9,7 @@ import {
 } from "@/lib/client/fetch-with-timeout"
 import { getBestAudioMimeType } from "@/lib/client/browser-support"
 import { shouldUseTTS, truncateForTTS } from "@/lib/ai/tts-optimizer"
+import { AudioQueue } from "@/lib/client/audio-queue"
 import type { VoiceState, ConversationEntry, PersonalityKey } from "@/types/chat"
 import { useEmotionDetector } from "@/hooks/useEmotionDetector"
 import type { EmotionAdaptation } from "@/types/emotion"
@@ -20,12 +21,14 @@ export interface UseVoiceStateMachineOptions {
   personalityRef: React.MutableRefObject<PersonalityKey>
   memoriesRef: React.MutableRefObject<string>
   conversationRef: React.MutableRefObject<ConversationEntry[]>
+  imagePayloadRef?: React.MutableRefObject<string | null>
+  onImageConsumed?: () => void
 }
 
 /* ── Hook ─────────────────────────────────────────────────────────────────── */
 
 export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
-  const { userId, personalityRef, memoriesRef, conversationRef } = options
+  const { userId, personalityRef, memoriesRef, conversationRef, imagePayloadRef, onImageConsumed } = options
 
   /* ── Public reactive state ──────────────────────────────────────────────── */
   const [state, setState] = useState<VoiceState>("idle")
@@ -46,7 +49,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
-  const audioPlayerRef = useRef<HTMLAudioElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -59,8 +61,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const lastFreqSnapshotRef = useRef<Uint8Array | null>(null)
   const recordingStartRef = useRef<number>(0)
 
-  const ttsContextRef = useRef<AudioContext | null>(null)
-  const ttsAnalyserRef = useRef<AnalyserNode | null>(null)
+  const audioQueueRef = useRef<AudioQueue | null>(null)
   const continuousRef = useRef(false)
 
   /**
@@ -71,12 +72,12 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     startRecording: () => Promise<void>
     transcribeAudio: (blob: Blob) => Promise<void>
     getAIResponse: () => Promise<void>
-    speakText: (text: string) => Promise<void>
+    speakTextChunk: (text: string) => Promise<void>
   }>({
     startRecording: async () => {},
     transcribeAudio: async () => {},
     getAIResponse: async () => {},
-    speakText: async () => {},
+    speakTextChunk: async () => {},
   })
 
   /* ── AbortController helpers ────────────────────────────────────────────── */
@@ -224,129 +225,64 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     setAudioLevel(0)
   }, [analyzeRecording])
 
-  /* ── TTS playback audio monitor ─────────────────────────────────────────── */
+  /* ── AudioQueue init ─────────────────────────────────────────── */
 
-  const startTTSMonitor = useCallback((audio: HTMLAudioElement) => {
-    try {
-      const AC = window.AudioContext || (window as any).webkitAudioContext
-      const ctx = ttsContextRef.current || new AC()
-      ttsContextRef.current = ctx
-      const analyser = ctx.createAnalyser()
-      analyser.fftSize = 256
-      analyser.smoothingTimeConstant = 0.85
-      ttsAnalyserRef.current = analyser
-      const source = ctx.createMediaElementSource(audio)
-      source.connect(analyser)
-      analyser.connect(ctx.destination)
-      const data = new Uint8Array(analyser.frequencyBinCount)
-
-      const monitor = () => {
-        if (!ttsAnalyserRef.current) return
-        ttsAnalyserRef.current.getByteFrequencyData(data)
-        let sum = 0
-        for (let i = 0; i < data.length; i++) sum += data[i] * data[i]
-        const rms = Math.sqrt(sum / data.length) / 255
-        setAudioLevel(Math.min(1, rms * 4))
-        levelAnimRef.current = requestAnimationFrame(monitor)
+  const initQueue = useCallback(() => {
+    if (!audioQueueRef.current) {
+      audioQueueRef.current = new AudioQueue()
+      audioQueueRef.current.onLevelUpdate = (level) => {
+        setAudioLevel(level)
       }
-      levelAnimRef.current = requestAnimationFrame(monitor)
-    } catch (err) {
-      console.error("TTS monitor error:", err)
+      audioQueueRef.current.onEnded = () => {
+        if (continuousRef.current) {
+          fnRef.current.startRecording().catch(() => resetToIdle())
+        } else {
+          resetToIdle()
+        }
+      }
     }
-  }, [])
-
-  const stopTTSMonitor = useCallback(() => {
-    if (levelAnimRef.current) cancelAnimationFrame(levelAnimRef.current)
-    levelAnimRef.current = null
-    ttsAnalyserRef.current = null
-    setAudioLevel(0)
-  }, [])
+  }, [resetToIdle])
 
   /* ═══════════════════════════════════════════════════════════════════════════
      Core voice-flow functions
      (defined bottom-up so every fn can reference later fns via fnRef)
      ═══════════════════════════════════════════════════════════════════════ */
 
-  /* ── speakText ──────────────────────────────────────────────────────────── */
+  /* ── speakTextChunk ─────────────────────────────────────────────────────── */
 
-  const speakText = useCallback(
+  const speakTextChunk = useCallback(
     async (text: string) => {
-      cancelAbort()
-      setState("speaking")
+      if (!text.trim()) return
+      setState((s) => (s !== "speaking" ? "speaking" : s))
       setStatusText("")
-      const ctrl = freshAbort()
+      initQueue()
 
       try {
         const adaptation = getSmoothedAdaptation()
-        const res = await fetchWithTimeout(
+        const res = await fetch(
           "/api/v1/tts",
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "Cache-Control": "max-age=86400" },
             body: JSON.stringify({
               text,
               stability: adaptation.ttsStability,
               similarityBoost: adaptation.ttsSimilarityBoost,
               style: adaptation.ttsStyle,
             }),
-            signal: ctrl.signal,
-          },
-          TTS_TIMEOUT,
+          }
         )
-        if (!res.ok) throw new Error("TTS failed")
+        if (!res.ok) throw new Error("TTS chunk failed")
 
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        if (audioPlayerRef.current) audioPlayerRef.current.pause()
-        const audio = new Audio(url)
-        audioPlayerRef.current = audio
-        startTTSMonitor(audio)
-
-        // Set up end/error handlers BEFORE play()
-        const finished = new Promise<void>((resolve, reject) => {
-          audio.onended = () => {
-            stopTTSMonitor()
-            URL.revokeObjectURL(url)
-            audioPlayerRef.current = null
-            resolve()
-          }
-          audio.onerror = () => {
-            stopTTSMonitor()
-            URL.revokeObjectURL(url)
-            audioPlayerRef.current = null
-            reject(new Error("Audio playback error"))
-          }
-        })
-
-        await audio.play()
-        await finished
-
-        // After speaking, continue or idle
-        if (continuousRef.current) {
-          await fnRef.current.startRecording()
-        } else {
-          resetToIdle()
+        const arrayBuffer = await res.arrayBuffer()
+        if (audioQueueRef.current) {
+          await audioQueueRef.current.enqueue(arrayBuffer)
         }
       } catch (err) {
-        stopTTSMonitor()
-        if (err instanceof Error && err.name === "AbortError") {
-          resetToIdle()
-          return
-        }
-        // TTS failed — show error so user knows something went wrong
-        setError("Voice response failed — check text above")
-        if (continuousRef.current) {
-          // Brief pause so user can see the error before next recording
-          await new Promise((r) => setTimeout(r, 2000))
-          await fnRef.current.startRecording()
-        } else {
-          resetToIdle()
-        }
-      } finally {
-        isTransitioningRef.current = false
+        console.error("speakTextChunk err:", err)
       }
     },
-    [freshAbort, cancelAbort, startTTSMonitor, stopTTSMonitor, resetToIdle, getSmoothedAdaptation],
+    [initQueue, getSmoothedAdaptation],
   )
 
   /* ── getAIResponse ──────────────────────────────────────────────────────── */
@@ -366,6 +302,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         const msgs = conversationRef.current.map((m) => ({
           role: m.role,
           content: m.content,
+          image: m.image,
         }))
 
         const adaptation = getSmoothedAdaptation()
@@ -421,6 +358,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
         const dec = new TextDecoder()
         let full = ""
+        let sentenceBuffer = ""
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
@@ -432,10 +370,31 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
               const p = JSON.parse(d)
               if (p.text) {
                 full += p.text
+                sentenceBuffer += p.text
                 setStreamingText(full)
+                
+                // Real-time chunk extraction
+                if (shouldUseTTS(full, true)) {
+                  // Match punctuation followed by space or newline, or quotation marks that usually end sentences
+                  const match = sentenceBuffer.match(/([.!?]+[\s"']+)/)
+                  if (match) {
+                    const splitIndex = match.index! + match[1].length
+                    const sentence = sentenceBuffer.slice(0, splitIndex).trim()
+                    sentenceBuffer = sentenceBuffer.slice(splitIndex)
+                    if (sentence) {
+                      fnRef.current.speakTextChunk(sentence).catch(console.error)
+                    }
+                  }
+                }
               }
             } catch {}
           }
+        }
+
+        // Flush any remaining partial sentence
+        if (shouldUseTTS(full, true) && sentenceBuffer.trim()) {
+          fnRef.current.speakTextChunk(sentenceBuffer.trim()).catch(console.error)
+          sentenceBuffer = ""
         }
 
         if (!full.trim()) {
@@ -472,11 +431,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           }).catch(() => {})
         }
 
-        // TTS: speak the response (truncated if long)
-        if (shouldUseTTS(full, true)) {
-          const ttsText = truncateForTTS(full)
-          await fnRef.current.speakText(ttsText)
-        } else {
+        // If not using TTS, we handle continuous loop manually since AudioQueue won't trigger onEnded
+        if (!shouldUseTTS(full, true)) {
           // Code blocks or voice disabled — show text only, skip TTS
           if (continuousRef.current) {
             await fnRef.current.startRecording()
@@ -563,7 +519,15 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         }
 
         setLastTranscript(text)
-        conversationRef.current.push({ role: "user", content: text })
+        
+        let imageToAttach = undefined
+        if (imagePayloadRef && imagePayloadRef.current) {
+          imageToAttach = imagePayloadRef.current
+          imagePayloadRef.current = null
+          if (onImageConsumed) onImageConsumed()
+        }
+        
+        conversationRef.current.push({ role: "user", content: text, image: imageToAttach })
         await fnRef.current.getAIResponse()
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
@@ -590,11 +554,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
     try {
       cancelAbort()
-      if (audioPlayerRef.current) {
-        audioPlayerRef.current.pause()
-        audioPlayerRef.current = null
+      if (audioQueueRef.current) {
+        audioQueueRef.current.interrupt()
       }
-      stopTTSMonitor()
 
       setState("recording")
       setStatusText("Listening...")
@@ -648,7 +610,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       setError("Microphone access denied.")
       resetToIdle()
     }
-  }, [cancelAbort, startAudioMonitor, stopAudioMonitor, stopTTSMonitor, resetToIdle])
+  }, [cancelAbort, startAudioMonitor, stopAudioMonitor, resetToIdle])
 
   /* ── stopRecording (graceful — triggers transcription) ──────────────────── */
 
@@ -665,15 +627,13 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     isTransitioningRef.current = false
     cancelAbort()
     if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop()
-    if (audioPlayerRef.current) {
-      audioPlayerRef.current.pause()
-      audioPlayerRef.current = null
+    if (audioQueueRef.current) {
+      audioQueueRef.current.interrupt()
     }
     streamRef.current?.getTracks().forEach((t) => t.stop())
     stopAudioMonitor()
-    stopTTSMonitor()
     resetToIdle()
-  }, [cancelAbort, stopAudioMonitor, stopTTSMonitor, resetToIdle])
+  }, [cancelAbort, stopAudioMonitor, resetToIdle])
 
   /* ── handleTap (main interaction entry-point) ───────────────────────────── */
 
@@ -684,11 +644,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     } else if (state === "speaking" || state === "thinking") {
       // Interrupt current operation and start recording
       cancelAbort()
-      if (audioPlayerRef.current) {
-        audioPlayerRef.current.pause()
-        audioPlayerRef.current = null
+      if (audioQueueRef.current) {
+        audioQueueRef.current.interrupt()
       }
-      stopTTSMonitor()
       continuousRef.current = true
       isTransitioningRef.current = false
       fnRef.current.startRecording()
@@ -696,7 +654,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       // recording or transcribing → full stop
       cancelAll()
     }
-  }, [state, cancelAbort, stopTTSMonitor, cancelAll])
+  }, [state, cancelAbort, cancelAll])
 
   /* ── greet (initial greeting with auto-continue) ────────────────────────── */
 
@@ -705,62 +663,20 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       cancelAbort()
       setState("speaking")
       setStatusText("")
-      const ctrl = freshAbort()
 
       try {
-        const res = await fetchWithTimeout(
-          "/api/v1/tts",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text }),
-            signal: ctrl.signal,
-          },
-          TTS_TIMEOUT,
-        )
-        if (!res.ok) {
-          resetToIdle()
-          return
-        }
-
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        if (audioPlayerRef.current) audioPlayerRef.current.pause()
-        const audio = new Audio(url)
-        audioPlayerRef.current = audio
-        startTTSMonitor(audio)
-
-        const finished = new Promise<void>((resolve, reject) => {
-          audio.onended = () => {
-            stopTTSMonitor()
-            URL.revokeObjectURL(url)
-            audioPlayerRef.current = null
-            resolve()
-          }
-          audio.onerror = () => {
-            stopTTSMonitor()
-            URL.revokeObjectURL(url)
-            audioPlayerRef.current = null
-            reject(new Error("Audio playback error"))
-          }
-        })
-
-        await audio.play()
+        await fnRef.current.speakTextChunk(text)
         conversationRef.current.push({ role: "assistant", content: text })
-        await finished
 
         // After greeting, enter continuous recording
         continuousRef.current = true
-        await fnRef.current.startRecording()
+        // The audioQueueRef.onEnded will automatically trigger startRecording when it finishes!
       } catch {
         resetToIdle()
       }
     },
     [
       cancelAbort,
-      freshAbort,
-      startTTSMonitor,
-      stopTTSMonitor,
       resetToIdle,
       conversationRef,
     ],
@@ -803,7 +719,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       startRecording,
       transcribeAudio,
       getAIResponse,
-      speakText,
+      speakTextChunk,
     }
   })
 

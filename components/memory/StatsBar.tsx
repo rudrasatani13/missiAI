@@ -37,11 +37,10 @@ export function StatsBar({ stats }: StatsBarProps) {
       {items.map(({ label, value }) => (
         <div
           key={label}
+          className="glass-card glass-noise"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: '12px',
             padding: '16px',
+            borderRadius: '16px',
           }}
         >
           <p

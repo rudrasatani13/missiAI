@@ -4,6 +4,7 @@ export interface ConversationEntry {
   role: "user" | "assistant"
   content: string
   timestamp?: number
+  image?: string
 }
 
 export type PersonalityKey = "bestfriend" | "professional" | "playful" | "mentor"

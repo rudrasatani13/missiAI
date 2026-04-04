@@ -3,6 +3,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/sonner";
 import Link from "next/link";
+import { SmoothScrollProvider } from "@/components/ui/SmoothScrollProvider";
+import { CustomCursor } from "@/components/ui/CustomCursor";
 
 export const metadata: Metadata = {
   title: "missiAI — AI with Memory",
@@ -22,6 +24,11 @@ export const metadata: Metadata = {
     description:
       "Voice AI assistant that remembers you. Chat naturally in Hindi, English, or Hinglish.",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "missiAI",
+  },
 };
 
 export default function RootLayout({
@@ -34,12 +41,27 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-sans antialiased bg-black text-white" style={{ backgroundColor: '#000000', color: '#ffffff' }}>
+      <body className="antialiased bg-black text-white" style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Share Tech Mono', monospace" }}>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                  console.log('SW registered: ', registration.scope);
+                }, function(err) {
+                  console.log('SW registration failed: ', err);
+                });
+              });
+            }
+          `
+        }} />
         <Providers>
-          <div className="min-h-screen flex flex-col">
-            <div className="flex-1">{children}</div>
+          <SmoothScrollProvider>
+            <CustomCursor />
+            <div className="min-h-screen flex flex-col">
+              <div className="flex-1">{children}</div>
             <footer
               className="relative px-6 md:px-10 py-6"
               style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
@@ -83,6 +105,7 @@ export default function RootLayout({
               </div>
             </footer>
           </div>
+          </SmoothScrollProvider>
         </Providers>
         <Toaster
           theme="dark"

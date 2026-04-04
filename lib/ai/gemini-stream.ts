@@ -17,10 +17,31 @@ export function buildGeminiRequest(
 ): Record<string, unknown> {
   const systemPrompt = buildSystemPrompt(personality, memories)
 
-  const contents = messages.map((m) => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }))
+  const contents = messages.map((m) => {
+    const parts: any[] = [{ text: m.content }]
+    if (m.image) {
+      const match = m.image.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/)
+      if (match) {
+        parts.unshift({
+          inlineData: {
+            mimeType: match[1],
+            data: match[2],
+          }
+        })
+      } else {
+        parts.unshift({
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: m.image,
+          }
+        })
+      }
+    }
+    return {
+      role: m.role === "assistant" ? "model" : "user",
+      parts,
+    }
+  })
 
   return {
     system_instruction: { parts: [{ text: systemPrompt }] },

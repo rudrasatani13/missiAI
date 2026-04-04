@@ -13,6 +13,7 @@ import { StatsBar } from '@/components/memory/StatsBar'
 import { CategoryFilter } from '@/components/memory/CategoryFilter'
 import { MemorySearch } from '@/components/memory/MemorySearch'
 import { NodeCard } from '@/components/memory/NodeCard'
+import { Magnetic } from '@/components/ui/Magnetic'
 import type { MemoryCategory } from '@/types/memory'
 
 const CATEGORIES: MemoryCategory[] = [
@@ -132,29 +133,15 @@ export default function MemoryPage() {
             marginBottom: '28px',
           }}
         >
-          <Link
-            href="/chat"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'rgba(255,255,255,0.4)',
-              textDecoration: 'none',
-              fontSize: '13px',
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={(e) =>
-              ((e.currentTarget as HTMLAnchorElement).style.color =
-                'rgba(255,255,255,0.7)')
-            }
-            onMouseLeave={(e) =>
-              ((e.currentTarget as HTMLAnchorElement).style.color =
-                'rgba(255,255,255,0.4)')
-            }
-          >
-            <ArrowLeft style={{ width: '16px', height: '16px' }} />
-            <span className="hidden sm:inline">Back</span>
-          </Link>
+          <Magnetic>
+            <Link
+              href="/chat"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-all text-white/50 hover:text-white/80 no-underline text-xs"
+            >
+              <ArrowLeft style={{ width: '16px', height: '16px' }} />
+              <span className="hidden sm:inline">Back</span>
+            </Link>
+          </Magnetic>
 
           <h1
             style={{
@@ -223,14 +210,13 @@ export default function MemoryPage() {
         >
           <form
             onSubmit={handleAddMemory}
+            className="glass-card glass-noise"
             style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '12px',
               padding: '20px',
               display: 'flex',
               flexDirection: 'column',
               gap: '14px',
+              marginBottom: '20px',
             }}
           >
             <p

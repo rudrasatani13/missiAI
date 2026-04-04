@@ -5,6 +5,9 @@ import Link from "next/link"
 import Image from "next/image"
 import localFont from "next/font/local"
 import { ArrowRight, Mic, Waves, Lock, Zap, Clock, Globe, Sparkles } from "lucide-react"
+import { motion } from "framer-motion"
+import { Magnetic } from "@/components/ui/Magnetic"
+import { MissiOrb } from "@/components/ui/MissiOrb"
 
 const ithacaFont = localFont({
   src: "./fonts/Ithaca.ttf",
@@ -122,12 +125,14 @@ function useScrollReveal() {
   return { ref, visible }
 }
 
-function Reveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+function Reveal({ children, className = "", delay = 0, blur = true }: { children: React.ReactNode; className?: string; delay?: number; blur?: boolean }) {
   const { ref, visible } = useScrollReveal()
   return (
     <div ref={ref} className={className} style={{
-      opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(32px)",
-      transition: `opacity 0.7s ease ${delay}s, transform 0.7s ease ${delay}s`,
+      opacity: visible ? 1 : 0, 
+      transform: visible ? "translateY(0)" : "translateY(32px)",
+      filter: visible || !blur ? "blur(0px)" : "blur(12px)",
+      transition: `opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s, filter 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s`,
     }}>{children}</div>
   )
 }
@@ -227,26 +232,34 @@ function NavButtons() {
     <div className="flex items-center gap-2 md:gap-3">
       {isLoaded && (
         isSignedIn ? (
-          <Link href="/chat" className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
-            style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
-            Open missi
-          </Link>
-        ) : (
-          <Link href="/login" className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10"
-            style={{ color: "rgba(255,255,255,0.6)" }}>
-            Login
-          </Link>
+              <Magnetic>
+                <Link href="/chat" className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
+                  style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
+                  Open missi
+                </Link>
+              </Magnetic>
+            ) : (
+              <Magnetic>
+                <Link href="/login" className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10"
+                  style={{ color: "rgba(255,255,255,0.6)" }}>
+                  Login
+                </Link>
+              </Magnetic>
         )
       )}
       <Link href="/manifesto" className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10 hidden sm:inline-flex"
         style={{ color: "rgba(255,255,255,0.6)" }}>
         Manifesto
       </Link>
-      <Link href="/waitlist"
-        className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
-        style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
-        Join Waitlist
-      </Link>
+      {!isSignedIn && (
+        <Magnetic>
+          <Link href="/waitlist"
+            className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
+            style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
+            Join Waitlist
+          </Link>
+        </Magnetic>
+      )}
     </div>
   )
 }
@@ -255,6 +268,7 @@ function NavButtons() {
    MAIN LANDING PAGE
    ───────────────────────────────────────────────── */
 export default function LandingPage() {
+  const { isSignedIn } = useUser()
   useReferralCapture()
 
   return (
@@ -287,7 +301,7 @@ export default function LandingPage() {
           </div>
 
           {/* LED Matrix Logo */}
-          <div className="mb-4 select-none w-full flex justify-center relative z-10" style={{ animation: "fadeUp 0.8s ease-out 0.1s both" }}>
+          <div className="mb-4 select-none w-full flex justify-center relative z-10 led-logo-container" style={{ animation: "fadeUp 0.8s ease-out 0.1s both, crtFlicker 8s infinite" }}>
             <div className="w-[80vw] md:w-[55vw] max-w-[800px] relative">
               <svg className="w-full h-auto drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" viewBox="0 0 800 220">
                 <defs>
@@ -357,23 +371,29 @@ export default function LandingPage() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center gap-3" style={{ animation: "fadeUp 0.8s ease-out 0.4s both" }}>
-            <Link href="/chat"
-              className="group inline-flex items-center gap-2.5 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
-              style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
-              <Mic className="w-4 h-4" />
-              Try missi
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link href="/waitlist"
-              className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:bg-white/10"
-              style={{ border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}>
-              Get Early Access
-            </Link>
+            <Magnetic>
+              <Link href="/chat"
+                className="group inline-flex items-center gap-2.5 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
+                style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
+                <Mic className="w-4 h-4" />
+                Try missi
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </Magnetic>
+            {!isSignedIn && (
+              <Magnetic>
+                <Link href="/waitlist"
+                  className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:bg-white/10"
+                  style={{ border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}>
+                  Get Early Access
+                </Link>
+              </Magnetic>
+            )}
           </div>
 
-          {/* Waveform decoration */}
-          <div className="mt-16" style={{ animation: "fadeUp 0.8s ease-out 0.6s both", opacity: 0.3 }}>
-            <VoiceWaveform />
+          {/* Waveform decoration replaced by MissiOrb */}
+          <div className="mt-12 w-64 h-64 flex items-center justify-center opacity-90" style={{ animation: "fadeUp 1.2s ease-out 0.6s both" }}>
+            <MissiOrb />
           </div>
         </div>
       </section>
@@ -587,16 +607,22 @@ export default function LandingPage() {
         </Reveal>
         <Reveal delay={0.2}>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link href="/chat" className="group inline-flex items-center gap-2.5 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
-              style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
-              <Mic className="w-4 h-4" />
-              Try missi free
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link href="/waitlist" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:bg-white/10"
-              style={{ border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}>
-              Join the waitlist
-            </Link>
+            <Magnetic>
+              <Link href="/chat" className="group inline-flex items-center gap-2.5 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
+                style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
+                <Mic className="w-4 h-4" />
+                Try missi free
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </Magnetic>
+            {!isSignedIn && (
+              <Magnetic>
+                <Link href="/waitlist" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:bg-white/10"
+                  style={{ border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}>
+                  Join the waitlist
+                </Link>
+              </Magnetic>
+            )}
           </div>
         </Reveal>
       </section>
@@ -613,7 +639,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-6">
             {[
               { label: "Manifesto", href: "/manifesto" },
-              { label: "Waitlist", href: "/waitlist" },
+              ...(!isSignedIn ? [{ label: "Waitlist", href: "/waitlist" }] : []),
               { label: "Chat", href: "/chat" },
               { label: "Privacy", href: "/privacy" },
               { label: "Terms", href: "/terms" },
@@ -638,6 +664,19 @@ export default function LandingPage() {
         @keyframes waveBar {
           0% { transform: scaleY(0.3); }
           100% { transform: scaleY(1); }
+        }
+        @keyframes crtFlicker {
+          0% { opacity: 0.95; }
+          4% { opacity: 0.95; }
+          5% { opacity: 0.6; }
+          6% { opacity: 0.95; }
+          7% { opacity: 0.95; }
+          8% { opacity: 0.7; }
+          9% { opacity: 1; }
+          50% { opacity: 0.95; }
+          51% { opacity: 0.8; }
+          52% { opacity: 1; }
+          100% { opacity: 1; }
         }
         h1, h2, h3 {
           font-family: var(--font-ithaca), monospace !important;

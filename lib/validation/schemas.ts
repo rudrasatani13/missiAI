@@ -9,6 +9,7 @@ const messageSchema = z.object({
     .string()
     .min(1, "Message content cannot be empty")
     .max(2000, "Message too long (max 2000 chars)"),
+  image: z.string().optional(),
 })
 
 // ─── /api/v1/chat ────────────────────────────────────────────────────────────────

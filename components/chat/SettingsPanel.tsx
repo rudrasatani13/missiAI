@@ -6,6 +6,7 @@ import type { PersonalityKey } from "@/types/chat"
 import { PERSONALITY_OPTIONS } from "@/types/chat"
 import { PLUGIN_METADATA } from "@/lib/plugins/plugin-registry"
 import type { PluginConfig, PluginId } from "@/types/plugins"
+import { toast } from "sonner"
 
 type SafePlugin = Omit<PluginConfig, "credentials">
 
@@ -206,6 +207,37 @@ function SettingsPanelInner({
   onConnectPlugin,
   onDisconnectPlugin,
 }: SettingsPanelProps) {
+
+  async function handleEnablePush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      toast.error('Push notifications are not supported in your browser')
+      return
+    }
+    try {
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') {
+        toast.error('Permission denied')
+        return
+      }
+      toast.loading('Enabling check-ins...', { id: 'push' })
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      })
+      const res = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub)
+      })
+      if (!res.ok) throw new Error('Failed to save subscription')
+      toast.success('Proactive Check-ins enabled!', { id: 'push' })
+    } catch (err) {
+      toast.error('Failed to enable notifications', { id: 'push' })
+      console.error(err)
+    }
+  }
+
   return (
     <div
       className="absolute top-16 right-5 z-30 pointer-events-none"
@@ -267,7 +299,7 @@ function SettingsPanelInner({
           </div>
 
           {/* Voice toggle */}
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-4 flex items-center justify-between">
             <span className="text-[11px] font-semibold tracking-wide uppercase" style={{ color: "rgba(255,255,255,0.4)" }}>
               Voice Engine
             </span>
@@ -285,6 +317,20 @@ function SettingsPanelInner({
                   transition: "left 0.2s ease, background 0.2s ease",
                 }}
               />
+            </button>
+          </div>
+
+          {/* Notifications */}
+          <div className="mb-5 flex items-center justify-between">
+            <span className="text-[11px] font-semibold tracking-wide uppercase" style={{ color: "rgba(255,255,255,0.4)" }}>
+              Proactive Check-Ins
+            </span>
+            <button
+              onClick={handleEnablePush}
+              className="text-[10px] font-bold px-3 py-1 rounded border transition-colors hover:bg-white/10"
+              style={{ background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}
+            >
+              Enable
             </button>
           </div>
 

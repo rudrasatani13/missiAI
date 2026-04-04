@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import nextDynamic from "next/dynamic"
-import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame } from "lucide-react"
+import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useProactive } from "@/hooks/useProactive"
@@ -18,6 +18,8 @@ import { ConversationLog } from "@/components/chat/ConversationLog"
 import { ActionCard } from "@/components/chat/ActionCard"
 import { PluginBadge } from "@/components/chat/PluginBadge"
 import { UsageBar } from "@/components/chat/UsageBar"
+import { BootSequence } from "@/components/chat/BootSequence"
+import { Magnetic } from "@/components/ui/Magnetic"
 import { detectPluginCommand } from "@/lib/plugins/plugin-registry"
 import type { ActionResult } from "@/types/actions"
 import type { PluginId, PluginResult } from "@/types/plugins"
@@ -61,6 +63,40 @@ export default function VoiceAssistantPage() {
   const conversationRef = useRef<ConversationEntry[]>([])
   const greetedRef = useRef(false)
   const proactiveSpokenRef = useRef(false)
+  const [showBootSequence, setShowBootSequence] = useState(false)
+  const [bootCompleted, setBootCompleted] = useState(false)
+
+  // Vision State
+  const imagePayloadRef = useRef<string | null>(null)
+  const [thumbnail, setThumbnail] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      if (typeof ev.target?.result === 'string') {
+        // Compress or just use directly. For now, use directly.
+        imagePayloadRef.current = ev.target.result
+        setThumbnail(ev.target.result)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem('missi-boot-v1')) {
+        setShowBootSequence(true)
+      } else {
+        setBootCompleted(true)
+      }
+    } catch {
+      setBootCompleted(true)
+    }
+  }, [])
 
   // Restore session state from sessionStorage so re-visiting chat doesn't replay greeting/proactive
   useEffect(() => {
@@ -77,7 +113,14 @@ export default function VoiceAssistantPage() {
     state: voiceState, audioLevel, statusText, lastTranscript,
     error, setError, streamingText, lastResponse, handleTap, cancelAll, greet, saveMemoryBeacon,
     currentEmotion,
-  } = useVoiceStateMachine({ userId: user?.id, personalityRef, memoriesRef, conversationRef })
+  } = useVoiceStateMachine({ 
+    userId: user?.id, 
+    personalityRef, 
+    memoriesRef, 
+    conversationRef,
+    imagePayloadRef,
+    onImageConsumed: () => setThumbnail(null)
+  })
 
   // Keep voiceState ref in sync
   useEffect(() => { voiceStateRef.current = voiceState }, [voiceState])
@@ -132,13 +175,17 @@ export default function VoiceAssistantPage() {
     return () => { window.removeEventListener("beforeunload", bu); document.removeEventListener("visibilitychange", vc) }
   }, [saveMemoryBeacon])
 
-  // Initial greeting — skip if daily limit already reached or billing still loading
-  useEffect(() => { if (!isLoaded || greetedRef.current || isAtLimit || billingLoading) return; greetedRef.current = true
+  // Initial greeting — skip if daily limit already reached or billing still loading or booting
+  useEffect(() => { 
+    if (!isLoaded || greetedRef.current || isAtLimit || billingLoading) return
+    if (showBootSequence && !bootCompleted) return // wait for boot
+    
+    greetedRef.current = true
     try { sessionStorage.setItem('missi-greeted', '1') } catch {}
     const n = user?.firstName || "", gs = [`Hey${n ? ` ${n}` : ""}! What's up, how's it going?`,
       `Hey${n ? ` ${n}` : ""}! Good to see you, what can I help with?`, `Hey${n ? ` ${n}` : ""}! How are you doing today?`]
     setTimeout(() => greet(gs[Math.floor(Math.random() * gs.length)]), 1200)
-  }, [isLoaded, user, greet, isAtLimit, billingLoading])
+  }, [isLoaded, user, greet, isAtLimit, billingLoading, showBootSequence, bootCompleted])
 
   // Proactive JARVIS moment: auto-speak first high-priority briefing item
   useEffect(() => {
@@ -226,15 +273,26 @@ export default function VoiceAssistantPage() {
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"
       style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}>
+      {showBootSequence && !bootCompleted && (
+        <BootSequence 
+          userName={user?.firstName || "Guest"} 
+          onComplete={() => {
+            try { localStorage.setItem('missi-boot-v1', 'true') } catch {}
+            setBootCompleted(true)
+          }} 
+        />
+      )}
       <ParticleVisualizer state={voiceState} isActive={voiceState !== "idle"} audioLevel={audioLevel} />
       <div className="fixed inset-0 z-10" onClick={isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
         style={{ cursor: isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
       <nav className="relative z-20 grid grid-cols-[1fr_auto_1fr] items-center px-4 md:px-8 py-4 pointer-events-auto w-full">
         <div className="flex justify-start">
-          <Link href="/" className="flex items-center gap-2 opacity-40 hover:opacity-70 transition-opacity" data-testid="home-link">
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-[11px] font-light hidden sm:inline tracking-wide">Home</span>
-          </Link>
+          <Magnetic>
+            <Link href="/" className="flex items-center gap-2 px-3 py-2 rounded-full opacity-60 hover:opacity-100 hover:bg-white/5 transition-all" data-testid="home-link">
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-[11px] font-medium hidden sm:inline tracking-wide">Home</span>
+            </Link>
+          </Magnetic>
         </div>
         
         <div className="flex justify-center select-none">
@@ -259,39 +317,46 @@ export default function VoiceAssistantPage() {
           </svg>
         </div>
 
-        <div className="flex items-center justify-end gap-1.5 md:gap-2">
-          <Link
-            href="/pricing"
-            onClick={(e) => e.stopPropagation()}
-            data-testid="upgrade-to-pro-link"
-            className="flex items-center gap-1 px-2 py-1 rounded-full transition-opacity hover:opacity-90"
-            style={{
-              background: plan?.id === 'free'
-                ? 'rgba(255,255,255,0.08)'
-                : 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(245,158,11,0.15))',
-              border: plan?.id === 'free'
-                ? '1px solid rgba(255,255,255,0.12)'
-                : '1px solid rgba(124,58,237,0.3)',
-              fontSize: 10,
-              color: plan?.id === 'free' ? 'rgba(255,255,255,0.6)' : 'rgba(245,158,11,0.9)',
-              fontWeight: 500,
-              letterSpacing: '0.03em',
-              textDecoration: 'none',
-              borderRadius: '20px'
-            }}
-          >
-            <Crown className="w-3 h-3" style={{ color: '#F59E0B' }} />
-            <span className="hidden md:inline">
-              {plan?.id === 'free' ? 'Upgrade to Pro' : plan?.id === 'pro' ? 'Pro Plan' : plan?.id === 'business' ? 'Business Plan' : 'Pricing'}
-            </span>
-          </Link>
-          <PluginBadge plugins={plugins} onManage={() => setActivePanel(activePanel === 'plugins' ? null : 'plugins')} />
-          <button onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'settings' ? null : 'settings') }}
-            className="opacity-40 hover:opacity-70 transition-opacity"
-            data-testid="settings-toggle-btn"
-            style={{ background: "none", border: "none", cursor: "pointer", color: "white" }}>
-            {activePanel ? <X className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
-          </button>
+        <div className="flex items-center justify-end gap-1.5 md:gap-3">
+          <Magnetic>
+            <Link
+              href="/pricing"
+              onClick={(e) => e.stopPropagation()}
+              data-testid="upgrade-to-pro-link"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all hover:scale-105"
+              style={{
+                background: plan?.id === 'free'
+                  ? 'rgba(255,255,255,0.08)'
+                  : 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(245,158,11,0.15))',
+                border: plan?.id === 'free'
+                  ? '1px solid rgba(255,255,255,0.12)'
+                  : '1px solid rgba(124,58,237,0.3)',
+                fontSize: 11,
+                color: plan?.id === 'free' ? 'rgba(255,255,255,0.8)' : 'rgba(245,158,11,0.9)',
+                fontWeight: 500,
+                letterSpacing: '0.03em',
+                textDecoration: 'none',
+              }}
+            >
+              <Crown className="w-3.5 h-3.5" style={{ color: '#F59E0B' }} />
+              <span className="hidden md:inline">
+                {plan?.id === 'free' ? 'Upgrade to Pro' : plan?.id === 'pro' ? 'Pro Plan' : plan?.id === 'business' ? 'Business Plan' : 'Pricing'}
+              </span>
+            </Link>
+          </Magnetic>
+          <Magnetic>
+            <div>
+              <PluginBadge plugins={plugins} onManage={() => setActivePanel(activePanel === 'plugins' ? null : 'plugins')} />
+            </div>
+          </Magnetic>
+          <Magnetic>
+            <button onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'settings' ? null : 'settings') }}
+              className="p-2 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-all"
+              data-testid="settings-toggle-btn"
+              style={{ background: "none", border: "none", cursor: "pointer", color: "white" }}>
+              {activePanel ? <X className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
+            </button>
+          </Magnetic>
         </div>
       </nav>
       <SettingsPanel personality={personality} onPersonalityChange={updatePersonality}
@@ -321,9 +386,22 @@ export default function VoiceAssistantPage() {
         </div>
       )}
 
+      {/* ── Main Voice Controls Dock ─── */}
       <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pb-10 md:pb-14 pointer-events-none"
         style={{ paddingBottom: plan?.id === 'free' ? 52 : undefined }}>
-        <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
+        
+        {/* Thumbnail Preview */}
+        {thumbnail && (
+          <div className="relative mb-4 -translate-y-4 shadow-lg pointer-events-auto transition-transform">
+            <img src={thumbnail} alt="Upload preview" className="w-16 h-16 object-cover rounded-xl border border-white/20" />
+            <button onClick={(e) => { e.stopPropagation(); setThumbnail(null); imagePayloadRef.current = null; }}
+              className="absolute -top-2 -right-2 bg-black text-white rounded-full p-0.5 border border-white/20 hover:scale-110 transition-transform">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+
+        <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center", pointerEvents: "auto" }}>
           <VoiceButton
             state={voiceState}
             onPress={handleTap}
@@ -346,8 +424,8 @@ export default function VoiceAssistantPage() {
           onBriefingDelivered={markDelivered}
           currentEmotion={currentEmotion}
         />
-        <div className="mt-4">
-          <p className="text-[9px] font-light tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.06)" }}>
+        <div className="mt-4 pointer-events-auto">
+          <p className="text-[10px] font-medium tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.4)" }}>
             <span className="hidden md:inline">Space to talk &middot; Esc to cancel</span>
             <span className="md:hidden">Tap anywhere</span>
           </p>
@@ -360,7 +438,7 @@ export default function VoiceAssistantPage() {
         onUpgrade={() => initiateRazorpayCheckout('pro')}
       />
 
-      {/* Floating nav pill — bottom-left, above voice button */}
+      {/* Floating nav pill — bottom-left */}
       <div className="fixed bottom-44 md:bottom-36 left-4 z-20 pointer-events-auto flex flex-col items-center gap-3 px-2 py-3 rounded-full"
         style={{
           background: 'rgba(0,0,0,0.65)',
@@ -368,6 +446,20 @@ export default function VoiceAssistantPage() {
           WebkitBackdropFilter: 'blur(12px)',
           border: '1px solid rgba(255,255,255,0.07)',
         }}>
+        <input 
+          type="file" 
+          accept="image/*" 
+          capture="environment" 
+          ref={fileInputRef} 
+          className="hidden" 
+          onChange={handleImageSelect} 
+        />
+        <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
+          className="opacity-40 hover:opacity-100 transition-opacity flex items-center justify-center p-1"
+          title="The Vision" style={{ color: 'white' }}>
+          <Camera className="w-4 h-4" />
+        </button>
+        <div className="w-3/4 h-[1px] bg-white/10" />
         <Link href="/memory" onClick={(e) => e.stopPropagation()}
           className="opacity-40 hover:opacity-70 transition-opacity flex items-center justify-center"
           title="Memory Graph" style={{ color: 'white' }}>

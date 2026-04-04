@@ -1,6 +1,7 @@
 "use client"
 
 import { memo, useEffect, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { X } from "lucide-react"
 import type { VoiceState } from "@/types/chat"
 import type { DailyBriefing, BriefingItem } from "@/types/proactive"
@@ -95,15 +96,22 @@ function StatusDisplayInner({
         {state === "speaking" && "Speaking..."}
       </p>
 
-      {lastTranscript && state !== "idle" && (
-        <p
-          className="text-[11px] font-light italic max-w-[260px] mx-auto truncate"
-          data-testid="last-transcript"
-          style={{ color: "rgba(255,255,255,0.15)", animation: "fadeIn 0.4s ease-out both" }}
-        >
-          &ldquo;{lastTranscript}&rdquo;
-        </p>
-      )}
+      <AnimatePresence mode="popLayout">
+        {lastTranscript && state !== "idle" && (
+          <motion.p
+            key={lastTranscript}
+            initial={{ opacity: 0, filter: "blur(8px)", y: 5 }}
+            animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+            exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.2 } }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="text-[11px] font-medium tracking-wide max-w-[280px] mx-auto text-center"
+            data-testid="last-transcript"
+            style={{ color: "rgba(255,255,255,0.7)" }}
+          >
+            &ldquo;{lastTranscript}&rdquo;
+          </motion.p>
+        )}
+      </AnimatePresence>
 
       {state === "idle" && (
         <p
