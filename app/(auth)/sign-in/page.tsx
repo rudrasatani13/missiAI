@@ -22,8 +22,7 @@ export default function SignInPage() {
             formButtonPrimary: "bg-white text-black hover:bg-white/90",
           },
         }}
-        routing="path"
-        path="/sign-in"
+        routing="hash"
         signUpUrl="/sign-up"
         fallbackRedirectUrl="/chat"
       />
