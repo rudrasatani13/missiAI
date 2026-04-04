@@ -119,16 +119,19 @@ export default function MemoryGraph3D({ nodes }: { nodes: LifeNode[] }) {
         graphData={graphData}
         nodeLabel="title"
         nodeColor={(node: any) => getColor(node.category)}
-        nodeRelSize={6}
-        linkWidth={(link: any) => Math.min(link.value * 0.3, 3)}
-        linkOpacity={0.3}
-        linkColor={() => 'rgba(255,255,255,0.2)'}
+        nodeRelSize={7}
+        nodeResolution={32}
+        nodeOpacity={0.85}
+        linkWidth={(link: any) => Math.min(link.value * 0.3, 2)}
+        linkOpacity={0.4}
+        linkColor={() => 'rgba(34, 197, 94, 0.6)'} // Matrix Green
+        linkDirectionalParticles={2} // Glowing photons moving along links
+        linkDirectionalParticleWidth={1.5}
+        linkDirectionalParticleColor={() => '#4ade80'} // Bright green photons
         backgroundColor="#000000"
         onNodeClick={(node: any) => {
-           // Provide some interaction feedback if clicked
            console.log("Memory Node:", node)
         }}
-        nodeOpacity={0.9}
         showNavInfo={false}
       />
     </div>
