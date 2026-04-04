@@ -53,13 +53,6 @@ export async function DELETE(
     throw e
   }
 
-  // OWASP API4: rate-limit node deletions to prevent bulk memory wiping
-  const rateResult = await checkRateLimit(userId, "free")
-  if (!rateResult.allowed) {
-    logRequest("memory.node.delete.rate_limited", userId, startTime)
-    return rateLimitExceededResponse(rateResult)
-  }
-
   const { nodeId } = await params
   const parsed = nodeIdSchema.safeParse(nodeId)
   if (!parsed.success) {
@@ -80,20 +73,11 @@ export async function DELETE(
 
   try {
     const graph = await getLifeGraph(kv, userId)
-    const node = graph.nodes.find((n) => n.id === nodeId)
+    const nodeExists = graph.nodes.some((n) => n.id === nodeId)
 
-    if (!node) {
-      return jsonResponse(
-        { success: false, error: "Node not found", code: "NOT_FOUND" },
-        404,
-      )
-    }
-
-    if (node.userId !== userId) {
-      return jsonResponse(
-        { success: false, error: "Node not found", code: "NOT_FOUND" },
-        404,
-      )
+    if (!nodeExists) {
+      // Node already gone — treat as success (idempotent delete)
+      return jsonResponse({ success: true, data: { deleted: nodeId } })
     }
 
     graph.nodes = graph.nodes.filter((n) => n.id !== nodeId)
