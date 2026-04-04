@@ -73,7 +73,7 @@ export function BootSequence({ userName, onComplete }: BootSequenceProps) {
             className="absolute inset-0 opacity-[0.03]" 
             style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "40px 40px" }} 
           />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl px-8 flex flex-col gap-2 z-10 font-mono text-xs sm:text-sm tracking-widest text-[#00ffcc] opacity-70">
+          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl px-8 flex flex-col gap-2 z-10 font-mono text-xs sm:text-sm tracking-widest text-[#00ffcc] transition-opacity duration-1000 ${showGreeting ? "opacity-0" : "opacity-70"}`}>
             {BOOT_LOGS.map((log, i) => (
               <motion.div
                 key={i}

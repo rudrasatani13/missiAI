@@ -556,6 +556,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       cancelAbort()
       if (audioQueueRef.current) {
         audioQueueRef.current.interrupt()
+        audioQueueRef.current = null
       }
 
       setState("recording")
@@ -629,6 +630,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop()
     if (audioQueueRef.current) {
       audioQueueRef.current.interrupt()
+      audioQueueRef.current = null
     }
     streamRef.current?.getTracks().forEach((t) => t.stop())
     stopAudioMonitor()
@@ -646,6 +648,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       cancelAbort()
       if (audioQueueRef.current) {
         audioQueueRef.current.interrupt()
+        audioQueueRef.current = null
       }
       continuousRef.current = true
       isTransitioningRef.current = false
