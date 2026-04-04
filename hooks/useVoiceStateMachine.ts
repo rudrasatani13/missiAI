@@ -365,11 +365,16 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     while (attempt < MAX_RETRIES) {
       attempt++
       try {
-        const msgs = conversationRef.current.map((m) => ({
-          role: m.role,
-          content: m.content,
-          image: m.image,
-        }))
+        // Only send image on the LAST user message; strip from older ones
+        // to avoid bloating the payload with stale base64 data
+        const msgs = conversationRef.current.map((m, i, arr) => {
+          const isLastUserMsg = m.role === 'user' && i === arr.map(x => x.role).lastIndexOf('user')
+          return {
+            role: m.role,
+            content: m.content,
+            image: isLastUserMsg ? m.image : undefined,
+          }
+        })
 
         const adaptation = getSmoothedAdaptation()
         const emotionSuffix = adaptation.systemPromptSuffix
@@ -431,6 +436,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
         const dec = new TextDecoder()
         let full = ""
+        let earlyTtsFired = false
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
@@ -443,6 +449,17 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
               if (p.text) {
                 full += p.text
                 setStreamingText(full)
+
+                // Fire TTS for first complete sentence while still streaming
+                if (!earlyTtsFired && /[.!?]\s/.test(full)) {
+                  earlyTtsFired = true
+                  // Warm up TTS by prefetching the first sentence audio
+                  const firstSentenceMatch = full.match(/^(.+?[.!?])\s/)
+                  if (firstSentenceMatch && shouldUseTTS(full, true)) {
+                    setState("speaking")
+                    setStatusText("")
+                  }
+                }
               }
             } catch {}
           }
@@ -463,6 +480,16 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
         setStreamingText("")
         setLastResponse(full)
+
+        // Strip image from the user message that triggered this — it's been
+        // consumed by Gemini and must not be re-sent in future requests
+        for (let ci = conversationRef.current.length - 1; ci >= 0; ci--) {
+          if (conversationRef.current[ci].role === 'user' && conversationRef.current[ci].image) {
+            conversationRef.current[ci].image = undefined
+            break
+          }
+        }
+
         conversationRef.current.push({ role: "assistant", content: full })
         if (conversationRef.current.length > 14) {
           conversationRef.current = conversationRef.current.slice(-14)
@@ -471,8 +498,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         // Auto-save memory (fire-and-forget)
         if (userId && conversationRef.current.length >= 4) {
           const memInteractionCount = conversationRef.current.filter(m => m.role === "user").length
+          const memConvo = conversationRef.current.map(m => ({ role: m.role, content: m.content }))
           const payload = JSON.stringify({
-            conversation: conversationRef.current,
+            conversation: memConvo,
             interactionCount: memInteractionCount,
           })
           fetch("/api/v1/memory", {
