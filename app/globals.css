@@ -30,15 +30,13 @@ body {
 }
 
 /* Clerk Watermark Hider */
+.clerk-form-container [class*="watermark"],
+.clerk-form-container a[href*="clerk.com"],
+.clerk-form-container a[href*="clerk.dev"],
 .clerk-form-container div:has(> a[href*="clerk.com"]),
 .clerk-form-container div:has(> a[href*="clerk.dev"]),
-.clerk-form-container div:has(> span > a[href*="clerk.com"]),
-.clerk-form-container [class*="watermark"],
-.clerk-form-container .cl-internal-b3al4t,
-.clerk-form-container .cl-internal-xgx4q9,
-.clerk-form-container .cl-internal-18yxylj,
-.clerk-form-container .cl-footer + div,
-.clerk-form-container .cl-card > div:last-child:not(:has(.cl-footerActionText)):not(:has(.cl-footerActionLink)) {
+.clerk-form-container div:has(> p > a[href*="clerk.com"]),
+.clerk-form-container div:has(> span > a[href*="clerk.com"]) {
   display: none !important;
   opacity: 0 !important;
   visibility: hidden !important;
