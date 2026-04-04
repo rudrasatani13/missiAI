@@ -1,26 +1,29 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Trash2 } from 'lucide-react'
+import { 
+  ChevronDown, Trash2, Users, Target, Repeat, Star, 
+  Calendar, MessageSquare, Zap, MapPin, FileText 
+} from 'lucide-react'
 import type { LifeNode, MemoryCategory } from '@/types/memory'
 
 /* ── Category grouping map ──────────────────────────────────────────────────── */
 
 interface CategoryGroup {
   label: string
-  emoji: string
+  icon: React.ElementType
   categories: MemoryCategory[]
 }
 
 const GROUPS: CategoryGroup[] = [
-  { label: 'People & Relationships', emoji: '👥', categories: ['person', 'relationship'] },
-  { label: 'Goals & Ambitions',      emoji: '🎯', categories: ['goal'] },
-  { label: 'Habits & Routines',      emoji: '🔄', categories: ['habit'] },
-  { label: 'Preferences & Tastes',   emoji: '✨', categories: ['preference'] },
-  { label: 'Life Events',            emoji: '📅', categories: ['event'] },
-  { label: 'Emotions & Feelings',    emoji: '💭', categories: ['emotion', 'belief'] },
-  { label: 'Skills & Knowledge',     emoji: '🧠', categories: ['skill'] },
-  { label: 'Places',                 emoji: '📍', categories: ['place'] },
+  { label: 'People & Relationships', icon: Users, categories: ['person', 'relationship'] },
+  { label: 'Goals & Ambitions',      icon: Target, categories: ['goal'] },
+  { label: 'Habits & Routines',      icon: Repeat, categories: ['habit'] },
+  { label: 'Preferences & Tastes',   icon: Star, categories: ['preference'] },
+  { label: 'Life Events',            icon: Calendar, categories: ['event'] },
+  { label: 'Emotions & Feelings',    icon: MessageSquare, categories: ['emotion', 'belief'] },
+  { label: 'Skills & Knowledge',     icon: Zap, categories: ['skill'] },
+  { label: 'Places',                 icon: MapPin, categories: ['place'] },
 ]
 
 function groupNodes(nodes: LifeNode[]): { group: CategoryGroup; nodes: LifeNode[] }[] {
@@ -40,7 +43,7 @@ function groupNodes(nodes: LifeNode[]): { group: CategoryGroup; nodes: LifeNode[
   const ungrouped = nodes.filter((n) => !allGroupedCategories.includes(n.category))
   if (ungrouped.length > 0) {
     result.push({
-      group: { label: 'Other', emoji: '📝', categories: [] },
+      group: { label: 'Other', icon: FileText, categories: [] },
       nodes: ungrouped,
     })
   }
@@ -201,7 +204,9 @@ function GroupSection({
           textAlign: 'left',
         }}
       >
-        <span style={{ fontSize: '18px' }}>{group.emoji}</span>
+        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px' }}>
+          <group.icon size={18} strokeWidth={1.5} />
+        </span>
         <span
           style={{
             flex: 1,

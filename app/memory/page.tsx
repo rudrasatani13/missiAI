@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Brain, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Brain, RefreshCw, Network } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
 import { useMemoryDashboard } from '@/hooks/useMemoryDashboard'
 import { StatsBar } from '@/components/memory/StatsBar'
@@ -159,7 +159,7 @@ export default function MemoryPage() {
               href="/memory/graph"
               className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-white/80 no-underline text-xs"
             >
-              🌌 3D Graph
+              <Network className="w-3.5 h-3.5" /> 3D Graph
             </Link>
             <button
               onClick={() => setShowAddForm((v) => !v)}
