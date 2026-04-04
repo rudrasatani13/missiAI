@@ -155,6 +155,12 @@ export default function MemoryPage() {
           </h1>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Link
+              href="/memory/graph"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-white/80 no-underline text-xs"
+            >
+              🌌 3D Graph
+            </Link>
             <button
               onClick={() => setShowAddForm((v) => !v)}
               style={{
