@@ -178,9 +178,9 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
     if (!canvas) return
 
     const quality = getQualityTier()
-    // Mobile: 500 particles max; desktop low: 1200; desktop high: 4000
+    // Mobile: 1500 particles; desktop low: 2000; desktop high: 4000
     const particleCount = quality === "low"
-      ? (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 500 : 1200)
+      ? (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 1500 : 2000)
       : 4000
 
     let renderer: THREE.WebGLRenderer

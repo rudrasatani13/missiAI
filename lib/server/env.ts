@@ -9,6 +9,7 @@
 export interface AppEnv {
   GEMINI_API_KEY: string
   ELEVENLABS_API_KEY: string
+  ELEVENLABS_VOICE_ID: string
   CLERK_SECRET_KEY: string
   DAILY_BUDGET_USD: number
   NODE_ENV: string
@@ -36,6 +37,7 @@ export function getEnv(): AppEnv {
   return {
     GEMINI_API_KEY: requireEnv("GEMINI_API_KEY"),
     ELEVENLABS_API_KEY: requireEnv("ELEVENLABS_API_KEY"),
+    ELEVENLABS_VOICE_ID: requireEnv("ELEVENLABS_VOICE_ID"),
     CLERK_SECRET_KEY: requireEnv("CLERK_SECRET_KEY"),
     DAILY_BUDGET_USD: parseFloat(process.env.DAILY_BUDGET_USD ?? "5.0") || 5.0,
     NODE_ENV: process.env.NODE_ENV ?? "production",

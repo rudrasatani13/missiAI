@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
   }
   
   const apiKey = appEnv.ELEVENLABS_API_KEY
-  const voiceId = "kdmDKE6EkgrWrrykO9Qt"
+  const voiceId = appEnv.ELEVENLABS_VOICE_ID
 
   if (!voiceId) {
     logError("tts.missing_voice_id", "ELEVENLABS_VOICE_ID not configured", userId)

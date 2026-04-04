@@ -81,6 +81,39 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     speakText: async () => {},
   })
 
+  /* ── Mobile audio unlock ────────────────────────────────────────────────── */
+  // iOS/Android block audio playback until the user interacts with the page.
+  // We prime the AudioContext on the very first tap so subsequent play() calls work.
+  const audioUnlockedRef = useRef(false)
+
+  useEffect(() => {
+    if (audioUnlockedRef.current) return
+    const unlock = () => {
+      if (audioUnlockedRef.current) return
+      audioUnlockedRef.current = true
+      // Create and immediately resume an AudioContext to satisfy the gesture requirement
+      try {
+        const AC = window.AudioContext || (window as any).webkitAudioContext
+        const ctx = new AC()
+        ctx.resume().then(() => ctx.close()).catch(() => {})
+      } catch {}
+      // Also play a silent audio to unlock HTMLAudioElement playback
+      try {
+        const silence = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=")
+        silence.volume = 0
+        silence.play().then(() => silence.pause()).catch(() => {})
+      } catch {}
+      document.removeEventListener("pointerdown", unlock)
+      document.removeEventListener("touchstart", unlock)
+    }
+    document.addEventListener("pointerdown", unlock, { once: true })
+    document.addEventListener("touchstart", unlock, { once: true })
+    return () => {
+      document.removeEventListener("pointerdown", unlock)
+      document.removeEventListener("touchstart", unlock)
+    }
+  }, [])
+
   /* ── AbortController helpers ────────────────────────────────────────────── */
 
   const cancelAbort = useCallback(() => {
@@ -112,6 +145,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     recordingStartRef.current = Date.now()
     const AC = window.AudioContext || (window as any).webkitAudioContext
     const ctx = new AC()
+    // iOS Safari suspends AudioContext until a user gesture — resume it
+    if (ctx.state === "suspended") ctx.resume().catch(() => {})
     audioContextRef.current = ctx
 
     const analyser = ctx.createAnalyser()
@@ -228,16 +263,28 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
   /* ── TTS playback audio monitor ─────────────────────────────────────────── */
 
+  const ttsSourceRef = useRef<MediaElementAudioSourceNode | null>(null)
+
   const startTTSMonitor = useCallback((audio: HTMLAudioElement) => {
     try {
       const AC = window.AudioContext || (window as any).webkitAudioContext
       const ctx = ttsContextRef.current || new AC()
       ttsContextRef.current = ctx
+      // iOS Safari suspends AudioContext — resume it
+      if (ctx.state === "suspended") ctx.resume().catch(() => {})
+
       const analyser = ctx.createAnalyser()
       analyser.fftSize = 256
       analyser.smoothingTimeConstant = 0.85
       ttsAnalyserRef.current = analyser
+
+      // createMediaElementSource can only be called once per element.
+      // Disconnect the previous source if it exists, then create a new one.
+      if (ttsSourceRef.current) {
+        try { ttsSourceRef.current.disconnect() } catch {}
+      }
       const source = ctx.createMediaElementSource(audio)
+      ttsSourceRef.current = source
       source.connect(analyser)
       analyser.connect(ctx.destination)
       const data = new Uint8Array(analyser.frequencyBinCount)
@@ -253,13 +300,18 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       }
       levelAnimRef.current = requestAnimationFrame(monitor)
     } catch (err) {
-      console.error("TTS monitor error:", err)
+      // TTS monitor is non-critical — audio still plays without visualization
+      console.warn("TTS monitor unavailable:", err)
     }
   }, [])
 
   const stopTTSMonitor = useCallback(() => {
     if (levelAnimRef.current) cancelAnimationFrame(levelAnimRef.current)
     levelAnimRef.current = null
+    if (ttsSourceRef.current) {
+      try { ttsSourceRef.current.disconnect() } catch {}
+      ttsSourceRef.current = null
+    }
     ttsAnalyserRef.current = null
     setAudioLevel(0)
   }, [])
@@ -320,7 +372,28 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           }
         })
 
-        await audio.play()
+        // Mobile browsers may reject play() if not in a user gesture context.
+        // Retry once after a short delay; if still blocked, skip TTS gracefully.
+        try {
+          await audio.play()
+        } catch (playErr) {
+          // Wait briefly and retry — sometimes the gesture unlock is async
+          await new Promise((r) => setTimeout(r, 200))
+          try {
+            await audio.play()
+          } catch {
+            // Autoplay still blocked — skip TTS, show text instead
+            stopTTSMonitor()
+            URL.revokeObjectURL(url)
+            audioPlayerRef.current = null
+            if (continuousRef.current) {
+              await fnRef.current.startRecording()
+            } else {
+              resetToIdle()
+            }
+            return
+          }
+        }
         await finished
 
         // After speaking, continue or idle
@@ -663,6 +736,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
+          sampleRate: { ideal: 16000 }, // 16kHz is optimal for speech recognition
         },
       })
       streamRef.current = stream
@@ -807,7 +881,22 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           }
         })
 
-        await audio.play()
+        try {
+          await audio.play()
+        } catch {
+          // Mobile autoplay blocked — retry once
+          await new Promise((r) => setTimeout(r, 200))
+          try { await audio.play() } catch {
+            // Still blocked — skip greeting audio, go to idle
+            stopTTSMonitor()
+            URL.revokeObjectURL(url)
+            audioPlayerRef.current = null
+            conversationRef.current.push({ role: "assistant", content: text })
+            continuousRef.current = true
+            await fnRef.current.startRecording()
+            return
+          }
+        }
         conversationRef.current.push({ role: "assistant", content: text })
         await finished
 
