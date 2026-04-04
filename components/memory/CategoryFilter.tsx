@@ -2,18 +2,20 @@
 
 import type { MemoryCategory } from '@/types/memory'
 
-const CATEGORY_ICONS: Record<MemoryCategory | 'all', string> = {
-  all: '✦',
-  person: '👤',
-  goal: '🎯',
-  habit: '🔄',
-  preference: '💡',
-  event: '📅',
-  emotion: '💭',
-  skill: '⚡',
-  place: '📍',
-  belief: '🌟',
-  relationship: '🤝',
+import { User, Target, Repeat, Star, Calendar, MessageSquare, Zap, MapPin, Shield, Users, Sparkles } from "lucide-react"
+
+const CATEGORY_ICONS: Record<MemoryCategory | 'all', React.ReactNode> = {
+  all: <Sparkles className="w-3.5 h-3.5" />,
+  person: <User className="w-3.5 h-3.5" />,
+  goal: <Target className="w-3.5 h-3.5" />,
+  habit: <Repeat className="w-3.5 h-3.5" />,
+  preference: <Star className="w-3.5 h-3.5" />,
+  event: <Calendar className="w-3.5 h-3.5" />,
+  emotion: <MessageSquare className="w-3.5 h-3.5" />,
+  skill: <Zap className="w-3.5 h-3.5" />,
+  place: <MapPin className="w-3.5 h-3.5" />,
+  belief: <Shield className="w-3.5 h-3.5" />,
+  relationship: <Users className="w-3.5 h-3.5" />,
 }
 
 const ALL_CATEGORIES: MemoryCategory[] = [
@@ -58,7 +60,7 @@ export function CategoryFilter({ selected, counts, onChange }: CategoryFilterPro
       >
         {/* All pill always first */}
         <Pill
-          emoji={CATEGORY_ICONS.all}
+          icon={CATEGORY_ICONS.all}
           label="All"
           count={counts.all}
           isSelected={selected === 'all'}
@@ -67,7 +69,7 @@ export function CategoryFilter({ selected, counts, onChange }: CategoryFilterPro
         {visibleCategories.map((cat) => (
           <Pill
             key={cat}
-            emoji={CATEGORY_ICONS[cat]}
+            icon={CATEGORY_ICONS[cat]}
             label={cat.charAt(0).toUpperCase() + cat.slice(1)}
             count={counts[cat]}
             isSelected={selected === cat}
@@ -80,14 +82,14 @@ export function CategoryFilter({ selected, counts, onChange }: CategoryFilterPro
 }
 
 interface PillProps {
-  emoji: string
+  icon: React.ReactNode
   label: string
   count: number
   isSelected: boolean
   onClick: () => void
 }
 
-function Pill({ emoji, label, count, isSelected, onClick }: PillProps) {
+function Pill({ icon, label, count, isSelected, onClick }: PillProps) {
   return (
     <button
       onClick={onClick}
@@ -111,7 +113,7 @@ function Pill({ emoji, label, count, isSelected, onClick }: PillProps) {
         flexShrink: 0,
       }}
     >
-      <span>{emoji}</span>
+      <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>
       <span>{label}</span>
       <span
         style={{

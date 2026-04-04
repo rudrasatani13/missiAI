@@ -25,7 +25,7 @@ export default function LegalLayout({
           alt="missiAI"
           width={28}
           height={28}
-          className="w-6 h-6 opacity-40 pointer-events-none select-none"
+          className="w-6 h-6 opacity-40 brightness-0 invert pointer-events-none select-none"
           draggable={false}
         />
       </nav>

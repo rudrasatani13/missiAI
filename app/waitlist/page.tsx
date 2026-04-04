@@ -4,7 +4,6 @@ export const runtime = "edge"
 
 import { WaitlistLayout } from "@/components/waitlist/layout"
 import { InputForm } from "@/components/waitlist/form"
-import Image from "next/image"
 import { joinWaitlist } from "./actions"
 
 // Email validation regex
@@ -16,24 +15,28 @@ export default function WaitlistPage() {
   return (
     <WaitlistLayout activeTab="waitlist">
       <div className="flex flex-col items-center gap-4 md:gap-6 text-center">
-        {/* Protected Logo - Responsive sizing */}
-        <div className="flex items-center justify-center mb-2 md:mb-4 relative select-none">
-          <div
-            className="absolute inset-0 z-10"
-            onContextMenu={(e) => e.preventDefault()}
-            onDragStart={(e) => e.preventDefault()}
-          />
-          <Image
-            src="/images/missiai-logo.png"
-            alt="MissiAI"
-            width={400}
-            height={120}
-            className="h-16 md:h-20 lg:h-24 w-auto object-contain brightness-0 invert select-none pointer-events-none"
-            priority
-            draggable={false}
-            onContextMenu={(e) => e.preventDefault()}
-            onDragStart={(e) => e.preventDefault()}
-          />
+        {/* LED Brand Logo */}
+        <div className="flex items-center justify-center mb-4 select-none">
+          <svg width="120" height="28" viewBox="0 0 120 28" xmlns="http://www.w3.org/2000/svg" className="w-auto h-6 md:h-7 opacity-80">
+            <defs>
+              <pattern id="led-waitlist" width="2" height="2" patternUnits="userSpaceOnUse">
+                <rect x="0.25" y="0.25" width="1.5" height="1.5" rx="0.3" fill="rgba(255,255,255,1)" />
+              </pattern>
+              <mask id="text-mask-waitlist">
+                <rect width="100%" height="100%" fill="black" />
+                <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" 
+                      fontSize="24" fontWeight="400" fontFamily="'VT323','Share Tech Mono',monospace" fill="white" letterSpacing="4">
+                  MISSI
+                </text>
+              </mask>
+            </defs>
+            {/* Glow layer */}
+            <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" 
+                  fontSize="24" fontWeight="400" fontFamily="'VT323','Share Tech Mono',monospace" fill="#ffffff" opacity="0.2" style={{ filter: "blur(3px)" }} letterSpacing="4">
+              MISSI
+            </text>
+            <rect width="100%" height="100%" fill="url(#led-waitlist)" mask="url(#text-mask-waitlist)" />
+          </svg>
         </div>
 
         {/* Headline */}

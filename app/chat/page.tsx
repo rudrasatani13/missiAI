@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import nextDynamic from "next/dynamic"
 import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
@@ -54,7 +53,7 @@ export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
   const { plan, usage, isAtLimit, isLoading: billingLoading, initiateRazorpayCheckout, incrementUsageLocally } = useBilling()
-  const [showSettings, setShowSettings] = useState(false)
+  const [activePanel, setActivePanel] = useState<'settings' | 'plugins' | null>(null)
   const [personality, setPersonality] = useState<PersonalityKey>("bestfriend")
   const [voiceEnabled, setVoiceEnabled] = useState(true)
   const personalityRef = useRef<PersonalityKey>("bestfriend")
@@ -168,7 +167,7 @@ export default function VoiceAssistantPage() {
     }
   }, [voiceState])
 
-  const handleLogout = useCallback(() => { cancelAll(); setShowSettings(false)
+  const handleLogout = useCallback(() => { cancelAll(); setActivePanel(null)
     signOut().catch(() => {}); setTimeout(() => { window.location.href = "/" }, 500)
   }, [signOut, cancelAll])
 
@@ -235,10 +234,33 @@ export default function VoiceAssistantPage() {
           <ArrowLeft className="w-4 h-4" />
           <span className="text-[11px] font-light hidden sm:inline tracking-wide">Home</span>
         </Link>
-        <div className="flex items-center gap-2 opacity-40">
-          <Image src="/images/logo-symbol.png" alt="missiAI" width={24} height={24}
-            className="w-5 h-5 pointer-events-none" priority draggable={false} />
-          <span className="text-[11px] font-medium tracking-wider">MISSI</span>
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            pointerEvents: 'none',
+          }}
+        >
+          <svg width="120" height="28" viewBox="0 0 120 28" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="led-nav" width="3" height="2" patternUnits="userSpaceOnUse">
+                <rect x="0.25" y="0.25" width="2.5" height="1.5" rx="0.4" fill="rgba(255,255,255,1)" />
+              </pattern>
+              <mask id="text-mask-nav">
+                <rect width="100%" height="100%" fill="black" />
+                <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle"
+                  fontSize="26" fontWeight="400" fontFamily="'VT323','Share Tech Mono',monospace"
+                  fill="white" letterSpacing="5">MISSI</text>
+              </mask>
+            </defs>
+            {/* Glow layer */}
+            <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle"
+              fontSize="26" fontWeight="400" fontFamily="'VT323','Share Tech Mono',monospace"
+              fill="#ffffff" opacity="0.25" style={{ filter: 'blur(4px)' }} letterSpacing="5">MISSI</text>
+            {/* LED dots */}
+            <rect width="100%" height="100%" fill="url(#led-nav)" mask="url(#text-mask-nav)" />
+          </svg>
         </div>
         <div className="flex items-center gap-2 pointer-events-auto">
           <Link
@@ -263,18 +285,18 @@ export default function VoiceAssistantPage() {
             <Crown className="w-3 h-3" style={{ color: '#F59E0B' }} />
             {plan?.id === 'free' ? 'Upgrade to Pro' : plan?.id === 'pro' ? 'Pro Plan' : plan?.id === 'business' ? 'Business Plan' : 'Pricing'}
           </Link>
-          <PluginBadge plugins={plugins} onManage={() => setShowSettings(true)} />
-          <button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings) }}
+          <PluginBadge plugins={plugins} onManage={() => setActivePanel(activePanel === 'plugins' ? null : 'plugins')} />
+          <button onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'settings' ? null : 'settings') }}
             className="opacity-40 hover:opacity-70 transition-opacity"
             data-testid="settings-toggle-btn"
             style={{ background: "none", border: "none", cursor: "pointer", color: "white" }}>
-            {showSettings ? <X className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
+            {activePanel ? <X className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
           </button>
         </div>
       </nav>
       <SettingsPanel personality={personality} onPersonalityChange={updatePersonality}
         voiceEnabled={voiceEnabled} onVoiceToggle={() => setVoiceEnabled((v) => !v)}
-        isOpen={showSettings} onClose={() => setShowSettings(false)}
+        isOpen={activePanel !== null} activePanel={activePanel} onClose={() => setActivePanel(null)}
         userName={user?.fullName || "User"} userEmail={user?.primaryEmailAddress?.emailAddress || ""}
         userImageUrl={user?.imageUrl || null} onLogout={handleLogout}
         plugins={plugins}

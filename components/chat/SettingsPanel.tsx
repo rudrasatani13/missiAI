@@ -1,7 +1,7 @@
 "use client"
 
 import { memo, useState } from "react"
-import { LogOut } from "lucide-react"
+import { LogOut, Heart, Briefcase, Zap, BrainCircuit } from "lucide-react"
 import type { PersonalityKey } from "@/types/chat"
 import { PERSONALITY_OPTIONS } from "@/types/chat"
 import { PLUGIN_METADATA } from "@/lib/plugins/plugin-registry"
@@ -15,6 +15,7 @@ interface SettingsPanelProps {
   voiceEnabled: boolean
   onVoiceToggle: () => void
   isOpen: boolean
+  activePanel: 'settings' | 'plugins' | null
   onClose: () => void
   userName: string
   userEmail: string
@@ -30,6 +31,13 @@ interface SettingsPanelProps {
 }
 
 const PLUGIN_IDS: PluginId[] = ["notion", "google_calendar", "webhook"]
+
+const ICON_MAP: Record<string, React.ReactNode> = {
+  Heart: <Heart className="w-4 h-4" />,
+  Briefcase: <Briefcase className="w-4 h-4" />,
+  Zap: <Zap className="w-4 h-4" />,
+  BrainCircuit: <BrainCircuit className="w-4 h-4" />,
+}
 
 function PluginRow({
   pluginId,
@@ -51,7 +59,6 @@ function PluginRow({
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  // Credential fields
   const [notionKey, setNotionKey] = useState("")
   const [calToken, setCalToken] = useState("")
   const [webhookUrl, setWebhookUrl] = useState("")
@@ -86,31 +93,18 @@ function PluginRow({
     <div
       style={{
         borderRadius: "10px",
-        padding: "8px 10px",
+        padding: "10px",
         background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.06)",
-        marginBottom: "6px",
+        border: "1px solid rgba(255,255,255,0.08)",
+        marginBottom: "8px",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p
-            style={{
-              fontSize: "11px",
-              fontWeight: 500,
-              color: isConnected ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.4)",
-              margin: 0,
-            }}
-          >
+          <p style={{ fontSize: "12px", fontWeight: 500, color: isConnected ? "#fff" : "rgba(255,255,255,0.5)", margin: 0 }}>
             {meta.name}
           </p>
-          <p
-            style={{
-              fontSize: "9px",
-              color: isConnected ? "rgba(0,255,140,0.6)" : "rgba(255,255,255,0.2)",
-              margin: "1px 0 0",
-            }}
-          >
+          <p style={{ fontSize: "10px", color: isConnected ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)", margin: "2px 0 0" }}>
             {isConnected ? "Connected" : "Disconnected"}
           </p>
         </div>
@@ -119,13 +113,9 @@ function PluginRow({
             onClick={() => onDisconnect(pluginId)}
             data-testid={`plugin-disconnect-${pluginId}`}
             style={{
-              fontSize: "10px",
-              color: "rgba(255,80,80,0.7)",
-              background: "none",
-              border: "1px solid rgba(255,80,80,0.2)",
-              borderRadius: "6px",
-              padding: "3px 8px",
-              cursor: "pointer",
+              fontSize: "11px", fontWeight: 500, color: "#fff",
+              background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: "6px", padding: "4px 10px", cursor: "pointer",
             }}
           >
             Disconnect
@@ -135,13 +125,9 @@ function PluginRow({
             onClick={() => setShowForm((v) => !v)}
             data-testid={`plugin-connect-${pluginId}`}
             style={{
-              fontSize: "10px",
-              color: "rgba(255,255,255,0.5)",
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "6px",
-              padding: "3px 8px",
-              cursor: "pointer",
+              fontSize: "11px", fontWeight: 500, color: "#000",
+              background: "#fff", border: "none",
+              borderRadius: "6px", padding: "5px 12px", cursor: "pointer",
             }}
           >
             Connect
@@ -149,43 +135,22 @@ function PluginRow({
         )}
       </div>
 
-      {/* Inline credential form */}
       {showForm && !isConnected && (
-        <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
           {pluginId === "notion" && (
-            <input
-              type="password"
-              placeholder="Notion API Key (starts with secret_...)"
-              value={notionKey}
-              onChange={(e) => setNotionKey(e.target.value)}
-              style={inputStyle}
-            />
+            <input type="password" placeholder="Notion API Key" value={notionKey}
+              onChange={(e) => setNotionKey(e.target.value)} style={inputStyle} />
           )}
           {pluginId === "google_calendar" && (
-            <input
-              type="password"
-              placeholder="Google OAuth Access Token"
-              value={calToken}
-              onChange={(e) => setCalToken(e.target.value)}
-              style={inputStyle}
-            />
+            <input type="password" placeholder="Google OAuth Access Token" value={calToken}
+              onChange={(e) => setCalToken(e.target.value)} style={inputStyle} />
           )}
           {pluginId === "webhook" && (
             <>
-              <input
-                type="text"
-                placeholder="Webhook URL (https://...)"
-                value={webhookUrl}
-                onChange={(e) => setWebhookUrl(e.target.value)}
-                style={inputStyle}
-              />
-              <input
-                type="password"
-                placeholder="Secret (optional)"
-                value={webhookSecret}
-                onChange={(e) => setWebhookSecret(e.target.value)}
-                style={inputStyle}
-              />
+              <input type="text" placeholder="Webhook URL (https://...)" value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)} style={inputStyle} />
+              <input type="password" placeholder="Secret (optional)" value={webhookSecret}
+                onChange={(e) => setWebhookSecret(e.target.value)} style={inputStyle} />
             </>
           )}
           <button
@@ -193,14 +158,10 @@ function PluginRow({
             disabled={saving}
             data-testid={`plugin-save-${pluginId}`}
             style={{
-              fontSize: "10px",
-              color: saving ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)",
-              background: "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: "6px",
-              padding: "5px 10px",
-              cursor: saving ? "default" : "pointer",
-              alignSelf: "flex-end",
+              fontSize: "11px", fontWeight: 600,
+              color: "#000", background: saving ? "rgba(255,255,255,0.6)" : "#fff",
+              border: "none", borderRadius: "6px", padding: "6px 12px",
+              cursor: saving ? "default" : "pointer", alignSelf: "flex-end",
             }}
           >
             {saving ? "Saving…" : "Save"}
@@ -215,12 +176,19 @@ const inputStyle: React.CSSProperties = {
   background: "rgba(255,255,255,0.05)",
   border: "1px solid rgba(255,255,255,0.1)",
   borderRadius: "6px",
-  padding: "5px 8px",
-  fontSize: "10px",
-  color: "rgba(255,255,255,0.7)",
+  padding: "6px 10px",
+  fontSize: "11px",
+  color: "#fff",
   outline: "none",
   width: "100%",
   boxSizing: "border-box",
+}
+
+const panelBox: React.CSSProperties = {
+  background: "#050505",
+  border: "1px solid rgba(255,255,255,0.1)",
+  borderRadius: "16px",
+  padding: "20px",
 }
 
 function SettingsPanelInner({
@@ -229,6 +197,7 @@ function SettingsPanelInner({
   voiceEnabled,
   onVoiceToggle,
   isOpen,
+  activePanel,
   userName,
   userEmail,
   userImageUrl,
@@ -239,134 +208,109 @@ function SettingsPanelInner({
 }: SettingsPanelProps) {
   return (
     <div
-      className="absolute top-16 right-5 z-30 w-64 rounded-2xl p-4 pointer-events-auto"
-      onClick={(e) => e.stopPropagation()}
-      data-testid="settings-panel"
+      className="absolute top-16 right-5 z-30 pointer-events-none"
       style={{
-        background: "rgba(0,0,0,0.7)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        backdropFilter: "blur(30px)",
         transform: isOpen ? "translateY(0) scale(1)" : "translateY(-8px) scale(0.97)",
         opacity: isOpen ? 1 : 0,
         pointerEvents: isOpen ? "auto" : "none",
-        transition: "transform 0.25s ease-out, opacity 0.25s ease-out",
-        maxHeight: "80vh",
-        overflowY: "auto",
+        transition: "transform 0.2s ease-out, opacity 0.2s ease-out",
+        width: "300px",
       }}
     >
-      <div
-        className="flex items-center gap-3 mb-4 pb-3"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-      >
-        {userImageUrl && (
-          <img src={userImageUrl} alt="" className="w-8 h-8 rounded-full opacity-80" />
-        )}
-        <div>
-          <p className="text-xs font-medium text-white/70">{userName}</p>
-          <p className="text-[10px] font-light text-white/25">{userEmail}</p>
-        </div>
-      </div>
+      {/* ── SETTINGS BOX — opens when gear icon is clicked ── */}
+      {activePanel === 'settings' && (
+        <div onClick={(e) => e.stopPropagation()} data-testid="settings-panel" style={panelBox}>
+          {/* User profile */}
+          <div className="flex items-center gap-3 mb-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            {userImageUrl && <img src={userImageUrl} alt="" className="w-10 h-10 rounded-full" />}
+            <div>
+              <p className="text-xs font-semibold text-white tracking-wide">{userName}</p>
+              <p className="text-[10px] font-light text-white/40">{userEmail}</p>
+            </div>
+          </div>
 
-      <div className="mb-4">
-        <p
-          className="text-[10px] font-medium tracking-wider uppercase mb-2.5"
-          style={{ color: "rgba(255,255,255,0.3)" }}
-        >
-          Missi&apos;s Personality
-        </p>
-        <div className="flex flex-col gap-1.5">
-          {PERSONALITY_OPTIONS.map((p) => (
+          {/* Personality */}
+          <div className="mb-5">
+            <p className="text-[10px] font-medium tracking-wider uppercase mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>
+              Personality Profile
+            </p>
+            <div className="flex flex-col gap-2">
+              {PERSONALITY_OPTIONS.map((p) => {
+                const IconComp = ICON_MAP[p.iconName as string]
+                return (
+                  <button
+                    key={p.key}
+                    onClick={() => onPersonalityChange(p.key)}
+                    data-testid={`personality-${p.key}-btn`}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all"
+                    style={{
+                      background: personality === p.key ? "rgba(255,255,255,0.08)" : "transparent",
+                      border: personality === p.key ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div style={{ color: personality === p.key ? "#fff" : "rgba(255,255,255,0.4)" }}>
+                      {IconComp}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium" style={{ color: personality === p.key ? "#fff" : "rgba(255,255,255,0.5)" }}>
+                        {p.label}
+                      </p>
+                      <p className="text-[10px] font-light" style={{ color: personality === p.key ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.3)" }}>
+                        {p.desc}
+                      </p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Voice toggle */}
+          <div className="mb-5 flex items-center justify-between">
+            <span className="text-[11px] font-semibold tracking-wide uppercase" style={{ color: "rgba(255,255,255,0.4)" }}>
+              Voice Engine
+            </span>
             <button
-              key={p.key}
-              onClick={() => onPersonalityChange(p.key)}
-              data-testid={`personality-${p.key}-btn`}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all"
-              style={{
-                background:
-                  personality === p.key ? "rgba(255,255,255,0.08)" : "transparent",
-                border:
-                  personality === p.key
-                    ? "1px solid rgba(255,255,255,0.12)"
-                    : "1px solid transparent",
-                cursor: "pointer",
-              }}
+              onClick={onVoiceToggle}
+              data-testid="voice-toggle-btn"
+              className="relative w-10 h-6 rounded-full transition-colors"
+              style={{ background: voiceEnabled ? "#fff" : "rgba(255,255,255,0.15)", border: "none", cursor: "pointer" }}
             >
-              <span className="text-sm">{p.emoji}</span>
-              <div className="flex-1 min-w-0">
-                <p
-                  className="text-[11px] font-medium"
-                  style={{
-                    color:
-                      personality === p.key
-                        ? "rgba(255,255,255,0.85)"
-                        : "rgba(255,255,255,0.45)",
-                  }}
-                >
-                  {p.label}
-                </p>
-                <p
-                  className="text-[9px] font-light"
-                  style={{
-                    color:
-                      personality === p.key
-                        ? "rgba(255,255,255,0.35)"
-                        : "rgba(255,255,255,0.18)",
-                  }}
-                >
-                  {p.desc}
-                </p>
-              </div>
-              {personality === p.key && (
-                <div
-                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  style={{ background: "rgba(0,255,140,0.6)" }}
-                />
-              )}
+              <span
+                className="absolute top-1 w-4 h-4 rounded-full shadow-sm"
+                style={{
+                  background: voiceEnabled ? "#000" : "#fff",
+                  left: voiceEnabled ? "20px" : "4px",
+                  transition: "left 0.2s ease, background 0.2s ease",
+                }}
+              />
             </button>
-          ))}
+          </div>
+
+          {/* Sign out */}
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "16px" }}>
+            <button
+              onClick={onLogout}
+              data-testid="logout-btn"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
+              style={{ color: "#fff", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer" }}
+            >
+              <LogOut className="w-3.5 h-3.5 opacity-80" /> Sign out
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div
-        className="mb-4 flex items-center justify-between px-3 py-2"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
-      >
-        <span
-          className="text-[11px] font-medium"
-          style={{ color: "rgba(255,255,255,0.45)" }}
-        >
-          Voice
-        </span>
-        <button
-          onClick={onVoiceToggle}
-          data-testid="voice-toggle-btn"
-          className="relative w-9 h-5 rounded-full transition-colors"
-          style={{
-            background: voiceEnabled ? "rgba(0,255,140,0.4)" : "rgba(255,255,255,0.1)",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          <span
-            className="absolute top-0.5 w-4 h-4 rounded-full"
-            style={{
-              background: voiceEnabled ? "rgba(0,255,140,0.9)" : "rgba(255,255,255,0.4)",
-              left: voiceEnabled ? "18px" : "2px",
-              transition: "left 0.2s ease, background 0.2s ease",
-            }}
-          />
-        </button>
-      </div>
-
-      {/* ── Plugins section ── */}
-      {(onConnectPlugin || onDisconnectPlugin) && (
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "12px", marginBottom: "4px" }}>
-          <p
-            className="text-[10px] font-medium tracking-wider uppercase mb-2.5"
-            style={{ color: "rgba(255,255,255,0.3)" }}
-          >
-            Plugins
-          </p>
+      {/* ── PLUGINS BOX — opens when plugin badge is clicked ── */}
+      {activePanel === 'plugins' && (onConnectPlugin || onDisconnectPlugin) && (
+        <div onClick={(e) => e.stopPropagation()} style={panelBox}>
+          <div className="flex items-center gap-2 mb-4">
+            <Zap className="w-4 h-4 text-white opacity-80" />
+            <span className="text-xs font-semibold text-white tracking-wide uppercase">
+              Connections
+            </span>
+          </div>
           {PLUGIN_IDS.map((id) => (
             <PluginRow
               key={id}
@@ -378,22 +322,6 @@ function SettingsPanelInner({
           ))}
         </div>
       )}
-
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "12px" }}>
-        <button
-          onClick={onLogout}
-          data-testid="logout-btn"
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-light transition-colors hover:bg-white/5"
-          style={{
-            color: "rgba(255,255,255,0.4)",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          <LogOut className="w-3.5 h-3.5" /> Sign out
-        </button>
-      </div>
     </div>
   )
 }

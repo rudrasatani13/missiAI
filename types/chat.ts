@@ -11,13 +11,13 @@ export type PersonalityKey = "bestfriend" | "professional" | "playful" | "mentor
 export interface PersonalityOption {
   key: PersonalityKey
   label: string
-  emoji: string
+  iconName: string
   desc: string
 }
 
 export const PERSONALITY_OPTIONS: PersonalityOption[] = [
-  { key: "bestfriend", label: "Best Friend", emoji: "\u{1F49B}", desc: "Warm, supportive, friendly" },
-  { key: "professional", label: "Professional", emoji: "\u{1F4BC}", desc: "Sharp, efficient, direct" },
-  { key: "playful", label: "Playful", emoji: "\u2728", desc: "Fun, witty, high energy" },
-  { key: "mentor", label: "Mentor", emoji: "\u{1F9E0}", desc: "Wise, thoughtful, guiding" },
+  { key: "bestfriend", label: "Best Friend", iconName: "Heart", desc: "Warm, supportive, friendly" },
+  { key: "professional", label: "Professional", iconName: "Briefcase", desc: "Sharp, efficient, direct" },
+  { key: "playful", label: "Playful", iconName: "Zap", desc: "Fun, witty, high energy" },
+  { key: "mentor", label: "Mentor", iconName: "BrainCircuit", desc: "Wise, thoughtful, guiding" },
 ]

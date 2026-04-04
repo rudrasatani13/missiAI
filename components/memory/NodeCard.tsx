@@ -5,16 +5,16 @@ import { Trash2 } from 'lucide-react'
 import type { LifeNode, MemoryCategory } from '@/types/memory'
 
 const CATEGORY_COLORS: Record<MemoryCategory, { bg: string; text: string; border: string }> = {
-  person:       { bg: 'rgba(249,115,22,0.15)',  text: 'rgba(253,186,116,0.9)', border: 'rgba(249,115,22,0.25)' },
-  goal:         { bg: 'rgba(59,130,246,0.15)',  text: 'rgba(147,197,253,0.9)', border: 'rgba(59,130,246,0.25)' },
-  habit:        { bg: 'rgba(34,197,94,0.15)',   text: 'rgba(134,239,172,0.9)', border: 'rgba(34,197,94,0.25)' },
-  preference:   { bg: 'rgba(99,102,241,0.15)',  text: 'rgba(199,210,254,0.9)', border: 'rgba(99,102,241,0.25)' },
-  event:        { bg: 'rgba(239,68,68,0.15)',   text: 'rgba(252,165,165,0.9)', border: 'rgba(239,68,68,0.25)' },
-  emotion:      { bg: 'rgba(236,72,153,0.15)',  text: 'rgba(249,168,212,0.9)', border: 'rgba(236,72,153,0.25)' },
-  skill:        { bg: 'rgba(8,145,178,0.15)',   text: 'rgba(103,232,249,0.9)', border: 'rgba(8,145,178,0.25)' },
-  place:        { bg: 'rgba(101,163,13,0.15)',  text: 'rgba(190,242,100,0.9)', border: 'rgba(101,163,13,0.25)' },
-  belief:       { bg: 'rgba(194,65,12,0.15)',   text: 'rgba(253,186,116,0.9)', border: 'rgba(194,65,12,0.25)' },
-  relationship: { bg: 'rgba(190,24,93,0.15)',   text: 'rgba(251,207,232,0.9)', border: 'rgba(190,24,93,0.25)' },
+  person:       { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
+  goal:         { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
+  habit:        { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
+  preference:   { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
+  event:        { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
+  emotion:      { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
+  skill:        { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
+  place:        { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
+  belief:       { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
+  relationship: { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
 }
 
 interface NodeCardProps {
@@ -50,10 +50,10 @@ export function NodeCard({ node, onDelete, isDeleting }: NodeCardProps) {
 
   const confidenceColor =
     node.confidence > 0.7
-      ? '#22c55e'
+      ? 'rgba(255,255,255,0.9)'
       : node.confidence >= 0.4
-        ? '#f59e0b'
-        : '#ef4444'
+        ? 'rgba(255,255,255,0.5)'
+        : 'rgba(255,255,255,0.2)'
 
   const visibleTags = node.tags.slice(0, 4)
   const extraTagCount = node.tags.length - 4

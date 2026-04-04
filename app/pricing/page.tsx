@@ -170,11 +170,11 @@ function PlanCard({
       style={{
         position: 'relative',
         background: isCurrentPlan
-          ? 'linear-gradient(135deg, rgba(124,58,237,0.08), rgba(245,158,11,0.05))'
-          : 'rgba(0,0,0,0.4)',
+          ? 'rgba(255,255,255,0.06)'
+          : 'rgba(255,255,255,0.02)',
         backdropFilter: 'blur(20px)',
         border: isCurrentPlan
-          ? '1px solid rgba(124,58,237,0.3)'
+          ? '1px solid rgba(255,255,255,0.25)'
           : '1px solid rgba(255,255,255,0.1)',
         borderRadius: 16,
         padding: '32px 24px',
@@ -182,7 +182,7 @@ function PlanCard({
         flexDirection: 'column',
         transition: 'border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease',
         boxShadow: isCurrentPlan
-          ? '0 0 40px rgba(124,58,237,0.08)'
+          ? '0 0 0 1px rgba(255,255,255,0.1), inset 0 1px 0 rgba(255,255,255,0.05)'
           : 'none',
       }}
     >
@@ -195,10 +195,10 @@ function PlanCard({
             top: -12,
             left: '50%',
             transform: 'translateX(-50%)',
-            background: 'linear-gradient(135deg, #7C3AED, #F59E0B)',
-            color: '#fff',
+            background: '#fff',
+            color: '#000',
             fontSize: 10,
-            fontWeight: 600,
+            fontWeight: 700,
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
             padding: '4px 14px',
@@ -223,10 +223,10 @@ function PlanCard({
             top: -12,
             left: '50%',
             transform: 'translateX(-50%)',
-            background: 'rgba(255,255,255,0.9)',
+            background: '#fff',
             color: '#000',
             fontSize: 10,
-            fontWeight: 600,
+            fontWeight: 700,
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
             padding: '4px 14px',
@@ -250,7 +250,7 @@ function PlanCard({
       <div style={{ flex: 1, marginBottom: 24 }}>
         {features.map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
-            <Check style={{ width: 14, height: 14, color: isCurrentPlan ? 'rgba(124,58,237,0.7)' : 'rgba(255,255,255,0.5)', flexShrink: 0, marginTop: 2 }} />
+            <Check style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.6)', flexShrink: 0, marginTop: 2 }} />
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{f}</span>
           </div>
         ))}
@@ -277,15 +277,15 @@ function PlanCard({
           transition: 'all 0.2s ease',
           background: isCurrentPlan
             ? planId === 'free'
-              ? 'rgba(255,255,255,0.06)'
-              : 'rgba(239,68,68,0.15)'
+              ? 'rgba(255,255,255,0.04)'
+              : 'rgba(255,255,255,0.08)'
             : isMostPopular
-              ? 'rgba(255,255,255,0.9)'
-              : 'rgba(255,255,255,0.1)',
+              ? '#fff'
+              : 'rgba(255,255,255,0.08)',
           color: isCurrentPlan
             ? planId === 'free'
-              ? 'rgba(255,255,255,0.4)'
-              : 'rgba(239,68,68,0.9)'
+              ? 'rgba(255,255,255,0.3)'
+              : 'rgba(255,255,255,0.7)'
             : isMostPopular
               ? '#000'
               : '#fff',
@@ -504,10 +504,10 @@ export default function PricingPage() {
               marginBottom: 32,
               padding: '12px 20px',
               borderRadius: 10,
-              background: 'rgba(245,158,11,0.1)',
-              border: '1px solid rgba(245,158,11,0.2)',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
               fontSize: 13,
-              color: 'rgba(245,158,11,0.9)',
+              color: 'rgba(255,255,255,0.7)',
             }}
           >
             Your {plan?.name} subscription will cancel at the end of the current billing period.
@@ -563,24 +563,24 @@ export default function PricingPage() {
               padding: '4px 12px',
               borderRadius: 20,
               background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.1)',
             }}
           >
-            <Sparkles style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.4)' }} />
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 500 }}>
-              {currentPlanId === 'free' ? 'Pricing' : 'Manage Plan'}
+            <Sparkles style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.5)' }} />
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
+              {currentPlanId === 'free' ? 'Plans & Pricing' : 'Manage Plan'}
             </span>
           </div>
           <h1
             data-testid="pricing-heading"
-            style={{ fontSize: 28, fontWeight: 600, marginBottom: 10, letterSpacing: '-0.02em' }}
+            style={{ fontSize: 32, fontWeight: 700, marginBottom: 12, letterSpacing: '-0.03em', lineHeight: 1.1 }}
           >
-            {currentPlanId === 'free' ? 'Simple, honest pricing' : `You're on ${plan?.name ?? 'Pro'}`}
+            {currentPlanId === 'free' ? 'One AI. Your entire life.' : `You're on ${plan?.name ?? 'Pro'}`}
           </h1>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', maxWidth: 400, margin: '0 auto' }}>
+          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.4)', maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>
             {currentPlanId === 'free'
-              ? 'Start free. Upgrade when missiAI becomes part of your life.'
-              : 'Manage your subscription or explore other plans.'}
+              ? 'Start free — no credit card needed. Upgrade when Missi becomes indispensable.'
+              : 'Manage your subscription or explore other plans below.'}
           </p>
         </div>
 
@@ -601,10 +601,10 @@ export default function PricingPage() {
             currentPlanId={currentPlanId}
             isCurrentPlan={currentPlanId === 'free'}
             features={[
-              '10 voice interactions/day',
+              '10 voice interactions per day',
               '1 personality mode',
-              'Basic memory (20 facts)',
-              'Action engine',
+              'Basic memory — up to 20 facts',
+              'Action engine for quick tasks',
             ]}
             disabledFeatures={[
               'Multiple personalities',
@@ -626,10 +626,10 @@ export default function PricingPage() {
             showPaymentBadges={currentPlanId !== 'pro'}
             features={[
               'Unlimited voice interactions',
-              'All 4 personalities',
-              'Full memory graph (unlimited facts)',
-              'Proactive intelligence',
-              'Plugin integrations',
+              'All 4 personality profiles',
+              'Full memory graph — unlimited facts',
+              'Proactive nudges & intelligent reminders',
+              'Plugin integrations (Notion, Calendar…)',
               'Priority response speed',
             ]}
             onSelect={handleProPlan}
@@ -646,10 +646,10 @@ export default function PricingPage() {
             showPaymentBadges={currentPlanId !== 'business'}
             features={[
               'Everything in Pro',
-              'API access',
-              'Team features (coming soon)',
-              'Priority support',
-              'Custom integrations',
+              'REST API access',
+              'Team workspace (coming soon)',
+              'Dedicated priority support',
+              'Custom model integrations',
             ]}
             onSelect={handleBusinessPlan}
             isLoading={isLoading || isCancelling}
@@ -679,12 +679,12 @@ export default function PricingPage() {
               marginBottom: 48,
               padding: '16px 24px',
               borderRadius: 12,
-              background: 'linear-gradient(135deg, rgba(245,158,11,0.1), rgba(124,58,237,0.08))',
-              border: '1px solid rgba(245,158,11,0.2)',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.12)',
             }}
           >
-            <Gift style={{ width: 20, height: 20, color: '#F59E0B', display: 'inline', marginBottom: 4 }} />
-            <p style={{ fontSize: 14, fontWeight: 600, color: '#F59E0B', marginBottom: 4 }}>
+            <Gift style={{ width: 20, height: 20, color: '#fff', display: 'inline', marginBottom: 4 }} />
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 4 }}>
               You have a 20% referral discount!
             </p>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
@@ -706,14 +706,14 @@ export default function PricingPage() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <Gift style={{ width: 16, height: 16, color: '#F59E0B' }} />
+              <Gift style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.6)' }} />
               <h3 style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>
                 Invite Friends, Earn Rewards
               </h3>
             </div>
 
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20, lineHeight: 1.6 }}>
-              Share your referral link. When a friend upgrades, you get <span style={{ color: '#F59E0B', fontWeight: 600 }}>7 extra free days</span> and they get <span style={{ color: '#F59E0B', fontWeight: 600 }}>20% off</span> their first month.
+              Share your referral link. When a friend upgrades, you get <span style={{ color: '#fff', fontWeight: 600 }}>7 extra free days</span> and they get <span style={{ color: '#fff', fontWeight: 600 }}>20% off</span> their first month.
             </p>
 
             {/* Referral Link */}
@@ -805,8 +805,8 @@ export default function PricingPage() {
                       border: '1px solid rgba(255,255,255,0.05)',
                     }}
                   >
-                    <Award style={{ width: 14, height: 14, color: '#F59E0B', margin: '0 auto 6px' }} />
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#F59E0B' }}>
+                    <Award style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.5)', margin: '0 auto 6px' }} />
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>
                       {referral.rewardDaysEarned}
                     </div>
                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
@@ -840,25 +840,29 @@ export default function PricingPage() {
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
           <h2
             data-testid="faq-heading"
-            style={{ fontSize: 18, fontWeight: 600, marginBottom: 20, textAlign: 'center' }}
+            style={{ fontSize: 18, fontWeight: 600, marginBottom: 20, textAlign: 'center', letterSpacing: '-0.02em' }}
           >
-            Questions?
+            Common questions
           </h2>
           <FAQItem
             question="Can I cancel anytime?"
-            answer="Yes, cancel from your subscription settings anytime. Your plan stays active until the end of the billing period."
+            answer="Yes — always. Cancel from your account settings whenever you want. Your plan stays active until the end of your billing period with no surprise charges."
           />
           <FAQItem
             question="What happens to my memories if I downgrade?"
-            answer="Your memories are preserved. You'll still have access to your basic memory (20 most recent facts) on the free plan."
+            answer="Your data is never deleted. On the free plan you'll have access to the 20 most recently stored facts. The rest are safely preserved and come back the moment you re-upgrade."
           />
           <FAQItem
-            question="Is there a free trial?"
-            answer="The free tier is permanent — no credit card needed. Use it as long as you want, and upgrade whenever you're ready."
+            question="Is there a free trial for Pro?"
+            answer="The free tier is permanent — no credit card required. Take as long as you need. Upgrade when you're ready for unlimited access."
           />
           <FAQItem
             question="What payment methods are supported?"
-            answer="We accept UPI, debit/credit cards, net banking, and popular wallets through Razorpay's secure payment gateway."
+            answer="We support UPI, debit & credit cards, net banking, and popular wallets — all processed securely through Razorpay."
+          />
+          <FAQItem
+            question="Is my data safe?"
+            answer="Yes. All memory data is encrypted in transit and at rest. Your conversations and personal facts are private and never used for model training."
           />
         </div>
       </div>

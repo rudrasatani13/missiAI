@@ -3,7 +3,22 @@
 import { useRef, useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, Mic, MessageSquare, Volume2, Waves, ChevronRight, Lock, Zap, Clock, Globe, Sparkles } from "lucide-react"
+import localFont from "next/font/local"
+import { ArrowRight, Mic, Waves, Lock, Zap, Clock, Globe, Sparkles } from "lucide-react"
+
+const ithacaFont = localFont({
+  src: "./fonts/Ithaca.ttf",
+  variable: "--font-ithaca",
+  display: "swap",
+})
+
+import { Space_Grotesk } from "next/font/google"
+const spaceFont = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space",
+  display: "swap",
+})
+
 import { useUser } from "@clerk/nextjs"
 
 // Capture referral code from URL on landing page
@@ -174,97 +189,7 @@ function VoiceWaveform() {
   return <canvas ref={canvasRef} width={280} height={40} className="opacity-80" />
 }
 
-/* ─────────────────────────────────────────────────
-   Voice Demo Interaction
-   ───────────────────────────────────────────────── */
-function VoiceDemo() {
-  const [step, setStep] = useState(0)
-  const [isListening, setIsListening] = useState(false)
 
-  const conversation = [
-    { type: "user-voice" as const, text: "Hey missi, how's my day looking?" },
-    { type: "ai-voice" as const, text: "Good morning! You've got a team standup at 10, and that presentation you were nervous about is at 2. You crushed the last one though — you'll be fine. Oh, and it's your mom's birthday tomorrow. Want me to remind you tonight to call her?" },
-    { type: "user-voice" as const, text: "Yeah, remind me at 8. Also, play something chill." },
-    { type: "ai-voice" as const, text: "Done. I know you've been into lo-fi lately when you're prepping for presentations. Playing your focus playlist. Good luck today." },
-  ]
-
-  useEffect(() => {
-    if (step >= conversation.length) return
-    const delay = step === 0 ? 1500 : 3000
-    const timer = setTimeout(() => {
-      setIsListening(true)
-      setTimeout(() => {
-        setIsListening(false)
-        setStep(s => s + 1)
-      }, 800)
-    }, delay)
-    return () => clearTimeout(timer)
-  }, [step, conversation.length])
-
-  return (
-    <div className="flex flex-col gap-5">
-      {conversation.slice(0, step).map((msg, i) => (
-        <div key={i} className="flex gap-3" style={{ animation: "fadeUp 0.5s ease-out both" }}>
-          {msg.type === "ai-voice" ? (
-            <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 overflow-hidden select-none"
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <Image src="/images/logo-symbol.png" alt="M" width={20} height={20}
-                className="w-5 h-5 opacity-80 select-none pointer-events-none" draggable={false} />
-            </div>
-          ) : (
-            <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5"
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <Mic className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.5)" }} />
-            </div>
-          )}
-          <div className="flex-1 pt-1">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[10px] font-medium uppercase tracking-wider"
-                style={{ color: msg.type === "ai-voice" ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.35)" }}>
-                {msg.type === "ai-voice" ? "missi" : "You"}
-              </span>
-              {msg.type === "ai-voice" && (
-                <Volume2 className="w-3 h-3" style={{ color: "rgba(255,255,255,0.25)" }} />
-              )}
-              {msg.type === "user-voice" && (
-                <Mic className="w-3 h-3" style={{ color: "rgba(255,255,255,0.2)" }} />
-              )}
-            </div>
-            <p className="text-sm font-light leading-relaxed"
-              style={{ color: msg.type === "ai-voice" ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.55)" }}>
-              {msg.text}
-            </p>
-          </div>
-        </div>
-      ))}
-
-      {step < conversation.length && (
-        <div className="flex items-center gap-3 pl-11">
-          {isListening ? (
-            <div className="flex items-center gap-[3px]">
-              {[...Array(5)].map((_, i) => (
-                <span key={i} className="w-[3px] rounded-full" style={{
-                  background: "rgba(255,255,255,0.4)",
-                  height: 12 + Math.random() * 8,
-                  animation: `waveBar 0.8s ease-in-out ${i * 0.1}s infinite alternate`,
-                }} />
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5">
-              {[0, 1, 2].map((i) => (
-                <span key={i} className="w-1.5 h-1.5 rounded-full" style={{
-                  background: "rgba(255,255,255,0.35)",
-                  animation: `typingBounce 1.2s ease-in-out ${i * 0.15}s infinite`,
-                }} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 /* ─────────────────────────────────────────────────
    Animated Counter
@@ -333,7 +258,7 @@ export default function LandingPage() {
   useReferralCapture()
 
   return (
-    <div className="bg-black text-white overflow-x-hidden" style={{ fontFamily: "var(--font-inter), system-ui, sans-serif", backgroundColor: '#000000', color: '#ffffff' }}>
+    <div className={`bg-black text-white overflow-x-hidden ${ithacaFont.variable} ${spaceFont.variable}`} style={{ fontFamily: "var(--font-space), system-ui, sans-serif", backgroundColor: '#000000', color: '#ffffff' }}>
 
       {/* ═══════════════ HERO ═══════════════ */}
       <section className="relative min-h-screen flex flex-col" style={{ backgroundColor: '#000000' }}>
@@ -361,16 +286,60 @@ export default function LandingPage() {
             Voice AI — Early Access
           </div>
 
-          {/* Logo */}
-          <div className="mb-6 select-none" style={{ animation: "fadeUp 0.8s ease-out 0.1s both" }}>
-            <Image src="/images/missiai-logo.png" alt="missiAI" width={500} height={120}
-              className="h-14 md:h-20 lg:h-24 w-auto object-contain brightness-0 invert select-none pointer-events-none"
-              priority draggable={false} onContextMenu={(e) => e.preventDefault()} />
+          {/* LED Matrix Logo */}
+          <div className="mb-4 select-none w-full flex justify-center relative z-10" style={{ animation: "fadeUp 0.8s ease-out 0.1s both" }}>
+            <div className="w-[80vw] md:w-[55vw] max-w-[800px] relative">
+              <svg className="w-full h-auto drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" viewBox="0 0 800 220">
+                <defs>
+                  <style dangerouslySetInnerHTML={{
+                    __html: `
+                      @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+                      @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+                    `
+                  }} />
+                  {/* The square/pill dot pattern matching the reference image */}
+                  <pattern id="led-pattern" width="6" height="4" patternUnits="userSpaceOnUse" patternTransform="translate(0, 2)">
+                    {/* distinct ovalish blocks for the LED cells */}
+                    <rect x="0.5" y="0.5" width="5" height="3" rx="1" fill="#ffffff" />
+                  </pattern>
+                  <pattern id="led-pattern-red" width="6" height="4" patternUnits="userSpaceOnUse" patternTransform="translate(0, 2)">
+                    <rect x="0.5" y="0.5" width="5" height="3" rx="1" fill="rgba(255, 60, 60, 1)" />
+                  </pattern>
+                  <pattern id="led-pattern-blue" width="6" height="4" patternUnits="userSpaceOnUse" patternTransform="translate(0, 2)">
+                    <rect x="0.5" y="0.5" width="5" height="3" rx="1" fill="rgba(60, 150, 255, 1)" />
+                  </pattern>
+                  <mask id="text-mask">
+                    <rect width="100%" height="100%" fill="black" />
+                    <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" 
+                          fontSize="220" fontWeight="400" fontFamily="'VT323', 'Share Tech Mono', monospace" fill="white" letterSpacing="18">
+                      MISSI
+                    </text>
+                  </mask>
+                </defs>
+
+                {/* Ambient Glows - Tighter and less blue to match reference */}
+                <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" 
+                      fontSize="220" fontWeight="400" fontFamily="'VT323', 'Share Tech Mono', monospace" fill="#ffffff" opacity="0.15" style={{ filter: "blur(12px)" }} letterSpacing="18">
+                  MISSI
+                </text>
+                <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" 
+                      fontSize="220" fontWeight="400" fontFamily="'VT323', 'Share Tech Mono', monospace" fill="#e0f2fe" opacity="0.3" style={{ filter: "blur(4px)" }} letterSpacing="18">
+                  MISSI
+                </text>
+
+                {/* Chromatic aberration layers: tight and bright */}
+                <rect x="-1.5" width="100%" height="100%" fill="url(#led-pattern-red)" mask="url(#text-mask)" opacity="0.8" />
+                <rect x="1.5" width="100%" height="100%" fill="url(#led-pattern-blue)" mask="url(#text-mask)" opacity="0.8" />
+                
+                {/* Main dotted text - Crisp white */}
+                <rect x="0" width="100%" height="100%" fill="url(#led-pattern)" mask="url(#text-mask)" />
+              </svg>
+            </div>
           </div>
 
           {/* Headline */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1] max-w-3xl mb-6"
-            style={{ animation: "fadeUp 0.8s ease-out 0.2s both" }}>
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl tracking-wide leading-[1.2] max-w-3xl mb-4"
+            style={{ animation: "fadeUp 0.8s ease-out 0.2s both", fontFamily: "var(--font-ithaca)" }}>
             The only AI{" "}
             <span className="relative">
               that knows you.
@@ -380,7 +349,7 @@ export default function LandingPage() {
           </h1>
 
           {/* Subheadline */}
-          <p className="text-base md:text-lg font-light leading-relaxed max-w-lg mb-10"
+          <p className="text-xs md:text-sm font-light leading-relaxed max-w-lg mb-8"
             style={{ color: "rgba(255,255,255,0.4)", animation: "fadeUp 0.8s ease-out 0.3s both" }}>
             missiAI is a voice assistant that actually knows you. It listens, remembers,
             adapts — and talks back like someone who genuinely gives a damn.
@@ -419,85 +388,66 @@ export default function LandingPage() {
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="text-2xl md:text-4xl font-semibold tracking-tight mb-6 leading-snug">
-              Others answer questions.{" "}
+              Other AIs answer questions.{" "}
               <span style={{ color: "rgba(255,255,255,0.35)" }}>missi knows you.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
             <p className="text-sm md:text-base font-light leading-[1.9] max-w-2xl mx-auto" style={{ color: "rgba(255,255,255,0.45)" }}>
-              Every voice assistant today treats you like a stranger. Ask one something at 2 AM when you can&apos;t sleep
-              and you&apos;ll get a Wikipedia summary. Ask missi and she&apos;ll know you&apos;ve been stressed about work all week,
-              that you skipped the gym today, and that what you actually need isn&apos;t information — it&apos;s someone
-              who remembers the full picture. That&apos;s the difference between a tool and a companion.
+              Every voice assistant treats you like a stranger. Ask one something at 2 AM and you&apos;ll get
+              a Wikipedia summary. Ask missi and she&apos;ll know you&apos;ve been stressed about work all week,
+              that you skipped the gym today, that you need a reminder for your sister&apos;s birthday tomorrow —
+              and that what you actually need isn&apos;t information. It&apos;s someone who remembers the full picture.
             </p>
           </Reveal>
         </div>
       </section>
 
-      {/* ═══════════════ VOICE + CHAT ═══════════════ */}
+      {/* ═══════════════ HOW IT WORKS ═══════════════ */}
       <section className="relative py-24 md:py-32 px-6 md:px-10">
         <div className="max-w-3xl mx-auto text-center mb-16">
           <Reveal>
             <p className="text-[11px] font-medium tracking-[0.25em] uppercase mb-5" style={{ color: "rgba(255,255,255,0.3)" }}>
-              Two ways to talk
+              How it works
             </p>
           </Reveal>
           <Reveal delay={0.1}>
-            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight mb-5">
-              Speak it or type it.{" "}
-              <span style={{ color: "rgba(255,255,255,0.35)" }}>missi gets it either way.</span>
+            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight">
+              Simple to start.{" "}
+              <span style={{ color: "rgba(255,255,255,0.35)" }}>Gets smarter over time.</span>
             </h2>
           </Reveal>
         </div>
 
-        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Voice Card */}
-          <Reveal>
-            <div className="group relative p-7 md:p-8 rounded-2xl transition-all duration-500 hover:scale-[1.01]"
-              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)" }}>
-              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.06), transparent 70%)" }} />
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6"
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                  <Mic className="w-5 h-5" style={{ color: "rgba(255,255,255,0.7)" }} />
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider mb-4"
-                  style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)" }}>
-                  Primary
-                </div>
-                <h3 className="text-lg font-medium text-white mb-2.5 tracking-tight">Voice Assistant</h3>
-                <p className="text-sm font-light leading-relaxed" style={{ color: "rgba(255,255,255,0.4)" }}>
-                  Talk naturally, hands-free. missi listens, understands context, and responds in real-time voice.
-                  Like having a conversation with someone who actually pays attention.
-                </p>
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            {
+              step: "01",
+              title: "Just talk",
+              desc: "Open missiAI and start speaking. No setup, no forms, no training required. Your first conversation starts right now.",
+            },
+            {
+              step: "02",
+              title: "She remembers",
+              desc: "Every conversation builds your memory graph. Goals, habits, emotions, preferences — missi holds it all without you ever having to repeat yourself.",
+            },
+            {
+              step: "03",
+              title: "She shows up first",
+              desc: "Before you even ask, missi nudges you about your streak, flags what's coming, and checks in when it matters. Proactive, personal, persistent.",
+            },
+          ].map((item, i) => (
+            <Reveal key={i} delay={i * 0.1} className="h-full">
+              <div className="relative h-full flex flex-col p-7 rounded-2xl"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}>
+                <span className="text-[10px] font-medium tracking-[0.3em] uppercase mb-5 block" style={{ color: "rgba(255,255,255,0.2)" }}>
+                  {item.step}
+                </span>
+                <h3 className="text-[15px] font-medium text-white mb-2.5 tracking-tight">{item.title}</h3>
+                <p className="text-sm font-light leading-relaxed" style={{ color: "rgba(255,255,255,0.4)" }}>{item.desc}</p>
               </div>
-            </div>
-          </Reveal>
-
-          {/* Chat Card */}
-          <Reveal delay={0.1}>
-            <div className="group relative p-7 md:p-8 rounded-2xl transition-all duration-500 hover:scale-[1.01]"
-              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)" }}>
-              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.06), transparent 70%)" }} />
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6"
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                  <MessageSquare className="w-5 h-5" style={{ color: "rgba(255,255,255,0.7)" }} />
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider mb-4"
-                  style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.35)" }}>
-                  Always Available
-                </div>
-                <h3 className="text-lg font-medium text-white mb-2.5 tracking-tight">Text Chat</h3>
-                <p className="text-sm font-light leading-relaxed" style={{ color: "rgba(255,255,255,0.4)" }}>
-                  In a meeting? Can&apos;t talk? Type instead. Same personality, same memory, same missi.
-                  Switch between voice and chat seamlessly.
-                </p>
-              </div>
-            </div>
-          </Reveal>
+            </Reveal>
+          ))}
         </div>
       </section>
 
@@ -519,15 +469,15 @@ export default function LandingPage() {
 
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
-            { icon: Waves, title: "Emotional Awareness", desc: "Reads your tone. Detects real emotion beneath surface-level answers." },
-            { icon: Sparkles, title: "Deep Memory", desc: "Remembers you across every session. Not data — a living profile." },
-            { icon: Zap, title: "Instant Response", desc: "Sub-200ms voice response. Natural, fast, zero artificial delays." },
-            { icon: Clock, title: "Proactive Awareness", desc: "Surfaces what matters before you have to ask." },
-            { icon: Lock, title: "Private by Default", desc: "End-to-end encrypted. Zero data selling. Privacy non-negotiable." },
-            { icon: Globe, title: "Everywhere", desc: "Same memory and personality across phone, desktop, and web." },
+            { icon: Waves, title: "Emotional Awareness", desc: "Reads your tone, not just your words. Detects stress, excitement, and hesitation — and responds to what you actually feel." },
+            { icon: Sparkles, title: "Persistent Memory", desc: "Remembers you across every session. Goals, habits, relationships — your personal graph grows with every conversation." },
+            { icon: Zap, title: "Instant Voice", desc: "Sub-200ms latency. No awkward pauses. Conversations flow the way real ones do — fast and natural." },
+            { icon: Clock, title: "Proactive Intelligence", desc: "Missi checks in before you have to ask. Streak reminders, prep nudges, wind-down summaries — all timed to your life." },
+            { icon: Lock, title: "Private by Design", desc: "Everything is end-to-end encrypted. Your data is never sold, never shared. Privacy is the foundation, not an afterthought." },
+            { icon: Globe, title: "Works Everywhere", desc: "Same memory, same personality, same missi — across phone, desktop, and web. Wherever you are, she is too." },
           ].map((item, i) => (
-            <Reveal key={i} delay={i * 0.05}>
-              <div className="group relative p-6 md:p-7 rounded-2xl transition-all duration-500 hover:scale-[1.02]"
+            <Reveal key={i} delay={i * 0.05} className="h-full">
+              <div className="group relative h-full flex flex-col p-6 md:p-7 rounded-2xl transition-all duration-500 hover:scale-[1.02]"
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}>
                 <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                   style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05), transparent 70%)" }} />
@@ -545,55 +495,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════ VOICE DEMO ═══════════════ */}
-      <section className="relative py-24 md:py-32 px-6 md:px-10">
-        <div className="max-w-3xl mx-auto text-center mb-12">
-          <Reveal>
-            <p className="text-[11px] font-medium tracking-[0.25em] uppercase mb-5" style={{ color: "rgba(255,255,255,0.3)" }}>
-              See it in action
-            </p>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight">
-              A morning with{" "}
-              <span style={{ color: "rgba(255,255,255,0.35)" }}>missi</span>
-            </h2>
-          </Reveal>
-        </div>
-
-        <Reveal className="max-w-2xl mx-auto">
-          <div className="rounded-2xl md:rounded-3xl overflow-hidden"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3.5"
-              style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-              <div className="flex items-center gap-2.5">
-                <Image src="/images/logo-symbol.png" alt="M" width={20} height={20}
-                  className="w-5 h-5 opacity-70 select-none pointer-events-none" draggable={false} />
-                <span className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.45)" }}>missi</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400/70 ml-0.5" />
-              </div>
-              <div className="flex items-center gap-2">
-                <Mic className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.2)" }} />
-                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.2)" }}>Voice Mode</span>
-              </div>
-            </div>
-
-            <div className="px-5 md:px-8 py-6 md:py-8 min-h-[300px]">
-              <VoiceDemo />
-            </div>
-          </div>
-        </Reveal>
-
-        <Reveal delay={0.2} className="text-center mt-8">
-          <Link href="/chat" className="group inline-flex items-center gap-2 text-sm font-medium transition-all"
-            style={{ color: "rgba(255,255,255,0.45)" }}>
-            Try it yourself
-            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </Reveal>
-      </section>
-
       {/* ═══════════════ COMPARISON ═══════════════ */}
       <section className="relative py-24 md:py-32 px-6 md:px-10">
         <div className="max-w-3xl mx-auto text-center mb-16">
@@ -604,7 +505,7 @@ export default function LandingPage() {
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="text-2xl md:text-4xl font-semibold tracking-tight">
-              Voice assistants vs{" "}
+              Every AI vs{" "}
               <span style={{ color: "rgba(255,255,255,0.35)" }}>missi</span>
             </h2>
           </Reveal>
@@ -619,11 +520,11 @@ export default function LandingPage() {
               <div className="text-white">missi</div>
             </div>
             {[
-              { feature: "Remembers you", regular: "Resets daily", missi: "Always" },
+              { feature: "Remembers you", regular: "Session only", missi: "Always" },
               { feature: "Understands tone", regular: "—", missi: "Real-time" },
-              { feature: "Proactive help", regular: "Basic", missi: "Context-aware" },
+              { feature: "Proactive check-ins", regular: "—", missi: "Daily" },
               { feature: "Personality", regular: "Robotic", missi: "Human" },
-              { feature: "Text + Voice", regular: "Limited", missi: "Seamless" },
+              { feature: "Voice + Text", regular: "Separate", missi: "Seamless" },
               { feature: "Privacy", regular: "Questionable", missi: "Non-negotiable" },
             ].map((row, i) => (
               <div key={i} className="grid grid-cols-3 gap-0 text-center text-sm py-3.5 px-4"
@@ -642,7 +543,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto rounded-3xl px-8 py-14 md:py-20"
           style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
-            <AnimatedStat value={200} suffix="ms" label="Response Time" />
+            <AnimatedStat value={200} suffix="ms" label="Voice Latency" />
             <AnimatedStat value={99} suffix="%" label="Uptime" />
             <AnimatedStat value={50} suffix="k+" label="Waitlist" />
             <AnimatedStat value={100} suffix="%" label="Encrypted" />
@@ -655,16 +556,17 @@ export default function LandingPage() {
         <Reveal className="max-w-2xl mx-auto text-center">
           <div className="mb-6" style={{ color: "rgba(255,255,255,0.12)", fontSize: 48, lineHeight: 1 }}>&ldquo;</div>
           <p className="text-lg md:text-xl font-light leading-[1.8] italic mb-8" style={{ color: "rgba(255,255,255,0.55)" }}>
-            I was tired of talking to voice assistants that forget me the second I stop talking.
-            I wanted to build one that remembers — not just what I said, but why I said it.
-            One that feels less like a tool and more like someone in your corner.
+            I was tired of voice assistants that forget me the moment I stop talking.
+            I wanted to build something that actually remembers — not just what I said,
+            but why it mattered. Something that feels less like a tool, and more like
+            someone genuinely in your corner.
           </p>
           <div className="flex flex-col items-center gap-1">
             <span className="text-2xl italic" style={{ fontFamily: "var(--font-dancing-script), cursive", transform: "rotate(-2deg)", display: "inline-block" }}>
               Rudra S.
             </span>
             <span className="text-xs font-light" style={{ color: "rgba(255,255,255,0.25)" }}>
-              Rudra Satani, Creator
+              Rudra Satani, Creator of missiAI
             </span>
           </div>
         </Reveal>
@@ -680,18 +582,20 @@ export default function LandingPage() {
         </Reveal>
         <Reveal delay={0.1}>
           <p className="text-sm md:text-base font-light max-w-md mx-auto mb-10" style={{ color: "rgba(255,255,255,0.35)" }}>
-            The future of AI isn&apos;t artificial. It&apos;s personal.
+            The future of AI isn&apos;t artificial. It&apos;s personal. And it starts with one conversation.
           </p>
         </Reveal>
         <Reveal delay={0.2}>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link href="/waitlist" className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
+            <Link href="/chat" className="group inline-flex items-center gap-2.5 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
               style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
-              Get Early Access <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <Mic className="w-4 h-4" />
+              Try missi free
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link href="/chat" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:bg-white/10"
+            <Link href="/waitlist" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:bg-white/10"
               style={{ border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}>
-              <Mic className="w-4 h-4" /> Try missi
+              Join the waitlist
             </Link>
           </div>
         </Reveal>
@@ -734,6 +638,11 @@ export default function LandingPage() {
         @keyframes waveBar {
           0% { transform: scaleY(0.3); }
           100% { transform: scaleY(1); }
+        }
+        h1, h2, h3 {
+          font-family: var(--font-ithaca), monospace !important;
+          font-weight: normal !important;
+          letter-spacing: 0.05em;
         }
       `}</style>
     </div>

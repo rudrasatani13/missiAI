@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { Moon, Clock, Star, Sunrise } from 'lucide-react'
+import { Moon, Clock, Star, Sunrise, ArrowLeft } from 'lucide-react'
 import { useWindDown } from '@/hooks/useWindDown'
 import type { BriefingItem } from '@/types/proactive'
 
@@ -13,10 +14,10 @@ function getCurrentTime(): string {
 }
 
 function ItemIcon({ type }: { type: BriefingItem['type'] }) {
-  if (type === 'daily_win') return <Star className="w-4 h-4 text-yellow-400 opacity-70" />
-  if (type === 'tomorrow_prep') return <Clock className="w-4 h-4 text-blue-300 opacity-60" />
-  if (type === 'sleep_nudge') return <Moon className="w-4 h-4 text-indigo-300 opacity-60" />
-  if (type === 'gratitude_prompt') return <Sunrise className="w-4 h-4 text-rose-300 opacity-60" />
+  if (type === 'daily_win') return <Star className="w-4 h-4 text-white opacity-60" />
+  if (type === 'tomorrow_prep') return <Clock className="w-4 h-4 text-white opacity-60" />
+  if (type === 'sleep_nudge') return <Moon className="w-4 h-4 text-white opacity-60" />
+  if (type === 'gratitude_prompt') return <Sunrise className="w-4 h-4 text-white opacity-60" />
   return <div className="w-4 h-4 rounded-full bg-white opacity-20" />
 }
 
@@ -140,9 +141,19 @@ export default function WindDownPage() {
       }}
     >
       <div className="w-full max-w-md">
+        {/* Back button */}
+        <Link
+          href="/chat"
+          className="flex items-center gap-2 mb-8 opacity-40 hover:opacity-70 transition-opacity"
+          style={{ color: 'white', textDecoration: 'none' }}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-xs font-light tracking-wide">Back</span>
+        </Link>
+
         {/* Header */}
         <div className="flex flex-col items-center mb-10">
-          <Moon className="w-8 h-8 text-indigo-300 opacity-60 mb-4" />
+          <Moon className="w-8 h-8 text-white opacity-40 mb-4" />
           <h1 className="text-2xl font-light text-white tracking-wide mb-1">
             Good night
           </h1>

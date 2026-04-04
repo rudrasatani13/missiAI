@@ -19,7 +19,7 @@ function XPBar({ totalXP }: { totalXP: number }) {
         className="h-full rounded-full transition-all duration-500"
         style={{
           width: `${progress}%`,
-          background: 'linear-gradient(90deg, rgba(59,130,246,0.8), rgba(124,58,237,0.8))',
+          background: 'rgba(255,255,255,0.85)',
         }}
       />
     </div>
@@ -52,7 +52,7 @@ function HabitCard({ streak, onCheckIn, isCheckedInToday }: HabitCardProps) {
           <div className="flex items-center gap-3 mt-2">
             <span
               className="flex items-center gap-1 text-xs font-light"
-              style={{ color: streak.currentStreak > 0 ? 'rgba(251,146,60,0.9)' : 'rgba(255,255,255,0.3)' }}
+              style={{ color: streak.currentStreak > 0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)' }}
             >
               <Flame className="w-3 h-3" />
               {streak.currentStreak > 0 ? `${streak.currentStreak} days` : 'No streak'}
@@ -65,7 +65,7 @@ function HabitCard({ streak, onCheckIn, isCheckedInToday }: HabitCardProps) {
           </div>
         </div>
         {done ? (
-          <span className="shrink-0 text-xs font-light" style={{ color: 'rgba(34,197,94,0.9)', letterSpacing: '0.02em' }}>
+          <span className="shrink-0 text-xs font-light" style={{ color: 'rgba(255,255,255,0.6)', letterSpacing: '0.02em' }}>
             Done ✓
           </span>
         ) : (
@@ -73,9 +73,9 @@ function HabitCard({ streak, onCheckIn, isCheckedInToday }: HabitCardProps) {
             onClick={() => onCheckIn(streak.nodeId, streak.title)}
             className="shrink-0 px-3 py-1.5 rounded-full text-xs font-light transition-opacity"
             style={{
-              background: 'rgba(124,58,237,0.25)',
-              border: '1px solid rgba(124,58,237,0.4)',
-              color: 'rgba(255,255,255,0.8)',
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: 'rgba(255,255,255,0.9)',
               cursor: 'pointer',
               letterSpacing: '0.02em',
             }}
@@ -110,13 +110,13 @@ function MilestoneOverlay({ text, onClose, onPlay, isPlaying }: MilestoneOverlay
       <div
         className="w-full max-w-sm rounded-3xl px-8 py-10 text-center"
         style={{
-          background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(245,158,11,0.1))',
-          border: '1px solid rgba(124,58,237,0.3)',
+          background: '#050505',
+          border: '1px solid rgba(255,255,255,0.15)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-center mb-4">
-          <Flame className="w-10 h-10" style={{ color: 'rgba(251,146,60,0.9)' }} />
+          <Flame className="w-10 h-10" style={{ color: 'rgba(255,255,255,0.9)' }} />
         </div>
         <p className="text-white text-base font-light leading-relaxed mb-6">
           {text}
@@ -127,9 +127,9 @@ function MilestoneOverlay({ text, onClose, onPlay, isPlaying }: MilestoneOverlay
             disabled={isPlaying}
             className="px-5 py-2 rounded-full text-xs font-light transition-opacity"
             style={{
-              background: 'rgba(124,58,237,0.3)',
-              border: '1px solid rgba(124,58,237,0.4)',
-              color: isPlaying ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.8)',
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: isPlaying ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.9)',
               cursor: isPlaying ? 'default' : 'pointer',
               letterSpacing: '0.03em',
             }}
@@ -221,7 +221,7 @@ export default function StreakPage() {
     <div
       className="min-h-screen flex flex-col items-center justify-start px-4 py-12"
       style={{
-        background: 'linear-gradient(180deg, #0a0a14 0%, #080810 100%)',
+        background: '#000000',
         fontFamily: 'var(--font-inter), system-ui, sans-serif',
       }}
     >
@@ -239,13 +239,13 @@ export default function StreakPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-light text-white tracking-wide">🔥 Your streaks</h1>
+            <h1 className="text-xl font-light text-white tracking-wide">Your streaks</h1>
           </div>
           <div
             className="px-3 py-1 rounded-full text-xs font-light"
             style={{
-              background: 'rgba(124,58,237,0.2)',
-              border: '1px solid rgba(124,58,237,0.3)',
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.15)',
               color: 'rgba(255,255,255,0.7)',
               letterSpacing: '0.04em',
             }}

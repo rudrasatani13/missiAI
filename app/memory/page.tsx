@@ -111,6 +111,7 @@ export default function MemoryPage() {
     <div
       style={{
         minHeight: '100vh',
+        background: '#000',
         color: 'rgba(255,255,255,0.85)',
         fontFamily: 'inherit',
       }}

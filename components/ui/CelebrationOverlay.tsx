@@ -16,7 +16,7 @@ interface Particle {
   shape: 'circle' | 'square' | 'star'
 }
 
-const COLORS = ['#F59E0B', '#7C3AED', '#EC4899', '#10B981', '#3B82F6', '#F97316', '#FFD700', '#00E5FF']
+const COLORS = ['#FFFFFF', '#E5E5E5', '#D4D4D4', '#A3A3A3', '#F5F5F5', '#FAFAFA', '#E2E2E2', '#FFFFFF']
 
 function createParticle(id: number): Particle {
   return {
@@ -146,10 +146,9 @@ export function CelebrationOverlay({
             style={{
               fontSize: 48,
               marginBottom: 8,
-              filter: 'drop-shadow(0 0 20px rgba(245,158,11,0.5))',
             }}
           >
-            <Crown style={{ width: 48, height: 48, color: '#F59E0B', display: 'inline' }} />
+            <Crown style={{ width: 48, height: 48, color: '#FFFFFF', display: 'inline' }} />
           </div>
           <h2
             style={{

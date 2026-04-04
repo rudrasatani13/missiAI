@@ -1,7 +1,7 @@
 "use client"
 import type React from "react"
 import Link from "next/link"
-import { ThemeToggle } from "./theme-toggle"
+
 import { useEffect, useRef } from "react"
 import { ArrowLeft } from "lucide-react"
 
@@ -312,7 +312,6 @@ export function WaitlistLayout({ children, activeTab }: WaitlistLayoutProps) {
               Discord
             </Link>
           </div>
-          <ThemeToggle />
         </div>
       </div>
     </div>
