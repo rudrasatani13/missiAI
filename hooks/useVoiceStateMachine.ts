@@ -541,7 +541,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         // All retries exhausted — remove the last user message to prevent broken context
         setStreamingText("")
         setLastResponse("")
-        setError(err instanceof Error ? err.message : "Failed to get response — tap to try again")
+        setError(`Failed: ${err instanceof Error ? err.message : String(err)}`)
         // Remove the last user message that caused the failure
         const lastMsg = conversationRef.current[conversationRef.current.length - 1]
         if (lastMsg?.role === "user") {
@@ -574,8 +574,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       const ctrl = freshAbort()
 
       try {
+        const ext = blob.type.includes("mp4") ? "mp4" : blob.type.includes("mp3") || blob.type.includes("mpeg") ? "mp3" : "webm";
         const fd = new FormData()
-        fd.append("audio", blob, "recording.webm")
+        fd.append("audio", blob, `recording.${ext}`)
 
         const res = await fetchWithTimeout(
           "/api/v1/stt",
