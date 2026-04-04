@@ -30,9 +30,9 @@ export async function textToSpeech(options: TTSOptions): Promise<ArrayBuffer> {
     voiceId,
     apiKey,
     modelId = "eleven_multilingual_v2",
-    stability = 0.7,
-    similarityBoost = 0.85,
-    style = 0.15,
+    stability = 0.82,
+    similarityBoost = 0.8,
+    style = 0.05,
   } = options
 
   const res = await fetch(`${TTS_ENDPOINT}/${voiceId}`, {
