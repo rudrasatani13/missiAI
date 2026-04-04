@@ -339,7 +339,7 @@ export default function VoiceAssistantPage() {
       />
 
       {/* Floating nav pill — bottom-left, above voice button */}
-      <div className="fixed bottom-28 left-4 z-20 pointer-events-auto flex flex-col items-center gap-3 px-2 py-3 rounded-full"
+      <div className="fixed bottom-44 md:bottom-36 left-4 z-20 pointer-events-auto flex flex-col items-center gap-3 px-2 py-3 rounded-full"
         style={{
           background: 'rgba(0,0,0,0.65)',
           backdropFilter: 'blur(12px)',

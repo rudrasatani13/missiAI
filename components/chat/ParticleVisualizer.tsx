@@ -11,6 +11,8 @@ interface ParticleVisualizerProps {
 }
 
 function getQualityTier(): "low" | "high" {
+  // Always use low quality on mobile — WebGL context limits are much tighter
+  if (typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) return "low"
   const cores = navigator.hardwareConcurrency || 2
   const memory = (navigator as any).deviceMemory || 4
   if (cores <= 4 || memory <= 4) return "low"
@@ -176,7 +178,24 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
     if (!canvas) return
 
     const quality = getQualityTier()
-    const particleCount = quality === "low" ? 1200 : 6000
+    // Mobile: 500 particles max; desktop low: 1200; desktop high: 4000
+    const particleCount = quality === "low"
+      ? (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 500 : 1200)
+      : 4000
+
+    let renderer: THREE.WebGLRenderer
+
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: quality === "high",
+        alpha: false,
+        powerPreference: "default",
+      })
+    } catch {
+      // WebGL not supported — canvas stays black, page keeps working
+      return
+    }
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x000000)
@@ -189,11 +208,6 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
     )
     camera.position.z = 3.5
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: quality === "high",
-      alpha: false,
-    })
     renderer.setSize(window.innerWidth, window.innerHeight)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality === "low" ? 1 : 2))
 
@@ -293,7 +307,7 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
       document.removeEventListener("mousemove", onMove)
       window.removeEventListener("resize", onResize)
       document.removeEventListener("visibilitychange", onVisibility)
-      renderer.dispose()
+      try { renderer.dispose() } catch {}
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
