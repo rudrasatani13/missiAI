@@ -283,7 +283,7 @@ export function GroupedMemoryView({ nodes, onDelete, deletingId }: GroupedMemory
           nodes={groupNodes}
           onDelete={onDelete}
           deletingId={deletingId}
-          defaultOpen={groupNodes.length <= 8}
+          defaultOpen={false}
         />
       ))}
     </div>
