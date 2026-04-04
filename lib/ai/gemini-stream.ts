@@ -43,7 +43,9 @@ export function buildGeminiRequest(
     }
   })
 
-  return {
+  const hasImage = messages.some((m) => !!m.image)
+
+  const request: Record<string, unknown> = {
     system_instruction: { parts: [{ text: systemPrompt }] },
     contents,
     generationConfig: {
@@ -52,8 +54,15 @@ export function buildGeminiRequest(
       topK: 40,
       maxOutputTokens,
     },
-    tools: [{ google_search: {} }],
   }
+
+  // Google Search grounding is incompatible with Multimodal/Vision requests
+  // Only attach it if there are no images in the entire conversation payload.
+  if (!hasImage) {
+    request.tools = [{ google_search: {} }]
+  }
+
+  return request
 }
 
 /**

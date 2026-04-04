@@ -417,7 +417,14 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           continue
         }
 
-        if (!res.ok) throw new Error(`Error ${res.status}`)
+        if (!res.ok) {
+          let errMsg = `Error ${res.status}`
+          try {
+            const errData = await res.json()
+            if (errData.error) errMsg = errData.error
+          } catch {}
+          throw new Error(errMsg)
+        }
 
         const reader = res.body?.getReader()
         if (!reader) throw new Error("No stream")
@@ -506,7 +513,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         // All retries exhausted — remove the last user message to prevent broken context
         setStreamingText("")
         setLastResponse("")
-        setError("Failed to get response — tap to try again")
+        setError(err instanceof Error ? err.message : "Failed to get response — tap to try again")
         // Remove the last user message that caused the failure
         const lastMsg = conversationRef.current[conversationRef.current.length - 1]
         if (lastMsg?.role === "user") {
