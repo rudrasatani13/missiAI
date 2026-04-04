@@ -12,7 +12,7 @@ import { useMemoryDashboard } from '@/hooks/useMemoryDashboard'
 import { StatsBar } from '@/components/memory/StatsBar'
 import { CategoryFilter } from '@/components/memory/CategoryFilter'
 import { MemorySearch } from '@/components/memory/MemorySearch'
-import { NodeCard } from '@/components/memory/NodeCard'
+import { GroupedMemoryView } from '@/components/memory/GroupedMemoryView'
 import { Magnetic } from '@/components/ui/Magnetic'
 import type { MemoryCategory } from '@/types/memory'
 
@@ -457,19 +457,11 @@ export default function MemoryPage() {
             </p>
           </div>
         ) : (
-          <div
-            className="grid grid-cols-1 md:grid-cols-2 gap-3"
-            style={{ alignItems: 'start' }}
-          >
-            {filteredNodes.map((node) => (
-              <NodeCard
-                key={node.id}
-                node={node}
-                onDelete={deleteNode}
-                isDeleting={deletingId === node.id}
-              />
-            ))}
-          </div>
+          <GroupedMemoryView
+            nodes={filteredNodes}
+            onDelete={deleteNode}
+            deletingId={deletingId}
+          />
         )}
       </div>
     </div>
