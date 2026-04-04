@@ -40,11 +40,11 @@ function HeroStarfield() {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
       stars = []
-      const count = window.innerWidth < 768 ? 300 : 700
+      const count = window.innerWidth < 768 ? 120 : 300
       for (let i = 0; i < count; i++) {
         stars.push({
           x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-          size: Math.random() * 2.2 + 0.5, brightness: Math.random() * 0.7 + 0.3,
+          size: Math.random() * 1.2 + 0.3, brightness: Math.random() * 0.5 + 0.15,
           speed: Math.random() * 0.002 + 0.0005, offset: Math.random() * Math.PI * 2,
         })
       }
