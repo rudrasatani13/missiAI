@@ -72,7 +72,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     startRecording: () => Promise<void>
     transcribeAudio: (blob: Blob) => Promise<void>
     getAIResponse: () => Promise<void>
-    speakTextChunk: (text: string) => Promise<void>
+    speakTextChunk: (text: string, signal?: AbortSignal) => Promise<void>
   }>({
     startRecording: async () => {},
     transcribeAudio: async () => {},
@@ -251,7 +251,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   /* ── speakTextChunk ─────────────────────────────────────────────────────── */
 
   const speakTextChunk = useCallback(
-    async (text: string) => {
+    async (text: string, signal?: AbortSignal) => {
       if (!text.trim()) return
       setState((s) => (s !== "speaking" ? "speaking" : s))
       setStatusText("")
@@ -270,6 +270,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
               similarityBoost: adaptation.ttsSimilarityBoost,
               style: adaptation.ttsStyle,
             }),
+            signal,
           }
         )
         if (!res.ok) throw new Error("TTS chunk failed")
@@ -382,7 +383,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
                     const sentence = sentenceBuffer.slice(0, splitIndex).trim()
                     sentenceBuffer = sentenceBuffer.slice(splitIndex)
                     if (sentence) {
-                      fnRef.current.speakTextChunk(sentence).catch(console.error)
+                      fnRef.current.speakTextChunk(sentence, ctrl.signal).catch(console.error)
                     }
                   }
                 }
@@ -393,7 +394,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
         // Flush any remaining partial sentence
         if (shouldUseTTS(full, true) && sentenceBuffer.trim()) {
-          fnRef.current.speakTextChunk(sentenceBuffer.trim()).catch(console.error)
+          fnRef.current.speakTextChunk(sentenceBuffer.trim(), ctrl.signal).catch(console.error)
           sentenceBuffer = ""
         }
 

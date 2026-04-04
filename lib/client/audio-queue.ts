@@ -62,6 +62,7 @@ export class AudioQueue {
     const chunk = this.queue.shift()!
     try {
       const audioBuffer = await this.context.decodeAudioData(chunk)
+      if (this.isInterrupted) return
       
       const source = this.context.createBufferSource()
       source.buffer = audioBuffer
