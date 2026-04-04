@@ -33,6 +33,7 @@ export async function textToSpeech(options: TTSOptions): Promise<ArrayBuffer> {
     stability = 0.82,
     similarityBoost = 0.8,
     style = 0.05,
+    speed = 0.9,
   } = options
 
   const res = await fetch(`${TTS_ENDPOINT}/${voiceId}`, {
@@ -50,6 +51,7 @@ export async function textToSpeech(options: TTSOptions): Promise<ArrayBuffer> {
         similarity_boost: similarityBoost,
         style,
         use_speaker_boost: true,
+        speed,
       },
     }),
   })

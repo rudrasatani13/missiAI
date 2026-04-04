@@ -41,6 +41,7 @@ export interface TTSOptions {
   stability?: number
   similarityBoost?: number
   style?: number
+  speed?: number
 }
 
 export interface STTOptions {

@@ -116,10 +116,11 @@ export async function POST(req: NextRequest) {
 
   let { messages } = parsed.data
   const { personality } = parsed.data
-  const maxOutputTokens = parsed.data.maxOutputTokens ?? 1000
+  const maxOutputTokens = parsed.data.maxOutputTokens ?? 600
   const clientMemories = parsed.data.memories ?? ""
 
   // ── 6. Fetch Life Graph context via semantic search ─────────────────────────
+  // Capped at 3s so memory lookup doesn't delay the response
   let memories = ""
   if (kv) {
     try {
@@ -134,18 +135,25 @@ export async function POST(req: NextRequest) {
       }
 
       const vectorizeEnv = getVectorizeEnv()
-      const results = await searchLifeGraph(
+      const memoryPromise = searchLifeGraph(
         kv,
         vectorizeEnv,
         userId,
         currentMessage,
         apiKey,
-        { topK: 8 },
+        { topK: 5 },
       )
+      const MEMORY_TIMEOUT_MS = 3000
+      const results = await Promise.race([
+        memoryPromise,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Memory search timeout")), MEMORY_TIMEOUT_MS)
+        ),
+      ])
       memories = formatLifeGraphForPrompt(results)
     } catch (e) {
       logError("chat.memory_fetch_error", e, userId)
-      // Continue without memories
+      // Continue without memories — don't block the response
     }
   }
 

@@ -18,19 +18,19 @@ export function shouldUseTTS(text: string, voiceEnabled: boolean): boolean {
  * max 1200 chars. Append "..." if truncated.
  */
 export function truncateForTTS(text: string): string {
-  if (text.length <= 1200) return text
+  if (text.length <= 800) return text
 
   // Split on sentence-ending punctuation followed by a space
   const sentenceEnders = /(?<=[.!?])\s+/
   const sentences = text.split(sentenceEnders)
 
-  if (sentences.length <= 5) {
-    return text.slice(0, 1200) + "..."
+  if (sentences.length <= 4) {
+    return text.slice(0, 800) + "..."
   }
 
-  const truncated = sentences.slice(0, 5).join(" ")
-  if (truncated.length > 1200) {
-    return truncated.slice(0, 1200) + "..."
+  const truncated = sentences.slice(0, 4).join(" ")
+  if (truncated.length > 800) {
+    return truncated.slice(0, 800) + "..."
   }
   return truncated + "..."
 }

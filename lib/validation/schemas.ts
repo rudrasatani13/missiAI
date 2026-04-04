@@ -39,6 +39,7 @@ export const ttsSchema = z.object({
   stability: z.number().min(0).max(1).optional(),
   similarityBoost: z.number().min(0).max(1).optional(),
   style: z.number().min(0).max(1).optional(),
+  speed: z.number().min(0.5).max(2.0).optional(),
 })
 
 export type TTSInput = z.infer<typeof ttsSchema>
