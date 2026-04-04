@@ -120,7 +120,8 @@ export default function VoiceAssistantPage() {
 
   useEffect(() => {
     try {
-      if (!localStorage.getItem('missi-boot-v1')) {
+      const isNewUser = new URLSearchParams(window.location.search).get('new') === 'true'
+      if (isNewUser || !localStorage.getItem('missi-boot-v1')) {
         setShowBootSequence(true)
       } else {
         setBootCompleted(true)
@@ -214,9 +215,33 @@ export default function VoiceAssistantPage() {
     
     greetedRef.current = true
     try { sessionStorage.setItem('missi-greeted', '1') } catch {}
-    const n = user?.firstName || "", gs = [`Hey${n ? ` ${n}` : ""}! What's up, how's it going?`,
-      `Hey${n ? ` ${n}` : ""}! Good to see you, what can I help with?`, `Hey${n ? ` ${n}` : ""}! How are you doing today?`]
-    setTimeout(() => greet(gs[Math.floor(Math.random() * gs.length)]), 1200)
+    
+    let isNewUser = false
+    try {
+      isNewUser = new URLSearchParams(window.location.search).get('new') === 'true'
+      if (isNewUser) {
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    } catch {}
+
+    const n = user?.firstName || ""
+    
+    let delay = 1200
+    let greetingToSay = ""
+    
+    if (isNewUser) {
+      greetingToSay = `Hello ${n}, nice to finally meet you! Let's get started.`
+      delay = 2000 // wait a bit longer for the boot sequence to fully settle
+    } else {
+      const gs = [
+        `Hey${n ? ` ${n}` : ""}! What's up, how's it going?`,
+        `Hey${n ? ` ${n}` : ""}! Good to see you, what can I help with?`, 
+        `Hey${n ? ` ${n}` : ""}! How are you doing today?`
+      ]
+      greetingToSay = gs[Math.floor(Math.random() * gs.length)]
+    }
+
+    setTimeout(() => greet(greetingToSay), delay)
   }, [isLoaded, user, greet, isAtLimit, billingLoading, showBootSequence, bootCompleted])
 
   // Proactive JARVIS moment: auto-speak first high-priority briefing item
