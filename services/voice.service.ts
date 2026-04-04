@@ -29,10 +29,10 @@ export async function textToSpeech(options: TTSOptions): Promise<ArrayBuffer> {
     text,
     voiceId,
     apiKey,
-    modelId = "eleven_turbo_v2_5",
-    stability = 0.5,
-    similarityBoost = 0.75,
-    style = 0.3,
+    modelId = "eleven_multilingual_v2",
+    stability = 0.7,
+    similarityBoost = 0.85,
+    style = 0.15,
   } = options
 
   const res = await fetch(`${TTS_ENDPOINT}/${voiceId}`, {
@@ -74,7 +74,8 @@ export async function speechToText(options: STTOptions): Promise<STTResult> {
   const form = new FormData()
   form.append("file", audio)
   form.append("model_id", "scribe_v2")
-  // Let Scribe auto-detect language — supports Hindi, English, and Hinglish
+  // Hint: prefer Hindi + English for Hinglish speakers
+  form.append("language_code", "hin")
   for (const term of keyterms) {
     form.append("keyterms", term)
   }

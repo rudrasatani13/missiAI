@@ -55,7 +55,11 @@ export const sttSchema = z.object({
     .max(10_000_000, "Audio file too large (max 10 MB)"),
   type: z
     .string()
-    .regex(/^audio\//, "File must be an audio/* MIME type"),
+    // Safari/iOS may report video/mp4, application/octet-stream, or empty type
+    .refine(
+      (t) => !t || t.startsWith("audio/") || t.startsWith("video/") || t === "application/octet-stream",
+      "File must be an audio MIME type"
+    ),
 })
 
 export type STTFileInput = z.infer<typeof sttSchema>

@@ -72,9 +72,9 @@ export async function POST(req: NextRequest) {
   }
 
   const { text } = parsed.data
-  const stability = parsed.data.stability ?? 0.5
-  const similarityBoost = parsed.data.similarityBoost ?? 0.75
-  const style = parsed.data.style ?? 0.3
+  const stability = parsed.data.stability ?? 0.7
+  const similarityBoost = parsed.data.similarityBoost ?? 0.85
+  const style = parsed.data.style ?? 0.15
   const charCount = text.length
 
   // ── 5. Env check ──────────────────────────────────────────────────────────

@@ -574,9 +574,18 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       const ctrl = freshAbort()
 
       try {
-        const ext = blob.type.includes("mp4") ? "mp4" : blob.type.includes("mp3") || blob.type.includes("mpeg") ? "mp3" : "webm";
+        // iOS Safari may produce blobs with empty or wrong MIME types.
+        // Detect the actual type and create a proper File with correct extension.
+        let mimeType = blob.type || "audio/webm"
+        // Safari on iOS often records as audio/mp4 but sometimes reports video/mp4
+        if (mimeType.startsWith("video/")) mimeType = mimeType.replace("video/", "audio/")
+        if (!mimeType.startsWith("audio/")) mimeType = "audio/webm"
+
+        const ext = mimeType.includes("mp4") ? "mp4" : mimeType.includes("ogg") ? "ogg" : "webm"
+        const file = new File([blob], `recording.${ext}`, { type: mimeType })
+
         const fd = new FormData()
-        fd.append("audio", blob, `recording.${ext}`)
+        fd.append("audio", file)
 
         const res = await fetchWithTimeout(
           "/api/v1/stt",
@@ -659,8 +668,14 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       streamRef.current = stream
       startAudioMonitor(stream)
 
-      const mime = getBestAudioMimeType() || "audio/webm"
-      const recorder = new MediaRecorder(stream, { mimeType: mime })
+      const mime = getBestAudioMimeType() || "audio/mp4" // Safari fallback
+      let recorder: MediaRecorder
+      try {
+        recorder = new MediaRecorder(stream, { mimeType: mime })
+      } catch {
+        // Some iOS versions don't support mimeType option — use default
+        recorder = new MediaRecorder(stream)
+      }
       mediaRecorderRef.current = recorder
 
       recorder.ondataavailable = (e) => {
@@ -672,7 +687,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         streamRef.current = null
         stopAudioMonitor()
 
-        const blob = new Blob(audioChunksRef.current, { type: mime })
+        const actualMime = recorder.mimeType || mime || "audio/mp4"
+        const blob = new Blob(audioChunksRef.current, { type: actualMime })
         if (blob.size < 500) {
           if (continuousRef.current) {
             isTransitioningRef.current = false
