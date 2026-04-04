@@ -193,7 +193,8 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
         powerPreference: "default",
       })
     } catch {
-      // WebGL not supported — canvas stays black, page keeps working
+      // WebGL not supported — show a subtle gradient fallback
+      canvas.style.background = "radial-gradient(ellipse at 50% 45%, rgba(20,20,50,1) 0%, rgba(0,0,0,1) 65%)"
       return
     }
 
@@ -207,8 +208,10 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
       5000,
     )
     camera.position.z = 3.5
+    camera.position.y = 0.25  // shift camera up so particles visually center in the content area
+    camera.lookAt(0, 0, 0)
 
-    renderer.setSize(window.innerWidth, window.innerHeight)
+    renderer.setSize(window.innerWidth, window.innerHeight, false)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality === "low" ? 1 : 2))
 
     const uniforms = {
@@ -271,7 +274,7 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
     const onResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight
       camera.updateProjectionMatrix()
-      renderer.setSize(window.innerWidth, window.innerHeight)
+      renderer.setSize(window.innerWidth, window.innerHeight, false)
     }
     window.addEventListener("resize", onResize)
 
@@ -339,8 +342,7 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
     <canvas
       ref={canvasRef}
       data-testid="particle-visualizer"
-      className="fixed inset-0 w-full h-full"
-      style={{ zIndex: 0 }}
+      style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 0 }}
     />
   )
 }

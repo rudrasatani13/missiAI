@@ -454,9 +454,9 @@ export default function LandingPage() {
           {/* Voice Card */}
           <Reveal>
             <div className="group relative p-7 md:p-8 rounded-2xl transition-all duration-500 hover:scale-[1.01]"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)" }}>
               <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.04), transparent 70%)" }} />
+                style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.06), transparent 70%)" }} />
               <div className="relative z-10">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6"
                   style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
@@ -478,9 +478,9 @@ export default function LandingPage() {
           {/* Chat Card */}
           <Reveal delay={0.1}>
             <div className="group relative p-7 md:p-8 rounded-2xl transition-all duration-500 hover:scale-[1.01]"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)" }}>
               <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.04), transparent 70%)" }} />
+                style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.06), transparent 70%)" }} />
               <div className="relative z-10">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6"
                   style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
@@ -528,9 +528,9 @@ export default function LandingPage() {
           ].map((item, i) => (
             <Reveal key={i} delay={i * 0.05}>
               <div className="group relative p-6 md:p-7 rounded-2xl transition-all duration-500 hover:scale-[1.02]"
-                style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}>
                 <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.03), transparent 70%)" }} />
+                  style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05), transparent 70%)" }} />
                 <div className="relative z-10">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5"
                     style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
@@ -563,7 +563,7 @@ export default function LandingPage() {
 
         <Reveal className="max-w-2xl mx-auto">
           <div className="rounded-2xl md:rounded-3xl overflow-hidden"
-            style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}>
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3.5"
               style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
@@ -611,9 +611,9 @@ export default function LandingPage() {
         </div>
 
         <Reveal className="max-w-2xl mx-auto">
-          <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.12)" }}>
             <div className="grid grid-cols-3 gap-0 text-center text-xs font-medium py-4 px-4"
-              style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+              style={{ background: "rgba(255,255,255,0.07)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
               <div style={{ color: "rgba(255,255,255,0.3)" }}>Feature</div>
               <div style={{ color: "rgba(255,255,255,0.3)" }}>Others</div>
               <div className="text-white">missi</div>
@@ -627,7 +627,7 @@ export default function LandingPage() {
               { feature: "Privacy", regular: "Questionable", missi: "Non-negotiable" },
             ].map((row, i) => (
               <div key={i} className="grid grid-cols-3 gap-0 text-center text-sm py-3.5 px-4"
-                style={{ borderBottom: i < 5 ? "1px solid rgba(255,255,255,0.04)" : "none", background: i % 2 === 0 ? "rgba(255,255,255,0.01)" : "transparent" }}>
+                style={{ borderBottom: i < 5 ? "1px solid rgba(255,255,255,0.07)" : "none", background: i % 2 === 0 ? "rgba(255,255,255,0.03)" : "transparent" }}>
                 <div className="font-light" style={{ color: "rgba(255,255,255,0.55)" }}>{row.feature}</div>
                 <div className="font-light" style={{ color: "rgba(255,255,255,0.2)" }}>{row.regular}</div>
                 <div className="font-medium text-white">{row.missi}</div>
@@ -640,7 +640,7 @@ export default function LandingPage() {
       {/* ═══════════════ STATS ═══════════════ */}
       <section className="relative py-20 md:py-28 px-6">
         <div className="max-w-4xl mx-auto rounded-3xl px-8 py-14 md:py-20"
-          style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
             <AnimatedStat value={200} suffix="ms" label="Response Time" />
             <AnimatedStat value={99} suffix="%" label="Uptime" />
