@@ -20,7 +20,7 @@ import type { KVStore } from "@/types"
 
 export const runtime = "edge"
 
-const MAX_BODY_BYTES = 1_000_000 // 1 MB
+const MAX_BODY_BYTES = 5_000_000 // 5 MB
 
 function getKV(): KVStore | null {
   try {

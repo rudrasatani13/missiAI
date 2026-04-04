@@ -78,9 +78,31 @@ export default function VoiceAssistantPage() {
     const reader = new FileReader()
     reader.onload = (ev) => {
       if (typeof ev.target?.result === 'string') {
-        // Compress or just use directly. For now, use directly.
-        imagePayloadRef.current = ev.target.result
-        setThumbnail(ev.target.result)
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement("canvas")
+          let width = img.width
+          let height = img.height
+          const maxSize = 800
+
+          if (width > height && width > maxSize) {
+            height *= maxSize / width
+            width = maxSize
+          } else if (height > maxSize) {
+            width *= maxSize / height
+            height = maxSize
+          }
+
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext("2d")
+          ctx?.drawImage(img, 0, 0, width, height)
+
+          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7)
+          imagePayloadRef.current = compressedBase64
+          setThumbnail(compressedBase64)
+        }
+        img.src = ev.target.result
       }
     }
     reader.readAsDataURL(file)
