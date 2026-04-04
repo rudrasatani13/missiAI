@@ -109,8 +109,8 @@ const VERTEX_SHADER = `
     displaced += curl * sin(uTime * 8.0 * timeScale) * uAudioHigh * 0.08 * uActivityLevel;
 
     vec3 baseColor = vec3(
-      0.5 + 0.5 * sin(curl.y + 2.0 + uActivityLevel * 2.0),
-      0.5 + 0.5 * sin(uTime * timeScale + curl.y + uActivityLevel),
+      0.4 + 0.6 * sin(curl.y + 2.0 + uActivityLevel * 2.0),
+      0.4 + 0.6 * sin(uTime * timeScale + curl.y + uActivityLevel),
       0.5 + 0.5 * sin(uTime * timeScale * 0.1 + curl.z + 4.0)
     );
     vec3 lowColor = vec3(0.1, 0.4, 1.0);
@@ -118,17 +118,17 @@ const VERTEX_SHADER = `
     vec3 highColor = vec3(1.0, 0.1, 0.4);
     vec3 activeColor = vec3(0.0, 1.0, 0.5);
     vColor = baseColor;
-    vColor = mix(vColor, lowColor, uAudioLow * 0.057);
-    vColor = mix(vColor, midColor, uAudioMid * 0.057);
-    vColor = mix(vColor, highColor, uAudioHigh * 0.057);
-    vColor = mix(vColor, activeColor, uActivityLevel * 0.3);
+    vColor = mix(vColor, lowColor, uAudioLow * 0.4);
+    vColor = mix(vColor, midColor, uAudioMid * 0.4);
+    vColor = mix(vColor, highColor, uAudioHigh * 0.4);
+    vColor = mix(vColor, activeColor, uActivityLevel * 0.6);
     vAudioMid = uAudioMid;
 
     vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
     gl_Position = projectionMatrix * mvPosition;
-    float size = (3.0 + uActivityLevel * 2.0);
-    size += uAudioLow * 1.0;
-    size += uAudioMid * 5.0;
+    float size = (6.0 + uActivityLevel * 5.0);
+    size += uAudioLow * 2.0;
+    size += uAudioMid * 10.0;
     size *= (1.0 + uAudioHigh);
     gl_PointSize = size * (1.0 / -mvPosition.z);
   }
@@ -144,9 +144,9 @@ const FRAGMENT_SHADER = `
     float edge = 0.5;
     if (dist > edge) discard;
     float alpha = 1.0 - smoothstep(softness, edge, dist);
-    float innerGlow = 1.0 - smoothstep(0.0, 0.35, dist);
+    float innerGlow = 1.0 - smoothstep(0.0, 0.25, dist);
     vec3 finalColor = mix(vColor, vColor * 0.5, innerGlow * vAudioMid);
-    gl_FragColor = vec4(finalColor, alpha);
+    gl_FragColor = vec4(finalColor * 1.4, alpha);
   }
 `
 
@@ -176,7 +176,7 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
     if (!canvas) return
 
     const quality = getQualityTier()
-    const particleCount = quality === "low" ? 300 : 1000
+    const particleCount = quality === "low" ? 1200 : 6000
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x000000)
@@ -187,7 +187,7 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
       0.1,
       5000,
     )
-    camera.position.z = 3
+    camera.position.z = 4
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
@@ -199,10 +199,10 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
 
     const uniforms = {
       uTime: { value: 0 },
-      uAudioLow: { value: 0.2 },
-      uAudioMid: { value: 0.2 },
-      uAudioHigh: { value: 0.2 },
-      uActivityLevel: { value: 0.2 },
+      uAudioLow: { value: 0.38 },
+      uAudioMid: { value: 0.35 },
+      uAudioHigh: { value: 0.35 },
+      uActivityLevel: { value: 0.38 },
     }
 
     const geometry = new THREE.BufferGeometry()
@@ -212,7 +212,7 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
     for (let i = 0; i < particleCount; i++) {
       const theta = Math.random() * Math.PI * 2
       const phi = Math.acos(2 * Math.random() - 1)
-      const r = Math.cbrt(Math.random()) * 2
+      const r = Math.cbrt(Math.random()) * 4.5
       const x = r * Math.sin(phi) * Math.cos(theta)
       const y = r * Math.sin(phi) * Math.sin(theta)
       const z = r * Math.cos(phi)
@@ -234,17 +234,6 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
     const particles = new THREE.Points(geometry, material)
     scene.add(particles)
 
-    const gridGeo = new THREE.PlaneGeometry(20, 20, 20, 20)
-    const gridMat = new THREE.MeshBasicMaterial({
-      color: 0x00ff88,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.03,
-    })
-    const grid = new THREE.Mesh(gridGeo, gridMat)
-    grid.position.z = -5
-    scene.add(grid)
-
     vizRef.current = {
       scene,
       camera,
@@ -252,8 +241,8 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
       particles,
       uniforms,
       clock: 0,
-      activityLevel: 0.2,
-      targetActivity: 0.2,
+      activityLevel: 0.38,
+      targetActivity: 0.38,
       smoothAudio: 0,
     }
 
@@ -322,7 +311,7 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
         vizRef.current.targetActivity = 0.6
         break
       default:
-        vizRef.current.targetActivity = 0.2
+        vizRef.current.targetActivity = 0.35
         break
     }
   }, [state])

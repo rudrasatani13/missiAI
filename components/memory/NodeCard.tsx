@@ -4,17 +4,17 @@ import { useState, useRef, useEffect } from 'react'
 import { Trash2 } from 'lucide-react'
 import type { LifeNode, MemoryCategory } from '@/types/memory'
 
-const CATEGORY_COLORS: Record<MemoryCategory, string> = {
-  person: '#7C3AED',
-  goal: '#059669',
-  habit: '#D97706',
-  preference: '#2563EB',
-  event: '#DC2626',
-  emotion: '#9333EA',
-  skill: '#0891B2',
-  place: '#65A30D',
-  belief: '#C2410C',
-  relationship: '#BE185D',
+const CATEGORY_COLORS: Record<MemoryCategory, { bg: string; text: string; border: string }> = {
+  person:       { bg: 'rgba(249,115,22,0.15)',  text: 'rgba(253,186,116,0.9)', border: 'rgba(249,115,22,0.25)' },
+  goal:         { bg: 'rgba(59,130,246,0.15)',  text: 'rgba(147,197,253,0.9)', border: 'rgba(59,130,246,0.25)' },
+  habit:        { bg: 'rgba(34,197,94,0.15)',   text: 'rgba(134,239,172,0.9)', border: 'rgba(34,197,94,0.25)' },
+  preference:   { bg: 'rgba(99,102,241,0.15)',  text: 'rgba(199,210,254,0.9)', border: 'rgba(99,102,241,0.25)' },
+  event:        { bg: 'rgba(239,68,68,0.15)',   text: 'rgba(252,165,165,0.9)', border: 'rgba(239,68,68,0.25)' },
+  emotion:      { bg: 'rgba(236,72,153,0.15)',  text: 'rgba(249,168,212,0.9)', border: 'rgba(236,72,153,0.25)' },
+  skill:        { bg: 'rgba(8,145,178,0.15)',   text: 'rgba(103,232,249,0.9)', border: 'rgba(8,145,178,0.25)' },
+  place:        { bg: 'rgba(101,163,13,0.15)',  text: 'rgba(190,242,100,0.9)', border: 'rgba(101,163,13,0.25)' },
+  belief:       { bg: 'rgba(194,65,12,0.15)',   text: 'rgba(253,186,116,0.9)', border: 'rgba(194,65,12,0.25)' },
+  relationship: { bg: 'rgba(190,24,93,0.15)',   text: 'rgba(251,207,232,0.9)', border: 'rgba(190,24,93,0.25)' },
 }
 
 interface NodeCardProps {
@@ -88,8 +88,9 @@ export function NodeCard({ node, onDelete, isDeleting }: NodeCardProps) {
         <span
           style={{
             fontSize: '10px',
-            color: '#fff',
-            background: CATEGORY_COLORS[node.category],
+            color: CATEGORY_COLORS[node.category].text,
+            background: CATEGORY_COLORS[node.category].bg,
+            border: `1px solid ${CATEGORY_COLORS[node.category].border}`,
             borderRadius: '999px',
             padding: '2px 8px',
             flexShrink: 0,

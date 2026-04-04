@@ -40,11 +40,11 @@ function HeroStarfield() {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
       stars = []
-      const count = window.innerWidth < 768 ? 100 : 200
+      const count = window.innerWidth < 768 ? 300 : 700
       for (let i = 0; i < count; i++) {
         stars.push({
           x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-          size: Math.random() * 1.5 + 0.3, brightness: Math.random() * 0.5 + 0.1,
+          size: Math.random() * 2.2 + 0.5, brightness: Math.random() * 0.7 + 0.3,
           speed: Math.random() * 0.002 + 0.0005, offset: Math.random() * Math.PI * 2,
         })
       }
@@ -64,17 +64,17 @@ function HeroStarfield() {
         ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2); ctx.fill()
       }
 
-      if (Math.random() < 0.0006) {
+      if (Math.random() < 0.002) {
         const a = Math.PI / 4 + Math.random() * 0.5, sp = 5 + Math.random() * 5, ml = 50 + Math.random() * 50
         shootingStars.push({ x: Math.random() * canvas.width, y: -10, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: ml, maxLife: ml })
       }
       for (let i = shootingStars.length - 1; i >= 0; i--) {
         const ss = shootingStars[i]; ss.x += ss.vx; ss.y += ss.vy; ss.life--
         const al = (ss.life / ss.maxLife)
-        const g = ctx.createLinearGradient(ss.x, ss.y, ss.x - ss.vx * 16, ss.y - ss.vy * 16)
+        const g = ctx.createLinearGradient(ss.x, ss.y, ss.x - ss.vx * 22, ss.y - ss.vy * 22)
         g.addColorStop(0, `rgba(255,255,255,${al})`); g.addColorStop(1, "transparent")
         ctx.strokeStyle = g; ctx.lineWidth = 1.2; ctx.lineCap = "round"
-        ctx.beginPath(); ctx.moveTo(ss.x, ss.y); ctx.lineTo(ss.x - ss.vx * 16, ss.y - ss.vy * 16); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(ss.x, ss.y); ctx.lineTo(ss.x - ss.vx * 22, ss.y - ss.vy * 22); ctx.stroke()
         if (ss.life <= 0) shootingStars.splice(i, 1)
       }
       animId = requestAnimationFrame(draw)
@@ -371,9 +371,9 @@ export default function LandingPage() {
           {/* Headline */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1] max-w-3xl mb-6"
             style={{ animation: "fadeUp 0.8s ease-out 0.2s both" }}>
-            Your voice.{" "}
+            The only AI{" "}
             <span className="relative">
-              Your AI.
+              that knows you.
               <span className="absolute -bottom-1 left-0 w-full h-[2px] rounded-full"
                 style={{ background: "linear-gradient(90deg, rgba(255,255,255,0.5), rgba(255,255,255,0.05))" }} />
             </span>
@@ -519,12 +519,12 @@ export default function LandingPage() {
 
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
-            { icon: Waves, title: "Emotional Awareness", desc: "Reads your tone, not just your words. Knows the difference between \"I'm fine\" and actually being fine." },
-            { icon: Sparkles, title: "Deep Memory", desc: "Remembers your conversations, habits, preferences. Not as data points — as the story of who you are." },
-            { icon: Zap, title: "Instant Response", desc: "No buffering, no \"processing your request.\" Speaks back naturally, fast, like a real conversation." },
-            { icon: Clock, title: "Proactive Awareness", desc: "Doesn't wait to be asked. Reminds you about things that matter before you forget them." },
-            { icon: Lock, title: "Private by Default", desc: "Your voice, your data, your life. End-to-end encryption. Zero data selling. Non-negotiable." },
-            { icon: Globe, title: "Everywhere", desc: "Phone, desktop, web. missi follows you across devices with the same memory and personality." },
+            { icon: Waves, title: "Emotional Awareness", desc: "Reads your tone. Detects real emotion beneath surface-level answers." },
+            { icon: Sparkles, title: "Deep Memory", desc: "Remembers you across every session. Not data — a living profile." },
+            { icon: Zap, title: "Instant Response", desc: "Sub-200ms voice response. Natural, fast, zero artificial delays." },
+            { icon: Clock, title: "Proactive Awareness", desc: "Surfaces what matters before you have to ask." },
+            { icon: Lock, title: "Private by Default", desc: "End-to-end encrypted. Zero data selling. Privacy non-negotiable." },
+            { icon: Globe, title: "Everywhere", desc: "Same memory and personality across phone, desktop, and web." },
           ].map((item, i) => (
             <Reveal key={i} delay={i * 0.05}>
               <div className="group relative p-6 md:p-7 rounded-2xl transition-all duration-500 hover:scale-[1.02]"

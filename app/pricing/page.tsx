@@ -166,6 +166,7 @@ function PlanCard({
   return (
     <div
       data-testid={`plan-card-${planId}`}
+      className="hover:scale-[1.01]"
       style={{
         position: 'relative',
         background: isCurrentPlan
@@ -174,19 +175,15 @@ function PlanCard({
         backdropFilter: 'blur(20px)',
         border: isCurrentPlan
           ? '1px solid rgba(124,58,237,0.3)'
-          : isMostPopular
-            ? '1px solid rgba(255,255,255,0.2)'
-            : '1px solid rgba(255,255,255,0.08)',
+          : '1px solid rgba(255,255,255,0.1)',
         borderRadius: 16,
         padding: '32px 24px',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+        transition: 'border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease',
         boxShadow: isCurrentPlan
           ? '0 0 40px rgba(124,58,237,0.08)'
-          : isMostPopular
-            ? '0 0 40px rgba(255,255,255,0.03)'
-            : 'none',
+          : 'none',
       }}
     >
       {/* Current Plan Badge */}

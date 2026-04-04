@@ -135,7 +135,7 @@ export default function WindDownPage() {
     <div
       className="min-h-screen flex flex-col items-center justify-start px-4 py-12"
       style={{
-        background: 'linear-gradient(180deg, #0a0a14 0%, #080810 100%)',
+        background: '#000000',
         fontFamily: 'var(--font-inter), system-ui, sans-serif',
       }}
     >

@@ -264,33 +264,6 @@ export default function VoiceAssistantPage() {
             {plan?.id === 'free' ? 'Upgrade to Pro' : plan?.id === 'pro' ? 'Pro Plan' : plan?.id === 'business' ? 'Business Plan' : 'Pricing'}
           </Link>
           <PluginBadge plugins={plugins} onManage={() => setShowSettings(true)} />
-          <Link
-            href="/memory"
-            onClick={(e) => e.stopPropagation()}
-            className="opacity-40 hover:opacity-70 transition-opacity"
-            title="Memory Graph"
-            style={{ display: 'flex', alignItems: 'center', color: 'white' }}
-          >
-            <Brain className="w-4 h-4" />
-          </Link>
-          <Link
-            href="/streak"
-            onClick={(e) => e.stopPropagation()}
-            className="opacity-40 hover:opacity-70 transition-opacity"
-            title="Streaks"
-            style={{ display: 'flex', alignItems: 'center', color: 'white' }}
-          >
-            <Flame className="w-4 h-4" />
-          </Link>
-          <Link
-            href="/wind-down"
-            onClick={(e) => e.stopPropagation()}
-            className="opacity-40 hover:opacity-70 transition-opacity"
-            title="Good night"
-            style={{ display: 'flex', alignItems: 'center', color: 'white' }}
-          >
-            <Moon className="w-4 h-4" />
-          </Link>
           <button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings) }}
             className="opacity-40 hover:opacity-70 transition-opacity"
             data-testid="settings-toggle-btn"
@@ -364,5 +337,30 @@ export default function VoiceAssistantPage() {
         planId={plan?.id ?? 'free'}
         onUpgrade={() => initiateRazorpayCheckout('pro')}
       />
+
+      {/* Floating nav pill — bottom-left, above voice button */}
+      <div className="fixed bottom-28 left-4 z-20 pointer-events-auto flex flex-col items-center gap-3 px-2 py-3 rounded-full"
+        style={{
+          background: 'rgba(0,0,0,0.65)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.07)',
+        }}>
+        <Link href="/memory" onClick={(e) => e.stopPropagation()}
+          className="opacity-40 hover:opacity-70 transition-opacity flex items-center justify-center"
+          title="Memory Graph" style={{ color: 'white' }}>
+          <Brain className="w-4 h-4" />
+        </Link>
+        <Link href="/wind-down" onClick={(e) => e.stopPropagation()}
+          className="opacity-40 hover:opacity-70 transition-opacity flex items-center justify-center"
+          title="Good night" style={{ color: 'white' }}>
+          <Moon className="w-4 h-4" />
+        </Link>
+        <Link href="/streak" onClick={(e) => e.stopPropagation()}
+          className="opacity-40 hover:opacity-70 transition-opacity flex items-center justify-center"
+          title="Streaks" style={{ color: 'white' }}>
+          <Flame className="w-4 h-4" />
+        </Link>
+      </div>
     </div>  )
 }

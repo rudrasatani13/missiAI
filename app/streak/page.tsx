@@ -19,7 +19,7 @@ function XPBar({ totalXP }: { totalXP: number }) {
         className="h-full rounded-full transition-all duration-500"
         style={{
           width: `${progress}%`,
-          background: 'linear-gradient(90deg, rgba(124,58,237,0.8), rgba(245,158,11,0.8))',
+          background: 'linear-gradient(90deg, rgba(59,130,246,0.8), rgba(124,58,237,0.8))',
         }}
       />
     </div>
@@ -64,20 +64,25 @@ function HabitCard({ streak, onCheckIn, isCheckedInToday }: HabitCardProps) {
             )}
           </div>
         </div>
-        <button
-          onClick={() => onCheckIn(streak.nodeId, streak.title)}
-          disabled={done}
-          className="shrink-0 px-3 py-1.5 rounded-full text-xs font-light transition-opacity"
-          style={{
-            background: done ? 'rgba(255,255,255,0.04)' : 'rgba(124,58,237,0.25)',
-            border: done ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(124,58,237,0.4)',
-            color: done ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.8)',
-            cursor: done ? 'default' : 'pointer',
-            letterSpacing: '0.02em',
-          }}
-        >
-          {done ? 'Done today!' : streak.currentStreak === 0 ? 'Start streak' : 'Check in'}
-        </button>
+        {done ? (
+          <span className="shrink-0 text-xs font-light" style={{ color: 'rgba(34,197,94,0.9)', letterSpacing: '0.02em' }}>
+            Done ✓
+          </span>
+        ) : (
+          <button
+            onClick={() => onCheckIn(streak.nodeId, streak.title)}
+            className="shrink-0 px-3 py-1.5 rounded-full text-xs font-light transition-opacity"
+            style={{
+              background: 'rgba(124,58,237,0.25)',
+              border: '1px solid rgba(124,58,237,0.4)',
+              color: 'rgba(255,255,255,0.8)',
+              cursor: 'pointer',
+              letterSpacing: '0.02em',
+            }}
+          >
+            {streak.currentStreak === 0 ? 'Start streak' : 'Check in'}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -234,8 +239,7 @@ export default function StreakPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Flame className="w-5 h-5" style={{ color: 'rgba(251,146,60,0.8)' }} />
-            <h1 className="text-xl font-light text-white tracking-wide">Your streaks</h1>
+            <h1 className="text-xl font-light text-white tracking-wide">🔥 Your streaks</h1>
           </div>
           <div
             className="px-3 py-1 rounded-full text-xs font-light"
