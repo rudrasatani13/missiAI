@@ -20,12 +20,14 @@ export interface UseVoiceStateMachineOptions {
   personalityRef: React.MutableRefObject<PersonalityKey>
   memoriesRef: React.MutableRefObject<string>
   conversationRef: React.MutableRefObject<ConversationEntry[]>
+  imagePayloadRef?: React.MutableRefObject<string | null>
+  onImageConsumed?: () => void
 }
 
 /* ── Hook ─────────────────────────────────────────────────────────────────── */
 
 export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
-  const { userId, personalityRef, memoriesRef, conversationRef } = options
+  const { userId, personalityRef, memoriesRef, conversationRef, imagePayloadRef, onImageConsumed } = options
 
   /* ── Public reactive state ──────────────────────────────────────────────── */
   const [state, setState] = useState<VoiceState>("idle")
@@ -366,6 +368,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         const msgs = conversationRef.current.map((m) => ({
           role: m.role,
           content: m.content,
+          image: m.image,
         }))
 
         const adaptation = getSmoothedAdaptation()
@@ -562,8 +565,15 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           return
         }
 
+        let imageToAttach = undefined
+        if (imagePayloadRef && imagePayloadRef.current) {
+          imageToAttach = imagePayloadRef.current
+          imagePayloadRef.current = null
+          if (onImageConsumed) onImageConsumed()
+        }
+
         setLastTranscript(text)
-        conversationRef.current.push({ role: "user", content: text })
+        conversationRef.current.push({ role: "user", content: text, image: imageToAttach })
         await fnRef.current.getAIResponse()
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
