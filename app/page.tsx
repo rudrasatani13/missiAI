@@ -239,27 +239,25 @@ function NavButtons() {
                 </Link>
               </Magnetic>
             ) : (
-              <Magnetic>
-                <Link href="/login" className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10"
+              <>
+                <Link href="/sign-in" className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10"
                   style={{ color: "rgba(255,255,255,0.6)" }}>
-                  Login
+                  Log in
                 </Link>
-              </Magnetic>
+                <Magnetic>
+                  <Link href="/sign-up"
+                    className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
+                    style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
+                    Sign up
+                  </Link>
+                </Magnetic>
+              </>
         )
       )}
       <Link href="/manifesto" className="px-4 py-2 rounded-full text-sm transition-all duration-300 hover:bg-white/10 hidden sm:inline-flex"
         style={{ color: "rgba(255,255,255,0.6)" }}>
         Manifesto
       </Link>
-      {!isSignedIn && (
-        <Magnetic>
-          <Link href="/waitlist"
-            className="px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
-            style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}>
-            Join Waitlist
-          </Link>
-        </Magnetic>
-      )}
     </div>
   )
 }
