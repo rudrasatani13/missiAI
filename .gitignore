@@ -53,3 +53,4 @@ next-env.d.ts
 
 # Re-allow the safe env template (must be AFTER all *.env.* rules)
 !.env.example
+test_dodo*
