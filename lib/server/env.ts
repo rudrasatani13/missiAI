@@ -5,7 +5,6 @@
 // Single source of truth for required env vars. Throws a clear error with the
 // missing key name so deployment issues surface immediately.
 
-// CFG-2 FIX: Added Razorpay environment variables to the interface
 export interface AppEnv {
   GEMINI_API_KEY: string
   ELEVENLABS_API_KEY: string
@@ -13,11 +12,11 @@ export interface AppEnv {
   CLERK_SECRET_KEY: string
   DAILY_BUDGET_USD: number
   NODE_ENV: string
-  RAZORPAY_KEY_ID: string
-  RAZORPAY_KEY_SECRET: string
-  RAZORPAY_WEBHOOK_SECRET: string
-  RAZORPAY_PRO_PLAN_ID: string
-  RAZORPAY_BUSINESS_PLAN_ID: string
+  DODO_PAYMENTS_API_KEY: string
+  DODO_WEBHOOK_SECRET: string
+  DODO_PRO_PRODUCT_ID: string
+  DODO_BUSINESS_PRODUCT_ID: string
+  DODO_PAYMENTS_MODE: string
 }
 
 function requireEnv(key: string): string {
@@ -41,11 +40,11 @@ export function getEnv(): AppEnv {
     CLERK_SECRET_KEY: requireEnv("CLERK_SECRET_KEY"),
     DAILY_BUDGET_USD: parseFloat(process.env.DAILY_BUDGET_USD ?? "5.0") || 5.0,
     NODE_ENV: process.env.NODE_ENV ?? "production",
-    RAZORPAY_KEY_ID: requireEnv("RAZORPAY_KEY_ID"),
-    RAZORPAY_KEY_SECRET: requireEnv("RAZORPAY_KEY_SECRET"),
-    RAZORPAY_WEBHOOK_SECRET: requireEnv("RAZORPAY_WEBHOOK_SECRET"),
-    RAZORPAY_PRO_PLAN_ID: requireEnv("RAZORPAY_PRO_PLAN_ID"),
-    RAZORPAY_BUSINESS_PLAN_ID: requireEnv("RAZORPAY_BUSINESS_PLAN_ID"),
+    DODO_PAYMENTS_API_KEY: requireEnv("DODO_PAYMENTS_API_KEY"),
+    DODO_WEBHOOK_SECRET: requireEnv("DODO_WEBHOOK_SECRET"),
+    DODO_PRO_PRODUCT_ID: requireEnv("DODO_PRO_PRODUCT_ID"),
+    DODO_BUSINESS_PRODUCT_ID: requireEnv("DODO_BUSINESS_PRODUCT_ID"),
+    DODO_PAYMENTS_MODE: process.env.DODO_PAYMENTS_MODE ?? "live_mode",
   }
 }
 

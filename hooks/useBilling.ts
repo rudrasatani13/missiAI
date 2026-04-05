@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useUser } from '@clerk/nextjs'
 import type { PlanConfig, DailyUsage, UserBilling } from '@/types/billing'
 
-// SEC-4 FIX: localStorage is used ONLY for optimistic UI, server is the source of truth.
-// MOBILE-FIX: When server returns 0, we use Math.max to prevent false resets
+// localStorage is used ONLY for optimistic UI, server is the source of truth.
+// When server returns 0, we use Math.max to prevent false resets
 // (KV cold starts / edge-function restarts can return 0 temporarily).
 function todayStorageKey(): string {
   return `missi-usage-${new Date().toISOString().split('T')[0]}`
@@ -38,26 +38,10 @@ function setLocalCount(count: number): void {
  * Reconcile server count with local count.
  * - If server returns non-zero, server wins (it's authoritative).
  * - If server returns 0, use Math.max to prevent false reset from KV miss.
- *   This ensures the usage bar doesn't jump back to 0/10 on page refresh.
  */
 function reconcileCount(serverCount: number, localCount: number): number {
   if (serverCount > 0) return serverCount
   return Math.max(serverCount, localCount)
-}
-
-function loadRazorpayScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if ((window as any).Razorpay) {
-      resolve()
-      return
-    }
-    const script = document.createElement('script')
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-    script.onload = () => resolve()
-    // CLI-1 FIX: Provide specific error message for SDK load failure
-    script.onerror = () => reject(new Error('Failed to load payment gateway. Please check your internet connection or disable ad blocker and try again.'))
-    document.head.appendChild(script)
-  })
 }
 
 export function useBilling() {
@@ -67,12 +51,10 @@ export function useBilling() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isUpgrading, setIsUpgrading] = useState(false)
-  // CLI-2 FIX: Add isCancelling loading state
   const [isCancelling, setIsCancelling] = useState(false)
-  // CLI-5 FIX: Track mounted state to prevent state updates after unmount
+  // Track mounted state to prevent state updates after unmount
   const mountedRef = useRef(true)
 
-  // CLI-6 FIX: Get user info for Razorpay prefill
   const { user } = useUser()
 
   useEffect(() => {
@@ -89,8 +71,6 @@ export function useBilling() {
       setPlan(data.plan ?? null)
 
       if (data.usage) {
-        // MOBILE-FIX: Reconcile server count with local count to prevent
-        // false resets when KV returns 0 on cold start
         const serverCount = data.usage.voiceInteractions ?? 0
         const finalCount = reconcileCount(serverCount, getLocalCount())
         setLocalCount(finalCount)
@@ -125,7 +105,6 @@ export function useBilling() {
         if (cancelled) return
         setPlan(data.plan ?? null)
 
-        // MOBILE-FIX: Reconcile server and local counts to prevent false reset
         if (data.usage) {
           const serverCount = data.usage.voiceInteractions ?? 0
           const finalCount = reconcileCount(serverCount, getLocalCount())
@@ -146,14 +125,42 @@ export function useBilling() {
     }
 
     fetchBilling()
+
+    // Check for successful checkout redirect
+    try {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('success') === 'true') {
+        // User came back from Dodo checkout — poll for plan activation
+        const pollInterval = setInterval(async () => {
+          try {
+            const res = await fetch('/api/v1/billing')
+            if (!res.ok) return
+            const data = await res.json()
+            if (data.plan?.id !== 'free') {
+              clearInterval(pollInterval)
+              if (!cancelled) {
+                setPlan(data.plan)
+                setBilling(data.billing ?? null)
+              }
+            }
+          } catch {}
+        }, 3000)
+
+        // Stop polling after 60 seconds
+        setTimeout(() => clearInterval(pollInterval), 60000)
+
+        // Clean up URL params
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    } catch {}
+
     return () => { cancelled = true }
   }, [])
 
-  const initiateRazorpayCheckout = useCallback(async (planId: 'pro' | 'business') => {
+  // ─── Dodo Checkout: redirect to hosted checkout page ─────────────────────
+  const initiateCheckout = useCallback(async (planId: 'pro' | 'business') => {
     setIsUpgrading(true)
     setError(null)
-
-    let createdSubscriptionId: string | null = null
 
     try {
       const res = await fetch('/api/v1/billing', {
@@ -166,85 +173,21 @@ export function useBilling() {
         throw new Error(data.error ?? 'Failed to create checkout')
       }
 
-      const { subscriptionId, keyId } = data
-      createdSubscriptionId = subscriptionId
+      // Redirect to Dodo Payments hosted checkout page
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url
+        return
+      }
 
-      // CLI-1 FIX: loadRazorpayScript now provides specific error messages
-      await loadRazorpayScript()
-
-      const rzp = new (window as any).Razorpay({
-        key: keyId,
-        subscription_id: subscriptionId,
-        name: 'missiAI',
-        description: planId === 'pro' ? 'Pro Plan' : 'Business Plan',
-        image: '/missi-ai-logo.png',
-        handler: async (response: {
-          razorpay_payment_id: string
-          razorpay_subscription_id: string
-          razorpay_signature: string
-        }) => {
-          try {
-            const verifyRes = await fetch('/api/v1/billing/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_subscription_id: response.razorpay_subscription_id,
-                razorpay_signature: response.razorpay_signature,
-                planId,
-              }),
-            })
-            const verifyData = await verifyRes.json()
-            // CLI-5 FIX: Check mounted before updating state
-            if (!mountedRef.current) return
-            if (verifyData.success) {
-              await refreshBilling()
-            } else {
-              setError('Payment verification failed. Contact support.')
-            }
-          } catch {
-            if (mountedRef.current) {
-              setError('Payment verification failed. Contact support.')
-            }
-          } finally {
-            if (mountedRef.current) {
-              setIsUpgrading(false)
-            }
-          }
-        },
-        // CLI-6 FIX: Prefill user data from Clerk for better UX
-        prefill: {
-          name: user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : '',
-          email: user?.emailAddresses?.[0]?.emailAddress ?? '',
-        },
-        theme: { color: '#7C3AED' },
-        modal: {
-          // CLI-4 FIX: On dismiss, cancel the orphaned subscription on the backend
-          ondismiss: async () => {
-            if (mountedRef.current) {
-              setIsUpgrading(false)
-            }
-            // Clean up the subscription that was created but never paid
-            if (createdSubscriptionId) {
-              try {
-                await fetch('/api/v1/billing', { method: 'DELETE' })
-              } catch {
-                // Best-effort cleanup — webhook will eventually handle it
-              }
-            }
-          },
-        },
-      })
-      rzp.open()
+      throw new Error('No checkout URL received')
     } catch (err) {
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : 'Checkout failed')
         setIsUpgrading(false)
       }
     }
-  }, [refreshBilling, user])
+  }, [])
 
-  // CLI-2 FIX: cancelSubscription now has loading state
   const cancelSubscription = useCallback(async () => {
     setIsCancelling(true)
     setError(null)
@@ -296,7 +239,7 @@ export function useBilling() {
     error,
     isUpgrading,
     isCancelling,
-    initiateRazorpayCheckout,
+    initiateCheckout,
     cancelSubscription,
     refreshBilling,
     isAtLimit,

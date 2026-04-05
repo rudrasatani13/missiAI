@@ -62,39 +62,42 @@ describe('tier-checker', () => {
       const billing = await getUserBillingData('user_456')
       expect(billing.userId).toBe('user_456')
       expect(billing.planId).toBe('free')
-      expect(billing.razorpayCustomerId).toBeUndefined()
+      expect(billing.dodoCustomerId).toBeUndefined()
     })
 
-    it('returns billing data with razorpay info for pro user', async () => {
+    it('returns billing data with dodo info for pro user', async () => {
       mockGetUser.mockResolvedValue({
         publicMetadata: {
           plan: 'pro',
-          razorpayCustomerId: 'cust_razorpay_abc',
-          razorpaySubscriptionId: 'sub_razorpay_xyz',
+          dodoCustomerId: 'cust_dodo_abc',
+          dodoSubscriptionId: 'sub_dodo_xyz',
           currentPeriodEnd: 1700000000000,
         },
       })
       const billing = await getUserBillingData('user_789')
       expect(billing.planId).toBe('pro')
-      expect(billing.razorpayCustomerId).toBe('cust_razorpay_abc')
-      expect(billing.razorpaySubscriptionId).toBe('sub_razorpay_xyz')
+      expect(billing.dodoCustomerId).toBe('cust_dodo_abc')
+      expect(billing.dodoSubscriptionId).toBe('sub_dodo_xyz')
       expect(billing.currentPeriodEnd).toBe(1700000000000)
     })
   })
 
   describe('setUserPlan', () => {
     it('calls updateUser with correct metadata', async () => {
+      mockGetUser.mockResolvedValue({
+        publicMetadata: {},
+      })
       mockUpdateUser.mockResolvedValue({})
       await setUserPlan('user_123', 'pro', {
-        razorpayCustomerId: 'cust_razorpay_test',
-        razorpaySubscriptionId: 'sub_razorpay_test',
+        dodoCustomerId: 'cust_dodo_test',
+        dodoSubscriptionId: 'sub_dodo_test',
         currentPeriodEnd: 1234567890,
       })
       expect(mockUpdateUser).toHaveBeenCalledWith('user_123', {
         publicMetadata: {
           plan: 'pro',
-          razorpayCustomerId: 'cust_razorpay_test',
-          razorpaySubscriptionId: 'sub_razorpay_test',
+          dodoCustomerId: 'cust_dodo_test',
+          dodoSubscriptionId: 'sub_dodo_test',
           currentPeriodEnd: 1234567890,
         },
       })

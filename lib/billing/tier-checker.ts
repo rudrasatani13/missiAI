@@ -12,7 +12,6 @@ export async function getUserPlan(userId: string): Promise<PlanId> {
   return 'free'
 }
 
-// CFG-3 FIX: Now stores cancelAtPeriodEnd in Clerk metadata
 export async function setUserPlan(
   userId: string,
   planId: PlanId,
@@ -28,8 +27,8 @@ export async function setUserPlan(
     publicMetadata: {
       ...existingMeta,
       plan: planId,
-      ...(billingData?.razorpayCustomerId !== undefined && { razorpayCustomerId: billingData.razorpayCustomerId }),
-      ...(billingData?.razorpaySubscriptionId !== undefined && { razorpaySubscriptionId: billingData.razorpaySubscriptionId }),
+      ...(billingData?.dodoCustomerId !== undefined && { dodoCustomerId: billingData.dodoCustomerId }),
+      ...(billingData?.dodoSubscriptionId !== undefined && { dodoSubscriptionId: billingData.dodoSubscriptionId }),
       ...(billingData?.currentPeriodEnd !== undefined && { currentPeriodEnd: billingData.currentPeriodEnd }),
       ...(billingData?.cancelAtPeriodEnd !== undefined && { cancelAtPeriodEnd: billingData.cancelAtPeriodEnd }),
     },
@@ -44,8 +43,8 @@ export async function getUserBillingData(userId: string): Promise<UserBilling> {
   return {
     userId,
     planId: (meta?.plan as PlanId) ?? 'free',
-    razorpayCustomerId: meta?.razorpayCustomerId as string | undefined,
-    razorpaySubscriptionId: meta?.razorpaySubscriptionId as string | undefined,
+    dodoCustomerId: meta?.dodoCustomerId as string | undefined,
+    dodoSubscriptionId: meta?.dodoSubscriptionId as string | undefined,
     currentPeriodEnd: meta?.currentPeriodEnd as number | undefined,
     cancelAtPeriodEnd: meta?.cancelAtPeriodEnd as boolean | undefined,
     updatedAt: Date.now(),

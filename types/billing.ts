@@ -10,12 +10,10 @@ export interface PlanConfig {
   personalitiesAllowed: number
   maxMemoryFacts: number
   apiAccess: boolean
-  razorpayPlanId: string
+  dodoProductId: string
 }
 
-// BUG-1 FIX: Removed process.env from shared type file — this file is imported
-// by 'use client' components where server env vars are undefined.
-// Server-side code resolves Razorpay plan IDs via process.env directly.
+// Server-side code resolves Dodo product IDs via process.env directly.
 export const PLANS: Record<PlanId, PlanConfig> = {
   free: {
     id: 'free',
@@ -25,7 +23,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     personalitiesAllowed: 1,
     maxMemoryFacts: 20,
     apiAccess: false,
-    razorpayPlanId: '',
+    dodoProductId: '',
   },
   pro: {
     id: 'pro',
@@ -35,7 +33,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     personalitiesAllowed: 4,
     maxMemoryFacts: 999999,
     apiAccess: false,
-    razorpayPlanId: '',
+    dodoProductId: '',
   },
   business: {
     id: 'business',
@@ -45,22 +43,22 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     personalitiesAllowed: 4,
     maxMemoryFacts: 999999,
     apiAccess: true,
-    razorpayPlanId: '',
+    dodoProductId: '',
   },
 }
 
-/** Server-only helper: resolve the actual Razorpay plan ID from env vars */
-export function getServerRazorpayPlanId(planId: PlanId): string {
-  if (planId === 'pro') return process.env.RAZORPAY_PRO_PLAN_ID ?? ''
-  if (planId === 'business') return process.env.RAZORPAY_BUSINESS_PLAN_ID ?? ''
+/** Server-only helper: resolve the actual Dodo product ID from env vars */
+export function getServerDodoProductId(planId: PlanId): string {
+  if (planId === 'pro') return process.env.DODO_PRO_PRODUCT_ID ?? ''
+  if (planId === 'business') return process.env.DODO_BUSINESS_PRODUCT_ID ?? ''
   return ''
 }
 
 export interface UserBilling {
   userId: string
   planId: PlanId
-  razorpayCustomerId?: string
-  razorpaySubscriptionId?: string
+  dodoCustomerId?: string
+  dodoSubscriptionId?: string
   currentPeriodEnd?: number
   cancelAtPeriodEnd?: boolean
   updatedAt: number

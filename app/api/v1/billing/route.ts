@@ -2,13 +2,13 @@ import { getRequestContext } from '@cloudflare/next-on-pages'
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
 import { getUserPlan, getUserBillingData, setUserPlan } from '@/lib/billing/tier-checker'
 import { getDailyUsage } from '@/lib/billing/usage-tracker'
-import { createRazorpayCustomer, createRazorpaySubscription, cancelRazorpaySubscription } from '@/lib/billing/razorpay-client'
-import { PLANS, getServerRazorpayPlanId } from '@/types/billing'
+import { createDodoCheckoutSession, cancelDodoSubscription } from '@/lib/billing/dodo-client'
+import { PLANS, getServerDodoProductId } from '@/types/billing'
 import { billingCheckoutSchema } from '@/lib/validation/billing-schemas'
 import { log } from '@/lib/server/logger'
 import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
 import { clerkClient } from '@clerk/nextjs/server'
-import { getReferrer, DISCOUNT_PERCENT } from '@/lib/billing/referral'
+import { getReferrer } from '@/lib/billing/referral'
 import type { KVStore } from '@/types'
 
 export const runtime = 'edge'
@@ -51,8 +51,8 @@ export async function GET() {
     timestamp: Date.now(),
   })
 
-  // SEC-7 FIX: Strip both razorpayCustomerId AND razorpaySubscriptionId from response
-  const { razorpayCustomerId: _rpCustId, razorpaySubscriptionId: _rpSubId, ...safeBilling } = billingData
+  // Strip internal IDs from client response
+  const { dodoCustomerId: _dodoCustId, dodoSubscriptionId: _dodoSubId, ...safeBilling } = billingData
 
   return new Response(
     JSON.stringify({
@@ -100,18 +100,17 @@ export async function POST(req: Request) {
 
   const { planId } = parsed.data
 
-  const keyId = process.env.RAZORPAY_KEY_ID
-  const keySecret = process.env.RAZORPAY_KEY_SECRET
-  if (!keyId || !keySecret) {
+  const apiKey = process.env.DODO_PAYMENTS_API_KEY
+  if (!apiKey) {
     return new Response(
       JSON.stringify({ success: false, error: 'Payment not configured' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
 
-  // BUG-1 FIX: Use server-side helper instead of PLANS constant for razorpayPlanId
-  const razorpayPlanId = getServerRazorpayPlanId(planId)
-  if (!razorpayPlanId) {
+  // Resolve Dodo product ID for the requested plan
+  const dodoProductId = getServerDodoProductId(planId)
+  if (!dodoProductId) {
     return new Response(
       JSON.stringify({ success: false, error: 'Plan not configured' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -123,30 +122,7 @@ export async function POST(req: Request) {
   const email = user.emailAddresses[0]?.emailAddress ?? ''
   const name = ((user.firstName ?? '') + ' ' + (user.lastName ?? '')).trim()
 
-  const billingData = await getUserBillingData(userId)
-  let razorpayCustomerId = billingData.razorpayCustomerId
-
-  if (!razorpayCustomerId) {
-    try {
-      const customer = await createRazorpayCustomer({ name, email })
-      razorpayCustomerId = customer.id
-    } catch (err) {
-      log({
-        level: 'error',
-        event: 'billing.customer.error',
-        userId,
-        metadata: { error: err instanceof Error ? err.message : String(err) },
-        timestamp: Date.now(),
-      })
-      // ERR-1 FIX: Return generic error to client
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to create customer. Please try again.' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      )
-    }
-  }
-
-  // Check if user was referred — apply delayed start for discount
+  // Check if user was referred — store discount info in metadata for webhook handler
   let hasReferralDiscount = false
   const kv = getKV()
   if (kv) {
@@ -158,19 +134,22 @@ export async function POST(req: Request) {
     }
   }
 
-  let subscription: { id: string; status: string; short_url: string }
-  try {
-    // 20% off on monthly = ~6 days free trial via delayed start
-    const startAt = hasReferralDiscount
-      ? Math.floor(Date.now() / 1000) + (6 * 24 * 60 * 60) // 6 days from now
-      : undefined
+  // Build return URL — user comes back here after Dodo checkout
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const returnUrl = `${appUrl}/pricing?success=true&plan=${planId}`
 
-    subscription = await createRazorpaySubscription({
-      planId: razorpayPlanId,
-      customerId: razorpayCustomerId,
-      totalCount: 120,
-      notes: { userId },
-      startAt,
+  let checkoutSession: { session_id: string; checkout_url: string }
+  try {
+    checkoutSession = await createDodoCheckoutSession({
+      productId: dodoProductId,
+      customerEmail: email,
+      customerName: name || undefined,
+      returnUrl,
+      metadata: {
+        userId,
+        planId,
+        ...(hasReferralDiscount ? { referralDiscount: 'true' } : {}),
+      },
     })
   } catch (err) {
     log({
@@ -180,36 +159,8 @@ export async function POST(req: Request) {
       metadata: { error: err instanceof Error ? err.message : String(err) },
       timestamp: Date.now(),
     })
-    // ERR-1 FIX: Return generic error, don't leak internal details
     return new Response(
       JSON.stringify({ success: false, error: 'Failed to create checkout session. Please try again.' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
-  }
-
-  // SRV-1 FIX: If saving to Clerk fails, cancel the Razorpay subscription to prevent orphans
-  try {
-    await setUserPlan(userId, billingData.planId, {
-      razorpayCustomerId,
-      razorpaySubscriptionId: subscription.id,
-      currentPeriodEnd: billingData.currentPeriodEnd,
-    })
-  } catch (err) {
-    log({
-      level: 'error',
-      event: 'billing.checkout.metadata_save_failed',
-      userId,
-      metadata: { subscriptionId: subscription.id, error: err instanceof Error ? err.message : String(err) },
-      timestamp: Date.now(),
-    })
-    // Clean up orphaned subscription
-    try {
-      await cancelRazorpaySubscription(subscription.id, false)
-    } catch {
-      log({ level: 'error', event: 'billing.checkout.orphan_cleanup_failed', userId, metadata: { subscriptionId: subscription.id }, timestamp: Date.now() })
-    }
-    return new Response(
-      JSON.stringify({ success: false, error: 'Failed to save subscription details. Please try again.' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
@@ -218,16 +169,16 @@ export async function POST(req: Request) {
     level: 'info',
     event: 'billing.checkout.created',
     userId,
-    metadata: { planId },
+    metadata: { planId, sessionId: checkoutSession.session_id },
     timestamp: Date.now(),
   })
 
-  // BUG-3 FIX: Don't leak razorpayCustomerId to client
+  // Return checkout URL for client redirect — Dodo handles payment UI
   return new Response(
     JSON.stringify({
       success: true,
-      subscriptionId: subscription.id,
-      keyId: process.env.RAZORPAY_KEY_ID,
+      checkout_url: checkoutSession.checkout_url,
+      session_id: checkoutSession.session_id,
       referralDiscount: hasReferralDiscount,
     }),
     { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -250,7 +201,7 @@ export async function DELETE() {
   }
 
   const billingData = await getUserBillingData(userId)
-  if (!billingData.razorpaySubscriptionId) {
+  if (!billingData.dodoSubscriptionId) {
     return new Response(
       JSON.stringify({ success: false, error: 'No active subscription' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -258,9 +209,9 @@ export async function DELETE() {
   }
 
   try {
-    await cancelRazorpaySubscription(billingData.razorpaySubscriptionId, true)
+    await cancelDodoSubscription(billingData.dodoSubscriptionId)
 
-    // SRV-5 FIX: Update Clerk metadata with cancelAtPeriodEnd flag
+    // Update Clerk metadata with cancelAtPeriodEnd flag
     await setUserPlan(userId, billingData.planId, {
       cancelAtPeriodEnd: true,
     })

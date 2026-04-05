@@ -352,7 +352,7 @@ export default function PricingPage() {
   const { isSignedIn } = useUser()
   const {
     plan, billing, isLoading, isUpgrading, isCancelling,
-    error: billingError, initiateRazorpayCheckout, cancelSubscription, refreshBilling,
+    error: billingError, initiateCheckout, cancelSubscription, refreshBilling,
   } = useBilling()
 
   const {
@@ -397,7 +397,7 @@ export default function PricingPage() {
       setCancelPlanName('Pro')
       setCancelModalOpen(true)
     } else {
-      initiateRazorpayCheckout('pro')
+      initiateCheckout('pro')
     }
   }
 
@@ -659,7 +659,7 @@ export default function PricingPage() {
 
         {/* Powered by */}
         <div
-          data-testid="powered-by-razorpay"
+          data-testid="powered-by-dodo"
           style={{
             textAlign: 'center',
             marginBottom: 48,
@@ -667,7 +667,7 @@ export default function PricingPage() {
             color: 'rgba(255,255,255,0.2)',
           }}
         >
-          Powered by Razorpay
+          Powered by Dodo Payments
         </div>
 
         {/* Referral Discount Banner — shown if user came via referral link and is on free plan */}
@@ -858,7 +858,7 @@ export default function PricingPage() {
           />
           <FAQItem
             question="What payment methods are supported?"
-            answer="We support UPI, debit & credit cards, net banking, and popular wallets — all processed securely through Razorpay."
+            answer="We support all major payment methods including cards, UPI, net banking, and wallets — all processed securely through Dodo Payments."
           />
           <FAQItem
             question="Is my data safe?"
