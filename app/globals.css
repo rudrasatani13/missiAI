@@ -326,7 +326,268 @@ img[src*="missiai"] {
   }
 }
 
-/* ═══════ Clerk Mobile Auth Touch Targets ═══════ */
+/* ═══════ Auth Page — hide cursor & footer ═══════ */
+body.auth-page [data-testid="global-footer"] {
+  display: none !important;
+}
+
+body.auth-page {
+  cursor: auto !important;
+}
+
+body.auth-page * {
+  cursor: auto !important;
+}
+
+/* Hide the custom cursor orb on auth pages */
+body.auth-page .fixed.rounded-full.pointer-events-none[class*="z-[9999]"],
+body.auth-page > div > div > style,
+body.auth-page div[style*="mix-blend-mode"] {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* ═══════ Clerk Card — Seamless / Borderless ═══════ */
+.clerk-form-container .cl-card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.clerk-form-container .cl-card__main {
+  background: transparent !important;
+}
+
+.clerk-form-container .cl-main {
+  gap: 1.25rem !important;
+}
+
+/* Force transparent background on all card-level elements */
+.clerk-form-container .cl-rootBox,
+.clerk-form-container .cl-cardBox,
+.clerk-form-container .cl-signIn-root,
+.clerk-form-container .cl-signUp-root {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Remove any Clerk-injected card wrapper borders */
+.clerk-form-container > div > div {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ═══════ Clerk Form Fields ═══════ */
+.clerk-form-container .cl-formFieldInput {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+  border-radius: 0.75rem !important;
+  height: 3rem !important;
+  padding: 0 1rem !important;
+  font-size: 0.9375rem !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.clerk-form-container .cl-formFieldInput::placeholder {
+  color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.clerk-form-container .cl-formFieldInput:focus {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04) !important;
+  outline: none !important;
+}
+
+/* ═══════ Clerk Labels ═══════ */
+.clerk-form-container .cl-formFieldLabel {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  margin-bottom: 0.375rem !important;
+}
+
+.clerk-form-container .cl-formFieldLabel__optional {
+  color: rgba(255, 255, 255, 0.25) !important;
+  font-size: 0.6875rem !important;
+}
+
+/* ═══════ Clerk Buttons ═══════ */
+.clerk-form-container .cl-formButtonPrimary {
+  background: #fff !important;
+  color: #000 !important;
+  border: none !important;
+  border-radius: 0.75rem !important;
+  height: 3rem !important;
+  font-size: 0.9375rem !important;
+  font-weight: 600 !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  letter-spacing: -0.01em !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 1px 3px rgba(255, 255, 255, 0.06) !important;
+}
+
+.clerk-form-container .cl-formButtonPrimary:hover {
+  background: rgba(255, 255, 255, 0.92) !important;
+  transform: translateY(-0.5px) !important;
+}
+
+.clerk-form-container .cl-formButtonPrimary:active {
+  transform: scale(0.985) translateY(0) !important;
+}
+
+/* Social / OAuth buttons */
+.clerk-form-container .cl-socialButtonsBlockButton {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+  border-radius: 0.75rem !important;
+  height: 3rem !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 0.9375rem !important;
+  transition: all 0.15s ease !important;
+}
+
+.clerk-form-container .cl-socialButtonsBlockButton:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.clerk-form-container .cl-socialButtonsBlockButton:active {
+  transform: scale(0.985) !important;
+}
+
+/* ═══════ Clerk Divider ═══════ */
+.clerk-form-container .cl-dividerLine {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.clerk-form-container .cl-dividerText {
+  color: rgba(255, 255, 255, 0.25) !important;
+  font-size: 0.75rem !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* ═══════ Clerk Footer / Links ═══════ */
+.clerk-form-container .cl-footerActionText {
+  color: rgba(255, 255, 255, 0.3) !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: 0.875rem !important;
+}
+
+.clerk-form-container .cl-footerActionLink {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-weight: 500 !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.clerk-form-container .cl-footerActionLink:hover {
+  color: #fff !important;
+}
+
+/* ═══════ Clerk Error / Success States ═══════ */
+.clerk-form-container .cl-formFieldErrorText {
+  color: rgba(248, 113, 113, 0.9) !important;
+  font-size: 0.75rem !important;
+  margin-top: 0.375rem !important;
+}
+
+.clerk-form-container .cl-formFieldSuccessText {
+  color: rgba(52, 211, 153, 0.9) !important;
+  font-size: 0.75rem !important;
+}
+
+.clerk-form-container .cl-alert {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border: 1px solid rgba(239, 68, 68, 0.15) !important;
+  border-radius: 0.75rem !important;
+}
+
+.clerk-form-container .cl-alertText {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 0.8125rem !important;
+}
+
+/* ═══════ Clerk OTP Inputs ═══════ */
+.clerk-form-container .cl-otpCodeFieldInput {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+  border-radius: 0.75rem !important;
+  font-size: 1.125rem !important;
+  width: 3rem !important;
+  height: 3.25rem !important;
+}
+
+.clerk-form-container .cl-otpCodeFieldInput:focus {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04) !important;
+}
+
+/* ═══════ Clerk Misc Elements ═══════ */
+.clerk-form-container .cl-identityPreviewText {
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.clerk-form-container .cl-identityPreviewEditButton {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.clerk-form-container .cl-identityPreviewEditButton:hover {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.clerk-form-container .cl-formResendCodeLink {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.clerk-form-container .cl-formResendCodeLink:hover {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.clerk-form-container .cl-backLink {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.clerk-form-container .cl-backLink:hover {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Password show/hide toggle */
+.clerk-form-container .cl-formFieldInputShowPasswordButton {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.clerk-form-container .cl-formFieldInputShowPasswordButton:hover {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Checkbox styling */
+.clerk-form-container .cl-checkbox {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* "Last used" badge */
+.clerk-form-container .cl-socialButtonsBlockButtonText__lastUsed,
+.clerk-form-container [class*="lastUsed"] {
+  color: rgba(255, 255, 255, 0.25) !important;
+  font-size: 0.6875rem !important;
+}
+
+/* All text within clerk should use Inter */
+.clerk-form-container,
+.clerk-form-container * {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* ═══════ Clerk Mobile Overrides ═══════ */
 @media (max-width: 768px) {
   .clerk-form-container button,
   .clerk-form-container [role="button"] {
@@ -338,39 +599,6 @@ img[src*="missiai"] {
     font-size: 16px !important; /* Prevents iOS zoom */
     min-height: 48px !important;
   }
-
-  .clerk-form-container .cl-formFieldInput {
-    border-radius: 0.75rem !important;
-  }
-}
-
-/* ═══════ Clerk Auth Form Polish ═══════ */
-.clerk-form-container .cl-formFieldInput:focus {
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06) !important;
-}
-
-.clerk-form-container .cl-formButtonPrimary {
-  letter-spacing: -0.01em;
-}
-
-.clerk-form-container .cl-formButtonPrimary:active {
-  transform: scale(0.98);
-}
-
-.clerk-form-container .cl-socialButtonsBlockButton:active {
-  transform: scale(0.98);
-}
-
-/* Smooth focus transitions for all clerk inputs */
-.clerk-form-container input,
-.clerk-form-container button {
-  transition: all 0.2s ease !important;
-}
-
-/* Ensure OTP inputs are properly sized on all viewports */
-.clerk-form-container .cl-otpCodeFieldInput {
-  width: 3rem !important;
-  height: 3.25rem !important;
 }
 
 @media (max-width: 380px) {
