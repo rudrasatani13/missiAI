@@ -1,7 +1,7 @@
 "use client"
 
-import { memo, useState } from "react"
-import { LogOut, Heart, Briefcase, Zap, BrainCircuit } from "lucide-react"
+import { memo, useState, useCallback } from "react"
+import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon } from "lucide-react"
 import type { PersonalityKey } from "@/types/chat"
 import { PERSONALITY_OPTIONS } from "@/types/chat"
 import { PLUGIN_METADATA } from "@/lib/plugins/plugin-registry"
@@ -22,6 +22,7 @@ interface SettingsPanelProps {
   userEmail: string
   userImageUrl: string | null
   onLogout: () => void
+  onNameChange?: (newName: string) => void
   plugins?: SafePlugin[]
   onConnectPlugin?: (
     id: PluginId,
@@ -203,10 +204,41 @@ function SettingsPanelInner({
   userEmail,
   userImageUrl,
   onLogout,
+  onNameChange,
   plugins = [],
   onConnectPlugin,
   onDisconnectPlugin,
 }: SettingsPanelProps) {
+
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editName, setEditName] = useState(userName)
+  const [savingName, setSavingName] = useState(false)
+
+  const handleSaveName = useCallback(async () => {
+    const trimmed = editName.trim()
+    if (trimmed.length < 1 || trimmed === userName) {
+      setIsEditingName(false)
+      setEditName(userName)
+      return
+    }
+    setSavingName(true)
+    try {
+      // Save to server
+      await fetch('/api/v1/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      })
+      // Update local state
+      onNameChange?.(trimmed)
+      toast.success('Name updated!')
+    } catch {
+      toast.error('Failed to update name')
+    } finally {
+      setSavingName(false)
+      setIsEditingName(false)
+    }
+  }, [editName, userName, onNameChange])
 
   async function handleEnablePush() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -255,8 +287,53 @@ function SettingsPanelInner({
           {/* User profile */}
           <div className="flex items-center gap-3 mb-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
             {userImageUrl && <img src={userImageUrl} alt="" className="w-10 h-10 rounded-full" />}
-            <div>
-              <p className="text-xs font-semibold text-white tracking-wide">{userName}</p>
+            <div className="flex-1 min-w-0">
+              {isEditingName ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveName()
+                      if (e.key === 'Escape') { setIsEditingName(false); setEditName(userName) }
+                    }}
+                    className="text-xs font-semibold text-white tracking-wide bg-white/5 border border-white/15 rounded px-2 py-1 outline-none focus:border-white/30"
+                    style={{ width: '120px', fontSize: '12px' }}
+                    autoFocus
+                    disabled={savingName}
+                  />
+                  <button
+                    onClick={handleSaveName}
+                    disabled={savingName}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4ade80', padding: '2px' }}
+                    title="Save"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => { setIsEditingName(false); setEditName(userName) }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: '2px' }}
+                    title="Cancel"
+                  >
+                    <XIcon className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-semibold text-white tracking-wide">{userName}</p>
+                  {onNameChange && (
+                    <button
+                      onClick={() => { setEditName(userName); setIsEditingName(true) }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', padding: '2px' }}
+                      title="Edit name"
+                      data-testid="edit-name-btn"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              )}
               <p className="text-[10px] font-light text-white/40">{userEmail}</p>
             </div>
           </div>

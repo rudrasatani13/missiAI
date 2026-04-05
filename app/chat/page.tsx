@@ -66,6 +66,19 @@ export default function VoiceAssistantPage() {
   const [showBootSequence, setShowBootSequence] = useState(false)
   const [bootCompleted, setBootCompleted] = useState(false)
 
+  // Read user name from localStorage (set during setup) as fallback when Clerk hasn't loaded yet
+  const [localName, setLocalName] = useState('')
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('missi-user-name')
+      if (stored) setLocalName(stored)
+    } catch {}
+  }, [])
+
+  // Resolved display name: prefer Clerk's firstName, fallback to localStorage name
+  const displayName = user?.firstName || localName || ''
+  const displayFullName = user?.fullName || localName || 'User'
+
   // Vision State
   const imagePayloadRef = useRef<string | null>(null)
   const [thumbnail, setThumbnail] = useState<string | null>(null)
@@ -224,7 +237,7 @@ export default function VoiceAssistantPage() {
       }
     } catch {}
 
-    const n = user?.firstName || ""
+    const n = displayName
     
     let delay = 1200
     let greetingToSay = ""
@@ -331,8 +344,8 @@ export default function VoiceAssistantPage() {
     <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"
       style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}>
       {showBootSequence && !bootCompleted && (
-        <BootSequence 
-          userName={user?.firstName || "Guest"} 
+      <BootSequence 
+          userName={displayName || "Guest"} 
           onComplete={() => {
             try { localStorage.setItem('missi-boot-v1', 'true') } catch {}
             setBootCompleted(true)
@@ -419,11 +432,15 @@ export default function VoiceAssistantPage() {
       <SettingsPanel personality={personality} onPersonalityChange={updatePersonality}
         voiceEnabled={voiceEnabled} onVoiceToggle={() => setVoiceEnabled((v) => !v)}
         isOpen={activePanel !== null} activePanel={activePanel} onClose={() => setActivePanel(null)}
-        userName={user?.fullName || "User"} userEmail={user?.primaryEmailAddress?.emailAddress || ""}
+        userName={displayFullName} userEmail={user?.primaryEmailAddress?.emailAddress || ""}
         userImageUrl={user?.imageUrl || null} onLogout={handleLogout}
         plugins={plugins}
         onConnectPlugin={connectPlugin}
         onDisconnectPlugin={disconnectPlugin}
+        onNameChange={(newName: string) => {
+          try { localStorage.setItem('missi-user-name', newName) } catch {}
+          setLocalName(newName)
+        }}
       />
       <ConversationLog messages={conversationRef.current} isVisible={false} />
 
@@ -472,7 +489,7 @@ export default function VoiceAssistantPage() {
           lastResponse={lastResponse}
           errorMessage={error}
           onDismissError={() => setError(null)}
-          userName={user?.firstName || ""}
+          userName={displayName}
           statusText={statusText}
           lastTranscript={lastTranscript}
           briefing={briefing}

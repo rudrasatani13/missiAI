@@ -28,6 +28,9 @@ export default function SetupPage() {
     setError(null)
 
     try {
+      // Persist name locally so it's available everywhere instantly
+      try { localStorage.setItem('missi-user-name', name.trim()) } catch {}
+
       const res = await fetch('/api/v1/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,7 +131,17 @@ export default function SetupPage() {
                 if (e.key === 'Enter') handleNext()
               }}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-lg outline-none focus:border-white/30 transition-colors mb-6 text-white"
-              style={{ colorScheme: 'dark' }}
+              style={{
+                colorScheme: 'dark',
+                WebkitAppearance: 'none',
+                MozAppearance: 'none',
+                appearance: 'none',
+                textAlign: 'left',
+                minHeight: '48px',
+                lineHeight: '1.5',
+                display: 'flex',
+                alignItems: 'center',
+              }}
               autoFocus
             />
 

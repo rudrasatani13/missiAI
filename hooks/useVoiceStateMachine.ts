@@ -7,7 +7,7 @@ import {
   TTS_TIMEOUT,
   STT_TIMEOUT,
 } from "@/lib/client/fetch-with-timeout"
-import { getBestAudioMimeType } from "@/lib/client/browser-support"
+import { getBestAudioMimeType, isMobileBrowser, speakWithWebSpeechAPI } from "@/lib/client/browser-support"
 import { shouldUseTTS, truncateForTTS } from "@/lib/ai/tts-optimizer"
 import type { VoiceState, ConversationEntry, PersonalityKey } from "@/types/chat"
 import { useEmotionDetector } from "@/hooks/useEmotionDetector"
@@ -83,13 +83,19 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
   /* ── Mobile audio unlock ────────────────────────────────────────────────── */
   // iOS/Android block audio playback until the user interacts with the page.
-  // We prime the AudioContext on the very first tap so subsequent play() calls work.
+  // We prime the AudioContext on EVERY user gesture to maximize unlock success.
   const audioUnlockedRef = useRef(false)
+  const isMobileRef = useRef(false)
 
   useEffect(() => {
-    if (audioUnlockedRef.current) return
+    isMobileRef.current = isMobileBrowser()
+  }, [])
+
+  useEffect(() => {
+    // On mobile, we need to be more aggressive — listen on EVERY gesture,
+    // not just the first one. iOS Safari revokes audio permission if the
+    // AudioContext is not used within the same gesture callback chain.
     const unlock = () => {
-      if (audioUnlockedRef.current) return
       audioUnlockedRef.current = true
       // Create and immediately resume an AudioContext to satisfy the gesture requirement
       try {
@@ -103,14 +109,20 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         silence.volume = 0
         silence.play().then(() => silence.pause()).catch(() => {})
       } catch {}
-      document.removeEventListener("pointerdown", unlock)
-      document.removeEventListener("touchstart", unlock)
+      // On non-mobile, remove after first successful unlock
+      if (!isMobileRef.current) {
+        document.removeEventListener("pointerdown", unlock)
+        document.removeEventListener("touchstart", unlock)
+        document.removeEventListener("click", unlock)
+      }
     }
-    document.addEventListener("pointerdown", unlock, { once: true })
-    document.addEventListener("touchstart", unlock, { once: true })
+    document.addEventListener("pointerdown", unlock)
+    document.addEventListener("touchstart", unlock)
+    document.addEventListener("click", unlock)
     return () => {
       document.removeEventListener("pointerdown", unlock)
       document.removeEventListener("touchstart", unlock)
+      document.removeEventListener("click", unlock)
     }
   }, [])
 
@@ -330,6 +342,25 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       setStatusText("")
       const ctrl = freshAbort()
 
+      /** Helper: move to next state after speaking */
+      const afterSpeak = async () => {
+        if (continuousRef.current) {
+          await fnRef.current.startRecording()
+        } else {
+          resetToIdle()
+        }
+      }
+
+      /** Helper: fallback to Web Speech API for mobile TTS */
+      const tryWebSpeechFallback = async (spokenText: string): Promise<boolean> => {
+        try {
+          await speakWithWebSpeechAPI(spokenText)
+          return true
+        } catch {
+          return false
+        }
+      }
+
       try {
         const adaptation = getSmoothedAdaptation()
         const res = await fetchWithTimeout(
@@ -373,50 +404,64 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         })
 
         // Mobile browsers may reject play() if not in a user gesture context.
-        // Retry once after a short delay; if still blocked, skip TTS gracefully.
+        // Retry once after a short delay; if still blocked, try Web Speech API.
+        let playSucceeded = false
         try {
           await audio.play()
-        } catch (playErr) {
+          playSucceeded = true
+        } catch {
           // Wait briefly and retry — sometimes the gesture unlock is async
-          await new Promise((r) => setTimeout(r, 200))
+          await new Promise((r) => setTimeout(r, 300))
           try {
             await audio.play()
+            playSucceeded = true
           } catch {
-            // Autoplay still blocked — skip TTS, show text instead
-            stopTTSMonitor()
-            URL.revokeObjectURL(url)
-            audioPlayerRef.current = null
-            if (continuousRef.current) {
-              await fnRef.current.startRecording()
-            } else {
-              resetToIdle()
-            }
-            return
+            playSucceeded = false
           }
         }
-        await finished
 
-        // After speaking, continue or idle
-        if (continuousRef.current) {
-          await fnRef.current.startRecording()
-        } else {
-          resetToIdle()
+        if (!playSucceeded) {
+          // Autoplay blocked — clean up ElevenLabs audio
+          stopTTSMonitor()
+          URL.revokeObjectURL(url)
+          audioPlayerRef.current = null
+
+          // Try Web Speech API as fallback (works on most mobile browsers)
+          if (isMobileRef.current) {
+            const webSpeechOk = await tryWebSpeechFallback(text)
+            if (webSpeechOk) {
+              await afterSpeak()
+              return
+            }
+          }
+
+          // Everything failed — skip TTS, continue flow
+          await afterSpeak()
+          return
         }
+
+        await finished
+        await afterSpeak()
       } catch (err) {
         stopTTSMonitor()
         if (err instanceof Error && err.name === "AbortError") {
           resetToIdle()
           return
         }
-        // TTS failed — show error so user knows something went wrong
-        setError("Voice response failed — check text above")
-        if (continuousRef.current) {
-          // Brief pause so user can see the error before next recording
-          await new Promise((r) => setTimeout(r, 2000))
-          await fnRef.current.startRecording()
-        } else {
-          resetToIdle()
+
+        // ElevenLabs TTS failed — try Web Speech API fallback on mobile
+        if (isMobileRef.current) {
+          const webSpeechOk = await tryWebSpeechFallback(text)
+          if (webSpeechOk) {
+            await afterSpeak()
+            return
+          }
         }
+
+        // All TTS methods failed — show text response and continue
+        setError("Voice response unavailable — see text above")
+        // Always continue the flow, don't get stuck
+        await afterSpeak()
       } finally {
         isTransitioningRef.current = false
       }
@@ -843,6 +888,13 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       setStatusText("")
       const ctrl = freshAbort()
 
+      /** After greeting, always enter continuous recording */
+      const afterGreet = async () => {
+        conversationRef.current.push({ role: "assistant", content: text })
+        continuousRef.current = true
+        await fnRef.current.startRecording()
+      }
+
       try {
         const res = await fetchWithTimeout(
           "/api/v1/tts",
@@ -855,7 +907,16 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           TTS_TIMEOUT,
         )
         if (!res.ok) {
-          resetToIdle()
+          // TTS API failed — try Web Speech fallback on mobile
+          if (isMobileRef.current) {
+            try {
+              await speakWithWebSpeechAPI(text)
+              await afterGreet()
+              return
+            } catch {}
+          }
+          // Skip greeting audio, still enter recording
+          await afterGreet()
           return
         }
 
@@ -881,22 +942,38 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           }
         })
 
+        let playSucceeded = false
         try {
           await audio.play()
+          playSucceeded = true
         } catch {
           // Mobile autoplay blocked — retry once
-          await new Promise((r) => setTimeout(r, 200))
-          try { await audio.play() } catch {
-            // Still blocked — skip greeting audio, go to idle
-            stopTTSMonitor()
-            URL.revokeObjectURL(url)
-            audioPlayerRef.current = null
-            conversationRef.current.push({ role: "assistant", content: text })
-            continuousRef.current = true
-            await fnRef.current.startRecording()
-            return
+          await new Promise((r) => setTimeout(r, 300))
+          try {
+            await audio.play()
+            playSucceeded = true
+          } catch {
+            playSucceeded = false
           }
         }
+
+        if (!playSucceeded) {
+          // ElevenLabs audio blocked — clean up and try Web Speech
+          stopTTSMonitor()
+          URL.revokeObjectURL(url)
+          audioPlayerRef.current = null
+
+          if (isMobileRef.current) {
+            try {
+              await speakWithWebSpeechAPI(text)
+            } catch {}
+          }
+
+          await afterGreet()
+          return
+        }
+
+        // ElevenLabs played successfully
         conversationRef.current.push({ role: "assistant", content: text })
         await finished
 
@@ -904,7 +981,16 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         continuousRef.current = true
         await fnRef.current.startRecording()
       } catch {
-        resetToIdle()
+        // Network error or timeout — try Web Speech fallback
+        if (isMobileRef.current) {
+          try {
+            await speakWithWebSpeechAPI(text)
+            await afterGreet()
+            return
+          } catch {}
+        }
+        // Last resort: skip audio, enter recording
+        await afterGreet()
       }
     },
     [

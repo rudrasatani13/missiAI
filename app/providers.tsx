@@ -9,6 +9,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       appearance={{
         baseTheme: dark,
       }}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      afterSignOutUrl="/"
     >
       {children}
     </ClerkProvider>
