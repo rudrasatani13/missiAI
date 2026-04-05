@@ -94,11 +94,72 @@ export function isIOSBrowser(): boolean {
 }
 
 /**
+ * Wait for speechSynthesis voices to be loaded.
+ * On mobile browsers, getVoices() returns [] on the first call — voices
+ * load asynchronously and fire the `voiceschanged` event when ready.
+ * Returns immediately if voices are already loaded.
+ */
+function waitForVoices(timeoutMs = 3000): Promise<SpeechSynthesisVoice[]> {
+  return new Promise((resolve) => {
+    const voices = speechSynthesis.getVoices()
+    if (voices.length > 0) {
+      resolve(voices)
+      return
+    }
+
+    let resolved = false
+    const onVoicesChanged = () => {
+      if (resolved) return
+      resolved = true
+      speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged)
+      resolve(speechSynthesis.getVoices())
+    }
+
+    speechSynthesis.addEventListener("voiceschanged", onVoicesChanged)
+
+    // Don't hang forever — resolve with whatever we have after timeout
+    setTimeout(() => {
+      if (resolved) return
+      resolved = true
+      speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged)
+      resolve(speechSynthesis.getVoices())
+    }, timeoutMs)
+  })
+}
+
+/**
+ * Pick the best voice from a voice list — prefers Hindi voices for
+ * Hindi/Hinglish text, otherwise uses English female voices.
+ */
+function pickBestVoice(voices: SpeechSynthesisVoice[], text: string): SpeechSynthesisVoice | null {
+  if (voices.length === 0) return null
+
+  // Detect Hindi/Hinglish (contains Devanagari script)
+  const hasHindi = /[\u0900-\u097F]/.test(text)
+
+  if (hasHindi) {
+    const hindi = voices.find((v) => v.lang.startsWith("hi"))
+    if (hindi) return hindi
+  }
+
+  // English fallback priority: Samantha (iOS), female, any English
+  return (
+    voices.find((v) => v.lang.startsWith("en") && v.name.toLowerCase().includes("samantha")) ||
+    voices.find((v) => v.lang.startsWith("en") && v.name.toLowerCase().includes("female")) ||
+    voices.find((v) => v.lang.startsWith("en")) ||
+    null
+  )
+}
+
+/**
  * Speak text using the browser's built-in Web Speech API as fallback.
  * Returns a promise that resolves when speech is done.
+ *
+ * MOBILE FIX: Waits for voices to load asynchronously before speaking.
+ * Without this, mobile browsers get no voice and speak silently.
  */
 export function speakWithWebSpeechAPI(text: string): Promise<void> {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (typeof speechSynthesis === "undefined") {
       reject(new Error("Web Speech API not available"))
       return
@@ -107,26 +168,37 @@ export function speakWithWebSpeechAPI(text: string): Promise<void> {
     // Cancel any ongoing speech
     speechSynthesis.cancel()
 
+    // MOBILE FIX: Wait for voices to actually load before speaking
+    const voices = await waitForVoices()
+
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.rate = 0.95
     utterance.pitch = 1.0
     utterance.volume = 1.0
 
-    // Try to find a good voice (prefer female English voices)
-    const voices = speechSynthesis.getVoices()
-    const preferred = voices.find(
-      (v) => v.lang.startsWith("en") && v.name.toLowerCase().includes("female")
-    ) || voices.find(
-      (v) => v.lang.startsWith("en") && v.name.toLowerCase().includes("samantha")
-    ) || voices.find(
-      (v) => v.lang.startsWith("en")
-    )
-
+    const preferred = pickBestVoice(voices, text)
     if (preferred) utterance.voice = preferred
 
-    utterance.onend = () => resolve()
+    // iOS Safari workaround: speechSynthesis sometimes pauses after ~15s.
+    // Set a max timeout that resolves the promise regardless.
+    let settled = false
+    const fallbackTimeout = setTimeout(() => {
+      if (settled) return
+      settled = true
+      speechSynthesis.cancel()
+      resolve()
+    }, Math.max(text.length * 80, 10000)) // ~80ms/char, min 10s
+
+    utterance.onend = () => {
+      if (settled) return
+      settled = true
+      clearTimeout(fallbackTimeout)
+      resolve()
+    }
     utterance.onerror = (e) => {
-      // 'interrupted' and 'canceled' are not real errors
+      if (settled) return
+      settled = true
+      clearTimeout(fallbackTimeout)
       if (e.error === "interrupted" || e.error === "canceled") {
         resolve()
       } else {
@@ -136,16 +208,14 @@ export function speakWithWebSpeechAPI(text: string): Promise<void> {
 
     speechSynthesis.speak(utterance)
 
-    // iOS Safari workaround: speechSynthesis.speak() sometimes silently fails
-    // if called outside a user gesture. Set a timeout to resolve anyway.
-    const fallbackTimeout = setTimeout(() => {
-      resolve()
-    }, Math.max(text.length * 80, 10000)) // rough estimate: 80ms per char, min 10s
-
-    const originalOnEnd = utterance.onend
-    utterance.onend = () => {
-      clearTimeout(fallbackTimeout)
-      if (originalOnEnd) (originalOnEnd as () => void)()
-    }
+    // iOS Safari double-check: if speechSynthesis is not speaking after 500ms,
+    // it silently failed. Resolve early so the flow continues.
+    setTimeout(() => {
+      if (!settled && !speechSynthesis.speaking && !speechSynthesis.pending) {
+        settled = true
+        clearTimeout(fallbackTimeout)
+        resolve()
+      }
+    }, 500)
   })
 }

@@ -405,6 +405,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         if (audioPlayerRef.current) audioPlayerRef.current.pause()
         const audio = new Audio(url)
         audio.volume = 1.0
+        // MOBILE FIX: preload + playsinline ensure audio buffers and plays inline
+        audio.preload = 'auto'
         audio.setAttribute('playsinline', 'true')
         audio.setAttribute('webkit-playsinline', 'true')
         audioPlayerRef.current = audio
@@ -427,19 +429,25 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         })
 
         // Mobile browsers may reject play() if not in a user gesture context.
-        // Retry once after a short delay; if still blocked, try Web Speech API.
         let playSucceeded = false
         try {
           await audio.play()
           playSucceeded = true
         } catch {
-          // Wait briefly and retry — sometimes the gesture unlock is async
-          await new Promise((r) => setTimeout(r, 300))
-          try {
-            await audio.play()
-            playSucceeded = true
-          } catch {
+          if (isMobileRef.current) {
+            // MOBILE FIX: Skip retry, go straight to Web Speech API
+            // Retrying audio.play() on mobile almost never works — the
+            // gesture token is already consumed by the first attempt.
             playSucceeded = false
+          } else {
+            // Desktop: wait briefly and retry (gesture unlock can be async)
+            await new Promise((r) => setTimeout(r, 300))
+            try {
+              await audio.play()
+              playSucceeded = true
+            } catch {
+              playSucceeded = false
+            }
           }
         }
 
@@ -948,6 +956,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         if (audioPlayerRef.current) audioPlayerRef.current.pause()
         const audio = new Audio(url)
         audio.volume = 1.0
+        // MOBILE FIX: preload + playsinline attributes
+        audio.preload = 'auto'
         audio.setAttribute('playsinline', 'true')
         audio.setAttribute('webkit-playsinline', 'true')
         audioPlayerRef.current = audio
@@ -973,13 +983,18 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           await audio.play()
           playSucceeded = true
         } catch {
-          // Mobile autoplay blocked — retry once
-          await new Promise((r) => setTimeout(r, 300))
-          try {
-            await audio.play()
-            playSucceeded = true
-          } catch {
+          if (isMobileRef.current) {
+            // MOBILE FIX: Skip retry, go straight to Web Speech fallback
             playSucceeded = false
+          } else {
+            // Desktop: retry once after short delay
+            await new Promise((r) => setTimeout(r, 300))
+            try {
+              await audio.play()
+              playSucceeded = true
+            } catch {
+              playSucceeded = false
+            }
           }
         }
 

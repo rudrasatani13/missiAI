@@ -5,17 +5,44 @@ import { useUser } from '@clerk/nextjs'
 import type { PlanConfig, DailyUsage, UserBilling } from '@/types/billing'
 
 // SEC-4 FIX: localStorage is used ONLY for optimistic UI, server is the source of truth.
-// We no longer merge with Math.max — server count always wins.
+// MOBILE-FIX: When server returns 0, we use Math.max to prevent false resets
+// (KV cold starts / edge-function restarts can return 0 temporarily).
 function todayStorageKey(): string {
   return `missi-usage-${new Date().toISOString().split('T')[0]}`
 }
 
 function getLocalCount(): number {
-  try { return parseInt(localStorage.getItem(todayStorageKey()) ?? '0', 10) || 0 } catch { return 0 }
+  try {
+    const key = todayStorageKey()
+    const val = localStorage.getItem(key)
+    if (!val) return 0
+    return parseInt(val, 10) || 0
+  } catch { return 0 }
 }
 
 function setLocalCount(count: number): void {
-  try { localStorage.setItem(todayStorageKey(), String(count)) } catch {}
+  try {
+    // Clean up any stale keys from previous days
+    const todayKey = todayStorageKey()
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i)
+      if (k && k.startsWith('missi-usage-') && k !== todayKey) {
+        localStorage.removeItem(k)
+      }
+    }
+    localStorage.setItem(todayKey, String(count))
+  } catch {}
+}
+
+/**
+ * Reconcile server count with local count.
+ * - If server returns non-zero, server wins (it's authoritative).
+ * - If server returns 0, use Math.max to prevent false reset from KV miss.
+ *   This ensures the usage bar doesn't jump back to 0/10 on page refresh.
+ */
+function reconcileCount(serverCount: number, localCount: number): number {
+  if (serverCount > 0) return serverCount
+  return Math.max(serverCount, localCount)
 }
 
 function loadRazorpayScript(): Promise<void> {
@@ -62,10 +89,12 @@ export function useBilling() {
       setPlan(data.plan ?? null)
 
       if (data.usage) {
-        // SEC-4 FIX: Server count is source of truth — use it directly
+        // MOBILE-FIX: Reconcile server count with local count to prevent
+        // false resets when KV returns 0 on cold start
         const serverCount = data.usage.voiceInteractions ?? 0
-        setLocalCount(serverCount) // Sync local for optimistic UI only
-        setUsage(data.usage)
+        const finalCount = reconcileCount(serverCount, getLocalCount())
+        setLocalCount(finalCount)
+        setUsage({ ...data.usage, voiceInteractions: finalCount })
       } else {
         setUsage(null)
       }
@@ -96,11 +125,12 @@ export function useBilling() {
         if (cancelled) return
         setPlan(data.plan ?? null)
 
-        // SEC-4 FIX: Server is source of truth — no Math.max merge with localStorage
+        // MOBILE-FIX: Reconcile server and local counts to prevent false reset
         if (data.usage) {
           const serverCount = data.usage.voiceInteractions ?? 0
-          setLocalCount(serverCount)
-          setUsage(data.usage)
+          const finalCount = reconcileCount(serverCount, getLocalCount())
+          setLocalCount(finalCount)
+          setUsage({ ...data.usage, voiceInteractions: finalCount })
         } else {
           setUsage(null)
         }
