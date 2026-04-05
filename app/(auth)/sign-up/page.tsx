@@ -2,8 +2,6 @@
 
 import { SignUp } from "@clerk/nextjs"
 
-export const runtime = 'edge'
-
 export default function SignUpPage() {
   return (
     <div 
@@ -37,19 +35,15 @@ export default function SignUpPage() {
             formFieldErrorText: "text-red-400 text-xs",
             dividerLine: "bg-white/10",
             dividerText: "text-white/40",
-            // Mobile-critical: ensure OTP/verification elements are visible
             otpCodeFieldInput: "bg-white/5 border-white/10 text-white text-center text-lg h-12",
             formResendCodeLink: "text-white/70 hover:text-white",
             identityPreviewEditButton: "text-white/70 hover:text-white",
             alertText: "text-white/80",
-            // Ensure loading spinners are visible
             spinner: "text-white",
-            // Fix button states on mobile
             formButtonPrimary__loading: "opacity-80",
           },
         }}
-        routing="path"
-        path="/sign-up"
+        routing="hash"
         signInUrl="/sign-in"
         forceRedirectUrl="/chat"
       />
