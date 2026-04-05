@@ -278,11 +278,31 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const ttsSourceRef = useRef<MediaElementAudioSourceNode | null>(null)
 
   const startTTSMonitor = useCallback((audio: HTMLAudioElement) => {
+    // CRITICAL: On mobile, createMediaElementSource() re-routes ALL audio
+    // through the Web Audio API pipeline. If the AudioContext is suspended
+    // (which happens often on iOS/Android), the audio plays but produces
+    // NO SOUND — it goes into a dead AudioContext destination.
+    // Skip the analyser on mobile; the waveform viz is non-critical.
+    if (isMobileRef.current) {
+      // Just set a simple fake level based on playing state for visual feedback
+      const fakePulse = () => {
+        if (!audio || audio.paused || audio.ended) {
+          setAudioLevel(0)
+          return
+        }
+        // Gentle pulse effect for visual feedback
+        setAudioLevel(0.3 + Math.sin(Date.now() / 200) * 0.2)
+        levelAnimRef.current = requestAnimationFrame(fakePulse)
+      }
+      levelAnimRef.current = requestAnimationFrame(fakePulse)
+      return
+    }
+
     try {
       const AC = window.AudioContext || (window as any).webkitAudioContext
       const ctx = ttsContextRef.current || new AC()
       ttsContextRef.current = ctx
-      // iOS Safari suspends AudioContext — resume it
+      // Desktop: resume AudioContext if suspended
       if (ctx.state === "suspended") ctx.resume().catch(() => {})
 
       const analyser = ctx.createAnalyser()
@@ -384,6 +404,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         const url = URL.createObjectURL(blob)
         if (audioPlayerRef.current) audioPlayerRef.current.pause()
         const audio = new Audio(url)
+        audio.volume = 1.0
+        audio.setAttribute('playsinline', 'true')
+        audio.setAttribute('webkit-playsinline', 'true')
         audioPlayerRef.current = audio
         startTTSMonitor(audio)
 
@@ -924,6 +947,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         const url = URL.createObjectURL(blob)
         if (audioPlayerRef.current) audioPlayerRef.current.pause()
         const audio = new Audio(url)
+        audio.volume = 1.0
+        audio.setAttribute('playsinline', 'true')
+        audio.setAttribute('webkit-playsinline', 'true')
         audioPlayerRef.current = audio
         startTTSMonitor(audio)
 
