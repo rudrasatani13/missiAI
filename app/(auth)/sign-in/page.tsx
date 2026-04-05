@@ -74,6 +74,46 @@ export default function SignInPage() {
               routing="hash"
               signUpUrl="/sign-up"
               forceRedirectUrl="/chat"
+              appearance={{
+                variables: {
+                  fontFamily: '"Inter", sans-serif',
+                  colorPrimary: '#ffffff',
+                  colorBackground: 'transparent',
+                  colorText: '#ffffff',
+                  colorInputBackground: 'rgba(255,255,255,0.03)',
+                  colorInputText: '#ffffff',
+                  borderRadius: '0.75rem',
+                },
+                elements: {
+                  rootBox: "w-full",
+                  cardBox: "shadow-none",
+                  card: "bg-transparent shadow-none p-0 w-full gap-5",
+                  headerTitle: "hidden",
+                  headerSubtitle: "hidden",
+                  socialButtonsBlockButton: "bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-white/20 transition-all rounded-lg h-12 shadow-sm justify-center flex items-center gap-3",
+                  socialButtonsBlockButtonText: "font-medium text-[14px]",
+                  socialButtonsBlockButtonArrow: "hidden",
+                  formFieldLabel: "text-white/60 font-medium text-[13px] mb-1.5",
+                  formFieldInput: "bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:border-white/30 focus:bg-white/10 transition-all rounded-lg h-12 px-4 shadow-sm text-[15px]",
+                  footerActionLink: "text-white hover:text-white/80 font-medium ml-1",
+                  footerActionText: "text-white/50",
+                  formButtonPrimary: "bg-white text-black hover:bg-white/90 rounded-lg font-semibold transition-all h-12 text-[15px] shadow-[0_0_20px_rgba(255,255,255,0.15)] mt-2",
+                  formFieldSuccessText: "text-green-400",
+                  formFieldErrorText: "text-red-400 text-xs mt-1",
+                  dividerLine: "bg-white/10",
+                  dividerText: "text-white/40 text-[12px] px-3 font-medium",
+                  otpCodeFieldInput: "bg-white/5 border border-white/10 text-white text-center text-xl h-14 rounded-lg focus:border-white/40 focus:bg-white/10 transition-all",
+                  formResendCodeLink: "text-white/70 hover:text-white",
+                  identityPreviewEditButton: "text-white/70 hover:text-white",
+                  alertText: "text-white/80",
+                  spinner: "text-white",
+                  formButtonPrimary__loading: "opacity-80",
+                  footerAction: "bg-white/5 border border-white/10 rounded-lg p-4 mt-6 flex items-center justify-center text-[13px]",
+                  identityPreview: "bg-white/5 border border-white/10 rounded-lg p-3",
+                  identityPreviewText: "text-white",
+                  formFieldInputShowPasswordButton: "text-white/50 hover:text-white transition-colors",
+                },
+              }}
             />
           </div>
         </div>
