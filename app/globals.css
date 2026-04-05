@@ -326,17 +326,24 @@ img[src*="missiai"] {
   }
 }
 
-/* ═══════ Auth Page — hide cursor & footer ═══════ */
+/* ═══════ Auth Page — hide custom cursor & footer ═══════ */
 body.auth-page [data-testid="global-footer"] {
   display: none !important;
 }
 
-body.auth-page {
-  cursor: auto !important;
+/* Step 1: Force standard cursor on everything inside auth pages (because the app globally hides cursors) */
+body.auth-page,
+body.auth-page * {
+  cursor: default !important;
 }
 
-body.auth-page * {
-  cursor: auto !important;
+/* Step 2: Show the HAND pointer specifically on inputs, buttons, and links */
+body.auth-page input,
+body.auth-page button,
+body.auth-page [role="button"],
+body.auth-page a,
+body.auth-page .cursor-pointer {
+  cursor: pointer !important;
 }
 
 /* Hide the custom cursor orb on auth pages */
