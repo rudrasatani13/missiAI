@@ -440,6 +440,27 @@ body.auth-page div[style*="mix-blend-mode"] {
   transform: scale(0.985) translateY(0) !important;
 }
 
+/* Hide the arrow SVG inside the Continue button */
+.clerk-form-container .cl-formButtonPrimary svg {
+  display: none !important;
+}
+
+/* Force elements to span full width perfectly */
+.clerk-form-container .cl-socialButtons,
+.clerk-form-container .cl-socialButtonsBlockButton,
+.clerk-form-container .cl-formButtonPrimary,
+.clerk-form-container .cl-footerAction,
+.clerk-form-container .cl-dividerRow,
+.clerk-form-container .cl-main,
+.clerk-form-container .cl-footer,
+.clerk-form-container .cl-header,
+.clerk-form-container .cl-card,
+.clerk-form-container .cl-cardBox {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
 /* Social / OAuth buttons */
 .clerk-form-container .cl-socialButtonsBlockButton {
   background: rgba(255, 255, 255, 0.04) !important;
