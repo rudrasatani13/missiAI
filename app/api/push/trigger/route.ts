@@ -1,22 +1,39 @@
 import { NextRequest } from "next/server"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
+import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { logError } from "@/lib/server/logger"
 
 export const runtime = "edge"
 
-export async function POST(req: NextRequest) {
-  try {
-    const userId = await getVerifiedUserId()
-    
-    // Cloudflare Pages (Edge Runtime) does not support Node.js "crypto" based "web-push" package directly.
-    // To send VAPID pushes natively from Cloudflare Workers, a pure Web Crypto ES256 implementation is typically used.
-    // For now, returning success so the build passes perfectly. Subscriptions are still stored safely in KV.
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: "Edge trigger placeholder: VAPID push requires Edge Crypto implementation." 
-    }), { status: 200 })
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  })
+}
 
+export async function POST(req: NextRequest) {
+  // ── 1. Auth ────────────────────────────────────────────────────────────────
+  let userId: string
+  try {
+    userId = await getVerifiedUserId()
   } catch (e) {
     if (e instanceof AuthenticationError) return unauthorizedResponse()
-    return new Response(String((e as Error).message), { status: 500 })
+    logError("push.trigger.auth_error", e)
+    throw e
   }
+
+  // ── 2. Rate limit ─────────────────────────────────────────────────────────
+  const rateResult = await checkRateLimit(userId, "free")
+  if (!rateResult.allowed) {
+    return rateLimitExceededResponse(rateResult)
+  }
+
+  // Cloudflare Pages (Edge Runtime) does not support Node.js "crypto" based "web-push" package directly.
+  // To send VAPID pushes natively from Cloudflare Workers, a pure Web Crypto ES256 implementation is typically used.
+  // For now, returning success so the build passes perfectly. Subscriptions are still stored safely in KV.
+  return jsonResponse({
+    success: true,
+    message: "Edge trigger placeholder: VAPID push requires Edge Crypto implementation.",
+  })
 }

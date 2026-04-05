@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
   if (contentLength && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
     logRequest("chat.payload_too_large", userId, startTime, { size: contentLength })
     return new Response(
-      JSON.stringify({ success: false, error: "Payload too large (max 1 MB)", code: "PAYLOAD_TOO_LARGE" }),
+      JSON.stringify({ success: false, error: "Payload too large (max 5 MB)", code: "PAYLOAD_TOO_LARGE" }),
       { status: 413, headers: { "Content-Type": "application/json" } }
     )
   }
@@ -296,7 +296,7 @@ export async function POST(req: NextRequest) {
     return new Response(
       JSON.stringify({
         success: false,
-        error: err instanceof Error ? err.message : "Internal server error",
+        error: "Internal server error",
         code: "INTERNAL_ERROR",
       }),
       { status: 500, headers: { "Content-Type": "application/json" } }

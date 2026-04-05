@@ -282,10 +282,8 @@ export async function POST(req: NextRequest) {
     return jsonResponse({ success: true, data: { added, updated } })
   } catch (err) {
     logError("memory.write_error", err, userId)
-    const message =
-      err instanceof Error ? err.message : "Internal server error"
     return jsonResponse(
-      { success: false, error: message, code: "INTERNAL_ERROR" },
+      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
       500,
     )
   }

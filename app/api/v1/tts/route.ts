@@ -5,6 +5,7 @@ import { textToSpeech } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import { createTimer, logRequest, logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
+import { getUserPlan } from "@/lib/billing/tier-checker"
 import { getRequestContext } from "@cloudflare/next-on-pages"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { getTodayDate } from "@/lib/billing/usage-tracker"
@@ -50,7 +51,9 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 3. Rate limit ─────────────────────────────────────────────────────────
-  const rateResult = await checkRateLimit(userId, "free")
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === "free" ? "free" : "paid"
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     logRequest("tts.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -134,7 +137,9 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     logError("tts.error", err, userId)
-    const message = err instanceof Error ? err.message : "Internal server error"
-    return NextResponse.json({ success: false, error: message, code: "INTERNAL_ERROR" }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    )
   }
 }

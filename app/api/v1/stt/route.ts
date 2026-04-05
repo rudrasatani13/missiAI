@@ -5,6 +5,7 @@ import { speechToText } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import { createTimer, logRequest, logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
+import { getUserPlan } from "@/lib/billing/tier-checker"
 
 export const runtime = "edge"
 
@@ -40,7 +41,9 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 2. Rate limit ─────────────────────────────────────────────────────────
-  const rateResult = await checkRateLimit(userId, "free")
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === "free" ? "free" : "paid"
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     logRequest("stt.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -97,7 +100,6 @@ export async function POST(req: NextRequest) {
     return jsonResponse({ success: true, data: result })
   } catch (err) {
     logError("stt.error", err, userId)
-    const message = err instanceof Error ? err.message : "Internal server error"
-    return jsonResponse({ success: false, error: message, code: "INTERNAL_ERROR" }, 500)
+    return jsonResponse({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }, 500)
   }
 }
