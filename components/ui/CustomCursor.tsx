@@ -57,18 +57,21 @@ export function CustomCursor() {
         * {
           cursor: none !important;
         }
+        a, button, [role="button"], .interactive {
+          cursor: pointer !important;
+        }
       `}} />
-      <motion.div
-        className="fixed top-0 left-0 w-8 h-8 rounded-full pointer-events-none z-[9999]"
-        style={{
-          x: cursorX,
-          y: cursorY,
-          backgroundColor: "#ffffff",
-          mixBlendMode: "difference",
-          scale: isHovering ? 2.5 : 1,
-        }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      />
+      {!isHovering && (
+        <motion.div
+          className="fixed top-0 left-0 w-8 h-8 rounded-full pointer-events-none z-[9999]"
+          style={{
+            x: cursorX,
+            y: cursorY,
+            backgroundColor: "#ffffff",
+            mixBlendMode: "difference",
+          }}
+        />
+      )}
     </>
   );
 }
