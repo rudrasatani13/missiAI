@@ -8,6 +8,7 @@ import { ArrowRight, Mic, Waves, Lock, Zap, Clock, Globe, Sparkles } from "lucid
 import { motion } from "framer-motion"
 import { Magnetic } from "@/components/ui/Magnetic"
 import { MissiOrb } from "@/components/ui/MissiOrb"
+import { CookieConsent } from "@/components/ui/CookieConsent"
 
 const ithacaFont = localFont({
   src: "./fonts/Ithaca.ttf",
@@ -682,6 +683,7 @@ export default function LandingPage() {
           letter-spacing: 0.05em;
         }
       `}</style>
+      <CookieConsent />
     </div>
   )
 }
