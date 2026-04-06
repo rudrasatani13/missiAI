@@ -23,6 +23,7 @@ export interface EmotionAdaptation {
   ttsStability: number
   ttsSimilarityBoost: number
   ttsStyle: number
+  ttsSpeed?: number
   systemPromptSuffix: string
   maxOutputTokens: number
 }

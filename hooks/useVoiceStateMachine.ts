@@ -393,6 +393,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
               stability: adaptation.ttsStability,
               similarityBoost: adaptation.ttsSimilarityBoost,
               style: adaptation.ttsStyle,
+              speed: adaptation.ttsSpeed ?? 1.0,
             }),
             signal: ctrl.signal,
           },
