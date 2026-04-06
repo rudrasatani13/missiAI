@@ -36,7 +36,7 @@ export async function GET() {
   const kv = getKV()
   if (!kv) {
     return new Response(
-      JSON.stringify({ success: false, error: 'Storage not available' }),
+      JSON.stringify({ success: false, error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
   const kv = getKV()
   if (!kv) {
     return new Response(
-      JSON.stringify({ success: false, error: 'Storage not available' }),
+      JSON.stringify({ success: false, error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }

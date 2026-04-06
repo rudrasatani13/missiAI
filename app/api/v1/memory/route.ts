@@ -220,7 +220,7 @@ export async function POST(req: NextRequest) {
       userId,
     )
     return jsonResponse(
-      { success: false, error: "Storage unavailable", code: "INTERNAL_ERROR" },
+      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
       500,
     )
   }

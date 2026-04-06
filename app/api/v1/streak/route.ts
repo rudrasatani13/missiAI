@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
   const kv = getKV()
   if (!kv) {
     return jsonResponse(
-      { success: false, error: 'Storage unavailable', code: 'INTERNAL_ERROR' },
+      { success: false, error: 'Internal server error', code: 'INTERNAL_ERROR' },
       503,
     )
   }
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     logError('streak.checkin.error', err, userId)
     return jsonResponse(
-      { success: false, error: 'Failed to check in', code: 'INTERNAL_ERROR' },
+      { success: false, error: 'Internal server error', code: 'INTERNAL_ERROR' },
       500,
     )
   }

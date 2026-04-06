@@ -6,7 +6,7 @@
 import { getRequestContext } from '@cloudflare/next-on-pages'
 import { verifyDodoWebhook, determinePlanFromDodoProduct } from '@/lib/billing/dodo-client'
 import { setUserPlan } from '@/lib/billing/tier-checker'
-import { log } from '@/lib/server/logger'
+import { log, logSecurityEvent } from '@/lib/server/logger'
 import type { KVStore } from '@/types'
 
 export const runtime = 'edge'
@@ -84,13 +84,16 @@ export async function POST(req: Request) {
   if (!webhookSecret) {
     log({ level: 'error', event: 'billing.webhook.missing_secret', timestamp: Date.now() })
     return new Response(
-      JSON.stringify({ received: false, error: 'Webhook not configured' }),
+      JSON.stringify({ received: false, error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
 
   if (!webhookId || !webhookSignature || !webhookTimestamp) {
-    log({ level: 'warn', event: 'billing.webhook.missing_headers', timestamp: Date.now() })
+    logSecurityEvent('security.webhook.missing_headers', {
+      path: '/api/webhooks/dodo',
+      metadata: { hasId: !!webhookId, hasSig: !!webhookSignature, hasTs: !!webhookTimestamp },
+    })
     return new Response(
       JSON.stringify({ received: false, error: 'Missing webhook headers' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } }
@@ -108,7 +111,10 @@ export async function POST(req: Request) {
   )
 
   if (!isValid) {
-    log({ level: 'warn', event: 'billing.webhook.invalid_signature', timestamp: Date.now() })
+    logSecurityEvent('security.webhook.invalid_signature', {
+      path: '/api/webhooks/dodo',
+      metadata: { webhookId, webhookTimestamp },
+    })
     return new Response(
       JSON.stringify({ received: false, error: 'Invalid signature' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } }

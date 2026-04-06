@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
   const kv = getKV()
   if (!kv) {
     return jsonResponse(
-      { success: false, error: "Storage unavailable", code: "INTERNAL_ERROR" },
+      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
       500,
     )
   }
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     logError("push.subscribe.store_error", err, userId)
     return jsonResponse(
-      { success: false, error: "Failed to save subscription", code: "INTERNAL_ERROR" },
+      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
       500,
     )
   }

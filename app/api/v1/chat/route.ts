@@ -10,7 +10,7 @@ import { buildSystemPrompt } from "@/services/ai.service"
 import { estimateRequestTokens, estimateTokens, LIMITS, truncateToTokenLimit } from "@/lib/memory/token-counter"
 import { buildCacheKey, getCachedResponse, setCachedResponse, isCacheable } from "@/lib/server/response-cache"
 import { selectGeminiModel } from "@/lib/ai/model-router"
-import { createTimer, logRequest, logError } from "@/lib/server/logger"
+import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
 import { calculateTotalCost, checkBudgetAlert } from "@/lib/server/cost-tracker"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
@@ -293,7 +293,7 @@ export async function POST(req: NextRequest) {
       },
     })
   } catch (err) {
-    logError("chat.error", err, userId)
+    logApiError("chat.error", err, { userId, httpStatus: 500 })
     return new Response(
       JSON.stringify({
         success: false,

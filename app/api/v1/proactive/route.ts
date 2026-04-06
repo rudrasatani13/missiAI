@@ -214,7 +214,7 @@ export async function PATCH(req: NextRequest) {
   const kv = getKV()
   if (!kv) {
     return jsonResponse(
-      { success: false, error: 'Storage unavailable', code: 'INTERNAL_ERROR' },
+      { success: false, error: 'Internal server error', code: 'INTERNAL_ERROR' },
       500,
     )
   }
@@ -226,7 +226,7 @@ export async function PATCH(req: NextRequest) {
   } catch (err) {
     logError('proactive.config.error', err, userId)
     return jsonResponse(
-      { success: false, error: 'Failed to save config', code: 'INTERNAL_ERROR' },
+      { success: false, error: 'Internal server error', code: 'INTERNAL_ERROR' },
       500,
     )
   }

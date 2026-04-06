@@ -4,6 +4,10 @@
 //
 // Single source of truth for required env vars. Throws a clear error with the
 // missing key name so deployment issues surface immediately.
+//
+// PRODUCTION: Set all secrets via `wrangler secret put <NAME>` or the
+// Cloudflare Pages dashboard (Settings → Environment variables → Encrypted).
+// See SECURITY.md for the full list and rotation procedure.
 
 export interface AppEnv {
   GEMINI_API_KEY: string
@@ -17,6 +21,8 @@ export interface AppEnv {
   DODO_PRO_PRODUCT_ID: string
   DODO_BUSINESS_PRODUCT_ID: string
   DODO_PAYMENTS_MODE: string
+  /** Web Push VAPID private key — required for sending push notifications. */
+  VAPID_PRIVATE_KEY: string | undefined
 }
 
 function requireEnv(key: string): string {
@@ -45,6 +51,7 @@ export function getEnv(): AppEnv {
     DODO_PRO_PRODUCT_ID: requireEnv("DODO_PRO_PRODUCT_ID"),
     DODO_BUSINESS_PRODUCT_ID: requireEnv("DODO_BUSINESS_PRODUCT_ID"),
     DODO_PAYMENTS_MODE: process.env.DODO_PAYMENTS_MODE ?? "live_mode",
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || undefined,
   }
 }
 

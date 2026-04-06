@@ -3,7 +3,7 @@ import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/
 import { sttSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { speechToText } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
-import { createTimer, logRequest, logError } from "@/lib/server/logger"
+import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     apiKey = appEnv.ELEVENLABS_API_KEY
   } catch (e) {
     logError("stt.env_error", e, userId)
-    return jsonResponse({ success: false, error: "Server configuration error", code: "INTERNAL_ERROR" }, 500)
+    return jsonResponse({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }, 500)
   }
 
   // ── 6. Call ElevenLabs with timeout ───────────────────────────────────────
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
 
     return jsonResponse({ success: true, data: result }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
-    logError("stt.error", err, userId)
+    logApiError("stt.error", err, { userId, httpStatus: 500 })
     return jsonResponse({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }, 500)
   }
 }

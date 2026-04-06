@@ -3,17 +3,28 @@ pages_build_output_dir = ".vercel/output/static"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Required secrets (set via `wrangler secret put`):
+# Required secrets — set via `wrangler secret put <NAME>` or Cloudflare Pages
+# dashboard (Settings → Environment variables → Encrypted). NEVER put real
+# values in this file or any .env.*.local file that could be committed.
+#
+# AI providers
 # - GEMINI_API_KEY
 # - ELEVENLABS_API_KEY
 # - ELEVENLABS_VOICE_ID
+#
+# Auth
 # - CLERK_SECRET_KEY
 # - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-# - RAZORPAY_KEY_ID
-# - RAZORPAY_KEY_SECRET
-# - RAZORPAY_WEBHOOK_SECRET
-# - RAZORPAY_PRO_PLAN_ID
-# - RAZORPAY_BUSINESS_PLAN_ID
+# - ADMIN_USER_ID
+#
+# Payments (Dodo)
+# - DODO_PAYMENTS_API_KEY
+# - DODO_WEBHOOK_SECRET
+# - DODO_PRO_PRODUCT_ID
+# - DODO_BUSINESS_PRODUCT_ID
+#
+# Web Push (VAPID)
+# - VAPID_PRIVATE_KEY
 
 [vars]
 DAILY_BUDGET_USD = "5.0"

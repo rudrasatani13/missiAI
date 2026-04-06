@@ -208,8 +208,8 @@ export async function verifyDodoWebhook(
     // Validate timestamp — reject events older than 5 minutes
     const timestampSec = parseInt(webhookTimestamp, 10)
     const now = Math.floor(Date.now() / 1000)
-    if (Math.abs(now - timestampSec) > 300) {
-      console.warn('[Dodo Webhook] Timestamp too old/new, rejecting')
+    if (Number.isNaN(timestampSec) || Math.abs(now - timestampSec) > 300) {
+      console.warn('[Dodo Webhook] Timestamp invalid or too old/new, rejecting')
       return false
     }
 

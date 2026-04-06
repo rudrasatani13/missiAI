@@ -1,7 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import type { NextRequest, NextFetchEvent } from "next/server"
-import { log } from "@/lib/server/logger"
+import { log, logAuthEvent, logSecurityEvent } from "@/lib/server/logger"
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -50,6 +50,27 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     response.headers.set(key, value)
   }
+  return response
+}
+
+// ─── CORS Configuration ───────────────────────────────────────────────────────
+//
+// Explicit allowed origins. No wildcards are permitted per security requirements.
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_APP_URL || "https://missi.space",
+  "http://localhost:3000",
+]
+
+function applyCorsHeaders(response: NextResponse, request: NextRequest | Request): NextResponse {
+  const origin = request.headers.get("origin") ?? ""
+  
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    response.headers.set("Access-Control-Allow-Origin", origin)
+    response.headers.set("Access-Control-Allow-Credentials", "true")
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-clerk-user-id")
+  }
+  
   return response
 }
 
@@ -254,15 +275,28 @@ const clerkHandler = clerkMiddleware(
     // limit.  This doesn't outright block — legitimate API clients can still
     // work, but automated scripts hit the wall much faster.
     const ua = request.headers.get("user-agent")
-    const effectiveLimit = isSuspiciousUA(ua) ? Math.floor(IP_LIMIT / 2) : undefined
+    const suspicious = isSuspiciousUA(ua)
+    const effectiveLimit = suspicious ? Math.floor(IP_LIMIT / 2) : undefined
     const result = checkIPRateLimit(ip, effectiveLimit)
 
+    if (suspicious) {
+      logSecurityEvent("security.bot_ua_detected", {
+        ip,
+        userAgent: ua ?? undefined,
+        path: request.nextUrl.pathname,
+        metadata: { effectiveLimit: effectiveLimit ?? IP_LIMIT },
+      })
+    }
+
     if (!result.allowed) {
-      log({
-        level: "warn",
-        event: "api.rate_limited",
-        metadata: { ip, path: request.nextUrl.pathname, suspiciousUA: isSuspiciousUA(ua) },
-        timestamp: Date.now(),
+      logSecurityEvent("security.rate_limit_exceeded", {
+        ip,
+        userAgent: ua ?? undefined,
+        path: request.nextUrl.pathname,
+        metadata: {
+          suspiciousUA: suspicious,
+          violations: violationMap.get(ip)?.violations ?? 1,
+        },
       })
 
       return rateLimited429(result)
@@ -326,12 +360,20 @@ const clerkHandler = clerkMiddleware(
       const adminEnv = process.env.ADMIN_USER_ID
       const isSuperAdminEnv = adminEnv ? authObj.userId === adminEnv : false
 
-      console.log("[DEBUG Admin Check] UI Request", { 
+      console.log("[admin.access_check]", JSON.stringify({ 
         currentUserId: authObj.userId, 
         envUserId: adminEnv, 
         role, 
         isRoleAdmin, 
         isSuperAdminEnv 
+      }))
+
+      log({
+        level: "debug",
+        event: "admin.access_check",
+        userId: authObj.userId ?? undefined,
+        metadata: { role, isRoleAdmin, isSuperAdminEnv, path: request.nextUrl.pathname },
+        timestamp: Date.now(),
       })
 
       if (!isRoleAdmin && !isSuperAdminEnv) {
@@ -357,17 +399,28 @@ const clerkHandler = clerkMiddleware(
 
 export default async function middleware(request: NextRequest, event: NextFetchEvent) {
   const startTime = Date.now()
+  // Resolve client IP once so it can appear in all log events within this request
+  const clientIp = getClientIP(request)
+
+  // ── CORS Preflight Intercept ──
+  if (request.method === "OPTIONS" && isAPIRoute(request)) {
+    let response = new NextResponse(null, { status: 204 })
+    response = applySecurityHeaders(response)
+    response = applyCorsHeaders(response, request)
+    return response
+  }
 
   try {
     const rawResponse = await clerkHandler(request, event)
 
-    // Attach security headers to every API response that passes through middleware.
-    // Route handlers that return their own NextResponse will have these headers set
-    // here; plain `undefined` (pass-through) is left for Next.js to handle.
-    const response =
-      rawResponse instanceof NextResponse && isAPIRoute(request)
-        ? applySecurityHeaders(rawResponse)
-        : rawResponse
+    // Attach security and CORS headers to every API response that passes through middleware.
+    // If Clerk didn't return a NextResponse, we create one so we can attach headers before continuing.
+    let response = rawResponse instanceof NextResponse ? rawResponse : NextResponse.next()
+
+    if (isAPIRoute(request)) {
+      response = applySecurityHeaders(response)
+      response = applyCorsHeaders(response, request)
+    }
 
     // Log completed API requests
     if (isAPIRoute(request)) {
@@ -375,11 +428,11 @@ export default async function middleware(request: NextRequest, event: NextFetchE
       const userId = request.headers.get("x-clerk-user-id") ?? undefined
 
       if (status === 401) {
-        log({
-          level: "warn",
-          event: "api.unauthorized",
-          metadata: { path: request.nextUrl.pathname },
-          timestamp: Date.now(),
+        logAuthEvent("auth.unauthorized", {
+          ip: clientIp,
+          path: request.nextUrl.pathname,
+          outcome: "failure",
+          reason: "unauthenticated_api_request",
         })
       }
 

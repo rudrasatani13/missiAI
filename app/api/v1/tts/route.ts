@@ -3,7 +3,7 @@ import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/
 import { ttsSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { textToSpeech } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
-import { createTimer, logRequest, logError } from "@/lib/server/logger"
+import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { getRequestContext } from "@cloudflare/next-on-pages"
@@ -86,9 +86,9 @@ export async function POST(req: NextRequest) {
   try {
     appEnv = getEnv()
   } catch (e) {
-    logError("tts.env_error", e, userId)
+    logApiError("tts.env_error", e, { userId, httpStatus: 500 })
     return NextResponse.json(
-      { success: false, error: "Server configuration error", code: "INTERNAL_ERROR" },
+      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     )
   }
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
   if (!voiceId) {
     logError("tts.missing_voice_id", "ELEVENLABS_VOICE_ID not configured", userId)
     return NextResponse.json(
-      { success: false, error: "ElevenLabs voice ID not configured", code: "INTERNAL_ERROR" },
+      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     )
   }
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
       },
     })
   } catch (err) {
-    logError("tts.error", err, userId)
+    logApiError("tts.error", err, { userId, httpStatus: 500 })
     return NextResponse.json(
       { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 },

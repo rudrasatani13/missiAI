@@ -76,7 +76,7 @@ export async function DELETE(
   if (!kv) {
     logError("memory.node.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
     return jsonResponse(
-      { success: false, error: "Storage unavailable", code: "INTERNAL_ERROR" },
+      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
       500,
     )
   }
@@ -166,7 +166,7 @@ export async function PATCH(
   if (!kv) {
     logError("memory.node.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
     return jsonResponse(
-      { success: false, error: "Storage unavailable", code: "INTERNAL_ERROR" },
+      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
       500,
     )
   }

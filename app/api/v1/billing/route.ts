@@ -5,7 +5,7 @@ import { getDailyUsage } from '@/lib/billing/usage-tracker'
 import { createDodoCheckoutSession, cancelDodoSubscription } from '@/lib/billing/dodo-client'
 import { PLANS, getServerDodoProductId } from '@/types/billing'
 import { billingCheckoutSchema } from '@/lib/validation/billing-schemas'
-import { log } from '@/lib/server/logger'
+import { log, logApiError } from '@/lib/server/logger'
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
 import { clerkClient } from '@clerk/nextjs/server'
 import { getReferrer } from '@/lib/billing/referral'
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
   const apiKey = process.env.DODO_PAYMENTS_API_KEY
   if (!apiKey) {
     return new Response(
-      JSON.stringify({ success: false, error: 'Payment not configured' }),
+      JSON.stringify({ success: false, error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
   const dodoProductId = getServerDodoProductId(planId)
   if (!dodoProductId) {
     return new Response(
-      JSON.stringify({ success: false, error: 'Plan not configured' }),
+      JSON.stringify({ success: false, error: 'Internal server error' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     )
   }
@@ -155,13 +155,7 @@ export async function POST(req: Request) {
       },
     })
   } catch (err) {
-    log({
-      level: 'error',
-      event: 'billing.checkout.error',
-      userId,
-      metadata: { error: err instanceof Error ? err.message : String(err) },
-      timestamp: Date.now(),
-    })
+    logApiError('billing.checkout.error', err, { userId, httpStatus: 500 })
     return new Response(
       JSON.stringify({ success: false, error: 'Failed to create checkout session. Please try again.' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -233,13 +227,7 @@ export async function DELETE() {
       { status: 200, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rateResult) } }
     )
   } catch (err) {
-    log({
-      level: 'error',
-      event: 'billing.cancel.error',
-      userId,
-      metadata: { error: err instanceof Error ? err.message : String(err) },
-      timestamp: Date.now(),
-    })
+    logApiError('billing.cancel.error', err, { userId, httpStatus: 500 })
     return new Response(
       JSON.stringify({ success: false, error: 'Failed to cancel subscription' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

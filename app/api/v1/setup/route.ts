@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
   const kv = getKV()
   if (!kv) {
     logError('setup.kv_unavailable', 'KV binding missing', userId)
-    return jsonResponse({ success: false, error: 'Storage unavailable' }, 500)
+    return jsonResponse({ success: false, error: 'Internal server error' }, 500)
   }
 
   try {
@@ -141,6 +141,6 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     logError('setup.error', error, userId)
-    return jsonResponse({ success: false, error: 'Failed to complete setup' }, 500, rateLimitHeaders(rateResult))
+    return jsonResponse({ success: false, error: 'Internal server error' }, 500, rateLimitHeaders(rateResult))
   }
 }
