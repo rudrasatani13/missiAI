@@ -59,6 +59,9 @@ export function CustomCursor() {
         a, button, [role="button"], .interactive {
           cursor: pointer !important;
         }
+        a *, button *, [role="button"] *, .interactive * {
+          cursor: inherit !important;
+        }
       `}} />
       {!isHovering && (
         <motion.div
