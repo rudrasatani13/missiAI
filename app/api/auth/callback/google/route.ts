@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getEnv } from "@/lib/server/env"
 import { saveGoogleTokens, fetchCalendarContext } from "@/lib/plugins/data-fetcher"
+import { getRequestContext } from "@cloudflare/next-on-pages"
 
 export const runtime = "edge"
 
 function getKV() {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const ctx = (globalThis as any).__cf_kv_context
-    if (ctx) return ctx
-    const { getRequestContext } = require("@cloudflare/next-on-pages")
     const { env } = getRequestContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch { return null }

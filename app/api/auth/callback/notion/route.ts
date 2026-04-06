@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getEnv } from "@/lib/server/env"
 import { saveNotionTokens, fetchNotionContext } from "@/lib/plugins/data-fetcher"
+import { getRequestContext } from "@cloudflare/next-on-pages"
 
 export const runtime = "edge"
 
 function getKV() {
   try {
-    const { getRequestContext } = require("@cloudflare/next-on-pages")
     const { env } = getRequestContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch { return null }
