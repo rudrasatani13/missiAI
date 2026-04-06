@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
+import { clerkClient } from '@clerk/nextjs/server'
 import { getRequestContext } from '@cloudflare/next-on-pages'
 import { logRequest, logError } from '@/lib/server/logger'
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
@@ -79,9 +80,20 @@ export async function POST(req: NextRequest) {
 
     const { name, dob, occupation } = parsed.data
 
-    // 1. Mark setup as completed in KV
+    // 1. Mark setup as completed in KV and Clerk
     const profile = { name, dob, occupation, setupCompleted: true, timestamp: Date.now() }
     await kv.put(`profile:${userId}`, JSON.stringify(profile))
+    
+    // Also save to Clerk public metadata for reliable routing checks
+    const client = await clerkClient()
+    const user = await client.users.getUser(userId)
+    const existingMeta = (user.publicMetadata ?? {}) as Record<string, unknown>
+    await client.users.updateUser(userId, {
+      publicMetadata: {
+        ...existingMeta,
+        setupComplete: true
+      }
+    })
 
     // 2. Add memories to LifeGraph
     let apiKey = ''
