@@ -15,6 +15,10 @@ const isPublicRoute = createRouteMatcher([
   "/pricing(.*)",
 ])
 
+// Auth page routes — rate-limited separately with a tighter per-IP cap to
+// slow credential-stuffing bots and mass sign-up automation.
+const isAuthRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"])
+
 // Admin routes require Clerk auth and admin role check
 const isAdminRoute = createRouteMatcher(["/admin(.*)", "/api/v1/admin(.*)"])
 
@@ -49,53 +53,151 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   return response
 }
 
-// ─── IP-based rate limiter (Map, Edge-runtime compatible) ─────────────────────
+// ─── IP-based rate limiter (sliding window, Edge-runtime compatible) ──────────
 //
-// Each Cloudflare Worker isolate has its own memory, so this Map is per-isolate
-// rather than globally distributed. It acts as a per-instance burst guard that
-// complements the KV-backed per-user limit enforced inside each route handler.
+// Each Cloudflare Worker isolate has its own memory, so these Maps are
+// per-isolate rather than globally distributed.  They act as a per-instance
+// burst guard that complements the KV-backed per-user limit enforced inside
+// each route handler.
+//
+// Sliding-window (two-bucket approximation):
+//   effective = prev_count × overlap_fraction + current_count
+// This smooths out the fixed-window burst vulnerability where a client could
+// send 2× the limit across a window boundary.
 
-interface IPEntry {
+interface IPBucket {
   count: number
-  resetAt: number // ms timestamp
+  windowStart: number // ms timestamp of current window start
 }
 
-const ipMap = new Map<string, IPEntry>()
-// Standard API endpoints: 60 req/min — voice assistant makes 3-4 calls per interaction
-const IP_LIMIT = 60
-const IP_WINDOW_MS = 60_000 // 60 seconds
+// ── Violation tracker for escalating penalties ───────────────────────────────
+// After 3 consecutive rate-limit violations within a tracking period, the
+// retry-after is doubled.  This makes automated scripts progressively slower
+// without affecting real users who hit the limit once.
+
+interface ViolationEntry {
+  violations: number
+  firstViolationAt: number
+}
+
+const violationMap = new Map<string, ViolationEntry>()
+const VIOLATION_WINDOW_MS  = 10 * 60_000 // 10 min tracking window
+const VIOLATION_ESCALATION = 3           // violations before doubling retry-after
+
+// ── IP bucket maps ───────────────────────────────────────────────────────────
+
+const ipMap = new Map<string, IPBucket>()
+const prevIpMap = new Map<string, IPBucket>()
+
+// Standard API endpoints: 60 req/min
+const IP_LIMIT     = 60
+const IP_WINDOW_MS = 60_000
 
 // Health endpoint: lower burst limit — unauthenticated public probe
 const HEALTH_IP_LIMIT = 20
-const healthIpMap = new Map<string, IPEntry>()
+const healthIpMap = new Map<string, IPBucket>()
+const prevHealthIpMap = new Map<string, IPBucket>()
+
+// Auth pages (/sign-in, /sign-up): 15 req / 15 min — deters credential
+// stuffing and mass sign-up bots
+const AUTH_IP_LIMIT  = 15
+const AUTH_WINDOW_MS = 15 * 60_000
+const authIpMap = new Map<string, IPBucket>()
+const prevAuthIpMap = new Map<string, IPBucket>()
+
+// ── Known bot User-Agent patterns ────────────────────────────────────────────
+// These default UA strings are almost never set by real browsers.  Requests
+// matching them get a halved rate limit on non-health endpoints.
+const BOT_UA_PATTERNS = [
+  /^python-requests\//i,
+  /^python-urllib\//i,
+  /^curl\//i,
+  /^wget\//i,
+  /^node-fetch\//i,
+  /^axios\//i,
+  /^go-http-client\//i,
+  /^okhttp\//i,
+  /^java\//i,
+  /^libwww-perl\//i,
+  /scrapy/i,
+  /bot/i,
+  /spider/i,
+  /crawl/i,
+]
+
+function isSuspiciousUA(ua: string | null): boolean {
+  if (!ua || ua.trim().length === 0) return true
+  return BOT_UA_PATTERNS.some((p) => p.test(ua))
+}
+
+// ── Sliding-window check ─────────────────────────────────────────────────────
 
 function checkIPRateLimitInternal(
-  map: Map<string, IPEntry>,
+  currentMap: Map<string, IPBucket>,
+  prevMap: Map<string, IPBucket>,
   ip: string,
   limit: number,
-): { allowed: boolean; retryAfter: number } {
+  windowMs: number = IP_WINDOW_MS,
+): { allowed: boolean; retryAfter: number; remaining: number; limit: number; resetAt: number } {
   const now = Date.now()
-  const entry = map.get(ip)
 
-  if (!entry || now >= entry.resetAt) {
-    map.set(ip, { count: 1, resetAt: now + IP_WINDOW_MS })
-    return { allowed: true, retryAfter: 0 }
+  // ── Current bucket ──────────────────────────────────────────────────────
+  let current = currentMap.get(ip)
+  if (!current || now >= current.windowStart + windowMs) {
+    // Rotate: current → prev, start fresh
+    if (current) prevMap.set(ip, current)
+    current = { count: 0, windowStart: now }
+    currentMap.set(ip, current)
   }
 
-  if (entry.count >= limit) {
-    return { allowed: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000) }
+  // ── Previous bucket weight ──────────────────────────────────────────────
+  const prev = prevMap.get(ip)
+  let prevWeight = 0
+  let prevCount = 0
+  if (prev && now < prev.windowStart + 2 * windowMs) {
+    const elapsed = now - current.windowStart
+    prevWeight = Math.max(0, (windowMs - elapsed) / windowMs)
+    prevCount = prev.count
   }
 
-  entry.count++
-  return { allowed: true, retryAfter: 0 }
+  const effectiveCount = prevCount * prevWeight + current.count
+  const resetAt = current.windowStart + windowMs
+  const retryAfterBase = Math.max(1, Math.ceil((resetAt - now) / 1000))
+
+  if (effectiveCount >= limit) {
+    // ── Escalation check ────────────────────────────────────────────────
+    let retryAfter = retryAfterBase
+    const v = violationMap.get(ip)
+    if (v && now - v.firstViolationAt < VIOLATION_WINDOW_MS) {
+      v.violations++
+      if (v.violations >= VIOLATION_ESCALATION) {
+        retryAfter = retryAfter * 2 // double penalty
+      }
+    } else {
+      violationMap.set(ip, { violations: 1, firstViolationAt: now })
+    }
+
+    return { allowed: false, retryAfter, remaining: 0, limit, resetAt: Math.floor(resetAt / 1000) }
+  }
+
+  current.count++
+  const remaining = Math.max(0, Math.floor(limit - effectiveCount - 1))
+  return { allowed: true, retryAfter: 0, remaining, limit, resetAt: Math.floor(resetAt / 1000) }
 }
 
-function checkIPRateLimit(ip: string): { allowed: boolean; retryAfter: number } {
-  return checkIPRateLimitInternal(ipMap, ip, IP_LIMIT)
+function checkIPRateLimit(
+  ip: string,
+  limitOverride?: number,
+): { allowed: boolean; retryAfter: number; remaining: number; limit: number; resetAt: number } {
+  return checkIPRateLimitInternal(ipMap, prevIpMap, ip, limitOverride ?? IP_LIMIT)
 }
 
-function checkHealthIPRateLimit(ip: string): { allowed: boolean; retryAfter: number } {
-  return checkIPRateLimitInternal(healthIpMap, ip, HEALTH_IP_LIMIT)
+function checkHealthIPRateLimit(ip: string) {
+  return checkIPRateLimitInternal(healthIpMap, prevHealthIpMap, ip, HEALTH_IP_LIMIT)
+}
+
+function checkAuthIPRateLimit(ip: string) {
+  return checkIPRateLimitInternal(authIpMap, prevAuthIpMap, ip, AUTH_IP_LIMIT, AUTH_WINDOW_MS)
 }
 
 function getClientIP(request: Request): string {
@@ -104,6 +206,29 @@ function getClientIP(request: Request): string {
     request.headers.get("cf-connecting-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
     "unknown"
+  )
+}
+
+// ── Rate-limit 429 response helper ───────────────────────────────────────────
+
+function rateLimited429(
+  result: { retryAfter: number; remaining: number; limit: number; resetAt: number },
+  message = "Too many requests. Please slow down.",
+): NextResponse {
+  return applySecurityHeaders(
+    new NextResponse(
+      JSON.stringify({ success: false, error: message }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(result.retryAfter),
+          "X-RateLimit-Limit": String(result.limit),
+          "X-RateLimit-Remaining": String(result.remaining),
+          "X-RateLimit-Reset": String(result.resetAt),
+        },
+      },
+    ),
   )
 }
 
@@ -118,46 +243,29 @@ const clerkHandler = clerkMiddleware(
 
     // Health endpoint: apply its own (lower) IP rate limit, then pass through
     if (isHealthRoute(request)) {
-      const { allowed, retryAfter } = checkHealthIPRateLimit(ip)
-      if (!allowed) {
-        return applySecurityHeaders(
-          new NextResponse(
-            JSON.stringify({ success: false, error: "Too many requests." }),
-            {
-              status: 429,
-              headers: {
-                "Content-Type": "application/json",
-                "Retry-After": String(retryAfter),
-              },
-            },
-          ),
-        )
+      const result = checkHealthIPRateLimit(ip)
+      if (!result.allowed) {
+        return rateLimited429(result, "Too many requests.")
       }
       return
     }
 
-    const { allowed, retryAfter } = checkIPRateLimit(ip)
+    // Bot fingerprinting: suspicious or missing User-Agent gets a halved rate
+    // limit.  This doesn't outright block — legitimate API clients can still
+    // work, but automated scripts hit the wall much faster.
+    const ua = request.headers.get("user-agent")
+    const effectiveLimit = isSuspiciousUA(ua) ? Math.floor(IP_LIMIT / 2) : undefined
+    const result = checkIPRateLimit(ip, effectiveLimit)
 
-    if (!allowed) {
+    if (!result.allowed) {
       log({
         level: "warn",
         event: "api.rate_limited",
-        metadata: { ip, path: request.nextUrl.pathname },
+        metadata: { ip, path: request.nextUrl.pathname, suspiciousUA: isSuspiciousUA(ua) },
         timestamp: Date.now(),
       })
 
-      return applySecurityHeaders(
-        new NextResponse(
-          JSON.stringify({ success: false, error: "Too many requests. Please slow down." }),
-          {
-            status: 429,
-            headers: {
-              "Content-Type": "application/json",
-              "Retry-After": String(retryAfter),
-            },
-          },
-        ),
-      )
+      return rateLimited429(result)
     }
 
     if (isAdminRoute(request)) {
@@ -178,6 +286,34 @@ const clerkHandler = clerkMiddleware(
 
     // Route handlers call auth() themselves — do not redirect here.
     return
+  }
+
+  // Auth pages: tighter IP rate limit to deter credential-stuffing and mass sign-up
+  if (isAuthRoute(request)) {
+    const ip = getClientIP(request)
+    const result = checkAuthIPRateLimit(ip)
+    if (!result.allowed) {
+      log({
+        level: "warn",
+        event: "auth.rate_limited",
+        metadata: { ip, path: request.nextUrl.pathname },
+        timestamp: Date.now(),
+      })
+      // Return a simple page-level response for browsers
+      return new NextResponse(
+        `<html><body><h1>Too Many Requests</h1><p>Please wait ${result.retryAfter} seconds before trying again.</p></body></html>`,
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "text/html",
+            "Retry-After": String(result.retryAfter),
+            "X-RateLimit-Limit": String(result.limit),
+            "X-RateLimit-Remaining": String(result.remaining),
+            "X-RateLimit-Reset": String(result.resetAt),
+          },
+        },
+      )
+    }
   }
 
   if (!isPublicRoute(request)) {

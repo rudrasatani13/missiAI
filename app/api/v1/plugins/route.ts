@@ -7,7 +7,8 @@ import { PLUGIN_METADATA } from "@/lib/plugins/plugin-registry"
 import { getUserPlugins, upsertPlugin, disconnectPlugin, getConnectedPlugin, stripCredentials } from "@/lib/plugins/plugin-store"
 import { buildPluginCommand, executePluginCommand } from "@/lib/plugins/plugin-executor"
 import { successResponse, standardErrors } from "@/types/api"
-import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
+import { getUserPlan } from "@/lib/billing/tier-checker"
 import type { KVStore } from "@/types"
 import type { PluginConfig, PluginId } from "@/types/plugins"
 
@@ -37,7 +38,9 @@ export async function GET() {
   }
 
   // OWASP API4: rate-limit per user to prevent enumeration/abuse
-  const rateResult = await checkRateLimit(userId, "free")
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     logRequest("plugins.get.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -46,14 +49,14 @@ export async function GET() {
   try {
     const kv = getKV()
     if (!kv) {
-      return successResponse({ plugins: [] })
+      return successResponse({ plugins: [] }, 200, rateLimitHeaders(rateResult))
     }
 
     const userPlugins = await getUserPlugins(kv, userId)
     const safe = userPlugins.plugins.map(stripCredentials)
 
     logRequest("plugins.list", userId, startTime, { count: safe.length })
-    return successResponse({ plugins: safe })
+    return successResponse({ plugins: safe }, 200, rateLimitHeaders(rateResult))
   } catch (e) {
     logError("plugins.get.error", e, userId)
     return standardErrors.internalError()
@@ -75,7 +78,9 @@ export async function POST(req: Request) {
   }
 
   // OWASP API4: rate-limit plugin connections to prevent credential-stuffing
-  const rateResult = await checkRateLimit(userId, "free")
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     logRequest("plugins.post.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -113,7 +118,7 @@ export async function POST(req: Request) {
     await upsertPlugin(kv, userId, config)
 
     logRequest("plugins.connected", userId, startTime, { pluginId: id })
-    return successResponse({ plugin: stripCredentials(config) })
+    return successResponse({ plugin: stripCredentials(config) }, 200, rateLimitHeaders(rateResult))
   } catch (e) {
     logError("plugins.post.error", e, userId)
     return standardErrors.internalError()
@@ -135,7 +140,9 @@ export async function DELETE(req: Request) {
   }
 
   // OWASP API4: rate-limit to prevent bulk disconnection abuse
-  const rateResult = await checkRateLimit(userId, "free")
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     logRequest("plugins.delete.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -162,7 +169,7 @@ export async function DELETE(req: Request) {
     await disconnectPlugin(kv, userId, id as PluginId)
 
     logRequest("plugins.disconnected", userId, startTime, { pluginId: id })
-    return successResponse({ success: true })
+    return successResponse({ success: true }, 200, rateLimitHeaders(rateResult))
   } catch (e) {
     logError("plugins.delete.error", e, userId)
     return standardErrors.internalError()
@@ -185,7 +192,9 @@ export async function PATCH(req: Request) {
   }
 
   // OWASP API4: rate-limit plugin execution — each call may trigger external API requests
-  const rateResult = await checkRateLimit(userId, "free")
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier, 'ai')
   if (!rateResult.allowed) {
     logRequest("plugins.patch.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -237,7 +246,7 @@ export async function PATCH(req: Request) {
       durationMs,
     })
 
-    return successResponse({ result })
+    return successResponse({ result }, 200, rateLimitHeaders(rateResult))
   } catch (e) {
     logError("plugins.patch.error", e, userId)
     return standardErrors.internalError()

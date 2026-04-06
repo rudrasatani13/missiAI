@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
-import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
+import { getUserPlan } from "@/lib/billing/tier-checker"
 import { getRequestContext } from "@cloudflare/next-on-pages"
 import { z } from "zod"
 import { logError } from "@/lib/server/logger"
@@ -29,10 +30,10 @@ function getKV(): KVStore | null {
   }
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
   })
 }
 
@@ -47,8 +48,10 @@ export async function POST(req: NextRequest) {
     throw e
   }
 
-  // ── 2. Rate limit ─────────────────────────────────────────────────────────
-  const rateResult = await checkRateLimit(userId, "free")
+  // ── 2. Rate limit ─────────────────────────────────────────────────────────────
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     return rateLimitExceededResponse(rateResult)
   }
@@ -92,7 +95,11 @@ export async function POST(req: NextRequest) {
 
   try {
     await kv.put(`push:${userId}`, JSON.stringify(parsed.data))
-    return jsonResponse({ success: true })
+    return jsonResponse(
+      { success: true, message: "Subscribed successfully" },
+      200,
+      rateLimitHeaders(rateResult)
+    )
   } catch (err) {
     logError("push.subscribe.store_error", err, userId)
     return jsonResponse(

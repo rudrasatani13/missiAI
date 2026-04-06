@@ -13,7 +13,8 @@ import {
   searchLifeGraph,
 } from "@/lib/memory/life-graph"
 import { extractLifeNodes } from "@/lib/memory/graph-extractor"
-import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
+import { getUserPlan } from "@/lib/billing/tier-checker"
 import { logRequest, logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
@@ -24,10 +25,10 @@ import type { MemoryCategory } from "@/types/memory"
 
 export const runtime = "edge"
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
   })
 }
 
@@ -72,7 +73,9 @@ export async function GET(req: NextRequest) {
   }
 
   // OWASP API4: rate-limit memory reads — search calls may invoke Gemini embeddings
-  const rateResult = await checkRateLimit(userId, "free")
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     logRequest("memory.get.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -143,7 +146,7 @@ export async function GET(req: NextRequest) {
         recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
       }
 
-      return jsonResponse({ success: true, data: results })
+      return jsonResponse({ success: true, data: results }, 200, rateLimitHeaders(rateResult))
     }
 
     const graph = await getLifeGraph(kv, userId)
@@ -158,7 +161,7 @@ export async function GET(req: NextRequest) {
       recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
     }
 
-    return jsonResponse({ success: true, data: graph })
+    return jsonResponse({ success: true, data: graph }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
     logError("memory.read_error", err, userId)
     return jsonResponse({
@@ -182,7 +185,9 @@ export async function POST(req: NextRequest) {
     throw e
   }
 
-  const rateResult = await checkRateLimit(userId, "free")
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier, 'ai')
   if (!rateResult.allowed) {
     logRequest("memory.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -279,7 +284,7 @@ export async function POST(req: NextRequest) {
       recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
     }
 
-    return jsonResponse({ success: true, data: { added, updated } })
+    return jsonResponse({ success: true, data: { added, updated } }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
     logError("memory.write_error", err, userId)
     return jsonResponse(

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { sttSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { speechToText } from "@/services/voice.service"
-import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
 import { createTimer, logRequest, logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
@@ -20,10 +20,10 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ])
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
   })
 }
 
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   // ── 2. Rate limit ─────────────────────────────────────────────────────────
   const planId = await getUserPlan(userId)
   const rateTier = planId === "free" ? "free" : "paid"
-  const rateResult = await checkRateLimit(userId, rateTier)
+  const rateResult = await checkRateLimit(userId, rateTier, 'ai')
   if (!rateResult.allowed) {
     logRequest("stt.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       textLength: result.text?.length ?? 0 
     })
 
-    return jsonResponse({ success: true, data: result })
+    return jsonResponse({ success: true, data: result }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
     logError("stt.error", err, userId)
     return jsonResponse({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }, 500)

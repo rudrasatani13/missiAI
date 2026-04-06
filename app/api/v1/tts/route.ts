@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { ttsSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { textToSpeech } from "@/services/voice.service"
-import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
 import { createTimer, logRequest, logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   // ── 3. Rate limit ─────────────────────────────────────────────────────────
   const planId = await getUserPlan(userId)
   const rateTier = planId === "free" ? "free" : "paid"
-  const rateResult = await checkRateLimit(userId, rateTier)
+  const rateResult = await checkRateLimit(userId, rateTier, 'ai')
   if (!rateResult.allowed) {
     logRequest("tts.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -133,6 +133,7 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "audio/mpeg",
         "Cache-Control": "no-cache",
+        ...rateLimitHeaders(rateResult),
       },
     })
   } catch (err) {

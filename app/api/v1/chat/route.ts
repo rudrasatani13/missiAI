@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { getRequestContext } from "@cloudflare/next-on-pages"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { chatSchema, validationErrorResponse } from "@/lib/validation/schemas"
-import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
 import { searchLifeGraph, formatLifeGraphForPrompt } from "@/lib/memory/life-graph"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import { buildGeminiRequest, streamGeminiResponse } from "@/lib/ai/gemini-stream"
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
 
   // ── 4. Rate limit ─────────────────────────────────────────────────────────
   const rateTier = planId === 'free' ? 'free' : 'paid'
-  const rateResult = await checkRateLimit(userId, rateTier)
+  const rateResult = await checkRateLimit(userId, rateTier, 'ai')
   if (!rateResult.allowed) {
     logRequest("chat.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -289,6 +289,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         "X-Accel-Buffering": "no",
+        ...rateLimitHeaders(rateResult),
       },
     })
   } catch (err) {

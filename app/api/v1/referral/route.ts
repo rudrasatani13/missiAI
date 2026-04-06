@@ -2,7 +2,8 @@ import { getRequestContext } from '@cloudflare/next-on-pages'
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
 import { getOrCreateReferral, trackReferral, getReferralByCode, getReferrer } from '@/lib/billing/referral'
 import { log } from '@/lib/server/logger'
-import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
+import { getUserPlan } from '@/lib/billing/tier-checker'
 import type { KVStore } from '@/types'
 import { z } from 'zod'
 
@@ -27,7 +28,9 @@ export async function GET() {
     throw e
   }
 
-  const rateResult = await checkRateLimit(userId, 'free')
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) return rateLimitExceededResponse(rateResult)
 
   const kv = getKV()
@@ -56,7 +59,7 @@ export async function GET() {
       },
       isReferred: !!referredBy,
     }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } }
+    { status: 200, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rateResult) } }
   )
 }
 
@@ -74,7 +77,9 @@ export async function POST(req: Request) {
     throw e
   }
 
-  const rateResult = await checkRateLimit(userId, 'free')
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) return rateLimitExceededResponse(rateResult)
 
   let body: unknown
@@ -124,6 +129,6 @@ export async function POST(req: Request) {
 
   return new Response(
     JSON.stringify({ success: result.success, error: result.error }),
-    { status: result.success ? 200 : 400, headers: { 'Content-Type': 'application/json' } }
+    { status: result.success ? 200 : 400, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rateResult) } }
   )
 }

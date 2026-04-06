@@ -3,7 +3,8 @@ import { getVerifiedUserId, AuthenticationError } from '@/lib/server/auth'
 import { buildAnalyticsSnapshot } from '@/lib/analytics/aggregator'
 import { getDailyStats } from '@/lib/analytics/event-store'
 import { log } from '@/lib/server/logger'
-import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
+import { getUserPlan } from '@/lib/billing/tier-checker'
 import type { KVStore } from '@/types'
 
 // OWASP A03: strict allowlist for the date query param — prevents arbitrary
@@ -57,7 +58,9 @@ export async function GET(req: Request) {
 
   // ── 3. Rate limit ───────────────────────────────────────────────────────
   // Even admin endpoints need rate limiting — protects downstream KV + Clerk calls
-  const rateResult = await checkRateLimit(userId, 'paid')
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     log({ level: 'warn', event: 'admin.analytics.rate_limited', userId, timestamp: Date.now() })
     return rateLimitExceededResponse(rateResult)
@@ -79,7 +82,7 @@ export async function GET(req: Request) {
           planBreakdown: { free: 0, pro: 0, business: 0 }
         }
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rateResult) } }
     )
   }
 
@@ -105,7 +108,7 @@ export async function GET(req: Request) {
     })
     return new Response(
       JSON.stringify({ success: true, data: stats }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rateResult) } }
     )
   }
 
@@ -147,7 +150,7 @@ export async function GET(req: Request) {
           planBreakdown,
         },
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rateResult) } }
     )
   } catch (err) {
     log({

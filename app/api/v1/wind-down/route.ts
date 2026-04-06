@@ -10,7 +10,8 @@ import { generateEveningReflection } from '@/lib/proactive/wind-down-generator'
 import { getProactiveConfig } from '@/lib/proactive/config-store'
 import { logRequest, logError } from '@/lib/server/logger'
 import { getEnv } from '@/lib/server/env'
-import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
+import { getUserPlan } from '@/lib/billing/tier-checker'
 import type { KVStore } from '@/types'
 import type { EveningReflection } from '@/types/proactive'
 
@@ -25,10 +26,10 @@ function getKV(): KVStore | null {
   }
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
   })
 }
 
@@ -54,14 +55,16 @@ export async function GET(_req: NextRequest) {
     throw e
   }
 
-  const rateResult = await checkRateLimit(userId, 'free')
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier, 'ai')
   if (!rateResult.allowed) {
     logRequest('wind-down.get.rate_limited', userId, startTime)
     return rateLimitExceededResponse(rateResult)
   }
 
   const kv = getKV()
-  if (!kv) return jsonResponse({ success: true, data: null })
+  if (!kv) return jsonResponse({ success: true, data: null }, 200, rateLimitHeaders(rateResult))
 
   try {
     const key = getWindDownKey(userId)
@@ -72,7 +75,7 @@ export async function GET(_req: NextRequest) {
       const eightHoursMs = 8 * 60 * 60 * 1000
       if (Date.now() - reflection.generatedAt < eightHoursMs) {
         logRequest('wind-down.get', userId, startTime, { cached: true })
-        return jsonResponse({ success: true, data: reflection })
+        return jsonResponse({ success: true, data: reflection }, 200, rateLimitHeaders(rateResult))
       }
     }
 
@@ -95,10 +98,10 @@ export async function GET(_req: NextRequest) {
       cached: false,
       items: reflection.items.length,
     })
-    return jsonResponse({ success: true, data: reflection })
+    return jsonResponse({ success: true, data: reflection }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
     logError('wind-down.error', err, userId)
-    return jsonResponse({ success: true, data: null })
+    return jsonResponse({ success: true, data: null }, 200, rateLimitHeaders(rateResult))
   }
 }
 
@@ -116,14 +119,16 @@ export async function POST(_req: NextRequest) {
     throw e
   }
 
-  const rateResult = await checkRateLimit(userId, 'free')
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     logRequest('wind-down.post.rate_limited', userId, startTime)
     return rateLimitExceededResponse(rateResult)
   }
 
   const kv = getKV()
-  if (!kv) return jsonResponse({ success: true })
+  if (!kv) return jsonResponse({ success: true }, 200, rateLimitHeaders(rateResult))
 
   try {
     const key = getWindDownKey(userId)
@@ -136,9 +141,9 @@ export async function POST(_req: NextRequest) {
     }
 
     logRequest('wind-down.delivered', userId, startTime)
-    return jsonResponse({ success: true })
+    return jsonResponse({ success: true }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
     logError('wind-down.delivered.error', err, userId)
-    return jsonResponse({ success: true })
+    return jsonResponse({ success: true }, 200, rateLimitHeaders(rateResult))
   }
 }

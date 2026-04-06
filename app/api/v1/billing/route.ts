@@ -6,7 +6,7 @@ import { createDodoCheckoutSession, cancelDodoSubscription } from '@/lib/billing
 import { PLANS, getServerDodoProductId } from '@/types/billing'
 import { billingCheckoutSchema } from '@/lib/validation/billing-schemas'
 import { log } from '@/lib/server/logger'
-import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
 import { clerkClient } from '@clerk/nextjs/server'
 import { getReferrer } from '@/lib/billing/referral'
 import type { KVStore } from '@/types'
@@ -31,13 +31,14 @@ export async function GET() {
     throw e
   }
 
-  const rateResult = await checkRateLimit(userId, 'free')
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     log({ level: 'warn', event: 'billing.get.rate_limited', userId, timestamp: Date.now() })
     return rateLimitExceededResponse(rateResult)
   }
 
-  const planId = await getUserPlan(userId)
   const kv = getKV()
   const dailyUsage = kv
     ? await getDailyUsage(kv, userId)
@@ -61,7 +62,7 @@ export async function GET() {
       usage: dailyUsage,
       billing: safeBilling,
     }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } }
+    { status: 200, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rateResult) } }
   )
 }
 
@@ -74,7 +75,9 @@ export async function POST(req: Request) {
     throw e
   }
 
-  const rateResult = await checkRateLimit(userId, 'free')
+  const currentPlan = await getUserPlan(userId)
+  const rateTier = currentPlan === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     log({ level: 'warn', event: 'billing.post.rate_limited', userId, timestamp: Date.now() })
     return rateLimitExceededResponse(rateResult)
@@ -181,7 +184,7 @@ export async function POST(req: Request) {
       session_id: checkoutSession.session_id,
       referralDiscount: hasReferralDiscount,
     }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } }
+    { status: 200, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rateResult) } }
   )
 }
 
@@ -194,7 +197,9 @@ export async function DELETE() {
     throw e
   }
 
-  const rateResult = await checkRateLimit(userId, 'free')
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     log({ level: 'warn', event: 'billing.delete.rate_limited', userId, timestamp: Date.now() })
     return rateLimitExceededResponse(rateResult)
@@ -225,7 +230,7 @@ export async function DELETE() {
 
     return new Response(
       JSON.stringify({ success: true, message: 'Subscription will cancel at period end', cancelAtPeriodEnd: true }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rateResult) } }
     )
   } catch (err) {
     log({

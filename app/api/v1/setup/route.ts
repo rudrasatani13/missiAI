@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server'
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
 import { getRequestContext } from '@cloudflare/next-on-pages'
 import { logRequest, logError } from '@/lib/server/logger'
-import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
+import { getUserPlan } from '@/lib/billing/tier-checker'
 import { addOrUpdateNode } from '@/lib/memory/life-graph'
 import { getEnv } from '@/lib/server/env'
 import { z } from 'zod'
@@ -11,10 +12,10 @@ import type { VectorizeEnv } from '@/lib/memory/vectorize'
 
 export const runtime = 'edge'
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, headers: HeadersInit = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
   })
 }
 
@@ -55,7 +56,9 @@ export async function POST(req: NextRequest) {
     throw e
   }
 
-  const rateResult = await checkRateLimit(userId, 'free')
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     return rateLimitExceededResponse(rateResult)
   }
@@ -134,10 +137,10 @@ export async function POST(req: NextRequest) {
     }
 
     logRequest('setup.completed', userId, startTime)
-    return jsonResponse({ success: true, profile })
+    return jsonResponse({ success: true, profile }, 200, rateLimitHeaders(rateResult))
 
   } catch (error) {
     logError('setup.error', error, userId)
-    return jsonResponse({ success: false, error: 'Failed to complete setup' }, 500)
+    return jsonResponse({ success: false, error: 'Failed to complete setup' }, 500, rateLimitHeaders(rateResult))
   }
 }

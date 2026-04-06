@@ -17,7 +17,8 @@ import { checkForNudges } from '@/lib/proactive/nudge-engine'
 import { getProactiveConfig, saveProactiveConfig } from '@/lib/proactive/config-store'
 import { logRequest, logError } from '@/lib/server/logger'
 import { getEnv } from '@/lib/server/env'
-import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
+import { getUserPlan } from '@/lib/billing/tier-checker'
 import type { KVStore } from '@/types'
 import type { DailyBriefing } from '@/types/proactive'
 
@@ -32,10 +33,13 @@ function getKV(): KVStore | null {
   }
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+    },
   })
 }
 
@@ -62,14 +66,16 @@ export async function GET(_req: NextRequest) {
   }
 
   // OWASP API4: rate-limit briefing fetches — may trigger Gemini calls
-  const rateResult = await checkRateLimit(userId, 'free')
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier, 'ai')
   if (!rateResult.allowed) {
     logRequest('proactive.get.rate_limited', userId, startTime)
     return rateLimitExceededResponse(rateResult)
   }
 
   const kv = getKV()
-  if (!kv) return jsonResponse({ success: true, data: null })
+  if (!kv) return jsonResponse({ success: true, data: null }, 200, rateLimitHeaders(rateResult))
 
   try {
     const key = getBriefingKey(userId)
@@ -80,7 +86,7 @@ export async function GET(_req: NextRequest) {
       const sixHoursMs = 6 * 60 * 60 * 1000
       if (Date.now() - briefing.generatedAt < sixHoursMs) {
         logRequest('proactive.briefing.get', userId, startTime, { cached: true })
-        return jsonResponse({ success: true, data: briefing })
+        return jsonResponse({ success: true, data: briefing }, 200, rateLimitHeaders(rateResult))
       }
     }
 
@@ -104,10 +110,10 @@ export async function GET(_req: NextRequest) {
       cached: false,
       items: briefing.items.length,
     })
-    return jsonResponse({ success: true, data: briefing })
+    return jsonResponse({ success: true, data: briefing }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
     logError('proactive.briefing.error', err, userId)
-    return jsonResponse({ success: true, data: null })
+    return jsonResponse({ success: true, data: null }, 200, rateLimitHeaders(rateResult))
   }
 }
 
@@ -126,7 +132,9 @@ export async function POST(req: NextRequest) {
   }
 
   // OWASP API4: rate-limit nudge checks to prevent constant polling abuse
-  const rateResult = await checkRateLimit(userId, 'free')
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     logRequest('proactive.post.rate_limited', userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -145,7 +153,7 @@ export async function POST(req: NextRequest) {
   const { lastInteractionAt } = parsed.data
 
   const kv = getKV()
-  if (!kv) return jsonResponse({ success: true, data: { nudges: [] } })
+  if (!kv) return jsonResponse({ success: true, data: { nudges: [] } }, 200, rateLimitHeaders(rateResult))
 
   try {
     const graph = await getLifeGraph(kv, userId)
@@ -163,10 +171,10 @@ export async function POST(req: NextRequest) {
     logRequest('proactive.nudge.check', userId, startTime, {
       count: nudges.length,
     })
-    return jsonResponse({ success: true, data: { nudges } })
+    return jsonResponse({ success: true, data: { nudges } }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
     logError('proactive.nudge.error', err, userId)
-    return jsonResponse({ success: true, data: { nudges: [] } })
+    return jsonResponse({ success: true, data: { nudges: [] } }, 200, rateLimitHeaders(rateResult))
   }
 }
 
@@ -185,7 +193,9 @@ export async function PATCH(req: NextRequest) {
   }
 
   // OWASP API4: rate-limit config updates — writes to KV on every call
-  const rateResult = await checkRateLimit(userId, 'free')
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     logRequest('proactive.patch.rate_limited', userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -212,7 +222,7 @@ export async function PATCH(req: NextRequest) {
   try {
     await saveProactiveConfig(kv, userId, parsed.data)
     logRequest('proactive.config.update', userId, startTime)
-    return jsonResponse({ success: true, data: { success: true } })
+    return jsonResponse({ success: true, data: { success: true } }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
     logError('proactive.config.error', err, userId)
     return jsonResponse(
@@ -237,7 +247,9 @@ export async function DELETE(req: NextRequest) {
   }
 
   // OWASP API4: rate-limit dismissals to prevent KV write flooding
-  const rateResult = await checkRateLimit(userId, 'free')
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     logRequest('proactive.delete.rate_limited', userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -256,7 +268,7 @@ export async function DELETE(req: NextRequest) {
   const { nodeId, type } = parsed.data
 
   const kv = getKV()
-  if (!kv) return jsonResponse({ success: true, data: { success: true } })
+  if (!kv) return jsonResponse({ success: true, data: { success: true } }, 200, rateLimitHeaders(rateResult))
 
   try {
     const key = getBriefingKey(userId)
@@ -278,9 +290,9 @@ export async function DELETE(req: NextRequest) {
     }
 
     logRequest('proactive.briefing.dismiss', userId, startTime)
-    return jsonResponse({ success: true, data: { success: true } })
+    return jsonResponse({ success: true, data: { success: true } }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
     logError('proactive.dismiss.error', err, userId)
-    return jsonResponse({ success: true, data: { success: true } })
+    return jsonResponse({ success: true, data: { success: true } }, 200, rateLimitHeaders(rateResult))
   }
 }

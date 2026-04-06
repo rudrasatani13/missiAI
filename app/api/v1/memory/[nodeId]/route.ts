@@ -7,17 +7,17 @@ import {
 import { getRequestContext } from "@cloudflare/next-on-pages"
 import { getLifeGraph, saveLifeGraph } from "@/lib/memory/life-graph"
 import { logRequest, logError } from "@/lib/server/logger"
-import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { z } from "zod"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
   })
 }
 
@@ -87,7 +87,7 @@ export async function DELETE(
 
     if (!nodeExists) {
       // Node already gone — treat as success (idempotent delete)
-      return jsonResponse({ success: true, data: { deleted: nodeId } })
+      return jsonResponse({ success: true, data: { deleted: nodeId } }, 200, rateLimitHeaders(rateResult))
     }
 
     graph.nodes = graph.nodes.filter((n) => n.id !== nodeId)
@@ -95,7 +95,7 @@ export async function DELETE(
 
     logRequest("memory.node.deleted", userId, startTime, { nodeId })
 
-    return jsonResponse({ success: true, data: { deleted: nodeId } })
+    return jsonResponse({ success: true, data: { deleted: nodeId } }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
     logError("memory.node.delete_error", err, userId)
     return jsonResponse(
@@ -201,7 +201,7 @@ export async function PATCH(
     logRequest("memory.node.updated", userId, startTime, { nodeId })
 
     const { userId: _uid, ...nodeWithoutUserId } = node
-    return jsonResponse({ success: true, data: nodeWithoutUserId })
+    return jsonResponse({ success: true, data: nodeWithoutUserId }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
     logError("memory.node.update_error", err, userId)
     return jsonResponse(

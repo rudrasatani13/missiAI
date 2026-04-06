@@ -6,7 +6,8 @@ import { actionSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { detectIntent, isActionable } from "@/lib/actions/intent-detector"
 import { executeAction } from "@/lib/actions/action-executor"
 import { successResponse, standardErrors } from "@/types/api"
-import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
+import { getUserPlan } from "@/lib/billing/tier-checker"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { getTodayDate } from "@/lib/billing/usage-tracker"
 import type { KVStore } from "@/types"
@@ -53,7 +54,9 @@ export async function POST(req: Request) {
   }
 
   // OWASP API4: rate-limit action detection — each call invokes Gemini
-  const rateResult = await checkRateLimit(userId, "free")
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier, 'ai')
   if (!rateResult.allowed) {
     logRequest("actions.post.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -81,7 +84,7 @@ export async function POST(req: Request) {
 
     if (!isActionable(intent)) {
       logRequest("action.not_actionable", userId, startTime, { type: intent.type, confidence: intent.confidence })
-      return successResponse({ actionable: false, intent })
+      return successResponse({ actionable: false, intent }, 200, rateLimitHeaders(rateResult))
     }
 
     const result = await executeAction(intent, apiKey)
@@ -120,7 +123,7 @@ export async function POST(req: Request) {
       recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
     }
 
-    return successResponse({ actionable: true, intent, result })
+    return successResponse({ actionable: true, intent, result }, 200, rateLimitHeaders(rateResult))
   } catch (e) {
     logError("actions.error", e, userId)
     return standardErrors.internalError()
@@ -140,7 +143,9 @@ export async function GET() {
   }
 
   // OWASP API4: rate-limit reads to prevent bulk history scraping
-  const rateResult = await checkRateLimit(userId, "free")
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     logRequest("actions.get.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -149,13 +154,13 @@ export async function GET() {
   try {
     const kv = getKV()
     if (!kv) {
-      return successResponse({ reminders: [], notes: [] })
+      return successResponse({ reminders: [], notes: [] }, 200, rateLimitHeaders(rateResult))
     }
 
     const reminders = await kvGetArray(kv, `actions:reminders:${userId}`)
     const notes = await kvGetArray(kv, `actions:notes:${userId}`)
 
-    return successResponse({ reminders, notes })
+    return successResponse({ reminders, notes }, 200, rateLimitHeaders(rateResult))
   } catch (e) {
     logError("actions.get.error", e, userId)
     return standardErrors.internalError()

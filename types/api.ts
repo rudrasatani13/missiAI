@@ -41,11 +41,18 @@ export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse
 /**
  * Create a success response.
  */
-export function successResponse<T>(data: T, status = 200): Response {
+export function successResponse<T>(
+  data: T,
+  status = 200,
+  headers: Record<string, string> = {}
+): Response {
   const body: ApiSuccessResponse<T> = { success: true, data }
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...headers,
+    },
   })
 }
 
@@ -55,12 +62,16 @@ export function successResponse<T>(data: T, status = 200): Response {
 export function errorResponse(
   error: string,
   code: ApiErrorCode,
-  status: number
+  status: number,
+  headers: Record<string, string> = {}
 ): Response {
   const body: ApiErrorResponse = { success: false, error, code }
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...headers,
+    },
   })
 }
 
