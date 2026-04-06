@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Link from "next/link";
 import { SmoothScrollProvider } from "@/components/ui/SmoothScrollProvider";
 import { CustomCursor } from "@/components/ui/CustomCursor";
+import { CookieConsent } from "@/components/ui/CookieConsent";
 
 export const metadata: Metadata = {
   title: "missiAI — AI with Memory",
@@ -119,6 +120,7 @@ export default function RootLayout({
             }
           }}
         />
+        <CookieConsent />
       </body>
     </html>
   );
