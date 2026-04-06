@@ -155,6 +155,28 @@ export async function POST(req: NextRequest) {
       logError("chat.memory_fetch_error", e, userId)
       // Continue without memories — don't block the response
     }
+
+    // ── 6b. Load live plugin context (Google Calendar + Notion) ───────────────
+    try {
+      const { loadPluginContext } = await import("@/lib/plugins/data-fetcher")
+      let googleClientId: string | undefined
+      let googleClientSecret: string | undefined
+      let notionApiKey: string | undefined
+      try {
+        const env = getEnv()
+        googleClientId = env.GOOGLE_CLIENT_ID
+        googleClientSecret = env.GOOGLE_CLIENT_SECRET
+        notionApiKey = env.NOTION_API_KEY
+      } catch {}
+
+      const pluginContext = await loadPluginContext(kv, userId, googleClientId, googleClientSecret, notionApiKey)
+      if (pluginContext) {
+        memories = memories ? `${memories}\n\n${pluginContext}` : pluginContext
+      }
+    } catch (e) {
+      logError("chat.plugin_context_error", e, userId)
+      // Non-blocking — continue without plugin context
+    }
   }
 
   // ── 6. Token budget guard ─────────────────────────────────────────────────

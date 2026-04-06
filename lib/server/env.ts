@@ -23,6 +23,16 @@ export interface AppEnv {
   DODO_PAYMENTS_MODE: string
   /** Web Push VAPID private key — required for sending push notifications. */
   VAPID_PRIVATE_KEY: string | undefined
+  /** Google OAuth credentials for Calendar integration */
+  GOOGLE_CLIENT_ID: string | undefined
+  GOOGLE_CLIENT_SECRET: string | undefined
+  /** Notion OAuth credentials for Notion integration */
+  NOTION_CLIENT_ID: string | undefined
+  NOTION_CLIENT_SECRET: string | undefined
+  /** Notion Internal Integration API key (alternative to OAuth) */
+  NOTION_API_KEY: string | undefined
+  /** App URL for OAuth callbacks */
+  APP_URL: string
 }
 
 function requireEnv(key: string): string {
@@ -52,6 +62,12 @@ export function getEnv(): AppEnv {
     DODO_BUSINESS_PRODUCT_ID: requireEnv("DODO_BUSINESS_PRODUCT_ID"),
     DODO_PAYMENTS_MODE: process.env.DODO_PAYMENTS_MODE ?? "live_mode",
     VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || undefined,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || undefined,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || undefined,
+    NOTION_CLIENT_ID: process.env.NOTION_CLIENT_ID || undefined,
+    NOTION_CLIENT_SECRET: process.env.NOTION_CLIENT_SECRET || undefined,
+    NOTION_API_KEY: process.env.NOTION_API_KEY || undefined,
+    APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "http://localhost:3000",
   }
 }
 

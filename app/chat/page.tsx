@@ -355,18 +355,23 @@ export default function VoiceAssistantPage() {
       <ParticleVisualizer state={voiceState} isActive={voiceState !== "idle"} audioLevel={audioLevel} />
       <div className="fixed inset-0 z-10" onClick={isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
         style={{ cursor: isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
-      <nav className="relative z-20 grid grid-cols-[1fr_auto_1fr] items-center px-4 md:px-8 py-4 pointer-events-auto w-full">
-        <div className="flex justify-start">
+      <nav className="relative z-20 flex items-center justify-between w-[90%] md:w-[600px] mx-auto mt-6 px-4 py-2.5 pointer-events-auto rounded-[32px] shadow-2xl"
+           style={{ 
+             background: "rgba(255,255,255,0.08)", 
+             backdropFilter: "blur(24px)", 
+             WebkitBackdropFilter: "blur(24px)", 
+             border: "1px solid rgba(255,255,255,0.15)",
+           }}>
+        <div className="flex items-center">
           <Magnetic>
-            <Link href="/" className="flex items-center gap-2 px-3 py-2 rounded-full opacity-60 hover:opacity-100 hover:bg-white/5 transition-all" data-testid="home-link">
+            <Link href="/" className="flex items-center justify-center p-2 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-all text-white" data-testid="home-link">
               <ArrowLeft className="w-4 h-4" />
-              <span className="text-[11px] font-medium hidden sm:inline tracking-wide">Home</span>
             </Link>
           </Magnetic>
         </div>
         
-        <div className="flex justify-center select-none">
-          <svg width="120" height="28" viewBox="0 0 120 28" xmlns="http://www.w3.org/2000/svg" className="w-[100px] md:w-[120px]">
+        <div className="flex justify-center select-none flex-1">
+          <svg width="90" height="20" viewBox="0 0 120 28" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="led-nav" width="3" height="2" patternUnits="userSpaceOnUse">
                 <rect x="0.25" y="0.25" width="2.5" height="1.5" rx="0.4" fill="rgba(255,255,255,1)" />
@@ -374,20 +379,18 @@ export default function VoiceAssistantPage() {
               <mask id="text-mask-nav">
                 <rect width="100%" height="100%" fill="black" />
                 <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle"
-                  fontSize="26" fontWeight="400" fontFamily="'VT323','Share Tech Mono',monospace"
+                  fontSize="28" fontWeight="500" fontFamily="'VT323','Share Tech Mono',monospace"
                   fill="white" letterSpacing="5">MISSI</text>
               </mask>
             </defs>
-            {/* Glow layer */}
             <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle"
-              fontSize="26" fontWeight="400" fontFamily="'VT323','Share Tech Mono',monospace"
-              fill="#ffffff" opacity="0.25" style={{ filter: 'blur(4px)' }} letterSpacing="5">MISSI</text>
-            {/* LED dots */}
+              fontSize="28" fontWeight="500" fontFamily="'VT323','Share Tech Mono',monospace"
+              fill="#ffffff" opacity="0.3" style={{ filter: 'blur(4px)' }} letterSpacing="5">MISSI</text>
             <rect width="100%" height="100%" fill="url(#led-nav)" mask="url(#text-mask-nav)" />
           </svg>
         </div>
 
-        <div className="flex items-center justify-end gap-1.5 md:gap-3">
+        <div className="flex items-center justify-end gap-1.5 md:gap-2">
           <Magnetic>
             <Link
               href="/pricing"
@@ -397,51 +400,61 @@ export default function VoiceAssistantPage() {
               style={{
                 background: plan?.id === 'free'
                   ? 'rgba(255,255,255,0.08)'
-                  : 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(245,158,11,0.15))',
+                  : 'linear-gradient(135deg, rgba(124,58,237,0.4), rgba(245,158,11,0.25))',
                 border: plan?.id === 'free'
-                  ? '1px solid rgba(255,255,255,0.12)'
-                  : '1px solid rgba(124,58,237,0.3)',
-                fontSize: 11,
-                color: plan?.id === 'free' ? 'rgba(255,255,255,0.8)' : 'rgba(245,158,11,0.9)',
-                fontWeight: 500,
+                  ? '1px solid rgba(255,255,255,0.1)'
+                  : '1px solid rgba(124,58,237,0.4)',
+                fontSize: 10,
+                color: plan?.id === 'free' ? 'rgba(255,255,255,0.9)' : 'rgba(245,158,11,0.95)',
+                fontWeight: 600,
                 letterSpacing: '0.03em',
                 textDecoration: 'none',
               }}
             >
               <Crown className="w-3.5 h-3.5" style={{ color: '#F59E0B' }} />
-              <span className="hidden md:inline">
-                {plan?.id === 'free' ? 'Upgrade to Pro' : plan?.id === 'pro' ? 'Pro Plan' : plan?.id === 'business' ? 'Business Plan' : 'Pricing'}
+              <span className="hidden sm:inline">
+                {plan?.id === 'free' ? 'PRO' : plan?.id === 'pro' ? 'PRO' : 'BIZ'}
               </span>
             </Link>
           </Magnetic>
           <Magnetic>
-            <div>
-              <PluginBadge plugins={plugins} onManage={() => setActivePanel(activePanel === 'plugins' ? null : 'plugins')} />
+            <div
+              onMouseEnter={() => { clearTimeout((window as any).__panelCloseTimer); setActivePanel('plugins') }}
+              onMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
+            >
+              <PluginBadge plugins={plugins} onManage={() => {}} />
             </div>
           </Magnetic>
           <Magnetic>
-            <button onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'settings' ? null : 'settings') }}
-              className="p-2 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-all"
+            <button
+              onMouseEnter={() => { clearTimeout((window as any).__panelCloseTimer); setActivePanel('settings') }}
+              onMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
+              className="p-2 rounded-full opacity-70 hover:opacity-100 hover:bg-white/20 transition-all text-white"
               data-testid="settings-toggle-btn"
-              style={{ background: "none", border: "none", cursor: "pointer", color: "white" }}>
-              {activePanel ? <X className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
+              style={{ background: "none", border: "none", cursor: "pointer" }}>
+              <Settings className="w-4 h-4" />
             </button>
           </Magnetic>
         </div>
+        
+        {/* Mount Settings and Plugins panels relative to this nav pill */}
+        <SettingsPanel personality={personality} onPersonalityChange={updatePersonality}
+          voiceEnabled={voiceEnabled} onVoiceToggle={() => setVoiceEnabled((v) => !v)}
+          isOpen={activePanel !== null} activePanel={activePanel} onClose={() => setActivePanel(null)}
+          userName={displayFullName} userEmail={user?.primaryEmailAddress?.emailAddress || ""}
+          userImageUrl={user?.imageUrl || null} onLogout={handleLogout}
+          plugins={plugins}
+          onConnectPlugin={connectPlugin}
+          onDisconnectPlugin={disconnectPlugin}
+          onPanelMouseEnter={() => clearTimeout((window as any).__panelCloseTimer)}
+          onPanelMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
+          onNameChange={(newName: string) => {
+            try { localStorage.setItem('missi-user-name', newName) } catch {}
+            setLocalName(newName)
+          }}
+        />
       </nav>
-      <SettingsPanel personality={personality} onPersonalityChange={updatePersonality}
-        voiceEnabled={voiceEnabled} onVoiceToggle={() => setVoiceEnabled((v) => !v)}
-        isOpen={activePanel !== null} activePanel={activePanel} onClose={() => setActivePanel(null)}
-        userName={displayFullName} userEmail={user?.primaryEmailAddress?.emailAddress || ""}
-        userImageUrl={user?.imageUrl || null} onLogout={handleLogout}
-        plugins={plugins}
-        onConnectPlugin={connectPlugin}
-        onDisconnectPlugin={disconnectPlugin}
-        onNameChange={(newName: string) => {
-          try { localStorage.setItem('missi-user-name', newName) } catch {}
-          setLocalName(newName)
-        }}
-      />
+      
       <ConversationLog messages={conversationRef.current} isVisible={false} />
 
       {/* ── Action Card Overlay — above everything ─── */}
@@ -512,13 +525,13 @@ export default function VoiceAssistantPage() {
         onUpgrade={() => initiateCheckout('pro')}
       />
 
-      {/* Floating nav pill — bottom-left */}
-      <div className="fixed bottom-44 md:bottom-36 left-4 z-20 pointer-events-auto flex flex-col items-center gap-3 px-2 py-3 rounded-full"
+      {/* Floating side nav — bottom-left */}
+      <div className="fixed bottom-44 md:bottom-36 left-4 md:left-6 z-20 pointer-events-auto flex flex-col items-center gap-4 px-2.5 py-4 rounded-full shadow-2xl transition-all"
         style={{
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          background: 'rgba(255,255,255,0.05)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.15)',
         }}>
         <input 
           type="file" 
@@ -529,25 +542,25 @@ export default function VoiceAssistantPage() {
           onChange={handleImageSelect} 
         />
         <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
-          className="opacity-40 hover:opacity-100 transition-opacity flex items-center justify-center p-1"
+          className="opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
           title="The Vision" style={{ color: 'white' }}>
-          <Camera className="w-4 h-4" />
+          <Camera className="w-4 h-4 md:w-5 md:h-5" />
         </button>
-        <div className="w-3/4 h-[1px] bg-white/10" />
+        <div className="w-[60%] h-[1px] bg-white/10" />
         <Link href="/memory" onClick={(e) => e.stopPropagation()}
-          className="opacity-40 hover:opacity-70 transition-opacity flex items-center justify-center"
+          className="opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
           title="Memory Graph" style={{ color: 'white' }}>
-          <Brain className="w-4 h-4" />
+          <Brain className="w-4 h-4 md:w-5 md:h-5" />
         </Link>
         <Link href="/wind-down" onClick={(e) => e.stopPropagation()}
-          className="opacity-40 hover:opacity-70 transition-opacity flex items-center justify-center"
+          className="opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
           title="Good night" style={{ color: 'white' }}>
-          <Moon className="w-4 h-4" />
+          <Moon className="w-4 h-4 md:w-5 md:h-5" />
         </Link>
         <Link href="/streak" onClick={(e) => e.stopPropagation()}
-          className="opacity-40 hover:opacity-70 transition-opacity flex items-center justify-center"
+          className="opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
           title="Streaks" style={{ color: 'white' }}>
-          <Flame className="w-4 h-4" />
+          <Flame className="w-4 h-4 md:w-5 md:h-5" />
         </Link>
       </div>
     </div>  )

@@ -66,8 +66,7 @@ export async function POST(req: NextRequest) {
 
   const kv = getKV()
   if (!kv) {
-    logError('setup.kv_unavailable', 'KV binding missing', userId)
-    return jsonResponse({ success: false, error: 'Internal server error' }, 500)
+    logError('setup.kv_unavailable', 'KV binding missing, gracefully skipping memory save', userId)
   }
 
   try {
@@ -79,10 +78,12 @@ export async function POST(req: NextRequest) {
     }
 
     const { name, dob, occupation } = parsed.data
-
-    // 1. Mark setup as completed in KV and Clerk
     const profile = { name, dob, occupation, setupCompleted: true, timestamp: Date.now() }
-    await kv.put(`profile:${userId}`, JSON.stringify(profile))
+
+    // 1. Mark setup as completed in KV (if available) and Clerk
+    if (kv) {
+      await kv.put(`profile:${userId}`, JSON.stringify(profile))
+    }
     
     // Also save to Clerk public metadata for reliable routing checks
     const client = await clerkClient()
@@ -95,57 +96,59 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // 2. Add memories to LifeGraph
-    let apiKey = ''
-    try {
-      apiKey = getEnv().GEMINI_API_KEY
-    } catch {
-      apiKey = ''
-    }
+    // 2. Add memories to LifeGraph (if KV is available)
+    if (kv) {
+      let apiKey = ''
+      try {
+        apiKey = getEnv().GEMINI_API_KEY
+      } catch {
+        apiKey = ''
+      }
 
-    const vectorizeEnv = getVectorizeEnv()
+      const vectorizeEnv = getVectorizeEnv()
 
-    // Add Name Memory
-    await addOrUpdateNode(kv, vectorizeEnv, userId, {
-      userId,
-      title: "User's Name",
-      detail: `The user's name is ${name}. Always address the user as ${name}.`,
-      category: 'person',
-      tags: ['identity', 'name'],
-      people: [name],
-      emotionalWeight: 1.0,
-      confidence: 1.0,
-      source: 'explicit'
-    }, apiKey)
-
-    // Add DOB Memory if provided
-    if (dob && dob.trim().length > 0) {
+      // Add Name Memory
       await addOrUpdateNode(kv, vectorizeEnv, userId, {
         userId,
-        title: "User's Birthday",
-        detail: `The user was born on ${dob}.`,
-        category: 'event',
-        tags: ['birthday', 'age', 'astrology'],
+        title: "User's Name",
+        detail: `The user's name is ${name}. Always address the user as ${name}.`,
+        category: 'person',
+        tags: ['identity', 'name'],
         people: [name],
-        emotionalWeight: 0.8,
+        emotionalWeight: 1.0,
         confidence: 1.0,
         source: 'explicit'
       }, apiKey)
-    }
 
-    // Add Occupation Memory if provided
-    if (occupation && occupation.trim().length > 0) {
-      await addOrUpdateNode(kv, vectorizeEnv, userId, {
-        userId,
-        title: "User's Work/Study",
-        detail: `The user's occupation or primary activity is: ${occupation}.`,
-        category: 'goal',
-        tags: ['work', 'study', 'occupation'],
-        people: [],
-        emotionalWeight: 0.8,
-        confidence: 1.0,
-        source: 'explicit'
-      }, apiKey)
+      // Add DOB Memory if provided
+      if (dob && dob.trim().length > 0) {
+        await addOrUpdateNode(kv, vectorizeEnv, userId, {
+          userId,
+          title: "User's Birthday",
+          detail: `The user was born on ${dob}.`,
+          category: 'event',
+          tags: ['birthday', 'age', 'astrology'],
+          people: [name],
+          emotionalWeight: 0.8,
+          confidence: 1.0,
+          source: 'explicit'
+        }, apiKey)
+      }
+
+      // Add Occupation Memory if provided
+      if (occupation && occupation.trim().length > 0) {
+        await addOrUpdateNode(kv, vectorizeEnv, userId, {
+          userId,
+          title: "User's Work/Study",
+          detail: `The user's occupation or primary activity is: ${occupation}.`,
+          category: 'goal',
+          tags: ['work', 'study', 'occupation'],
+          people: [],
+          emotionalWeight: 0.8,
+          confidence: 1.0,
+          source: 'explicit'
+        }, apiKey)
+      }
     }
 
     logRequest('setup.completed', userId, startTime)

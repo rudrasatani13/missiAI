@@ -100,13 +100,13 @@ function StatusDisplayInner({
         {lastTranscript && state !== "idle" && (
           <motion.p
             key={lastTranscript}
-            initial={{ opacity: 0, filter: "blur(8px)", y: 5 }}
+            initial={{ opacity: 0, filter: "blur(12px)", y: 10 }}
             animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-            exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.2 } }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="text-[11px] font-medium tracking-wide max-w-[280px] mx-auto text-center"
+            exit={{ opacity: 0, filter: "blur(6px)", transition: { duration: 0.2 } }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} // smooth spring-like ease
+            className="text-[13px] md:text-[14px] font-medium tracking-wide max-w-[320px] mx-auto text-center leading-relaxed"
             data-testid="last-transcript"
-            style={{ color: "rgba(255,255,255,0.7)" }}
+            style={{ color: "rgba(255,255,255,0.85)", textShadow: "0 2px 10px rgba(0,0,0,0.5)" }}
           >
             &ldquo;{lastTranscript}&rdquo;
           </motion.p>

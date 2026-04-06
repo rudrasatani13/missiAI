@@ -1,14 +1,19 @@
 "use client"
 
-import { memo, useState, useCallback } from "react"
-import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon } from "lucide-react"
+import { memo, useState, useCallback, useEffect } from "react"
+import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon, Calendar, BookOpen, Globe, RefreshCw, CheckCircle2 } from "lucide-react"
 import type { PersonalityKey } from "@/types/chat"
 import { PERSONALITY_OPTIONS } from "@/types/chat"
-import { PLUGIN_METADATA } from "@/lib/plugins/plugin-registry"
 import type { PluginConfig, PluginId } from "@/types/plugins"
 import { toast } from "sonner"
 
 type SafePlugin = Omit<PluginConfig, "credentials">
+
+interface PluginConnectionStatus {
+  google: { connected: boolean; expiresAt?: number } | null
+  notion: { connected: boolean; workspaceName?: string } | null
+  kvAvailable: boolean
+}
 
 interface SettingsPanelProps {
   personality: PersonalityKey
@@ -23,6 +28,8 @@ interface SettingsPanelProps {
   userImageUrl: string | null
   onLogout: () => void
   onNameChange?: (newName: string) => void
+  onPanelMouseEnter?: () => void
+  onPanelMouseLeave?: () => void
   plugins?: SafePlugin[]
   onConnectPlugin?: (
     id: PluginId,
@@ -32,8 +39,6 @@ interface SettingsPanelProps {
   onDisconnectPlugin?: (id: PluginId) => Promise<void>
 }
 
-const PLUGIN_IDS: PluginId[] = ["notion", "google_calendar", "webhook"]
-
 const ICON_MAP: Record<string, React.ReactNode> = {
   Heart: <Heart className="w-4 h-4" />,
   Briefcase: <Briefcase className="w-4 h-4" />,
@@ -41,149 +46,225 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   BrainCircuit: <BrainCircuit className="w-4 h-4" />,
 }
 
-function PluginRow({
-  pluginId,
-  connectedPlugin,
-  onConnect,
-  onDisconnect,
-}: {
-  pluginId: PluginId
-  connectedPlugin: SafePlugin | undefined
-  onConnect: (
-    id: PluginId,
-    credentials: Record<string, string>,
-    settings?: Record<string, string>,
-  ) => Promise<boolean>
-  onDisconnect: (id: PluginId) => Promise<void>
-}) {
-  const meta = PLUGIN_METADATA[pluginId]
-  const isConnected = connectedPlugin?.status === "connected"
-  const [showForm, setShowForm] = useState(false)
-  const [saving, setSaving] = useState(false)
+// ─── OAuth Plugin Panel ────────────────────────────────────────────────────────
+const LS_KEY = "missi_plugin_connections"
 
-  const [notionKey, setNotionKey] = useState("")
-  const [calToken, setCalToken] = useState("")
-  const [webhookUrl, setWebhookUrl] = useState("")
-  const [webhookSecret, setWebhookSecret] = useState("")
+function saveConnectionsToLS(connections: Partial<Record<"google" | "notion", boolean>>) {
+  try {
+    const existing = JSON.parse(localStorage.getItem(LS_KEY) ?? "{}")
+    localStorage.setItem(LS_KEY, JSON.stringify({ ...existing, ...connections }))
+  } catch {}
+}
 
-  async function handleConnect() {
-    setSaving(true)
-    let credentials: Record<string, string> = {}
-    let settings: Record<string, string> = {}
+function loadConnectionsFromLS(): Partial<Record<"google" | "notion", boolean>> {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) ?? "{}") } catch { return {} }
+}
 
-    if (pluginId === "notion") {
-      credentials = { apiKey: notionKey }
-    } else if (pluginId === "google_calendar") {
-      credentials = { accessToken: calToken }
-    } else if (pluginId === "webhook") {
-      credentials = { url: webhookUrl }
-      if (webhookSecret) settings = { secret: webhookSecret }
+function clearConnectionFromLS(plugin: "google" | "notion") {
+  try {
+    const existing = JSON.parse(localStorage.getItem(LS_KEY) ?? "{}")
+    delete existing[plugin]
+    localStorage.setItem(LS_KEY, JSON.stringify(existing))
+  } catch {}
+}
+
+function OAuthPluginPanel() {
+  const [status, setStatus] = useState<PluginConnectionStatus | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+
+  function loadStatus() {
+    // Start with localStorage state immediately (no flicker)
+    const local = loadConnectionsFromLS()
+    setStatus((prev) => ({
+      kvAvailable: prev?.kvAvailable ?? false,
+      google: local.google ? { connected: true } : (prev?.google ?? null),
+      notion: local.notion ? { connected: true } : (prev?.notion ?? null),
+    }))
+
+    // Then merge with server response
+    fetch("/api/v1/plugins/refresh")
+      .then((r) => r.json())
+      .then((d: PluginConnectionStatus) => {
+        const merged = {
+          ...d,
+          google: d.google ?? (local.google ? { connected: true } : null),
+          notion: d.notion ?? (local.notion ? { connected: true, workspaceName: "Notion" } : null),
+        }
+        setStatus(merged)
+        // Keep localStorage in sync with server truth
+        if (d.google) saveConnectionsToLS({ google: true })
+        if (d.notion) saveConnectionsToLS({ notion: true })
+      })
+      .catch(() => {})
+  }
+
+  useEffect(() => {
+    // Check URL params FIRST (right after OAuth redirect)
+    const params = new URLSearchParams(window.location.search)
+    const oauthSuccess = params.get("oauth_success")
+    const oauthError = params.get("oauth_error")
+
+    if (oauthSuccess === "google") {
+      saveConnectionsToLS({ google: true })
+      toast.success("Google Calendar connected! 🗓️")
+      params.delete("oauth_success")
+      window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}`)
+    } else if (oauthSuccess === "notion") {
+      saveConnectionsToLS({ notion: true })
+      toast.success("Notion connected! 📝")
+      params.delete("oauth_success")
+      window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}`)
+    } else if (oauthError) {
+      toast.error(`Connection failed: ${oauthError.replace(/_/g, " ")}`)
+      params.delete("oauth_error")
+      window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}`)
     }
 
-    const ok = await onConnect(pluginId, credentials, settings)
-    setSaving(false)
-    if (ok) {
-      setShowForm(false)
-      setNotionKey("")
-      setCalToken("")
-      setWebhookUrl("")
-      setWebhookSecret("")
+    loadStatus()
+  }, [])
+
+  async function handleDisconnect(plugin: "google" | "notion") {
+    try {
+      await fetch(`/api/v1/plugins/refresh?plugin=${plugin}`, { method: "DELETE" })
+      clearConnectionFromLS(plugin)
+      setStatus((s) => s ? { ...s, [plugin]: null } : s)
+      toast.success(`${plugin === "google" ? "Google Calendar" : "Notion"} disconnected`)
+    } catch {
+      toast.error("Failed to disconnect")
     }
   }
 
+  async function handleRefresh() {
+    setRefreshing(true)
+    try {
+      await fetch("/api/v1/plugins/refresh", { method: "POST" })
+      toast.success("Context refreshed!")
+    } catch {
+      toast.error("Refresh failed")
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  const rowStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "10px 12px",
+    borderRadius: "10px",
+    background: "rgba(255,255,255,0.03)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    marginBottom: "8px",
+  }
+
+  const connectBtnStyle: React.CSSProperties = {
+    fontSize: "11px",
+    fontWeight: 600,
+    color: "#000",
+    background: "#fff",
+    border: "none",
+    borderRadius: "6px",
+    padding: "5px 12px",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+  }
+
+  const disconnectBtnStyle: React.CSSProperties = {
+    fontSize: "11px",
+    fontWeight: 500,
+    color: "rgba(255,255,255,0.6)",
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.15)",
+    borderRadius: "6px",
+    padding: "4px 10px",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+  }
+
   return (
-    <div
-      style={{
-        borderRadius: "10px",
-        padding: "10px",
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        marginBottom: "8px",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+    <div>
+      {/* Google Calendar */}
+      <div style={rowStyle}>
+        <Calendar className="w-4 h-4 text-white opacity-60" style={{ flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: "12px", fontWeight: 500, color: isConnected ? "#fff" : "rgba(255,255,255,0.5)", margin: 0 }}>
-            {meta.name}
-          </p>
-          <p style={{ fontSize: "10px", color: isConnected ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)", margin: "2px 0 0" }}>
-            {isConnected ? "Connected" : "Disconnected"}
+          <p style={{ fontSize: "12px", fontWeight: 500, color: "#fff", margin: 0 }}>Google Calendar</p>
+          <p style={{ fontSize: "10px", color: status?.google?.connected ? "#4ade80" : "rgba(255,255,255,0.3)", margin: "2px 0 0" }}>
+            {status?.google?.connected ? "✓ Connected — events synced" : "Not connected"}
           </p>
         </div>
-        {isConnected ? (
-          <button
-            onClick={() => onDisconnect(pluginId)}
-            data-testid={`plugin-disconnect-${pluginId}`}
-            style={{
-              fontSize: "11px", fontWeight: 500, color: "#fff",
-              background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: "6px", padding: "4px 10px", cursor: "pointer",
-            }}
-          >
-            Disconnect
-          </button>
+        {status?.google?.connected ? (
+          <button style={disconnectBtnStyle} onClick={() => handleDisconnect("google")}>Disconnect</button>
         ) : (
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            data-testid={`plugin-connect-${pluginId}`}
-            style={{
-              fontSize: "11px", fontWeight: 500, color: "#000",
-              background: "#fff", border: "none",
-              borderRadius: "6px", padding: "5px 12px", cursor: "pointer",
-            }}
-          >
-            Connect
-          </button>
+          <a href="/api/auth/connect/google" style={connectBtnStyle}>Connect</a>
         )}
       </div>
 
-      {showForm && !isConnected && (
-        <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
-          {pluginId === "notion" && (
-            <input type="password" placeholder="Notion API Key" value={notionKey}
-              onChange={(e) => setNotionKey(e.target.value)} style={inputStyle} />
-          )}
-          {pluginId === "google_calendar" && (
-            <input type="password" placeholder="Google OAuth Access Token" value={calToken}
-              onChange={(e) => setCalToken(e.target.value)} style={inputStyle} />
-          )}
-          {pluginId === "webhook" && (
-            <>
-              <input type="text" placeholder="Webhook URL (https://...)" value={webhookUrl}
-                onChange={(e) => setWebhookUrl(e.target.value)} style={inputStyle} />
-              <input type="password" placeholder="Secret (optional)" value={webhookSecret}
-                onChange={(e) => setWebhookSecret(e.target.value)} style={inputStyle} />
-            </>
-          )}
-          <button
-            onClick={handleConnect}
-            disabled={saving}
-            data-testid={`plugin-save-${pluginId}`}
-            style={{
-              fontSize: "11px", fontWeight: 600,
-              color: "#000", background: saving ? "rgba(255,255,255,0.6)" : "#fff",
-              border: "none", borderRadius: "6px", padding: "6px 12px",
-              cursor: saving ? "default" : "pointer", alignSelf: "flex-end",
-            }}
-          >
-            {saving ? "Saving…" : "Save"}
-          </button>
+      {/* Notion */}
+      <div style={rowStyle}>
+        <BookOpen className="w-4 h-4 text-white opacity-60" style={{ flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: "12px", fontWeight: 500, color: "#fff", margin: 0 }}>Notion</p>
+          <p style={{ fontSize: "10px", color: status?.notion?.connected ? "#4ade80" : "rgba(255,255,255,0.3)", margin: "2px 0 0" }}>
+            {status?.notion?.connected
+              ? `✓ ${status.notion.workspaceName ?? "Connected"}`
+              : "Not connected"}
+          </p>
         </div>
+        {status?.notion?.connected ? (
+          <button style={disconnectBtnStyle} onClick={() => handleDisconnect("notion")}>Disconnect</button>
+        ) : (
+          <a href="/api/auth/connect/notion" style={connectBtnStyle}>Connect</a>
+        )}
+      </div>
+
+      {/* Webhook */}
+      <div style={rowStyle}>
+        <Globe className="w-4 h-4 text-white opacity-60" style={{ flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: "12px", fontWeight: 500, color: "#fff", margin: 0 }}>Custom Webhook</p>
+          <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", margin: "2px 0 0" }}>
+            Trigger any URL on command
+          </p>
+        </div>
+        <button style={connectBtnStyle} onClick={() => toast.info("Configure webhook via API key panel")}>Setup</button>
+      </div>
+
+      {/* Refresh button */}
+      {(status?.google?.connected || status?.notion?.connected) && (
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          style={{
+            marginTop: "8px",
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px",
+            fontSize: "11px",
+            fontWeight: 500,
+            color: refreshing ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.6)",
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "8px",
+            padding: "7px",
+            cursor: refreshing ? "default" : "pointer",
+          }}
+        >
+          <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
+          {refreshing ? "Refreshing…" : "Refresh context now"}
+        </button>
+      )}
+
+      {!status?.kvAvailable && (
+        <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)", marginTop: "12px", textAlign: "center" }}>
+          OAuth connections require deployment. Working locally? KV not available.
+        </p>
       )}
     </div>
   )
-}
-
-const inputStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.05)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  borderRadius: "6px",
-  padding: "6px 10px",
-  fontSize: "11px",
-  color: "#fff",
-  outline: "none",
-  width: "100%",
-  boxSizing: "border-box",
 }
 
 const panelBox: React.CSSProperties = {
@@ -205,14 +286,21 @@ function SettingsPanelInner({
   userImageUrl,
   onLogout,
   onNameChange,
-  plugins = [],
-  onConnectPlugin,
-  onDisconnectPlugin,
+  onPanelMouseEnter,
+  onPanelMouseLeave,
 }: SettingsPanelProps) {
+
 
   const [isEditingName, setIsEditingName] = useState(false)
   const [editName, setEditName] = useState(userName)
   const [savingName, setSavingName] = useState(false)
+  const [renderedPanel, setRenderedPanel] = useState<'settings' | 'plugins' | null>(activePanel)
+
+  useEffect(() => {
+    if (activePanel) {
+      setRenderedPanel(activePanel)
+    }
+  }, [activePanel])
 
   const handleSaveName = useCallback(async () => {
     const trimmed = editName.trim()
@@ -272,17 +360,25 @@ function SettingsPanelInner({
 
   return (
     <div
-      className="absolute top-16 right-5 z-30 pointer-events-none"
+      className="absolute top-full right-0 md:right-4 mt-2 z-40"
+      onMouseEnter={onPanelMouseEnter}
+      onMouseLeave={onPanelMouseLeave}
       style={{
-        transform: isOpen ? "translateY(0) scale(1)" : "translateY(-8px) scale(0.97)",
-        opacity: isOpen ? 1 : 0,
-        pointerEvents: isOpen ? "auto" : "none",
-        transition: "transform 0.2s ease-out, opacity 0.2s ease-out",
         width: "300px",
+        pointerEvents: isOpen ? "auto" : "none",
+      }}
+    >
+    <div
+      style={{
+        transform: isOpen ? "translateY(0) scale(1)" : "translateY(-10px) scale(0.96)",
+        transformOrigin: "top right",
+        opacity: isOpen ? 1 : 0,
+        transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease",
+        willChange: "transform, opacity",
       }}
     >
       {/* ── SETTINGS BOX — opens when gear icon is clicked ── */}
-      {activePanel === 'settings' && (
+      {renderedPanel === 'settings' && (
         <div onClick={(e) => e.stopPropagation()} data-testid="settings-panel" style={panelBox}>
           {/* User profile */}
           <div className="flex items-center gap-3 mb-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
@@ -426,7 +522,7 @@ function SettingsPanelInner({
       )}
 
       {/* ── PLUGINS BOX — opens when plugin badge is clicked ── */}
-      {activePanel === 'plugins' && (onConnectPlugin || onDisconnectPlugin) && (
+      {renderedPanel === 'plugins' && (
         <div onClick={(e) => e.stopPropagation()} style={panelBox}>
           <div className="flex items-center gap-2 mb-4">
             <Zap className="w-4 h-4 text-white opacity-80" />
@@ -434,17 +530,10 @@ function SettingsPanelInner({
               Connections
             </span>
           </div>
-          {PLUGIN_IDS.map((id) => (
-            <PluginRow
-              key={id}
-              pluginId={id}
-              connectedPlugin={plugins.find((p) => p.id === id)}
-              onConnect={onConnectPlugin ?? (async () => false)}
-              onDisconnect={onDisconnectPlugin ?? (async () => {})}
-            />
-          ))}
+          <OAuthPluginPanel />
         </div>
       )}
+    </div>
     </div>
   )
 }

@@ -20,21 +20,34 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
         needsSetup = false
       } else {
         // Fallback or secondary check if Clerk metadata isn't updated
-        const { getRequestContext } = await import('@cloudflare/next-on-pages')
-        const { env } = getRequestContext()
-        const kv = (env as any).MISSI_MEMORY
+        let kv = null
+        try {
+          const { getRequestContext } = await import('@cloudflare/next-on-pages')
+          const { env } = getRequestContext()
+          kv = (env as any).MISSI_MEMORY
+        } catch {
+          // Cloudflare context missing (e.g. running 'npm run dev' locally)
+        }
+        
         if (kv) {
           const raw = await kv.get(`profile:${userId}`)
           if (!raw) {
             needsSetup = true
           }
         } else {
-          needsSetup = true // Native Edge runtime missing KV, force setup check
+          // Native Edge runtime missing KV, force setup check in prod, but 
+          // allow navigation to proceed so local dev isn't bricked.
+          if (process.env.NODE_ENV !== 'development') {
+            needsSetup = true 
+          }
         }
       }
     } catch (e) {
       console.error("[ChatLayout] Error checking setup profile:", e)
-      needsSetup = true // Fail closed for setup to ensure users do onboarding!
+      // Only fail closed in production to avoid bricking local dev workflow
+      if (process.env.NODE_ENV !== 'development') {
+        needsSetup = true
+      }
     }
 
     if (needsSetup) {
