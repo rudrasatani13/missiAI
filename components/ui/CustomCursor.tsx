@@ -20,32 +20,31 @@ export function CustomCursor() {
       setCursorEnabled(true);
     }
 
-    const moveCursor = (e: MouseEvent) => {
+    const handleMouseMove = (e: MouseEvent) => {
       mouseX.set(e.clientX - 16);
       mouseY.set(e.clientY - 16);
-    };
 
-    const handleMouseOver = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName.toLowerCase() === "a" ||
-        target.tagName.toLowerCase() === "button" ||
-        target.closest("a") ||
-        target.closest("button") ||
-        target.classList.contains("interactive")
-      ) {
-        setIsHovering(true);
-      } else {
+      // elementFromPoint skips the cursor div (pointer-events-none) and
+      // returns the real element under the cursor — no bubbling flicker.
+      const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+      if (!el) {
         setIsHovering(false);
+        return;
       }
+      const clickable =
+        el.tagName.toLowerCase() === "a" ||
+        el.tagName.toLowerCase() === "button" ||
+        el.closest("a") !== null ||
+        el.closest("button") !== null ||
+        el.classList.contains("interactive") ||
+        el.closest(".interactive") !== null;
+      setIsHovering(clickable);
     };
 
-    window.addEventListener("mousemove", moveCursor);
-    window.addEventListener("mouseover", handleMouseOver);
+    window.addEventListener("mousemove", handleMouseMove);
 
     return () => {
-      window.removeEventListener("mousemove", moveCursor);
-      window.removeEventListener("mouseover", handleMouseOver);
+      window.removeEventListener("mousemove", handleMouseMove);
     };
   }, [mouseX, mouseY]);
 
