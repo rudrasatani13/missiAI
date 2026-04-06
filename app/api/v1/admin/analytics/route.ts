@@ -46,9 +46,12 @@ export async function GET(req: Request) {
   }
 
   // ── 2. Admin check ──────────────────────────────────────────────────────
-  // Return same 403 for both: missing env var AND wrong userId
-  const adminUserId = process.env.ADMIN_USER_ID
-  if (!adminUserId || userId !== adminUserId) {
+  const clerkAuth = await import('@clerk/nextjs/server').then(m => m.auth())
+  const role = (clerkAuth.sessionClaims?.metadata as any)?.role
+  const isRoleAdmin = role === 'admin'
+  const isSuperAdminEnv = process.env.ADMIN_USER_ID ? userId === process.env.ADMIN_USER_ID : false
+
+  if (!isRoleAdmin && !isSuperAdminEnv) {
     return forbiddenResponse()
   }
 
@@ -63,9 +66,20 @@ export async function GET(req: Request) {
   // ── 4. KV ───────────────────────────────────────────────────────────────
   const kv = getKV()
   if (!kv) {
+    // Local dev fallback when Cloudflare bindings are missing
     return new Response(
-      JSON.stringify({ error: 'Storage unavailable' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        success: true,
+        data: {
+          today: { uniqueUsers: 0, voiceInteractions: 0, newSignups: 0, totalRequests: 0, actionsExecuted: 0, totalCostUsd: 0, errorCount: 0 },
+          yesterday: { uniqueUsers: 0, voiceInteractions: 0, newSignups: 0, totalRequests: 0, actionsExecuted: 0, totalCostUsd: 0, errorCount: 0 },
+          last7Days: [],
+          lifetime: { totalUsers: 0, totalInteractions: 0, planBreakdown: { free: 0, pro: 0, business: 0 } },
+          generatedAt: Date.now(),
+          planBreakdown: { free: 0, pro: 0, business: 0 }
+        }
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
     )
   }
 

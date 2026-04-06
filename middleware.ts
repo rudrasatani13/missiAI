@@ -15,8 +15,8 @@ const isPublicRoute = createRouteMatcher([
   "/pricing(.*)",
 ])
 
-// Admin routes require Clerk auth (admin check happens server-side in API route)
-const isAdminRoute = createRouteMatcher(["/admin(.*)"])
+// Admin routes require Clerk auth and admin role check
+const isAdminRoute = createRouteMatcher(["/admin(.*)", "/api/v1/admin(.*)"])
 
 // API routes handle their own Clerk auth and return JSON 401 — not a browser
 // redirect. Letting middleware's auth.protect() run here causes Clerk to issue a
@@ -160,12 +160,48 @@ const clerkHandler = clerkMiddleware(
       )
     }
 
+    if (isAdminRoute(request)) {
+      const authObj = await auth()
+      const role = (authObj.sessionClaims?.metadata as any)?.role
+      const isRoleAdmin = role === "admin"
+      const isSuperAdminEnv = process.env.ADMIN_USER_ID ? authObj.userId === process.env.ADMIN_USER_ID : false
+
+      if (!isRoleAdmin && !isSuperAdminEnv) {
+        return applySecurityHeaders(
+          new NextResponse(
+            JSON.stringify({ error: "Forbidden: Admin access required" }),
+            { status: 403, headers: { "Content-Type": "application/json" } }
+          )
+        )
+      }
+    }
+
     // Route handlers call auth() themselves — do not redirect here.
     return
   }
 
   if (!isPublicRoute(request)) {
     await auth.protect()
+
+    if (isAdminRoute(request)) {
+      const authObj = await auth()
+      const role = (authObj.sessionClaims?.metadata as any)?.role
+      const isRoleAdmin = role === "admin"
+      const adminEnv = process.env.ADMIN_USER_ID
+      const isSuperAdminEnv = adminEnv ? authObj.userId === adminEnv : false
+
+      console.log("[DEBUG Admin Check] UI Request", { 
+        currentUserId: authObj.userId, 
+        envUserId: adminEnv, 
+        role, 
+        isRoleAdmin, 
+        isSuperAdminEnv 
+      })
+
+      if (!isRoleAdmin && !isSuperAdminEnv) {
+        return NextResponse.redirect(new URL("/", request.url))
+      }
+    }
   }
   },
   {
