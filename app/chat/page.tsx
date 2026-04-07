@@ -362,6 +362,7 @@ export default function VoiceAssistantPage() {
              WebkitBackdropFilter: "blur(24px)", 
              border: "1px solid rgba(255,255,255,0.15)",
            }}>
+        {/* Left: Back */}
         <div className="flex items-center">
           <Magnetic>
             <Link href="/" className="flex items-center justify-center p-2 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-all text-white" data-testid="home-link">
@@ -370,6 +371,7 @@ export default function VoiceAssistantPage() {
           </Magnetic>
         </div>
         
+        {/* Center: MISSI */}
         <div className="flex justify-center select-none flex-1">
           <svg width="90" height="20" viewBox="0 0 120 28" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -390,41 +392,8 @@ export default function VoiceAssistantPage() {
           </svg>
         </div>
 
-        <div className="flex items-center justify-end gap-1.5 md:gap-2">
-          <Magnetic>
-            <Link
-              href="/pricing"
-              onClick={(e) => e.stopPropagation()}
-              data-testid="upgrade-to-pro-link"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all hover:scale-105"
-              style={{
-                background: plan?.id === 'free'
-                  ? 'rgba(255,255,255,0.08)'
-                  : 'linear-gradient(135deg, rgba(124,58,237,0.4), rgba(245,158,11,0.25))',
-                border: plan?.id === 'free'
-                  ? '1px solid rgba(255,255,255,0.1)'
-                  : '1px solid rgba(124,58,237,0.4)',
-                fontSize: 10,
-                color: plan?.id === 'free' ? 'rgba(255,255,255,0.9)' : 'rgba(245,158,11,0.95)',
-                fontWeight: 600,
-                letterSpacing: '0.03em',
-                textDecoration: 'none',
-              }}
-            >
-              <Crown className="w-3.5 h-3.5" style={{ color: '#F59E0B' }} />
-              <span className="hidden sm:inline">
-                {plan?.id === 'business' ? 'BIZ' : 'PRO'}
-              </span>
-            </Link>
-          </Magnetic>
-          <Magnetic>
-            <div
-              onMouseEnter={() => { clearTimeout((window as any).__panelCloseTimer); setActivePanel('plugins') }}
-              onMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
-            >
-              <PluginBadge plugins={plugins} onManage={() => {}} />
-            </div>
-          </Magnetic>
+        {/* Right: Settings only */}
+        <div className="flex items-center">
           <Magnetic>
             <button
               onMouseEnter={() => { clearTimeout((window as any).__panelCloseTimer); setActivePanel('settings') }}
@@ -454,6 +423,47 @@ export default function VoiceAssistantPage() {
           }}
         />
       </nav>
+
+      {/* ── Top-right: PRO badge + Plugins ─────────────────────────────────── */}
+      <div className="fixed top-4 right-4 z-30 flex items-center gap-2 pointer-events-auto">
+        <Magnetic>
+          <Link
+            href="/pricing"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="upgrade-to-pro-link"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all hover:scale-105"
+            style={{
+              background: plan?.id === 'free'
+                ? 'rgba(255,255,255,0.08)'
+                : 'linear-gradient(135deg, rgba(124,58,237,0.4), rgba(245,158,11,0.25))',
+              border: plan?.id === 'free'
+                ? '1px solid rgba(255,255,255,0.1)'
+                : '1px solid rgba(124,58,237,0.4)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              fontSize: 10,
+              color: plan?.id === 'free' ? 'rgba(255,255,255,0.9)' : 'rgba(245,158,11,0.95)',
+              fontWeight: 600,
+              letterSpacing: '0.03em',
+              textDecoration: 'none',
+            }}
+          >
+            <Crown className="w-3.5 h-3.5" style={{ color: '#F59E0B' }} />
+            <span className="hidden sm:inline">
+              {plan?.id === 'business' ? 'BIZ' : 'PRO'}
+            </span>
+          </Link>
+        </Magnetic>
+        <Magnetic>
+          <div
+            onMouseEnter={() => { clearTimeout((window as any).__panelCloseTimer); setActivePanel('plugins') }}
+            onMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
+          >
+            <PluginBadge plugins={plugins} onManage={() => {}} />
+          </div>
+        </Magnetic>
+      </div>
+
       
       <ConversationLog messages={conversationRef.current} isVisible={false} />
 
