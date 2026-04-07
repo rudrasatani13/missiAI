@@ -7,6 +7,42 @@ import type { VoiceState } from "@/types/chat"
 import type { DailyBriefing, BriefingItem } from "@/types/proactive"
 import type { EmotionProfile } from "@/types/emotion"
 
+// Animates text letter-by-letter: each char fades+blurs in with stagger
+function AnimatedStateText({ text, color }: { text: string; color: string }) {
+  return (
+    <AnimatePresence mode="wait">
+      <motion.span
+        key={text}
+        style={{ display: "inline-block", color }}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.045 } },
+          exit:    { transition: { staggerChildren: 0.025, staggerDirection: -1 } },
+        }}
+      >
+        {text.split("").map((char, i) => (
+          <motion.span
+            key={i}
+            style={{ display: "inline-block", whiteSpace: "pre" }}
+            variants={{
+              hidden: { opacity: 0, y: 10, filter: "blur(6px)" },
+              visible: { opacity: 1, y: 0,  filter: "blur(0px)",
+                transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
+              exit:   { opacity: 0, y: -6, filter: "blur(4px)",
+                transition: { duration: 0.2, ease: "easeIn" } },
+            }}
+          >
+            {char}
+          </motion.span>
+        ))}
+      </motion.span>
+    </AnimatePresence>
+  )
+}
+
 const EMOTION_DOT_COLORS: Record<string, string> = {
   stressed: '#F59E0B',
   excited: '#10B981',
@@ -74,26 +110,23 @@ function StatusDisplayInner({
       <p
         className="text-base md:text-lg font-light tracking-tight mb-1 state-text"
         data-testid="voice-status-text"
-        style={{
-          color:
-            state === "recording"
-              ? "rgba(255,80,60,0.8)"
-              : state === "speaking"
-                ? "rgba(0,255,140,0.7)"
-                : state === "thinking" || state === "transcribing"
-                  ? "rgba(255,255,255,0.5)"
-                  : "rgba(255,255,255,0.3)",
-          animation:
-            state === "thinking"
-              ? "pulseGlow 2s ease-in-out infinite"
-              : "fadeIn 0.5s ease-out both",
-        }}
+        style={{ fontFamily: "var(--font-display)", letterSpacing: "-0.01em" }}
       >
-        {state === "idle" && `Hey${userName ? ` ${userName}` : ""}`}
-        {state === "recording" && "Listening..."}
-        {state === "transcribing" && "Processing..."}
-        {state === "thinking" && "Thinking..."}
-        {state === "speaking" && "Speaking..."}
+        <AnimatedStateText
+          text={
+            state === "idle"        ? `Hey${userName ? ` ${userName}` : ""}` :
+            state === "recording"   ? "Listening..."   :
+            state === "transcribing"? "Processing..."  :
+            state === "thinking"    ? "Thinking..."    :
+            state === "speaking"    ? "Speaking..."    : ""
+          }
+          color={
+            state === "recording"                            ? "rgba(255,80,60,0.8)"   :
+            state === "speaking"                             ? "rgba(0,255,140,0.7)"   :
+            state === "thinking" || state === "transcribing" ? "rgba(255,255,255,0.5)" :
+                                                               "rgba(255,255,255,0.3)"
+          }
+        />
       </p>
 
       <AnimatePresence mode="popLayout">

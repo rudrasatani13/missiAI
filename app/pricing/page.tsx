@@ -436,7 +436,7 @@ export default function PricingPage() {
         minHeight: '100vh',
         background: '#000',
         color: '#fff',
-        fontFamily: 'var(--font-inter), system-ui, sans-serif',
+        fontFamily: 'var(--font-body)',
       }}
     >
       {/* Celebration Animation */}
@@ -743,7 +743,7 @@ export default function PricingPage() {
                       outline: 'none',
                       color: 'rgba(255,255,255,0.6)',
                       fontSize: 12,
-                      fontFamily: 'monospace',
+                      fontFamily: 'var(--font-mono)',
                     }}
                   />
                   <button

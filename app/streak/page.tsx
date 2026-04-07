@@ -222,7 +222,7 @@ export default function StreakPage() {
       className="min-h-screen flex flex-col items-center justify-start px-4 py-12"
       style={{
         background: '#000000',
-        fontFamily: 'var(--font-inter), system-ui, sans-serif',
+        fontFamily: 'var(--font-body)',
       }}
     >
       <div className="w-full max-w-md">

@@ -41,9 +41,13 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet" />
+        {/* Inter — UI body text (Vercel, Linear, Notion standard) */}
+        {/* Space Grotesk — display headings (geometric, high-tech feel) */}
+        {/* Space Mono — monospace elements */}
+        {/* VT323 — MISSI LED logo only */}
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet" />
       </head>
-      <body className="antialiased bg-black text-white" style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Share Tech Mono', monospace" }}>
+      <body className="antialiased bg-black text-white" style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Inter', system-ui, sans-serif" }}>
         <script dangerouslySetInnerHTML={{
           __html: `
             if ('serviceWorker' in navigator) {

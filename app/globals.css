@@ -2,9 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Font variables ─────────────────────────────────────────────────────────
+   --font-body:    Inter    → all UI text, paragraphs, labels
+   --font-display: Space Grotesk → headings, state text, hero text
+   --font-mono:    Space Mono   → monospace/code elements
+   ──────────────────────────────────────────────────────────────────────── */
+:root {
+  --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono:    'Space Mono', 'Courier New', monospace;
+}
+
 body {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-body);
   font-weight: 400;
+  font-feature-settings: "cv11", "ss01";   /* Inter optical size & alternates */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings use Space Grotesk — geometric, high-tech feel */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.font-display {
+  font-family: var(--font-display);
 }
 
 .font-script {
@@ -12,7 +37,11 @@ body {
 }
 
 .font-inter {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-body);
+}
+
+.font-mono-code {
+  font-family: var(--font-mono);
 }
 
 /* Logo Protection Styles */

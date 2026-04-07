@@ -324,7 +324,7 @@ export default function LandingPage() {
                   <mask id="text-mask">
                     <rect width="100%" height="100%" fill="black" />
                     <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" 
-                          fontSize="220" fontWeight="400" fontFamily="'VT323', 'Share Tech Mono', monospace" fill="white" letterSpacing="18">
+                          fontSize="220" fontWeight="400" fontFamily="'VT323', 'Space Mono', monospace" fill="white" letterSpacing="18">
                       MISSI
                     </text>
                   </mask>
@@ -332,11 +332,11 @@ export default function LandingPage() {
 
                 {/* Ambient Glows - Tighter and less blue to match reference */}
                 <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" 
-                      fontSize="220" fontWeight="400" fontFamily="'VT323', 'Share Tech Mono', monospace" fill="#ffffff" opacity="0.15" style={{ filter: "blur(12px)" }} letterSpacing="18">
+                      fontSize="220" fontWeight="400" fontFamily="'VT323', 'Space Mono', monospace" fill="#ffffff" opacity="0.15" style={{ filter: "blur(12px)" }} letterSpacing="18">
                   MISSI
                 </text>
                 <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" 
-                      fontSize="220" fontWeight="400" fontFamily="'VT323', 'Share Tech Mono', monospace" fill="#e0f2fe" opacity="0.3" style={{ filter: "blur(4px)" }} letterSpacing="18">
+                      fontSize="220" fontWeight="400" fontFamily="'VT323', 'Space Mono', monospace" fill="#e0f2fe" opacity="0.3" style={{ filter: "blur(4px)" }} letterSpacing="18">
                   MISSI
                 </text>
 

@@ -16,14 +16,14 @@ export default function ManifestoPage() {
               <mask id="text-mask-manifesto">
                 <rect width="100%" height="100%" fill="black" />
                 <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" 
-                      fontSize="24" fontWeight="400" fontFamily="'VT323','Share Tech Mono',monospace" fill="white" letterSpacing="4">
+                      fontSize="24" fontWeight="400" fontFamily="'VT323','Space Mono',monospace" fill="white" letterSpacing="4">
                   MISSI
                 </text>
               </mask>
             </defs>
             {/* Glow layer */}
             <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" 
-                  fontSize="24" fontWeight="400" fontFamily="'VT323','Share Tech Mono',monospace" fill="#ffffff" opacity="0.2" style={{ filter: "blur(3px)" }} letterSpacing="4">
+                  fontSize="24" fontWeight="400" fontFamily="'VT323','Space Mono',monospace" fill="#ffffff" opacity="0.2" style={{ filter: "blur(3px)" }} letterSpacing="4">
               MISSI
             </text>
             <rect width="100%" height="100%" fill="url(#led-manifesto)" mask="url(#text-mask-manifesto)" />

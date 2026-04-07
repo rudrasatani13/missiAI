@@ -1,7 +1,8 @@
 "use client"
 
 import { memo, useState, useCallback, useEffect } from "react"
-import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon, Calendar, BookOpen, RefreshCw, CheckCircle2, Mail, CheckSquare, MessageSquare, Github, LayoutGrid, Inbox } from "lucide-react"
+import Link from "next/link"
+import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon, Calendar, BookOpen, RefreshCw, CheckCircle2, Mail, CheckSquare, MessageSquare, Github, LayoutGrid, Inbox, Crown, User } from "lucide-react"
 import type { PersonalityKey } from "@/types/chat"
 import { PERSONALITY_OPTIONS } from "@/types/chat"
 import type { PluginConfig, PluginId } from "@/types/plugins"
@@ -37,6 +38,7 @@ interface SettingsPanelProps {
     settings?: Record<string, string>,
   ) => Promise<boolean>
   onDisconnectPlugin?: (id: PluginId) => Promise<void>
+  plan?: string
 }
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -345,6 +347,7 @@ function SettingsPanelInner({
   onNameChange,
   onPanelMouseEnter,
   onPanelMouseLeave,
+  plan,
 }: SettingsPanelProps) {
 
 
@@ -417,15 +420,11 @@ function SettingsPanelInner({
 
   return (
     <div
+      className="absolute top-full right-0 md:right-4 mt-2 z-40"
       onMouseEnter={onPanelMouseEnter}
       onMouseLeave={onPanelMouseLeave}
       style={{
-        position: activePanel === 'plugins' ? 'fixed' : 'absolute',
-        top: activePanel === 'plugins' ? '72px' : '100%',
-        right: activePanel === 'plugins' ? '16px' : '0',
-        marginTop: activePanel === 'plugins' ? '0' : '8px',
         width: "300px",
-        zIndex: 40,
         pointerEvents: isOpen ? "auto" : "none",
       }}
     >
@@ -443,8 +442,22 @@ function SettingsPanelInner({
         <div onClick={(e) => e.stopPropagation()} data-testid="settings-panel" style={panelBox}>
           {/* User profile */}
           <div className="flex items-center gap-3 mb-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-            {userImageUrl && <img src={userImageUrl} alt="" className="w-10 h-10 rounded-full" />}
-            <div className="flex-1 min-w-0">
+            <div className="relative">
+              {userImageUrl ? (
+                <img src={userImageUrl} alt="" className="w-10 h-10 rounded-full border border-white/10" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                  <User className="w-5 h-5 text-white/50" />
+                </div>
+              )}
+              {/* Golden PRO Badge overlay */}
+              {(plan === 'pro' || plan === 'business') && (
+                <div className="absolute -bottom-1 -right-1 bg-[#F59E0B] p-[3px] rounded-full border-[1.5px] border-[#050505] shadow-lg flex items-center justify-center" title="PRO Member">
+                  <Crown className="w-2.5 h-2.5 text-white" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
               {isEditingName ? (
                 <div className="flex items-center gap-1.5">
                   <input
@@ -566,6 +579,45 @@ function SettingsPanelInner({
             >
               Enable
             </button>
+          </div>
+
+          {/* Plan Settings */}
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "16px", paddingBottom: "16px" }}>
+            {(!plan || plan === 'free') ? (
+              <Link
+                href="/pricing"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition-all hover:scale-[1.02]"
+                style={{ 
+                  background: "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(245,158,11,0.1))",
+                  border: "1px solid rgba(245,158,11,0.3)",
+                  color: "#F59E0B",
+                  textDecoration: "none"
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <Crown className="w-4 h-4" />
+                  <span>Upgrade to PRO</span>
+                </div>
+                <span className="text-[10px] opacity-70 border border-[#F59E0B]/30 px-1.5 py-0.5 rounded">View Plans</span>
+              </Link>
+            ) : (
+              <Link
+                href="/pricing"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all"
+                style={{ 
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.05)",
+                  color: "rgba(255,255,255,0.7)",
+                  textDecoration: "none"
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <Crown className="w-3.5 h-3.5 text-[#F59E0B]" />
+                  <span>Manage Subscription</span>
+                </div>
+                <span className="text-[10px] text-[#F59E0B] uppercase font-bold tracking-wider">{plan}</span>
+              </Link>
+            )}
           </div>
 
           {/* Sign out */}

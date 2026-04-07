@@ -33,13 +33,6 @@ function VoiceButtonInner({ state, onPress, onRelease, disabled }: VoiceButtonPr
       className="mb-3 flex items-center justify-center gap-2 pointer-events-auto select-none"
       style={{ background: "none", border: "none", cursor: disabled ? "default" : "pointer", padding: "12px" }}
     >
-      {state === "idle" && (
-        <span
-          className="w-2 h-2 rounded-full"
-          data-testid="idle-indicator"
-          style={{ background: "rgba(255,255,255,0.15)" }}
-        />
-      )}
       {state === "recording" && (
         <span
           className="w-2 h-2 rounded-full"

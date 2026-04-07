@@ -72,7 +72,7 @@ export default function VoiceAssistantPage() {
     try {
       const stored = localStorage.getItem('missi-user-name')
       if (stored) setLocalName(stored)
-    } catch {}
+    } catch { }
   }, [])
 
   // Resolved display name: prefer Clerk's firstName, fallback to localStorage name
@@ -149,7 +149,7 @@ export default function VoiceAssistantPage() {
     try {
       greetedRef.current = sessionStorage.getItem('missi-greeted') === '1'
       proactiveSpokenRef.current = sessionStorage.getItem('missi-proactive-spoken') === '1'
-    } catch {}
+    } catch { }
   }, [])
 
   // Track current voiceState in a ref for use in async callbacks / timeouts
@@ -159,10 +159,10 @@ export default function VoiceAssistantPage() {
     state: voiceState, audioLevel, statusText, lastTranscript,
     error, setError, streamingText, lastResponse, handleTap, cancelAll, greet, saveMemoryBeacon,
     currentEmotion,
-  } = useVoiceStateMachine({ 
-    userId: user?.id, 
-    personalityRef, 
-    memoriesRef, 
+  } = useVoiceStateMachine({
+    userId: user?.id,
+    personalityRef,
+    memoriesRef,
     conversationRef,
     imagePayloadRef,
     onImageConsumed: () => setThumbnail(null)
@@ -190,65 +190,72 @@ export default function VoiceAssistantPage() {
   } = usePlugins()
   const lastResponseForPluginRef = useRef("")
 
-  useEffect(() => { try { const s = localStorage.getItem("missi-personality") as PersonalityKey | null
-    if (s && PERSONALITY_OPTIONS.some((p) => p.key === s)) { setPersonality(s); personalityRef.current = s }
-  } catch {} }, [])
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem("missi-personality") as PersonalityKey | null
+      if (s && PERSONALITY_OPTIONS.some((p) => p.key === s)) { setPersonality(s); personalityRef.current = s }
+    } catch { }
+  }, [])
 
-  useEffect(() => { if (!isLoaded || !user?.id) return
+  useEffect(() => {
+    if (!isLoaded || !user?.id) return
     // Memory is fetched server-side via getVerifiedUserId() - no userId in URL
     fetch(`/api/v1/memory`).then((r) => r.json())
       .then((d) => {
         if (d.data?.nodes?.length) {
           memoriesRef.current = d.data.nodes.map((n: any) => `${n.category}: ${n.title} — ${n.detail}`).join("\n")
         }
-      }).catch(() => {})
+      }).catch(() => { })
   }, [isLoaded, user?.id])
 
   const updatePersonality = useCallback((key: PersonalityKey) => {
     setPersonality(key); personalityRef.current = key
-    try { localStorage.setItem("missi-personality", key) } catch {}; conversationRef.current = []
+    try { localStorage.setItem("missi-personality", key) } catch { }; conversationRef.current = []
   }, [])
 
-  useEffect(() => { const h = (e: KeyboardEvent) => {
-    if (e.code === "Space" && e.target === document.body) { e.preventDefault(); if (!isAtLimit && !billingLoading) handleTap() }
-    if (e.code === "Escape") cancelAll() }
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.code === "Space" && e.target === document.body) { e.preventDefault(); if (!isAtLimit && !billingLoading) handleTap() }
+      if (e.code === "Escape") cancelAll()
+    }
     window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h)
   }, [handleTap, cancelAll, isAtLimit, billingLoading])
   useEffect(() => () => { cancelAll() }, [cancelAll])
-  useEffect(() => { const bu = () => saveMemoryBeacon()
+  useEffect(() => {
+    const bu = () => saveMemoryBeacon()
     const vc = () => { if (document.visibilityState === "hidden") saveMemoryBeacon() }
     window.addEventListener("beforeunload", bu); document.addEventListener("visibilitychange", vc)
     return () => { window.removeEventListener("beforeunload", bu); document.removeEventListener("visibilitychange", vc) }
   }, [saveMemoryBeacon])
 
   // Initial greeting — skip if daily limit already reached or billing still loading or booting
-  useEffect(() => { 
+  useEffect(() => {
     if (!isLoaded || greetedRef.current || isAtLimit || billingLoading) return
     if (showBootSequence && !bootCompleted) return // wait for boot
-    
+
     greetedRef.current = true
-    try { sessionStorage.setItem('missi-greeted', '1') } catch {}
-    
+    try { sessionStorage.setItem('missi-greeted', '1') } catch { }
+
     let isNewUser = false
     try {
       isNewUser = new URLSearchParams(window.location.search).get('new') === 'true'
       if (isNewUser) {
         window.history.replaceState({}, document.title, window.location.pathname)
       }
-    } catch {}
+    } catch { }
 
     const n = displayName
-    
+
     let delay = 1200
     let greetingToSay = ""
-    
+
     if (isNewUser) {
       greetingToSay = `Hello ${n}, nice to finally meet you! Let's get started.`
       delay = 2000 // wait a bit longer for the boot sequence to fully settle
     } else {
       const gs = [
         `Hey${n ? ` ${n}` : ""}! What's up, how's it going?`,
-        `Hey${n ? ` ${n}` : ""}! Good to see you, what can I help with?`, 
+        `Hey${n ? ` ${n}` : ""}! Good to see you, what can I help with?`,
         `Hey${n ? ` ${n}` : ""}! How are you doing today?`
       ]
       greetingToSay = gs[Math.floor(Math.random() * gs.length)]
@@ -269,7 +276,7 @@ export default function VoiceAssistantPage() {
       // Only speak if state is idle at the time the timer fires
       if (voiceStateRef.current === "idle") {
         proactiveSpokenRef.current = true
-        try { sessionStorage.setItem('missi-proactive-spoken', '1') } catch {}
+        try { sessionStorage.setItem('missi-proactive-spoken', '1') } catch { }
         greet(highItem.message)
       }
     }, 2000)
@@ -280,12 +287,13 @@ export default function VoiceAssistantPage() {
   // Store last interaction time for nudge engine
   useEffect(() => {
     if (voiceState === "recording") {
-      try { localStorage.setItem("missi-last-interaction-at", String(Date.now())) } catch {}
+      try { localStorage.setItem("missi-last-interaction-at", String(Date.now())) } catch { }
     }
   }, [voiceState])
 
-  const handleLogout = useCallback(() => { cancelAll(); setActivePanel(null)
-    signOut().catch(() => {}); setTimeout(() => { window.location.href = "/" }, 500)
+  const handleLogout = useCallback(() => {
+    cancelAll(); setActivePanel(null)
+    signOut().catch(() => { }); setTimeout(() => { window.location.href = "/" }, 500)
   }, [signOut, cancelAll])
 
   // Trigger action detection when user speaks (lastTranscript changes)
@@ -298,7 +306,7 @@ export default function VoiceAssistantPage() {
       .map((e) => `${e.role}: ${e.content}`)
       .join("\n")
 
-    detectAndExecute(lastTranscript, last3).catch(() => {})
+    detectAndExecute(lastTranscript, last3).catch(() => { })
   }, [lastTranscript, detectAndExecute])
 
   // Check for plugin commands after each AI response
@@ -320,14 +328,14 @@ export default function VoiceAssistantPage() {
 
     const matchedPlugin = detectPluginCommand(lastTranscript, connectedIds)
     if (matchedPlugin) {
-      executeVoiceCommand(matchedPlugin, lastTranscript).catch(() => {})
+      executeVoiceCommand(matchedPlugin, lastTranscript).catch(() => { })
     }
   }, [lastResponse, lastTranscript, plugins, executeVoiceCommand, plan?.id, incrementUsageLocally])
 
   const handleActionCopy = useCallback(() => {
     if (!lastResult) return
     const text = (lastResult.data?.fullDraft as string) ?? lastResult.output
-    navigator.clipboard.writeText(text).catch(() => {})
+    navigator.clipboard.writeText(text).catch(() => { })
   }, [lastResult])
 
   // Determine what to show in ActionCard: prefer plugin result if present, else action result
@@ -342,14 +350,14 @@ export default function VoiceAssistantPage() {
 
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"
-      style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}>
+      style={{ fontFamily: "var(--font-body)" }}>
       {showBootSequence && !bootCompleted && (
-      <BootSequence 
-          userName={displayName || "Guest"} 
+        <BootSequence
+          userName={displayName || "Guest"}
           onComplete={() => {
-            try { localStorage.setItem('missi-boot-v1', 'true') } catch {}
+            try { localStorage.setItem('missi-boot-v1', 'true') } catch { }
             setBootCompleted(true)
-          }} 
+          }}
         />
       )}
       <ParticleVisualizer state={voiceState} isActive={voiceState !== "idle"} audioLevel={audioLevel} />
@@ -357,23 +365,23 @@ export default function VoiceAssistantPage() {
         style={{ cursor: isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
       <div className="relative w-[90%] md:w-[600px] mx-auto z-20 pointer-events-none">
         <nav className="flex items-center justify-between w-full mt-6 px-4 py-2.5 pointer-events-auto rounded-[32px] shadow-2xl"
-             style={{ 
-               background: "rgba(255,255,255,0.08)", 
-               backdropFilter: "blur(24px)", 
-               WebkitBackdropFilter: "blur(24px)", 
-               border: "1px solid rgba(255,255,255,0.15)",
-             }}>
+          style={{
+            background: "rgba(255,255,255,0.08)",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+            border: "1px solid rgba(255,255,255,0.15)",
+          }}>
           {/* Left: Back */}
-          <div className="flex items-center">
+          <div className="flex items-center flex-1 justify-start">
             <Magnetic>
               <Link href="/" className="flex items-center justify-center p-2 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-all text-white" data-testid="home-link">
                 <ArrowLeft className="w-4 h-4" />
               </Link>
             </Magnetic>
           </div>
-          
+
           {/* Center: MISSI */}
-          <div className="flex justify-center select-none flex-1">
+          <div className="flex justify-center select-none flex-none">
             <svg width="90" height="20" viewBox="0 0 120 28" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <pattern id="led-nav" width="3" height="2" patternUnits="userSpaceOnUse">
@@ -382,19 +390,55 @@ export default function VoiceAssistantPage() {
                 <mask id="text-mask-nav">
                   <rect width="100%" height="100%" fill="black" />
                   <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle"
-                    fontSize="28" fontWeight="500" fontFamily="'VT323','Share Tech Mono',monospace"
+                    fontSize="28" fontWeight="500" fontFamily="'VT323','Space Mono',monospace"
                     fill="white" letterSpacing="5">MISSI</text>
                 </mask>
               </defs>
               <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle"
-                fontSize="28" fontWeight="500" fontFamily="'VT323','Share Tech Mono',monospace"
+                fontSize="28" fontWeight="500" fontFamily="'VT323','Space Mono',monospace"
                 fill="#ffffff" opacity="0.3" style={{ filter: 'blur(4px)' }} letterSpacing="5">MISSI</text>
               <rect width="100%" height="100%" fill="url(#led-nav)" mask="url(#text-mask-nav)" />
             </svg>
           </div>
 
-          {/* Right: Settings only */}
-          <div className="flex items-center">
+          {/* Right: PRO, Plugins, Settings */}
+          <div className="flex items-center flex-1 justify-end gap-1.5 md:gap-2">
+            <Magnetic>
+              <Link
+                href="/pricing"
+                onClick={(e) => e.stopPropagation()}
+                data-testid="upgrade-to-pro-link"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all hover:scale-105"
+                style={{
+                  background: plan?.id === 'free'
+                    ? 'rgba(255,255,255,0.08)'
+                    : 'linear-gradient(135deg, rgba(124,58,237,0.4), rgba(245,158,11,0.25))',
+                  border: plan?.id === 'free'
+                    ? '1px solid rgba(255,255,255,0.1)'
+                    : '1px solid rgba(124,58,237,0.4)',
+                  fontSize: 10,
+                  color: plan?.id === 'free' ? 'rgba(255,255,255,0.9)' : 'rgba(245,158,11,0.95)',
+                  fontWeight: 600,
+                  letterSpacing: '0.03em',
+                  textDecoration: 'none',
+                }}
+              >
+                <Crown className="w-3.5 h-3.5" style={{ color: '#F59E0B' }} />
+                <span className="hidden sm:inline">
+                  {plan?.id === 'business' ? 'BIZ' : 'PRO'}
+                </span>
+              </Link>
+            </Magnetic>
+
+            <Magnetic>
+              <div
+                onMouseEnter={() => { clearTimeout((window as any).__panelCloseTimer); setActivePanel('plugins') }}
+                onMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
+              >
+                <PluginBadge plugins={plugins} onManage={() => { }} />
+              </div>
+            </Magnetic>
+
             <Magnetic>
               <button
                 onMouseEnter={() => { clearTimeout((window as any).__panelCloseTimer); setActivePanel('settings') }}
@@ -416,56 +460,19 @@ export default function VoiceAssistantPage() {
           plugins={plugins}
           onConnectPlugin={connectPlugin}
           onDisconnectPlugin={disconnectPlugin}
+          plan={plan?.id}
           onPanelMouseEnter={() => clearTimeout((window as any).__panelCloseTimer)}
           onPanelMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
           onNameChange={(newName: string) => {
-            try { localStorage.setItem('missi-user-name', newName) } catch {}
+            try { localStorage.setItem('missi-user-name', newName) } catch { }
             setLocalName(newName)
           }}
         />
       </div>
 
-      {/* ── Top-right: PRO badge + Plugins ─────────────────────────────────── */}
-      <div className="fixed top-4 right-4 z-30 flex items-center gap-2 pointer-events-auto">
-        <Magnetic>
-          <Link
-            href="/pricing"
-            onClick={(e) => e.stopPropagation()}
-            data-testid="upgrade-to-pro-link"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all hover:scale-105"
-            style={{
-              background: plan?.id === 'free'
-                ? 'rgba(255,255,255,0.08)'
-                : 'linear-gradient(135deg, rgba(124,58,237,0.4), rgba(245,158,11,0.25))',
-              border: plan?.id === 'free'
-                ? '1px solid rgba(255,255,255,0.1)'
-                : '1px solid rgba(124,58,237,0.4)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              fontSize: 10,
-              color: plan?.id === 'free' ? 'rgba(255,255,255,0.9)' : 'rgba(245,158,11,0.95)',
-              fontWeight: 600,
-              letterSpacing: '0.03em',
-              textDecoration: 'none',
-            }}
-          >
-            <Crown className="w-3.5 h-3.5" style={{ color: '#F59E0B' }} />
-            <span className="hidden sm:inline">
-              {plan?.id === 'business' ? 'BIZ' : 'PRO'}
-            </span>
-          </Link>
-        </Magnetic>
-        <Magnetic>
-          <div
-            onMouseEnter={() => { clearTimeout((window as any).__panelCloseTimer); setActivePanel('plugins') }}
-            onMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
-          >
-            <PluginBadge plugins={plugins} onManage={() => {}} />
-          </div>
-        </Magnetic>
-      </div>
 
-      
+
+
       <ConversationLog messages={conversationRef.current} isVisible={false} />
 
       {/* ── Action Card Overlay — above everything ─── */}
@@ -487,7 +494,7 @@ export default function VoiceAssistantPage() {
       {/* ── Main Voice Controls Dock ─── */}
       <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pb-10 md:pb-14 pointer-events-none"
         style={{ paddingBottom: plan?.id === 'free' ? 52 : undefined }}>
-        
+
         {/* Thumbnail Preview */}
         {thumbnail && (
           <div className="relative mb-4 -translate-y-4 shadow-lg pointer-events-auto transition-transform">
@@ -503,7 +510,7 @@ export default function VoiceAssistantPage() {
           <VoiceButton
             state={voiceState}
             onPress={handleTap}
-            onRelease={() => {}}
+            onRelease={() => { }}
             disabled={isAtLimit || billingLoading}
           />
         </div>
@@ -544,13 +551,13 @@ export default function VoiceAssistantPage() {
           WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid rgba(255,255,255,0.15)',
         }}>
-        <input 
-          type="file" 
-          accept="image/*" 
-          capture="environment" 
-          ref={fileInputRef} 
-          className="hidden" 
-          onChange={handleImageSelect} 
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          ref={fileInputRef}
+          className="hidden"
+          onChange={handleImageSelect}
         />
         <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
           className="opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
@@ -574,5 +581,5 @@ export default function VoiceAssistantPage() {
           <Flame className="w-4 h-4 md:w-5 md:h-5" />
         </Link>
       </div>
-    </div>  )
+    </div>)
 }
