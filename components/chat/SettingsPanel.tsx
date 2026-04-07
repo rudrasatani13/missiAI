@@ -417,11 +417,15 @@ function SettingsPanelInner({
 
   return (
     <div
-      className="absolute top-full right-0 md:right-4 mt-2 z-40"
       onMouseEnter={onPanelMouseEnter}
       onMouseLeave={onPanelMouseLeave}
       style={{
+        position: activePanel === 'plugins' ? 'fixed' : 'absolute',
+        top: activePanel === 'plugins' ? '72px' : '100%',
+        right: activePanel === 'plugins' ? '16px' : '0',
+        marginTop: activePanel === 'plugins' ? '0' : '8px',
         width: "300px",
+        zIndex: 40,
         pointerEvents: isOpen ? "auto" : "none",
       }}
     >

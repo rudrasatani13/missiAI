@@ -355,58 +355,59 @@ export default function VoiceAssistantPage() {
       <ParticleVisualizer state={voiceState} isActive={voiceState !== "idle"} audioLevel={audioLevel} />
       <div className="fixed inset-0 z-10" onClick={isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
         style={{ cursor: isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
-      <nav className="relative z-20 flex items-center justify-between w-[90%] md:w-[600px] mx-auto mt-6 px-4 py-2.5 pointer-events-auto rounded-[32px] shadow-2xl"
-           style={{ 
-             background: "rgba(255,255,255,0.08)", 
-             backdropFilter: "blur(24px)", 
-             WebkitBackdropFilter: "blur(24px)", 
-             border: "1px solid rgba(255,255,255,0.15)",
-           }}>
-        {/* Left: Back */}
-        <div className="flex items-center">
-          <Magnetic>
-            <Link href="/" className="flex items-center justify-center p-2 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-all text-white" data-testid="home-link">
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-          </Magnetic>
-        </div>
-        
-        {/* Center: MISSI */}
-        <div className="flex justify-center select-none flex-1">
-          <svg width="90" height="20" viewBox="0 0 120 28" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="led-nav" width="3" height="2" patternUnits="userSpaceOnUse">
-                <rect x="0.25" y="0.25" width="2.5" height="1.5" rx="0.4" fill="rgba(255,255,255,1)" />
-              </pattern>
-              <mask id="text-mask-nav">
-                <rect width="100%" height="100%" fill="black" />
-                <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle"
-                  fontSize="28" fontWeight="500" fontFamily="'VT323','Share Tech Mono',monospace"
-                  fill="white" letterSpacing="5">MISSI</text>
-              </mask>
-            </defs>
-            <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle"
-              fontSize="28" fontWeight="500" fontFamily="'VT323','Share Tech Mono',monospace"
-              fill="#ffffff" opacity="0.3" style={{ filter: 'blur(4px)' }} letterSpacing="5">MISSI</text>
-            <rect width="100%" height="100%" fill="url(#led-nav)" mask="url(#text-mask-nav)" />
-          </svg>
-        </div>
+      <div className="relative w-[90%] md:w-[600px] mx-auto z-20 pointer-events-none">
+        <nav className="flex items-center justify-between w-full mt-6 px-4 py-2.5 pointer-events-auto rounded-[32px] shadow-2xl"
+             style={{ 
+               background: "rgba(255,255,255,0.08)", 
+               backdropFilter: "blur(24px)", 
+               WebkitBackdropFilter: "blur(24px)", 
+               border: "1px solid rgba(255,255,255,0.15)",
+             }}>
+          {/* Left: Back */}
+          <div className="flex items-center">
+            <Magnetic>
+              <Link href="/" className="flex items-center justify-center p-2 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-all text-white" data-testid="home-link">
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+            </Magnetic>
+          </div>
+          
+          {/* Center: MISSI */}
+          <div className="flex justify-center select-none flex-1">
+            <svg width="90" height="20" viewBox="0 0 120 28" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="led-nav" width="3" height="2" patternUnits="userSpaceOnUse">
+                  <rect x="0.25" y="0.25" width="2.5" height="1.5" rx="0.4" fill="rgba(255,255,255,1)" />
+                </pattern>
+                <mask id="text-mask-nav">
+                  <rect width="100%" height="100%" fill="black" />
+                  <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle"
+                    fontSize="28" fontWeight="500" fontFamily="'VT323','Share Tech Mono',monospace"
+                    fill="white" letterSpacing="5">MISSI</text>
+                </mask>
+              </defs>
+              <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle"
+                fontSize="28" fontWeight="500" fontFamily="'VT323','Share Tech Mono',monospace"
+                fill="#ffffff" opacity="0.3" style={{ filter: 'blur(4px)' }} letterSpacing="5">MISSI</text>
+              <rect width="100%" height="100%" fill="url(#led-nav)" mask="url(#text-mask-nav)" />
+            </svg>
+          </div>
 
-        {/* Right: Settings only */}
-        <div className="flex items-center">
-          <Magnetic>
-            <button
-              onMouseEnter={() => { clearTimeout((window as any).__panelCloseTimer); setActivePanel('settings') }}
-              onMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
-              className="p-2 rounded-full opacity-70 hover:opacity-100 hover:bg-white/20 transition-all text-white"
-              data-testid="settings-toggle-btn"
-              style={{ background: "none", border: "none", cursor: "pointer" }}>
-              <Settings className="w-4 h-4" />
-            </button>
-          </Magnetic>
-        </div>
-        
-        {/* Mount Settings and Plugins panels relative to this nav pill */}
+          {/* Right: Settings only */}
+          <div className="flex items-center">
+            <Magnetic>
+              <button
+                onMouseEnter={() => { clearTimeout((window as any).__panelCloseTimer); setActivePanel('settings') }}
+                onMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
+                className="p-2 rounded-full opacity-70 hover:opacity-100 hover:bg-white/20 transition-all text-white"
+                data-testid="settings-toggle-btn"
+                style={{ background: "none", border: "none", cursor: "pointer" }}>
+                <Settings className="w-4 h-4" />
+              </button>
+            </Magnetic>
+          </div>
+        </nav>
+
         <SettingsPanel personality={personality} onPersonalityChange={updatePersonality}
           voiceEnabled={voiceEnabled} onVoiceToggle={() => setVoiceEnabled((v) => !v)}
           isOpen={activePanel !== null} activePanel={activePanel} onClose={() => setActivePanel(null)}
@@ -422,7 +423,7 @@ export default function VoiceAssistantPage() {
             setLocalName(newName)
           }}
         />
-      </nav>
+      </div>
 
       {/* ── Top-right: PRO badge + Plugins ─────────────────────────────────── */}
       <div className="fixed top-4 right-4 z-30 flex items-center gap-2 pointer-events-auto">
