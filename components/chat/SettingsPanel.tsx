@@ -1,7 +1,7 @@
 "use client"
 
 import { memo, useState, useCallback, useEffect } from "react"
-import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon, Calendar, BookOpen, RefreshCw, CheckCircle2 } from "lucide-react"
+import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon, Calendar, BookOpen, RefreshCw, CheckCircle2, Mail, CheckSquare, MessageSquare, Github, LayoutGrid, Inbox } from "lucide-react"
 import type { PersonalityKey } from "@/types/chat"
 import { PERSONALITY_OPTIONS } from "@/types/chat"
 import type { PluginConfig, PluginId } from "@/types/plugins"
@@ -254,13 +254,13 @@ function OAuthPluginPanel() {
         {/* Plugin icons row */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
           {[
-            { emoji: "📧", label: "Gmail" },
-            { emoji: "📅", label: "Outlook" },
-            { emoji: "✅", label: "Todoist" },
-            { emoji: "🎯", label: "Linear" },
-            { emoji: "💬", label: "Slack" },
-            { emoji: "🐙", label: "GitHub" },
-          ].map(({ emoji, label }) => (
+            { icon: <Mail className="w-3 h-3" />, label: "Gmail" },
+            { icon: <Inbox className="w-3 h-3" />, label: "Outlook" },
+            { icon: <CheckSquare className="w-3 h-3" />, label: "Todoist" },
+            { icon: <LayoutGrid className="w-3 h-3" />, label: "Linear" },
+            { icon: <MessageSquare className="w-3 h-3" />, label: "Slack" },
+            { icon: <Github className="w-3 h-3" />, label: "GitHub" },
+          ].map(({ icon, label }) => (
             <div
               key={label}
               title={label}
@@ -272,11 +272,12 @@ function OAuthPluginPanel() {
                 borderRadius: "7px",
                 background: "rgba(255,255,255,0.04)",
                 border: "1px solid rgba(255,255,255,0.07)",
-                opacity: 0.6,
+                opacity: 0.5,
                 cursor: "default",
+                color: "rgba(255,255,255,0.5)",
               }}
             >
-              <span style={{ fontSize: "12px" }}>{emoji}</span>
+              {icon}
               <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>{label}</span>
             </div>
           ))}
