@@ -1,7 +1,7 @@
 "use client"
 
 import { memo, useState, useCallback, useEffect } from "react"
-import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon, Calendar, BookOpen, Globe, RefreshCw, CheckCircle2 } from "lucide-react"
+import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon, Calendar, BookOpen, RefreshCw, CheckCircle2 } from "lucide-react"
 import type { PersonalityKey } from "@/types/chat"
 import { PERSONALITY_OPTIONS } from "@/types/chat"
 import type { PluginConfig, PluginId } from "@/types/plugins"
@@ -219,16 +219,77 @@ function OAuthPluginPanel() {
         )}
       </div>
 
-      {/* Webhook */}
-      <div style={rowStyle}>
-        <Globe className="w-4 h-4 text-white opacity-60" style={{ flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: "12px", fontWeight: 500, color: "#fff", margin: 0 }}>Custom Webhook</p>
-          <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", margin: "2px 0 0" }}>
-            Trigger any URL on command
-          </p>
+      {/* ── Coming Soon ─────────────────────────────────────────────────────── */}
+      <div style={{
+        marginTop: "6px",
+        borderRadius: "12px",
+        padding: "14px 14px 12px",
+        background: "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
+        border: "1px dashed rgba(255,255,255,0.1)",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        {/* Glow blob */}
+        <div style={{
+          position: "absolute",
+          top: "-12px",
+          right: "-12px",
+          width: "60px",
+          height: "60px",
+          background: "radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }} />
+
+        <p style={{
+          fontSize: "10px",
+          fontWeight: 600,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "rgba(255,255,255,0.25)",
+          margin: "0 0 10px",
+        }}>
+          More plugins coming soon
+        </p>
+
+        {/* Plugin icons row */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+          {[
+            { emoji: "📧", label: "Gmail" },
+            { emoji: "📅", label: "Outlook" },
+            { emoji: "✅", label: "Todoist" },
+            { emoji: "🎯", label: "Linear" },
+            { emoji: "💬", label: "Slack" },
+            { emoji: "🐙", label: "GitHub" },
+          ].map(({ emoji, label }) => (
+            <div
+              key={label}
+              title={label}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                padding: "4px 8px",
+                borderRadius: "7px",
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                opacity: 0.6,
+                cursor: "default",
+              }}
+            >
+              <span style={{ fontSize: "12px" }}>{emoji}</span>
+              <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>{label}</span>
+            </div>
+          ))}
         </div>
-        <button style={connectBtnStyle} onClick={() => toast.info("Configure webhook via API key panel")}>Setup</button>
+
+        <p style={{
+          fontSize: "10px",
+          color: "rgba(255,255,255,0.2)",
+          margin: "10px 0 0",
+          lineHeight: 1.4,
+        }}>
+          Missi will soon connect with your entire workflow — automatically.
+        </p>
       </div>
 
       {/* Refresh button */}
@@ -258,11 +319,6 @@ function OAuthPluginPanel() {
         </button>
       )}
 
-      {!status?.kvAvailable && (
-        <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)", marginTop: "12px", textAlign: "center" }}>
-          OAuth connections require deployment. Working locally? KV not available.
-        </p>
-      )}
     </div>
   )
 }
