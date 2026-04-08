@@ -9,6 +9,7 @@ import {
 } from "@/lib/client/fetch-with-timeout"
 import { getBestAudioMimeType, isMobileBrowser, speakWithWebSpeechAPI } from "@/lib/client/browser-support"
 import { shouldUseTTS, truncateForTTS } from "@/lib/ai/tts-optimizer"
+import { PCMPlayer, globalPcmPlayer } from "@/lib/client/pcm-player"
 import type { VoiceState, ConversationEntry, PersonalityKey } from "@/types/chat"
 import { useEmotionDetector } from "@/hooks/useEmotionDetector"
 import type { EmotionAdaptation } from "@/types/emotion"
@@ -64,6 +65,11 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const ttsContextRef = useRef<AudioContext | null>(null)
   const ttsAnalyserRef = useRef<AnalyserNode | null>(null)
   const continuousRef = useRef(false)
+  const pcmPlayerRef = useRef<PCMPlayer | null>(null)
+  const stateRef = useRef<VoiceState>("idle")
+  
+  // Keep stateRef synced so closures can read the latest state
+  useEffect(() => { stateRef.current = state }, [state])
 
   /**
    * Stable refs for internal functions so that event-handler closures
@@ -102,6 +108,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         const AC = window.AudioContext || (window as any).webkitAudioContext
         const ctx = new AC()
         ctx.resume().then(() => ctx.close()).catch(() => {})
+        
+        globalPcmPlayer.init();
       } catch {}
       // Also play a silent audio to unlock HTMLAudioElement playback
       try {
@@ -209,6 +217,24 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       lastFreqSnapshotRef.current = new Uint8Array(freqData)
 
       if (rms > SPEECH_THRESH) {
+        // ── VAD Interruption: User spoke while Missi is speaking ──
+        if (stateRef.current === "speaking") {
+          // Stop HTML audio playback
+          if (audioPlayerRef.current) {
+            audioPlayerRef.current.pause()
+            audioPlayerRef.current = null
+          }
+          // Stop PCM player if active
+          if (pcmPlayerRef.current) {
+            pcmPlayerRef.current.stop()
+            pcmPlayerRef.current = null
+          }
+          stopTTSMonitor()
+          cancelAbort()
+          setState("idle")
+          setStreamingText("")
+          setStatusText("Tap anywhere to speak")
+        }
         hasSpokenRef.current = true
         silentFrameCount = 0
         clearTimeout(noSpeechTimer)
@@ -586,7 +612,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
         const dec = new TextDecoder()
         let full = ""
-        let earlyTtsFired = false
+        let firstSentenceTtsPromise: Promise<void> | null = null
+        let firstSentenceText = ""
+
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
@@ -600,14 +628,17 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
                 full += p.text
                 setStreamingText(full)
 
-                // Fire TTS for first complete sentence while still streaming
-                if (!earlyTtsFired && /[.!?]\s/.test(full)) {
-                  earlyTtsFired = true
-                  // Warm up TTS by prefetching the first sentence audio
-                  const firstSentenceMatch = full.match(/^(.+?[.!?])\s/)
-                  if (firstSentenceMatch && shouldUseTTS(full, true)) {
+                // ── Sentence-level TTS pipelining ──
+                // As soon as the first sentence is complete, fire TTS in parallel
+                // while the rest of the response continues streaming.
+                if (!firstSentenceTtsPromise && /[.!?।]\s/.test(full)) {
+                  const match = full.match(/^(.+?[.!?।])\s/)
+                  if (match && shouldUseTTS(full, true)) {
+                    firstSentenceText = match[1]
                     setState("speaking")
                     setStatusText("")
+                    // Fire TTS for first sentence NOW — don't wait for full response
+                    firstSentenceTtsPromise = fnRef.current.speakText(truncateForTTS(firstSentenceText))
                   }
                 }
               }
@@ -660,8 +691,23 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           }).catch(() => {})
         }
 
-        // TTS: speak the response (truncated if long)
-        if (shouldUseTTS(full, true)) {
+        // If first-sentence TTS was already fired, wait for it;
+        // then speak the remaining text if any
+        if (firstSentenceTtsPromise) {
+          await firstSentenceTtsPromise
+          // Speak remaining text after the first sentence
+          const remaining = full.slice(firstSentenceText.length).trim()
+          if (remaining && shouldUseTTS(remaining, true)) {
+            await fnRef.current.speakText(truncateForTTS(remaining))
+          } else {
+            if (continuousRef.current) {
+              await fnRef.current.startRecording()
+            } else {
+              resetToIdle()
+            }
+          }
+        } else if (shouldUseTTS(full, true)) {
+          // No early TTS was fired — speak the full response
           const ttsText = truncateForTTS(full)
           await fnRef.current.speakText(ttsText)
         } else {

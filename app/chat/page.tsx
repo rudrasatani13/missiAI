@@ -6,6 +6,8 @@ import nextDynamic from "next/dynamic"
 import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
+import { useGeminiLive, type LiveState } from "@/hooks/useGeminiLive"
+import { buildSystemPrompt } from "@/services/ai.service"
 import { useProactive } from "@/hooks/useProactive"
 import { useActionEngine } from "@/hooks/useActionEngine"
 import { usePlugins } from "@/hooks/usePlugins"
@@ -157,7 +159,7 @@ export default function VoiceAssistantPage() {
 
   const {
     state: voiceState, audioLevel, statusText, lastTranscript,
-    error, setError, streamingText, lastResponse, handleTap, cancelAll, greet, saveMemoryBeacon,
+    error, setError, streamingText, lastResponse, handleTap: legacyHandleTap, cancelAll, greet, saveMemoryBeacon,
     currentEmotion,
   } = useVoiceStateMachine({
     userId: user?.id,
@@ -168,8 +170,78 @@ export default function VoiceAssistantPage() {
     onImageConsumed: () => setThumbnail(null)
   })
 
+  // ── Gemini Live Mode (ChatGPT-like instant voice) ─────────────────────────
+  const [liveMode, setLiveMode] = useState(true) // Live mode enabled by default
+  const [liveTranscriptIn, setLiveTranscriptIn] = useState("")
+  const [liveTranscriptOut, setLiveTranscriptOut] = useState("")
+
+  const geminiLive = useGeminiLive({
+    systemPrompt: buildSystemPrompt(personalityRef.current, memoriesRef.current),
+    voiceName: "Kore",
+    onTranscriptIn: (text) => {
+      setLiveTranscriptIn(text)
+      // Add to conversation for memory
+      if (text.trim()) {
+        conversationRef.current.push({ role: "user", content: text.trim() })
+        if (conversationRef.current.length > 14) {
+          conversationRef.current = conversationRef.current.slice(-14)
+        }
+      }
+    },
+    onTranscriptOut: (text) => {
+      setLiveTranscriptOut(text)
+    },
+    onStateChange: (s) => {
+      // When model finishes a turn, save transcript to conversation
+      if (s === "connected" && liveTranscriptOut.trim()) {
+        conversationRef.current.push({ role: "assistant", content: liveTranscriptOut.trim() })
+        if (conversationRef.current.length > 14) {
+          conversationRef.current = conversationRef.current.slice(-14)
+        }
+        setLiveTranscriptOut("")
+      }
+    },
+  })
+
+  // Map live state to voice state for the visualizer
+  const effectiveVoiceState = liveMode && geminiLive.state !== "disconnected"
+    ? (geminiLive.state === "speaking" ? "speaking" : geminiLive.state === "connected" ? "recording" : geminiLive.state === "connecting" ? "thinking" : "idle")
+    : voiceState
+
+  // Unified handleTap — uses Live mode or legacy
+  const handleTap = useCallback(() => {
+    if (liveMode) {
+      if (geminiLive.state === "disconnected" || geminiLive.state === "error") {
+        // Cancel any legacy audio that might still be playing
+        cancelAll()
+        geminiLive.connect()
+      } else {
+        geminiLive.disconnect()
+      }
+    } else {
+      legacyHandleTap()
+    }
+  }, [liveMode, geminiLive, legacyHandleTap, cancelAll])
+
+  // Unified status text
+  const effectiveStatusText = liveMode && geminiLive.state !== "disconnected"
+    ? geminiLive.state === "connecting" ? "Connecting..."
+    : geminiLive.state === "connected" ? (liveTranscriptIn || "Listening...")
+    : geminiLive.state === "speaking" ? (liveTranscriptOut || "")
+    : geminiLive.error || "Tap to start"
+    : statusText
+
+  // Show live transcript as lastResponse for the UI
+  const effectiveLastResponse = liveMode && geminiLive.state !== "disconnected"
+    ? liveTranscriptOut
+    : lastResponse
+
+  const effectiveLastTranscript = liveMode && geminiLive.state !== "disconnected"
+    ? liveTranscriptIn
+    : lastTranscript
+
   // Keep voiceState ref in sync
-  useEffect(() => { voiceStateRef.current = voiceState }, [voiceState])
+  useEffect(() => { voiceStateRef.current = effectiveVoiceState }, [effectiveVoiceState])
 
   // Proactive intelligence
   const { briefing, nudges, dismissItem, markDelivered } = useProactive()
@@ -228,8 +300,9 @@ export default function VoiceAssistantPage() {
     return () => { window.removeEventListener("beforeunload", bu); document.removeEventListener("visibilitychange", vc) }
   }, [saveMemoryBeacon])
 
-  // Initial greeting — skip if daily limit already reached or billing still loading or booting
+  // Initial greeting — skip when Live mode is ON (Gemini handles its own conversation)
   useEffect(() => {
+    if (liveMode) return // Live mode — skip legacy ElevenLabs greeting
     if (!isLoaded || greetedRef.current || isAtLimit || billingLoading) return
     if (showBootSequence && !bootCompleted) return // wait for boot
 
@@ -262,10 +335,11 @@ export default function VoiceAssistantPage() {
     }
 
     setTimeout(() => greet(greetingToSay), delay)
-  }, [isLoaded, user, greet, isAtLimit, billingLoading, showBootSequence, bootCompleted])
+  }, [isLoaded, user, greet, isAtLimit, billingLoading, showBootSequence, bootCompleted, liveMode])
 
-  // Proactive JARVIS moment: auto-speak first high-priority briefing item
+  // Proactive JARVIS moment: auto-speak first high-priority briefing item (legacy only)
   useEffect(() => {
+    if (liveMode) return // Live mode — skip legacy proactive speech
     if (!briefing || proactiveSpokenRef.current || !voiceEnabled || isAtLimit || billingLoading) return
     const highItem = briefing.items.find(
       (item) => item.priority === "high" && !item.dismissedAt,
@@ -282,7 +356,7 @@ export default function VoiceAssistantPage() {
     }, 2000)
 
     return () => clearTimeout(timer)
-  }, [briefing, voiceEnabled, greet, isAtLimit, billingLoading])
+  }, [briefing, voiceEnabled, greet, isAtLimit, billingLoading, liveMode])
 
   // Store last interaction time for nudge engine
   useEffect(() => {
@@ -360,7 +434,7 @@ export default function VoiceAssistantPage() {
           }}
         />
       )}
-      <ParticleVisualizer state={voiceState} isActive={voiceState !== "idle"} audioLevel={audioLevel} />
+      <ParticleVisualizer state={effectiveVoiceState} isActive={effectiveVoiceState !== "idle"} audioLevel={audioLevel} />
       <div className="fixed inset-0 z-10" onClick={isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
         style={{ cursor: isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
       <div className="relative w-[90%] md:w-[600px] mx-auto z-[100] pointer-events-none">
@@ -508,21 +582,21 @@ export default function VoiceAssistantPage() {
 
         <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center", pointerEvents: "auto" }}>
           <VoiceButton
-            state={voiceState}
+            state={effectiveVoiceState}
             onPress={handleTap}
             onRelease={() => { }}
             disabled={isAtLimit || billingLoading}
           />
         </div>
         <StatusDisplay
-          state={voiceState}
+          state={effectiveVoiceState}
           streamingText={streamingText}
-          lastResponse={lastResponse}
-          errorMessage={error}
+          lastResponse={effectiveLastResponse}
+          errorMessage={geminiLive.error || error}
           onDismissError={() => setError(null)}
           userName={displayName}
-          statusText={statusText}
-          lastTranscript={lastTranscript}
+          statusText={effectiveStatusText}
+          lastTranscript={effectiveLastTranscript}
           briefing={briefing}
           nudges={nudges}
           onDismissItem={dismissItem}

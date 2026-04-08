@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { selectGeminiModel, estimateRequestCost } from "@/lib/ai/model-router"
+import { selectGeminiModel, estimateRequestCost, getFallbackModel } from "@/lib/ai/model-router"
 import type { Message } from "@/types"
 
 describe("selectGeminiModel", () => {
@@ -26,26 +26,19 @@ describe("selectGeminiModel", () => {
     const result = selectGeminiModel(messages, "User likes coffee.")
     expect(result).toBe("gemini-3-flash-preview")
   })
+})
 
-  it("returns gemini-3-flash-preview for long conversations", () => {
-    const messages: Message[] = [
-      { role: "user", content: "Hi" },
-      { role: "assistant", content: "Hello" },
-      { role: "user", content: "How?" },
-      { role: "assistant", content: "Fine" },
-    ]
-    const result = selectGeminiModel(messages, "")
-    expect(result).toBe("gemini-3-flash-preview")
+describe("getFallbackModel", () => {
+  it("returns gemini-3.1-flash-lite-preview as fallback for gemini-3-flash-preview", () => {
+    expect(getFallbackModel("gemini-3-flash-preview")).toBe("gemini-3.1-flash-lite-preview")
   })
 
-  it("returns gemini-3-flash-preview regardless of conditions", () => {
-    const messages: Message[] = [
-      { role: "user", content: "Hey" },
-      { role: "assistant", content: "Hi!" },
-      { role: "user", content: "Sup?" },
-    ]
-    const result = selectGeminiModel(messages, "  ")
-    expect(result).toBe("gemini-3-flash-preview")
+  it("returns null when no more fallbacks", () => {
+    expect(getFallbackModel("gemini-3.1-flash-lite-preview")).toBeNull()
+  })
+
+  it("returns null for unknown model", () => {
+    expect(getFallbackModel("unknown-model")).toBeNull()
   })
 })
 

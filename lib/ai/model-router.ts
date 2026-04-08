@@ -1,6 +1,12 @@
 import type { Message } from "@/types"
 
-type GeminiModel = "gemini-3-flash-preview"
+type GeminiModel = "gemini-3-flash-preview" | "gemini-3.1-flash-lite-preview"
+
+/** Ordered preference — first is primary, rest are fallbacks */
+export const MODEL_PRIORITY: GeminiModel[] = [
+  "gemini-3-flash-preview",
+  "gemini-3.1-flash-lite-preview",
+]
 
 /**
  * Approximate costs per 1k tokens in USD.
@@ -10,17 +16,29 @@ export const MODEL_COSTS: Record<
   { input: number; output: number }
 > = {
   "gemini-3-flash-preview": { input: 0.0001, output: 0.0004 },
+  "gemini-3.1-flash-lite-preview": { input: 0.00005, output: 0.0002 },
 }
 
 /**
  * Select the Gemini model for a request.
- * Now unified on gemini-3-flash-preview — fast and capable for all use cases.
+ * Returns the primary model. The caller should use getFallbackModel()
+ * if the primary returns 503/429.
  */
 export function selectGeminiModel(
   _messages: Message[],
   _memories: string
 ): GeminiModel {
-  return "gemini-3-flash-preview"
+  return MODEL_PRIORITY[0]
+}
+
+/**
+ * Get the next fallback model after the given one.
+ * Returns null if no more fallbacks available.
+ */
+export function getFallbackModel(currentModel: string): GeminiModel | null {
+  const idx = MODEL_PRIORITY.indexOf(currentModel as GeminiModel)
+  if (idx === -1 || idx >= MODEL_PRIORITY.length - 1) return null
+  return MODEL_PRIORITY[idx + 1]
 }
 
 /**

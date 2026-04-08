@@ -1,0 +1,365 @@
+"use client"
+
+import { useCallback, useRef, useState } from "react"
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+export type LiveState = "disconnected" | "connecting" | "connected" | "speaking" | "error"
+
+export interface GeminiLiveConfig {
+  systemPrompt: string
+  voiceName?: string // Default: "Kore"
+  onTranscriptIn?: (text: string) => void   // What user said
+  onTranscriptOut?: (text: string) => void  // What Gemini said
+  onStateChange?: (state: LiveState) => void
+  onError?: (error: string) => void
+  onAudioLevel?: (level: number) => void
+}
+
+// ─── Constants ─────────────────────────────────────────────────────────────────
+
+const LIVE_MODEL = "gemini-3.1-flash-live-preview"
+const AUDIO_SAMPLE_RATE_IN = 16000   // What we send (mic)
+const AUDIO_SAMPLE_RATE_OUT = 24000  // What we receive (model)
+
+// ─── Hook ──────────────────────────────────────────────────────────────────────
+
+export function useGeminiLive(config: GeminiLiveConfig) {
+  const [state, setState] = useState<LiveState>("disconnected")
+  const [error, setError] = useState<string | null>(null)
+
+  const wsRef = useRef<WebSocket | null>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const micCtxRef = useRef<AudioContext | null>(null)
+  const mediaStreamRef = useRef<MediaStream | null>(null)
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null)
+  const processorRef = useRef<ScriptProcessorNode | null>(null)
+  const nextPlayTimeRef = useRef(0)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const animFrameRef = useRef<number | null>(null)
+  const isConnectedRef = useRef(false)
+  const outputTranscriptRef = useRef("")
+  const setupCompleteRef = useRef(false)
+
+  // Refs for callbacks to avoid stale closures
+  const configRef = useRef(config)
+  configRef.current = config
+
+  const updateState = useCallback((s: LiveState) => {
+    setState(s)
+    configRef.current.onStateChange?.(s)
+  }, [])
+
+  // ── Parse incoming WebSocket message (handles both string and Blob) ────────
+
+  const parseWsMessage = useCallback(async (event: MessageEvent): Promise<any> => {
+    let raw = event.data
+    // Browser WebSockets return Blob for binary frames — convert to text
+    if (raw instanceof Blob) {
+      raw = await raw.text()
+    }
+    return JSON.parse(raw)
+  }, [])
+
+  // ── Play PCM audio chunk ───────────────────────────────────────────────────
+
+  const playPcmChunk = useCallback((base64Data: string) => {
+    const audioCtx = audioCtxRef.current
+    const analyser = analyserRef.current
+    if (!audioCtx || !analyser) return
+
+    // Decode base64 → ArrayBuffer
+    const binaryStr = atob(base64Data)
+    const bytes = new Uint8Array(binaryStr.length)
+    for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
+
+    // Convert Int16 PCM → Float32
+    const int16 = new Int16Array(bytes.buffer)
+    const float32 = new Float32Array(int16.length)
+    for (let i = 0; i < int16.length; i++) {
+      float32[i] = int16[i] / 32768
+    }
+
+    // Create AudioBuffer and schedule playback
+    const buffer = audioCtx.createBuffer(1, float32.length, AUDIO_SAMPLE_RATE_OUT)
+    buffer.copyToChannel(float32, 0)
+
+    const source = audioCtx.createBufferSource()
+    source.buffer = buffer
+    source.connect(analyser)
+
+    // Schedule gapless playback
+    const now = audioCtx.currentTime
+    const startTime = Math.max(now, nextPlayTimeRef.current)
+    source.start(startTime)
+    nextPlayTimeRef.current = startTime + buffer.duration
+  }, [])
+
+  // ── Audio level monitoring for visualizer ──────────────────────────────────
+
+  const startAudioMonitor = useCallback(() => {
+    const monitor = () => {
+      const analyser = analyserRef.current
+      if (!analyser || !isConnectedRef.current) return
+
+      const data = new Uint8Array(analyser.frequencyBinCount)
+      analyser.getByteFrequencyData(data)
+      let sum = 0
+      for (let i = 0; i < data.length; i++) sum += data[i] * data[i]
+      const rms = Math.sqrt(sum / data.length) / 255
+      configRef.current.onAudioLevel?.(Math.min(1, rms * 4))
+
+      animFrameRef.current = requestAnimationFrame(monitor)
+    }
+    monitor()
+  }, [])
+
+  // ── Start streaming mic audio to WebSocket ─────────────────────────────────
+
+  const startMicStreaming = useCallback((ws: WebSocket, micCtx: AudioContext, stream: MediaStream) => {
+    const source = micCtx.createMediaStreamSource(stream)
+    const processor = micCtx.createScriptProcessor(4096, 1, 1)
+
+    processor.onaudioprocess = (e) => {
+      if (!isConnectedRef.current || ws.readyState !== WebSocket.OPEN || !setupCompleteRef.current) return
+      const float32 = e.inputBuffer.getChannelData(0)
+      // Convert float32 to int16
+      const int16 = new Int16Array(float32.length)
+      for (let i = 0; i < float32.length; i++) {
+        const s = Math.max(-1, Math.min(1, float32[i]))
+        int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff
+      }
+      // Send as base64
+      const bytes = new Uint8Array(int16.buffer)
+      let binary = ""
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+      const b64 = btoa(binary)
+
+      ws.send(JSON.stringify({
+        realtimeInput: {
+          audio: {
+            data: b64,
+            mimeType: "audio/pcm;rate=16000",
+          },
+        },
+      }))
+    }
+
+    source.connect(processor)
+    processor.connect(micCtx.destination)
+    sourceNodeRef.current = source
+    processorRef.current = processor
+  }, [])
+
+  // ── Connect ────────────────────────────────────────────────────────────────
+
+  const connect = useCallback(async () => {
+    if (isConnectedRef.current) return
+    updateState("connecting")
+    setError(null)
+    setupCompleteRef.current = false
+
+    // Create AudioContexts synchronously during click to satisfy browser "user gesture" requirement
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
+      audioCtxRef.current = new AudioContextClass({ sampleRate: AUDIO_SAMPLE_RATE_OUT })
+    }
+    if (!micCtxRef.current || micCtxRef.current.state === "closed") {
+      micCtxRef.current = new AudioContextClass({ sampleRate: AUDIO_SAMPLE_RATE_IN })
+    }
+    const audioCtx = audioCtxRef.current
+    const micCtx = micCtxRef.current
+
+    // Resume suspended contexts (Safari requires this)
+    if (audioCtx.state === "suspended") await audioCtx.resume()
+    if (micCtx.state === "suspended") await micCtx.resume()
+
+    try {
+      // 1. Get WebSocket URL from our backend
+      const tokenRes = await fetch("/api/v1/live-token", { method: "POST" })
+      if (!tokenRes.ok) throw new Error("Failed to get live token")
+      const { wsUrl } = await tokenRes.json()
+
+      // 2. Create analyser for visualizer
+      const analyser = audioCtx.createAnalyser()
+      analyser.fftSize = 256
+      analyser.connect(audioCtx.destination)
+      analyserRef.current = analyser
+
+      // 3. Get mic access
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: AUDIO_SAMPLE_RATE_IN,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      })
+      mediaStreamRef.current = stream
+
+      // 4. Open WebSocket
+      const ws = new WebSocket(wsUrl)
+      wsRef.current = ws
+
+      // ★ CRITICAL: Set message handler BEFORE open, so we never miss setupComplete
+      ws.onmessage = async (event) => {
+        try {
+          const msg = await parseWsMessage(event)
+          console.log("[GeminiLive] ←", JSON.stringify(msg).slice(0, 200))
+
+          // setupComplete — server accepted our config
+          if (msg.setupComplete !== undefined) {
+            console.log("[GeminiLive] Setup complete — starting mic stream")
+            setupCompleteRef.current = true
+            updateState("connected")
+            // Start streaming mic NOW that setup is confirmed
+            startMicStreaming(ws, micCtx, stream)
+            return
+          }
+
+          // Audio from model
+          if (msg.serverContent?.modelTurn?.parts) {
+            for (const part of msg.serverContent.modelTurn.parts) {
+              if (part.inlineData?.data) {
+                updateState("speaking")
+                playPcmChunk(part.inlineData.data)
+              }
+            }
+          }
+
+          // Turn finished — model done talking
+          if (msg.serverContent?.turnComplete) {
+            updateState("connected")
+            outputTranscriptRef.current = ""
+          }
+
+          // Input transcription (what user said)
+          if (msg.serverContent?.inputTranscription?.text) {
+            configRef.current.onTranscriptIn?.(msg.serverContent.inputTranscription.text)
+          }
+
+          // Output transcription (what model said)
+          if (msg.serverContent?.outputTranscription?.text) {
+            outputTranscriptRef.current += msg.serverContent.outputTranscription.text
+            configRef.current.onTranscriptOut?.(outputTranscriptRef.current)
+          }
+
+          // Interrupted — user spoke while model was talking
+          if (msg.serverContent?.interrupted) {
+            updateState("connected")
+            // Stop any queued audio
+            nextPlayTimeRef.current = 0
+          }
+        } catch (err) {
+          console.error("[GeminiLive] Failed to parse message:", err)
+        }
+      }
+
+      ws.onerror = (ev) => {
+        console.error("[GeminiLive] WebSocket error:", ev)
+        setError("WebSocket connection error")
+        updateState("error")
+      }
+
+      ws.onclose = (ev) => {
+        console.log("[GeminiLive] WebSocket closed:", ev.code, ev.reason)
+        isConnectedRef.current = false
+        setupCompleteRef.current = false
+        updateState("disconnected")
+      }
+
+      ws.onopen = () => {
+        console.log("[GeminiLive] WebSocket connected — sending setup")
+        isConnectedRef.current = true
+
+        // Send setup config — do NOT start mic streaming yet (wait for setupComplete)
+        ws.send(JSON.stringify({
+          setup: {
+            model: `models/${LIVE_MODEL}`,
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: {
+                    voiceName: configRef.current.voiceName || "Kore",
+                  },
+                },
+              },
+            },
+            systemInstruction: {
+              parts: [{ text: configRef.current.systemPrompt }],
+            },
+          },
+        }))
+      }
+
+      // Start audio level monitoring
+      startAudioMonitor()
+
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error("[GeminiLive] Connect error:", msg)
+      setError(msg)
+      updateState("error")
+      configRef.current.onError?.(msg)
+    }
+  }, [updateState, parseWsMessage, playPcmChunk, startAudioMonitor, startMicStreaming])
+
+  // ── Disconnect ─────────────────────────────────────────────────────────────
+
+  const disconnect = useCallback(() => {
+    isConnectedRef.current = false
+    setupCompleteRef.current = false
+
+    // Stop animation
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current)
+      animFrameRef.current = null
+    }
+
+    // Disconnect processor
+    if (processorRef.current) {
+      processorRef.current.disconnect()
+      processorRef.current = null
+    }
+    if (sourceNodeRef.current) {
+      sourceNodeRef.current.disconnect()
+      sourceNodeRef.current = null
+    }
+
+    // Close WebSocket
+    if (wsRef.current) {
+      wsRef.current.close()
+      wsRef.current = null
+    }
+
+    // Stop mic
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((t) => t.stop())
+      mediaStreamRef.current = null
+    }
+
+    // Close audio contexts
+    if (audioCtxRef.current) {
+      audioCtxRef.current.close().catch(() => {})
+      audioCtxRef.current = null
+    }
+    if (micCtxRef.current) {
+      micCtxRef.current.close().catch(() => {})
+      micCtxRef.current = null
+    }
+
+    analyserRef.current = null
+    nextPlayTimeRef.current = 0
+    updateState("disconnected")
+    configRef.current.onAudioLevel?.(0)
+  }, [updateState])
+
+  return {
+    state,
+    error,
+    connect,
+    disconnect,
+  }
+}

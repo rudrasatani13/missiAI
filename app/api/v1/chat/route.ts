@@ -9,7 +9,7 @@ import { buildGeminiRequest, streamGeminiResponse } from "@/lib/ai/gemini-stream
 import { buildSystemPrompt } from "@/services/ai.service"
 import { estimateRequestTokens, estimateTokens, LIMITS, truncateToTokenLimit } from "@/lib/memory/token-counter"
 import { buildCacheKey, getCachedResponse, setCachedResponse, isCacheable } from "@/lib/server/response-cache"
-import { selectGeminiModel } from "@/lib/ai/model-router"
+import { selectGeminiModel, getFallbackModel } from "@/lib/ai/model-router"
 import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
 import { calculateTotalCost, checkBudgetAlert } from "@/lib/server/cost-tracker"
 import { getEnv } from "@/lib/server/env"
@@ -227,15 +227,29 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 8. Select model dynamically ───────────────────────────────────────────
-  const model = selectGeminiModel(messages, memories)
+  let model = selectGeminiModel(messages, memories)
 
   // ── 9. Build Gemini request & stream ──────────────────────────────────────
   try {
     const appEnv = getEnv()
     const apiKey = appEnv.GEMINI_API_KEY
 
-    const requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens)
-    const textStream = await streamGeminiResponse(apiKey, model, requestBody)
+    let requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens)
+    let textStream: ReadableStream<string>
+    try {
+      textStream = await streamGeminiResponse(apiKey, model, requestBody)
+    } catch (primaryErr) {
+      // If primary model is overloaded (503), try fallback
+      const fallback = getFallbackModel(model)
+      if (fallback && primaryErr instanceof Error && primaryErr.message.includes('503')) {
+        logError('chat.primary_model_503', primaryErr, userId)
+        model = fallback
+        requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens)
+        textStream = await streamGeminiResponse(apiKey, model, requestBody)
+      } else {
+        throw primaryErr
+      }
+    }
 
     // Accumulate full response for post-stream cache + cost logging
     let fullResponse = ""
