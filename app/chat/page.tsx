@@ -363,7 +363,7 @@ export default function VoiceAssistantPage() {
       <ParticleVisualizer state={voiceState} isActive={voiceState !== "idle"} audioLevel={audioLevel} />
       <div className="fixed inset-0 z-10" onClick={isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
         style={{ cursor: isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
-      <div className="relative w-[90%] md:w-[600px] mx-auto z-20 pointer-events-none">
+      <div className="relative w-[90%] md:w-[600px] mx-auto z-[100] pointer-events-none">
         <nav className="flex items-center justify-between w-full mt-6 px-4 py-2.5 pointer-events-auto rounded-[32px] shadow-2xl"
           style={{
             background: "rgba(255,255,255,0.08)",

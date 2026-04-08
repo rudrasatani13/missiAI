@@ -327,10 +327,13 @@ function OAuthPluginPanel() {
 }
 
 const panelBox: React.CSSProperties = {
-  background: "#050505",
-  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(10, 10, 10, 0.85)",
+  backdropFilter: "blur(24px)",
+  WebkitBackdropFilter: "blur(24px)",
+  border: "1px solid rgba(255,255,255,0.15)",
   borderRadius: "16px",
   padding: "20px",
+  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)",
 }
 
 function SettingsPanelInner({
