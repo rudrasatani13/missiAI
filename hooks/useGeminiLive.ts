@@ -288,6 +288,12 @@ export function useGeminiLive(config: GeminiLiveConfig) {
         isConnectedRef.current = false
         setupCompleteRef.current = false
         updateState("disconnected")
+        
+        // Ensure mic stops if the connection drops unexpectedly
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach((t) => t.stop())
+          mediaStreamRef.current = null
+        }
       }
 
       ws.onopen = () => {
