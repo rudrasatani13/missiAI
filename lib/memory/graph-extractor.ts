@@ -1,7 +1,8 @@
 import type { ConversationEntry } from '@/types/chat'
 import type { LifeNode, LifeGraph, MemoryCategory } from '@/types/memory'
+import { geminiGenerate } from '@/lib/ai/vertex-client'
 
-const GEMINI_FLASH_MODEL = 'gemini-3-flash-preview'
+const GEMINI_FLASH_MODEL = 'gemini-2.5-pro'
 const EXTRACTION_TIMEOUT_MS = 15_000
 
 const VALID_CATEGORIES: MemoryCategory[] = [
@@ -52,19 +53,13 @@ source: "conversation"
 Only extract facts with confidence >= 0.6.
 Skip generic small talk. Focus on lasting facts about the person.`
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_FLASH_MODEL}:generateContent`
-
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), EXTRACTION_TIMEOUT_MS)
 
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
+    const res = await geminiGenerate(
+      GEMINI_FLASH_MODEL,
+      {
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents: [
           { role: 'user', parts: [{ text: `CONVERSATION:\n${convoText}` }] },
@@ -73,9 +68,9 @@ Skip generic small talk. Focus on lasting facts about the person.`
           temperature: 0.2,
           maxOutputTokens: 2048,
         },
-      }),
-      signal: controller.signal,
-    })
+      },
+      { signal: controller.signal }
+    )
 
     if (!res.ok) {
       console.error(`Life node extraction Gemini error ${res.status}`)

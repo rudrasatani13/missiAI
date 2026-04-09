@@ -1,7 +1,8 @@
 import type { LifeGraph } from '@/types/memory'
 import type { BriefingItem, EveningReflection, ProactiveConfig } from '@/types/proactive'
+import { geminiGenerate } from '@/lib/ai/vertex-client'
 
-const GEMINI_MODEL = 'gemini-3-flash-preview'
+const GEMINI_MODEL = 'gemini-2.5-pro'
 const WIND_DOWN_TIMEOUT_MS = 15_000
 const MAX_CONTEXT_CHARS = 2000
 
@@ -91,18 +92,13 @@ export async function generateEveningReflection(
   if (graph.nodes.length === 0 || !apiKey) return emptyReflection
 
   const context = buildContext(graph)
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), WIND_DOWN_TIMEOUT_MS)
 
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
+    const res = await geminiGenerate(
+      GEMINI_MODEL,
+      {
         system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents: [
           {
@@ -114,9 +110,9 @@ export async function generateEveningReflection(
           temperature: 0.7,
           maxOutputTokens: 1024,
         },
-      }),
-      signal: controller.signal,
-    })
+      },
+      { signal: controller.signal }
+    )
 
     if (!res.ok) return emptyReflection
 

@@ -1,18 +1,26 @@
 import { NextResponse } from "next/server"
 import { getVerifiedUserId, unauthorizedResponse } from "@/lib/server/auth"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
-import { getEnv } from "@/lib/server/env"
 import { logRequest, logError } from "@/lib/server/logger"
+import { getGeminiLiveWsUrl } from "@/lib/ai/vertex-client"
+import { isVertexAI, getVertexProjectId, getVertexLocation } from "@/lib/ai/vertex-auth"
+import { getUserPlan } from "@/lib/billing/tier-checker"
 
 export const runtime = "edge"
+
+// Live model names — selected by user plan
+// Pro users get the newer preview model (Google AI Studio only for now).
+// Free/Plus users get the stable native-audio model on the configured backend.
+const PRO_LIVE_MODEL = "gemini-3.1-flash-live-preview"
+const STANDARD_LIVE_MODEL = "gemini-live-2.5-flash-native-audio"
 
 /**
  * POST /api/v1/live-token
  *
  * Returns credentials for Gemini Live API WebSocket.
- *
- * For now: returns the API key + v1beta WebSocket URL.
- * TODO: Replace with ephemeral tokens for production (v1alpha endpoint).
+ * All authenticated users can access Gemini Live, but the model differs by plan:
+ *   - Pro:        gemini-3.1-flash-live-preview (forced via Google AI Studio)
+ *   - Free/Plus:  gemini-live-2.5-flash-native-audio (configured backend)
  */
 export async function POST() {
   const startTime = Date.now()
@@ -25,19 +33,58 @@ export async function POST() {
     return unauthorizedResponse()
   }
 
-  // 2. Rate limit
-  const rl = await checkRateLimit(userId, "free", "ai")
+  // 2. Plan lookup — determines which Live model + backend to use
+  const planId = await getUserPlan(userId)
+  const isPro = planId === "pro"
+
+  // 3. Rate limit — Pro/Plus share the "paid" bucket, free uses its own
+  const rlTier = planId === "free" ? "free" : "paid"
+  const rl = await checkRateLimit(userId, rlTier, "ai")
   if (!rl.allowed) return rateLimitExceededResponse(rl)
 
+  // Resolve the stable model path for the configured backend.
+  // Used by Free/Plus users, and as a safety fallback for Pro if the
+  // preview model's backend (Google AI Studio) can't be reached.
+  const standardModelPath = (() => {
+    if (isVertexAI()) {
+      const project = getVertexProjectId()
+      const location = getVertexLocation()
+      return `projects/${project}/locations/${location}/publishers/google/models/${STANDARD_LIVE_MODEL}`
+    }
+    return `models/${STANDARD_LIVE_MODEL}`
+  })()
+
   try {
-    const appEnv = getEnv()
+    let wsUrl: string
+    let modelPath: string
+
+    if (isPro) {
+      // Pro uses the preview model, which is Google AI Studio only.
+      // If the Google AI Studio endpoint can't be built (e.g. GEMINI_API_KEY
+      // missing), fall back to the standard model on the configured backend
+      // so the user still gets a working voice session.
+      try {
+        wsUrl = await getGeminiLiveWsUrl(true)
+        modelPath = `models/${PRO_LIVE_MODEL}`
+      } catch (proErr) {
+        logError(
+          "live-token.pro-fallback",
+          proErr instanceof Error ? proErr : new Error(String(proErr)),
+          userId
+        )
+        wsUrl = await getGeminiLiveWsUrl(false)
+        modelPath = standardModelPath
+      }
+    } else {
+      wsUrl = await getGeminiLiveWsUrl(false)
+      modelPath = standardModelPath
+    }
 
     logRequest("live-token.created", userId, startTime)
 
-    // Return the WebSocket URL with embedded API key
-    // The client will connect directly to Gemini's WebSocket
     return NextResponse.json({
-      wsUrl: `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${appEnv.GEMINI_API_KEY}`,
+      wsUrl,
+      modelPath,
       expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     })
   } catch (err) {
@@ -48,3 +95,4 @@ export async function POST() {
     )
   }
 }
+

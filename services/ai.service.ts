@@ -1,4 +1,5 @@
 import type { Message, PersonalityKey, AIProviderName, AIServiceOptions } from "@/types"
+import { geminiGenerate } from "@/lib/ai/vertex-client"
 
 // ─── Personalities ────────────────────────────────────────────────────────────
 
@@ -133,7 +134,7 @@ const DEFAULT_PROVIDER: AIProviderName = "gemini"
 const DEFAULT_TIMEOUT_MS = 30_000
 
 const MODEL_DEFAULTS: Record<AIProviderName, string> = {
-  gemini: "gemini-3-flash-preview",
+  gemini: "gemini-2.5-pro",
   openai: "gpt-4o",
   claude: "claude-sonnet-4-6",
 }
@@ -166,12 +167,6 @@ type AIProviderFn = (config: ProviderConfig) => Promise<string>
 // ─── Gemini Provider ──────────────────────────────────────────────────────────
 
 async function geminiProvider(config: ProviderConfig): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured")
-
-  // Use x-goog-api-key header instead of URL param to avoid exposing key in logs
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent`
-
   const contents = config.messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
@@ -196,15 +191,7 @@ async function geminiProvider(config: ProviderConfig): Promise<string> {
   const timer = setTimeout(() => controller.abort(), config.timeoutMs)
 
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    })
+    const res = await geminiGenerate(config.model, body, { signal: controller.signal })
 
     if (!res.ok) {
       const errText = await res.text()

@@ -54,3 +54,6 @@ next-env.d.ts
 # Re-allow the safe env template (must be AFTER all *.env.* rules)
 !.env.example
 test_dodo*
+
+# Google Cloud Service Account keys — NEVER commit these
+service-account*.json

@@ -33,6 +33,14 @@ export interface AppEnv {
   NOTION_API_KEY: string | undefined
   /** App URL for OAuth callbacks */
   APP_URL: string
+  /** AI backend: 'vertex' for Vertex AI (free credits), 'google-ai' for Google AI Studio */
+  AI_BACKEND: 'vertex' | 'google-ai'
+  /** GCP Project ID for Vertex AI */
+  VERTEX_AI_PROJECT_ID: string | undefined
+  /** GCP region for Vertex AI (e.g. 'us-central1') */
+  VERTEX_AI_LOCATION: string | undefined
+  /** Service Account JSON (inline) for Vertex AI edge-compatible auth */
+  GOOGLE_SERVICE_ACCOUNT_JSON: string | undefined
 }
 
 function requireEnv(key: string): string {
@@ -68,6 +76,10 @@ export function getEnv(): AppEnv {
     NOTION_CLIENT_SECRET: process.env.NOTION_CLIENT_SECRET || undefined,
     NOTION_API_KEY: process.env.NOTION_API_KEY || undefined,
     APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "http://localhost:3000",
+    AI_BACKEND: (process.env.AI_BACKEND as 'vertex' | 'google-ai') || 'google-ai',
+    VERTEX_AI_PROJECT_ID: process.env.VERTEX_AI_PROJECT_ID || undefined,
+    VERTEX_AI_LOCATION: process.env.VERTEX_AI_LOCATION || undefined,
+    GOOGLE_SERVICE_ACCOUNT_JSON: process.env.GOOGLE_SERVICE_ACCOUNT_JSON || undefined,
   }
 }
 

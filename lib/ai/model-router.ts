@@ -1,10 +1,11 @@
 import type { Message } from "@/types"
 
-type GeminiModel = "gemini-3-flash-preview" | "gemini-3.1-flash-lite-preview"
+type GeminiModel = "gemini-2.5-pro" | "gemini-3-flash-preview" | "gemini-3.1-flash-lite-preview"
 
 /** Ordered preference — first is primary, rest are fallbacks */
 export const MODEL_PRIORITY: GeminiModel[] = [
-  "gemini-3-flash-preview",
+  "gemini-2.5-pro",            // Primary — available on Vertex AI (free credits!)
+  "gemini-3-flash-preview",    // Fallback — Google AI Studio only for now
   "gemini-3.1-flash-lite-preview",
 ]
 
@@ -15,6 +16,7 @@ export const MODEL_COSTS: Record<
   GeminiModel,
   { input: number; output: number }
 > = {
+  "gemini-2.5-pro": { input: 0.00125, output: 0.005 },
   "gemini-3-flash-preview": { input: 0.0001, output: 0.0004 },
   "gemini-3.1-flash-lite-preview": { input: 0.00005, output: 0.0002 },
 }

@@ -2,9 +2,9 @@
 import { nanoid } from "nanoid"
 import type { Message } from "@/types"
 import type { MemoryFact } from "@/types/memory"
-import { fetchWithTimeout } from "@/lib/client/fetch-with-timeout"
+import { geminiGenerate } from "@/lib/ai/vertex-client"
 
-const GEMINI_FLASH_MODEL = "gemini-3-flash-preview"
+const GEMINI_FLASH_MODEL = "gemini-2.5-pro"
 const MAX_FACTS = 50
 const EXTRACTION_TIMEOUT_MS = 15_000
 
@@ -43,29 +43,23 @@ Example output:
 
   const userMessage = `CONVERSATION:\n${convoText}`
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_FLASH_MODEL}:generateContent`
-
   let extracted: Array<{ text: string; tags: string[] }> = []
 
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), EXTRACTION_TIMEOUT_MS)
+
   try {
-    const res = await fetchWithTimeout(
-      url,
+    const res = await geminiGenerate(
+      GEMINI_FLASH_MODEL,
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: "user", parts: [{ text: userMessage }] }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 1024,
         },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: "user", parts: [{ text: userMessage }] }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 1024,
-          },
-        }),
       },
-      EXTRACTION_TIMEOUT_MS
+      { signal: controller.signal }
     )
 
     if (!res.ok) {
@@ -93,8 +87,10 @@ Example output:
     }
   } catch {
     // Parse failure or network error — return existing facts unchanged
+    clearTimeout(timer)
     return existingFacts
   }
+  clearTimeout(timer)
 
   // Build new MemoryFact objects
   const now = Date.now()

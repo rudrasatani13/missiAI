@@ -18,7 +18,6 @@ export interface GeminiLiveConfig {
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const LIVE_MODEL = "gemini-3.1-flash-live-preview"
 const AUDIO_SAMPLE_RATE_IN = 16000   // What we send (mic)
 const AUDIO_SAMPLE_RATE_OUT = 24000  // What we receive (model)
 
@@ -177,8 +176,17 @@ export function useGeminiLive(config: GeminiLiveConfig) {
     try {
       // 1. Get WebSocket URL from our backend
       const tokenRes = await fetch("/api/v1/live-token", { method: "POST" })
-      if (!tokenRes.ok) throw new Error("Failed to get live token")
-      const { wsUrl } = await tokenRes.json()
+      if (!tokenRes.ok) {
+        // Handle Pro-only gate
+        if (tokenRes.status === 403) {
+          const errData = await tokenRes.json().catch(() => ({}))
+          if (errData.code === "PRO_REQUIRED") {
+            throw new Error("PRO_REQUIRED")
+          }
+        }
+        throw new Error("Failed to get live token")
+      }
+      const { wsUrl, modelPath } = await tokenRes.json()
 
       // 2. Create analyser for visualizer
       const analyser = audioCtx.createAnalyser()
@@ -274,9 +282,12 @@ export function useGeminiLive(config: GeminiLiveConfig) {
         isConnectedRef.current = true
 
         // Send setup config — do NOT start mic streaming yet (wait for setupComplete)
+        // modelPath comes from the server and is correct for the active backend
+        // (Vertex AI: "projects/.../models/gemini-live-2.5-flash-native-audio")
+        // (Google AI: "models/gemini-3.1-flash-live-preview")
         ws.send(JSON.stringify({
           setup: {
-            model: `models/${LIVE_MODEL}`,
+            model: modelPath,
             generationConfig: {
               responseModalities: ["AUDIO"],
               speechConfig: {

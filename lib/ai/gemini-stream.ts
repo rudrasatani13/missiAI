@@ -1,7 +1,8 @@
 import { buildSystemPrompt } from "@/services/ai.service"
 import type { Message, PersonalityKey } from "@/types"
+import { geminiGenerateStream } from "@/lib/ai/vertex-client"
 
-const DEFAULT_MODEL = "gemini-3-flash-preview"
+const DEFAULT_MODEL = "gemini-2.5-pro"
 
 /**
  * Constructs the full Gemini REST request body.
@@ -69,26 +70,17 @@ export function buildGeminiRequest(
  * Calls Gemini's streamGenerateContent SSE endpoint and returns a
  * ReadableStream that emits text delta strings only.
  *
- * API key is passed via x-goog-api-key header (NOT as ?key= URL param)
- * to avoid exposing the key in URLs / logs.
+ * Automatically routes through Vertex AI or Google AI Studio based on
+ * the AI_BACKEND environment variable. The apiKey parameter is kept for
+ * backward compatibility but is ignored when using Vertex AI.
  */
 export async function streamGeminiResponse(
-  apiKey: string,
+  _apiKey: string,
   model: string,
   requestBody: Record<string, unknown>,
   signal?: AbortSignal
 ): Promise<ReadableStream<string>> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    },
-    body: JSON.stringify(requestBody),
-    signal,
-  })
+  const res = await geminiGenerateStream(model, requestBody, { signal })
 
   if (!res.ok) {
     const errText = await res.text()

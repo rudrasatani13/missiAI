@@ -1,33 +1,23 @@
 import type { LifeNode } from '@/types/memory'
+import { geminiEmbed } from '@/lib/ai/vertex-client'
 
-const EMBEDDING_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent'
 const EMBEDDING_TIMEOUT_MS = 10_000
 
 /**
  * Generate a 768-dimension embedding via Gemini text-embedding-004.
- * Uses x-goog-api-key header (consistent with the rest of the codebase).
+ * Automatically routes through Vertex AI or Google AI Studio based on
+ * the AI_BACKEND environment variable. The apiKey parameter is kept for
+ * backward compatibility but is ignored when using Vertex AI.
  */
 export async function generateEmbedding(
   text: string,
-  apiKey: string,
+  _apiKey: string,
 ): Promise<number[]> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), EMBEDDING_TIMEOUT_MS)
 
   try {
-    const res = await fetch(EMBEDDING_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        model: 'models/text-embedding-004',
-        content: { parts: [{ text }] },
-      }),
-      signal: controller.signal,
-    })
+    const res = await geminiEmbed(text, { signal: controller.signal })
 
     if (!res.ok) {
       throw new Error(`Embedding failed with status ${res.status}`)
