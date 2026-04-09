@@ -90,16 +90,16 @@ export default function AdminPage() {
 
   // ── Plan breakdown ──────────────────────────────────────────────────────
   const plans = planBreakdown ?? lifetime.planBreakdown
-  const totalPlanUsers = (plans.free ?? 0) + (plans.pro ?? 0) + (plans.business ?? 0)
+  const totalPlanUsers = (plans.free ?? 0) + (plans.plus ?? 0) + (plans.pro ?? 0)
   const freePercent = totalPlanUsers > 0 ? ((plans.free ?? 0) / totalPlanUsers) * 100 : 100
+  const plusPercent = totalPlanUsers > 0 ? ((plans.plus ?? 0) / totalPlanUsers) * 100 : 0
   const proPercent = totalPlanUsers > 0 ? ((plans.pro ?? 0) / totalPlanUsers) * 100 : 0
-  const businessPercent = totalPlanUsers > 0 ? ((plans.business ?? 0) / totalPlanUsers) * 100 : 0
 
   // ── 7-day trend ─────────────────────────────────────────────────────────
   const maxVoice = Math.max(...last7.map(d => d.voiceInteractions), 1)
 
   // ── Revenue estimation ──────────────────────────────────────────────────
-  const estimatedRevenue = (plans.pro ?? 0) * 9 + (plans.business ?? 0) * 49
+  const estimatedRevenue = (plans.plus ?? 0) * 9 + (plans.pro ?? 0) * 19
 
   // ── Relative time ───────────────────────────────────────────────────────
   const lastUpdatedStr = getRelativeTime(snapshot.generatedAt)
@@ -238,21 +238,21 @@ export default function AdminPage() {
                 }}
               />
             )}
-            {proPercent > 0 && (
+            {plusPercent > 0 && (
               <div
-                data-testid="plan-bar-pro"
+                data-testid="plan-bar-plus"
                 style={{
-                  width: `${proPercent}%`,
+                  width: `${plusPercent}%`,
                   background: 'rgba(139,92,246,0.6)',
                   transition: 'width 0.3s',
                 }}
               />
             )}
-            {businessPercent > 0 && (
+            {proPercent > 0 && (
               <div
-                data-testid="plan-bar-business"
+                data-testid="plan-bar-pro"
                 style={{
-                  width: `${businessPercent}%`,
+                  width: `${proPercent}%`,
                   background: 'rgba(245,158,11,0.6)',
                   transition: 'width 0.3s',
                 }}
@@ -262,8 +262,8 @@ export default function AdminPage() {
           {/* Legend */}
           <div style={{ display: 'flex', gap: 24, marginTop: 12 }}>
             <PlanLegend color="rgba(156,163,175,0.5)" label="Free" count={plans.free ?? 0} percent={freePercent} testId="plan-legend-free" />
-            <PlanLegend color="rgba(139,92,246,0.6)" label="Pro" count={plans.pro ?? 0} percent={proPercent} testId="plan-legend-pro" />
-            <PlanLegend color="rgba(245,158,11,0.6)" label="Business" count={plans.business ?? 0} percent={businessPercent} testId="plan-legend-business" />
+            <PlanLegend color="rgba(139,92,246,0.6)" label="Plus" count={plans.plus ?? 0} percent={plusPercent} testId="plan-legend-plus" />
+            <PlanLegend color="rgba(245,158,11,0.6)" label="Pro" count={plans.pro ?? 0} percent={proPercent} testId="plan-legend-pro" />
           </div>
         </div>
 
