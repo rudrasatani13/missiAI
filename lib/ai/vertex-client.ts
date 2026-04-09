@@ -24,12 +24,13 @@ import {
  * Models that are NOT yet available on Vertex AI and must always use
  * Google AI Studio regardless of the AI_BACKEND setting.
  * Update this list as Google rolls out models to Vertex AI.
+ *
+ * As of April 2026, gemini-3-flash-preview and related models are
+ * available on Vertex AI, so this list is empty — all traffic goes
+ * through Vertex to use the $300 free credits.
  */
-const GOOGLE_AI_ONLY_MODELS = new Set([
-  "gemini-3-flash-preview",
-  "gemini-3.1-flash-preview",
-  "gemini-3.1-flash-lite-preview",
-  "gemini-3.1-flash-live-preview",
+const GOOGLE_AI_ONLY_MODELS = new Set<string>([
+  // All models are now available on Vertex AI
 ])
 
 /**

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'missiai-pwa-cache-v1';
+const CACHE_NAME = 'missiai-pwa-cache-v2';
 
 self.addEventListener('install', (event) => {
   // Skip wait to take over immediately
@@ -6,14 +6,21 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  // Claim clients to start intercepting requests immediately
-  event.waitUntil(self.clients.claim());
+  // Clean up old caches and claim clients immediately
+  event.waitUntil(
+    caches.keys().then((names) =>
+      Promise.all(
+        names
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      )
+    ).then(() => self.clients.claim())
+  );
 });
 
-self.addEventListener('fetch', (event) => {
-  // Pass-through fetch
-  return;
-});
+// No fetch handler — let the browser handle all requests natively.
+// A no-op fetch handler causes overhead during navigation and can
+// interfere with Next.js chunk loading after deployments.
 
 self.addEventListener('push', (event) => {
   if (event.data) {

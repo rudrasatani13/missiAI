@@ -13,6 +13,22 @@ export default function ErrorPage({
 }) {
   useEffect(() => {
     console.error("[missiAI] Application error:", error)
+
+    // Auto-recover from stale deployment chunks — reload once
+    if (
+      error?.name === "ChunkLoadError" ||
+      error?.message?.includes("ChunkLoadError") ||
+      error?.message?.includes("Failed to load chunk")
+    ) {
+      const key = "missi-chunk-reload"
+      const last = sessionStorage.getItem(key)
+      // Only auto-reload once per session to avoid infinite loops
+      if (!last || Date.now() - Number(last) > 10000) {
+        sessionStorage.setItem(key, String(Date.now()))
+        window.location.reload()
+        return
+      }
+    }
   }, [error])
 
   return (
