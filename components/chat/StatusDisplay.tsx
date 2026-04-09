@@ -69,6 +69,24 @@ interface StatusDisplayProps {
   currentEmotion?: EmotionProfile | null
 }
 
+function StreamingAnimatedText({ text }: { text: string }) {
+  if (!text) return null;
+  return (
+    <>
+      {text.split("").map((char, i) => (
+        <motion.span
+          key={i}
+          initial={{ opacity: 0, filter: "blur(6px)", y: 2 }}
+          animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {char}
+        </motion.span>
+      ))}
+    </>
+  );
+}
+
 function StatusDisplayInner({
   state,
   errorMessage,
@@ -76,6 +94,7 @@ function StatusDisplayInner({
   userName,
   statusText,
   lastTranscript,
+  lastResponse,
   briefing,
   nudges = [],
   onDismissItem,
@@ -107,42 +126,53 @@ function StatusDisplayInner({
 
   return (
     <>
-      <p
-        className="text-base md:text-lg font-light tracking-tight mb-1 state-text"
-        data-testid="voice-status-text"
-        style={{ fontFamily: "var(--font-display)", letterSpacing: "-0.01em" }}
-      >
-        <AnimatedStateText
-          text={
-            state === "idle"        ? `Hey${userName ? ` ${userName}` : ""}` :
-            state === "recording"   ? "Listening..."   :
-            state === "transcribing"? "Processing..."  :
-            state === "thinking"    ? "Thinking..."    :
-            state === "speaking"    ? "Speaking..."    : ""
-          }
-          color={
-            state === "recording"                            ? "rgba(255,80,60,0.8)"   :
-            state === "speaking"                             ? "rgba(0,255,140,0.7)"   :
-            state === "thinking" || state === "transcribing" ? "rgba(255,255,255,0.5)" :
-                                                               "rgba(255,255,255,0.3)"
-          }
-        />
-      </p>
+      {/* Only show greeting when idle */}
+      {state === "idle" && (
+        <p
+          className="text-base md:text-lg font-light tracking-tight mb-1 state-text"
+          data-testid="voice-status-text"
+          style={{ fontFamily: "var(--font-display)", letterSpacing: "-0.01em" }}
+        >
+          <AnimatedStateText
+            text={`Hey${userName ? ` ${userName}` : ""}`}
+            color="rgba(255,255,255,0.3)"
+          />
+        </p>
+      )}
 
-      <AnimatePresence mode="popLayout">
-        {lastTranscript && state !== "idle" && (
-          <motion.p
-            key={lastTranscript}
+      {/* Live Transcript Display (Replaces generic statuses) */}
+      <AnimatePresence mode="wait">
+        {state !== "idle" && (
+          <motion.div
+            key={state === "speaking" ? "ai-response" : state === "recording" || state === "transcribing" ? "user-input" : state}
             initial={{ opacity: 0, filter: "blur(12px)", y: 10 }}
             animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-            exit={{ opacity: 0, filter: "blur(6px)", transition: { duration: 0.2 } }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} // smooth spring-like ease
-            className="text-[13px] md:text-[14px] font-medium tracking-wide max-w-[320px] mx-auto text-center leading-relaxed"
-            data-testid="last-transcript"
-            style={{ color: "rgba(255,255,255,0.85)", textShadow: "0 2px 10px rgba(0,0,0,0.5)" }}
+            exit={{ opacity: 0, filter: "blur(6px)", y: 0, transition: { duration: 0.3 } }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} 
+            className="flex flex-col items-center max-w-[340px] mx-auto text-center"
           >
-            &ldquo;{lastTranscript}&rdquo;
-          </motion.p>
+            {state === "speaking" ? (
+              <p 
+                className="text-[14px] md:text-[16px] font-medium tracking-wide leading-relaxed"
+                style={{ color: "rgba(0, 255, 140, 0.9)", textShadow: "0 2px 10px rgba(0,255,140,0.2)" }}
+              >
+                {lastResponse ? <StreamingAnimatedText text={lastResponse} /> : <AnimatedStateText text="Speaking..." color="rgba(0, 255, 140, 0.7)" />}
+              </p>
+            ) : state === "recording" || state === "transcribing" ? (
+              <p 
+                className="text-[14px] md:text-[16px] font-medium tracking-wide leading-relaxed"
+                style={{ color: "rgba(255, 255, 255, 0.85)", textShadow: "0 2px 10px rgba(0,0,0,0.5)" }}
+              >
+                {lastTranscript ? <>“<StreamingAnimatedText text={lastTranscript} />”</> : <AnimatedStateText text="Listening..." color="rgba(255, 255, 255, 0.6)" />}
+              </p>
+            ) : (
+              <p 
+                className="text-[14px] md:text-[16px] font-medium tracking-wide leading-relaxed"
+              >
+                <AnimatedStateText text="Starting..." color="rgba(255, 255, 255, 0.5)" />
+              </p>
+            )}
+          </motion.div>
         )}
       </AnimatePresence>
 

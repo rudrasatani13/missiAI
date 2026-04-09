@@ -39,6 +39,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
   const isConnectedRef = useRef(false)
   const outputTranscriptRef = useRef("")
   const setupCompleteRef = useRef(false)
+  const turnCompleteTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Refs for callbacks to avoid stale closures
   const configRef = useRef(config)
@@ -87,7 +88,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
     source.buffer = buffer
     source.connect(analyser)
 
-    // Schedule gapless playback
+    // Schedule gapless playback — play IMMEDIATELY if no audio is queued
     const now = audioCtx.currentTime
     const startTime = Math.max(now, nextPlayTimeRef.current)
     source.start(startTime)
@@ -117,18 +118,21 @@ export function useGeminiLive(config: GeminiLiveConfig) {
 
   const startMicStreaming = useCallback((ws: WebSocket, micCtx: AudioContext, stream: MediaStream) => {
     const source = micCtx.createMediaStreamSource(stream)
-    const processor = micCtx.createScriptProcessor(4096, 1, 1)
+    // Small buffer = more frequent packets = lower latency
+    const processor = micCtx.createScriptProcessor(1024, 1, 1)
 
     processor.onaudioprocess = (e) => {
       if (!isConnectedRef.current || ws.readyState !== WebSocket.OPEN || !setupCompleteRef.current) return
       const float32 = e.inputBuffer.getChannelData(0)
-      // Convert float32 to int16
+
+      // Convert float32 to int16 PCM
       const int16 = new Int16Array(float32.length)
       for (let i = 0; i < float32.length; i++) {
         const s = Math.max(-1, Math.min(1, float32[i]))
         int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff
       }
-      // Send as base64
+
+      // Send as base64 — Gemini's server-side VAD handles turn detection
       const bytes = new Uint8Array(int16.buffer)
       let binary = ""
       for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
@@ -136,10 +140,12 @@ export function useGeminiLive(config: GeminiLiveConfig) {
 
       ws.send(JSON.stringify({
         realtimeInput: {
-          audio: {
-            data: b64,
-            mimeType: "audio/pcm;rate=16000",
-          },
+          mediaChunks: [
+            {
+              data: b64,
+              mimeType: "audio/pcm;rate=16000",
+            }
+          ]
         },
       }))
     }
@@ -214,7 +220,6 @@ export function useGeminiLive(config: GeminiLiveConfig) {
       ws.onmessage = async (event) => {
         try {
           const msg = await parseWsMessage(event)
-          console.log("[GeminiLive] ←", JSON.stringify(msg).slice(0, 200))
 
           // setupComplete — server accepted our config
           if (msg.setupComplete !== undefined) {
@@ -230,6 +235,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
           if (msg.serverContent?.modelTurn?.parts) {
             for (const part of msg.serverContent.modelTurn.parts) {
               if (part.inlineData?.data) {
+                if (turnCompleteTimeoutRef.current) clearTimeout(turnCompleteTimeoutRef.current)
                 updateState("speaking")
                 playPcmChunk(part.inlineData.data)
               }
@@ -238,8 +244,16 @@ export function useGeminiLive(config: GeminiLiveConfig) {
 
           // Turn finished — model done talking
           if (msg.serverContent?.turnComplete) {
-            updateState("connected")
             outputTranscriptRef.current = ""
+            
+            // Wait for audio queue to finish playing before going back to listening state
+            const now = audioCtxRef.current?.currentTime || 0
+            const delaySec = Math.max(0, nextPlayTimeRef.current - now)
+            
+            if (turnCompleteTimeoutRef.current) clearTimeout(turnCompleteTimeoutRef.current)
+            turnCompleteTimeoutRef.current = setTimeout(() => {
+              updateState("connected")
+            }, delaySec * 1000)
           }
 
           // Input transcription (what user said)
@@ -255,6 +269,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
 
           // Interrupted — user spoke while model was talking
           if (msg.serverContent?.interrupted) {
+            if (turnCompleteTimeoutRef.current) clearTimeout(turnCompleteTimeoutRef.current)
             updateState("connected")
             // Stop any queued audio
             nextPlayTimeRef.current = 0
@@ -281,10 +296,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
         console.log("[GeminiLive] WebSocket connected — sending setup")
         isConnectedRef.current = true
 
-        // Send setup config — do NOT start mic streaming yet (wait for setupComplete)
-        // modelPath comes from the server and is correct for the active backend
-        // (Vertex AI: "projects/.../models/gemini-live-2.5-flash-native-audio")
-        // (Google AI: "models/gemini-3.1-flash-live-preview")
+        // Send setup config with server-side VAD for instant turn detection
         ws.send(JSON.stringify({
           setup: {
             model: modelPath,
@@ -298,9 +310,22 @@ export function useGeminiLive(config: GeminiLiveConfig) {
                 },
               },
             },
+            // Enable Gemini's built-in server-side Voice Activity Detection
+            // This detects when user stops speaking and triggers response INSTANTLY
+            realtimeInputConfig: {
+              automaticActivityDetection: {
+                disabled: false,
+                // Start listening immediately, don't wait for speech to begin
+                startOfSpeechSensitivity: "START_SENSITIVITY_HIGH",
+                // Respond quickly after user stops (300ms silence = turn done)
+                endOfSpeechSensitivity: "END_SENSITIVITY_HIGH",
+              },
+            },
             systemInstruction: {
               parts: [{ text: configRef.current.systemPrompt }],
             },
+            outputAudioTranscription: {},
+            inputAudioTranscription: {},
           },
         }))
       }

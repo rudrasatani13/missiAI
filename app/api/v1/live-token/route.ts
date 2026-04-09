@@ -8,9 +8,9 @@ import { getUserPlan } from "@/lib/billing/tier-checker"
 
 export const runtime = "edge"
 
-// Live model names — selected by user plan
-// Pro users get the newer preview model (Google AI Studio only for now).
-// Free/Plus users get the stable native-audio model on the configured backend.
+// Live model names — selected by user plan.
+// Pro users get the newer preview model via Google AI Studio (not yet on Vertex).
+// Free/Plus users get the stable native-audio model on whichever backend is configured.
 const PRO_LIVE_MODEL = "gemini-3.1-flash-live-preview"
 const STANDARD_LIVE_MODEL = "gemini-live-2.5-flash-native-audio"
 
@@ -19,7 +19,7 @@ const STANDARD_LIVE_MODEL = "gemini-live-2.5-flash-native-audio"
  *
  * Returns credentials for Gemini Live API WebSocket.
  * All authenticated users can access Gemini Live, but the model differs by plan:
- *   - Pro:        gemini-3.1-flash-live-preview (forced via Google AI Studio)
+ *   - Pro:        gemini-3.1-flash-live-preview (Google AI Studio)
  *   - Free/Plus:  gemini-live-2.5-flash-native-audio (configured backend)
  */
 export async function POST() {
@@ -42,9 +42,8 @@ export async function POST() {
   const rl = await checkRateLimit(userId, rlTier, "ai")
   if (!rl.allowed) return rateLimitExceededResponse(rl)
 
-  // Resolve the stable model path for the configured backend.
-  // Used by Free/Plus users, and as a safety fallback for Pro if the
-  // preview model's backend (Google AI Studio) can't be reached.
+  // Build the standard (Vertex-or-Google-AI) model path — used by Free/Plus,
+  // and as a safety fallback for Pro if Google AI Studio is unreachable.
   const standardModelPath = (() => {
     if (isVertexAI()) {
       const project = getVertexProjectId()
@@ -60,9 +59,9 @@ export async function POST() {
 
     if (isPro) {
       // Pro uses the preview model, which is Google AI Studio only.
-      // If the Google AI Studio endpoint can't be built (e.g. GEMINI_API_KEY
-      // missing), fall back to the standard model on the configured backend
-      // so the user still gets a working voice session.
+      // If Google AI Studio can't be reached (e.g. GEMINI_API_KEY missing),
+      // fall back to the standard model on the configured backend so the
+      // user still gets a working voice session.
       try {
         wsUrl = await getGeminiLiveWsUrl(true)
         modelPath = `models/${PRO_LIVE_MODEL}`
@@ -95,4 +94,3 @@ export async function POST() {
     )
   }
 }
-

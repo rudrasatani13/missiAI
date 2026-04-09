@@ -192,18 +192,23 @@ export default function VoiceAssistantPage() {
       setLiveTranscriptOut(text)
     },
     onStateChange: (s) => {
-      // When model finishes a turn, save transcript to conversation
+      // Model started speaking → clear user's transcript so UI shows "Speaking..." cleanly
+      if (s === "speaking") {
+        setLiveTranscriptIn("")
+      }
+      // Model finished a turn → save transcript to memory, then fade out after delay
       if (s === "connected" && liveTranscriptOut.trim()) {
         conversationRef.current.push({ role: "assistant", content: liveTranscriptOut.trim() })
         if (conversationRef.current.length > 14) {
           conversationRef.current = conversationRef.current.slice(-14)
         }
-        setLiveTranscriptOut("")
+        // Keep the output text visible for 2s so user can read, then clear
+        setTimeout(() => setLiveTranscriptOut(""), 2000)
       }
     },
   })
 
-  // Map live state to voice state for the visualizer
+  // Map live state to voice state for the visualizer & StatusDisplay
   const effectiveVoiceState = liveMode && geminiLive.state !== "disconnected"
     ? (geminiLive.state === "speaking" ? "speaking" : geminiLive.state === "connected" ? "recording" : geminiLive.state === "connecting" ? "thinking" : "idle")
     : voiceState
@@ -223,22 +228,34 @@ export default function VoiceAssistantPage() {
     }
   }, [liveMode, geminiLive, legacyHandleTap, cancelAll])
 
-  // Unified status text
+  // Unified status text — not used by StatusDisplay (it uses state), kept for compatibility
   const effectiveStatusText = liveMode && geminiLive.state !== "disconnected"
     ? geminiLive.state === "connecting" ? "Connecting..."
     : geminiLive.state === "connected" ? (liveTranscriptIn || "Listening...")
-    : geminiLive.state === "speaking" ? (liveTranscriptOut || "")
+    : geminiLive.state === "speaking" ? (liveTranscriptOut || "Speaking...")
     : geminiLive.error || "Tap to start"
     : statusText
 
-  // Show live transcript as lastResponse for the UI
+  // Show live output transcript as lastResponse for the UI (what Missi said — appears during speaking)
   const effectiveLastResponse = liveMode && geminiLive.state !== "disconnected"
     ? liveTranscriptOut
     : lastResponse
 
+  // Show live input transcript as lastTranscript (what user said — appears during listening)
   const effectiveLastTranscript = liveMode && geminiLive.state !== "disconnected"
     ? liveTranscriptIn
     : lastTranscript
+
+  // Clear live transcripts when turn ends so they fade out
+  useEffect(() => {
+    if (!liveMode) return
+    if (geminiLive.state === "connected" && liveTranscriptIn) {
+      // User is listening — keep transcript visible
+    }
+    if (geminiLive.state === "connected" && !liveTranscriptIn && !liveTranscriptOut) {
+      // Turn fully complete, transcripts already cleared
+    }
+  }, [liveMode, geminiLive.state, liveTranscriptIn, liveTranscriptOut])
 
   // Keep voiceState ref in sync
   useEffect(() => { voiceStateRef.current = effectiveVoiceState }, [effectiveVoiceState])
