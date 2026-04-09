@@ -158,7 +158,7 @@ export function useBilling() {
   }, [])
 
   // ─── Dodo Checkout: redirect to hosted checkout page ─────────────────────
-  const initiateCheckout = useCallback(async (planId: 'pro' | 'business') => {
+  const initiateCheckout = useCallback(async (planId: 'plus' | 'pro') => {
     setIsUpgrading(true)
     setError(null)
 
@@ -211,13 +211,13 @@ export function useBilling() {
 
   const isAtLimit = useMemo(() => {
     if (!usage || !plan) return false
-    if (plan.id === 'pro' || plan.id === 'business') return false
+    if (plan.id === 'pro') return false
     return usage.voiceInteractions >= plan.voiceInteractionsPerDay
   }, [usage, plan])
 
   const remainingInteractions = useMemo(() => {
     if (!usage || !plan) return 0
-    if (plan.id === 'pro' || plan.id === 'business') return 999999
+    if (plan.id === 'pro') return 999999
     return Math.max(0, plan.voiceInteractionsPerDay - usage.voiceInteractions)
   }, [usage, plan])
 

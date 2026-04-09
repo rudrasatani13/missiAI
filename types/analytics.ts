@@ -69,7 +69,7 @@ export function emptyLifetimeTotals(): LifetimeTotals {
     totalInteractions: 0,
     totalCostUsd: 0,
     totalRevenue: 0,
-    planBreakdown: { free: 0, pro: 0, business: 0 },
+    planBreakdown: { free: 0, plus: 0, pro: 0 },
     lastUpdatedAt: Date.now(),
   }
 }

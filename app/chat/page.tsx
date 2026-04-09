@@ -499,7 +499,7 @@ export default function VoiceAssistantPage() {
               >
                 <Crown className="w-3.5 h-3.5" style={{ color: '#F59E0B' }} />
                 <span className="hidden sm:inline">
-                  {plan?.id === 'business' ? 'BIZ' : 'PRO'}
+                  {plan?.id === 'pro' ? 'PRO' : 'PLUS'}
                 </span>
               </Link>
             </Magnetic>

@@ -167,7 +167,7 @@ describe('event-store', () => {
       expect(totals.totalInteractions).toBe(0)
       expect(totals.totalCostUsd).toBe(0)
       expect(totals.totalRevenue).toBe(0)
-      expect(totals.planBreakdown).toEqual({ free: 0, pro: 0, business: 0 })
+      expect(totals.planBreakdown).toEqual({ free: 0, plus: 0, pro: 0 })
     })
   })
 })

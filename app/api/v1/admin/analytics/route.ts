@@ -77,9 +77,9 @@ export async function GET(req: Request) {
           today: { uniqueUsers: 0, voiceInteractions: 0, newSignups: 0, totalRequests: 0, actionsExecuted: 0, totalCostUsd: 0, errorCount: 0 },
           yesterday: { uniqueUsers: 0, voiceInteractions: 0, newSignups: 0, totalRequests: 0, actionsExecuted: 0, totalCostUsd: 0, errorCount: 0 },
           last7Days: [],
-          lifetime: { totalUsers: 0, totalInteractions: 0, planBreakdown: { free: 0, pro: 0, business: 0 } },
+          lifetime: { totalUsers: 0, totalInteractions: 0, planBreakdown: { free: 0, plus: 0, pro: 0 } },
           generatedAt: Date.now(),
-          planBreakdown: { free: 0, pro: 0, business: 0 }
+          planBreakdown: { free: 0, plus: 0, pro: 0 }
         }
       }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rateResult) } }
@@ -117,7 +117,7 @@ export async function GET(req: Request) {
     const snapshot = await buildAnalyticsSnapshot(kv)
 
     // Fetch plan breakdown from Clerk
-    let planBreakdown: Record<string, number> = { free: 0, pro: 0, business: 0 }
+    let planBreakdown: Record<string, number> = { free: 0, plus: 0, pro: 0 }
     try {
       const { clerkClient } = await import('@clerk/nextjs/server')
       const client = await clerkClient()

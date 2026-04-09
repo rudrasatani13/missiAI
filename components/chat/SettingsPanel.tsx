@@ -454,7 +454,7 @@ function SettingsPanelInner({
                 </div>
               )}
               {/* Golden PRO Badge overlay */}
-              {(plan === 'pro' || plan === 'business') && (
+              {(plan === 'plus' || plan === 'pro') && (
                 <div className="absolute -bottom-1 -right-1 bg-[#F59E0B] p-[3px] rounded-full border-[1.5px] border-[#050505] shadow-lg flex items-center justify-center" title="PRO Member">
                   <Crown className="w-2.5 h-2.5 text-white" />
                 </div>

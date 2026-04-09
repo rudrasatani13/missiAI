@@ -29,12 +29,12 @@ describe('tier-checker', () => {
       expect(plan).toBe('pro')
     })
 
-    it('returns "business" when publicMetadata.plan is "business"', async () => {
+    it('returns "plus" when publicMetadata.plan is "plus"', async () => {
       mockGetUser.mockResolvedValue({
-        publicMetadata: { plan: 'business' },
+        publicMetadata: { plan: 'plus' },
       })
       const plan = await getUserPlan('user_123')
-      expect(plan).toBe('business')
+      expect(plan).toBe('plus')
     })
 
     it('returns "free" when no publicMetadata', async () => {
