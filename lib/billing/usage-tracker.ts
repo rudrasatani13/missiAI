@@ -51,8 +51,8 @@ export async function checkVoiceLimit(
   const usage = await getDailyUsage(kv, userId)
   const limit = PLANS[planId].voiceInteractionsPerDay
 
-  // Pro/business: always allowed
-  if (planId === 'pro' || planId === 'business') {
+  // Pro: always allowed
+  if (planId === 'pro') {
     return { allowed: true, used: usage.voiceInteractions, limit, remaining: 999999 }
   }
 

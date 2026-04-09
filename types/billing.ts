@@ -1,6 +1,6 @@
 // ─── Billing Types & Plan Configuration ──────────────────────────────────────
 
-export type PlanId = 'free' | 'pro' | 'business'
+export type PlanId = 'free' | 'plus' | 'pro'
 
 export interface PlanConfig {
   id: PlanId
@@ -25,21 +25,21 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     apiAccess: false,
     dodoProductId: '',
   },
-  pro: {
-    id: 'pro',
-    name: 'Pro',
-    priceUsd: 9,
-    voiceInteractionsPerDay: 999999,
+  plus: {
+    id: 'plus',
+    name: 'Plus',
+    priceUsd: 9, // $9.99 can be represented closely as 9 or exactly in stripe as required, here we just use 9 visually
+    voiceInteractionsPerDay: 120, // Technically 2 hours = 120 minutes
     personalitiesAllowed: 4,
     maxMemoryFacts: 999999,
     apiAccess: false,
     dodoProductId: '',
   },
-  business: {
-    id: 'business',
-    name: 'Business',
-    priceUsd: 49,
-    voiceInteractionsPerDay: 999999,
+  pro: {
+    id: 'pro',
+    name: 'Pro',
+    priceUsd: 19, // $19.99
+    voiceInteractionsPerDay: 999999, // Unlimited
     personalitiesAllowed: 4,
     maxMemoryFacts: 999999,
     apiAccess: true,
@@ -49,8 +49,8 @@ export const PLANS: Record<PlanId, PlanConfig> = {
 
 /** Server-only helper: resolve the actual Dodo product ID from env vars */
 export function getServerDodoProductId(planId: PlanId): string {
+  if (planId === 'plus') return process.env.DODO_PLUS_PRODUCT_ID ?? ''
   if (planId === 'pro') return process.env.DODO_PRO_PRODUCT_ID ?? ''
-  if (planId === 'business') return process.env.DODO_BUSINESS_PRODUCT_ID ?? ''
   return ''
 }
 

@@ -166,7 +166,7 @@ function PlanCard({
   return (
     <div
       data-testid={`plan-card-${planId}`}
-      className="hover:scale-[1.01]"
+      className="group hover:scale-[1.03] hover:shadow-[0_8px_30px_rgb(0,0,0,0.4)] transition-all duration-300 ease-out"
       style={{
         position: 'relative',
         background: isCurrentPlan
@@ -365,11 +365,18 @@ export default function PricingPage() {
   const [cancelPlanName, setCancelPlanName] = useState('')
   const [showCelebration, setShowCelebration] = useState(false)
   const [celebrationPlanName, setCelebrationPlanName] = useState('')
+  const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isUpgrading) {
+      setUpgradingPlan(null)
+    }
+  }, [isUpgrading])
 
   // Detect plan upgrade and trigger celebration
   useEffect(() => {
     if (plan) {
-      if (prevPlanRef.current === 'free' && (plan.id === 'pro' || plan.id === 'business')) {
+      if (prevPlanRef.current === 'free' && (plan.id === 'plus' || plan.id === 'pro')) {
         setCelebrationPlanName(plan.name)
         setShowCelebration(true)
       }
@@ -392,21 +399,23 @@ export default function PricingPage() {
     }
   }
 
+  const handlePlusPlan = () => {
+    if (currentPlanId === 'plus') {
+      setCancelPlanName('Plus')
+      setCancelModalOpen(true)
+    } else {
+      setUpgradingPlan('plus')
+      initiateCheckout('plus')
+    }
+  }
+
   const handleProPlan = () => {
     if (currentPlanId === 'pro') {
       setCancelPlanName('Pro')
       setCancelModalOpen(true)
     } else {
+      setUpgradingPlan('pro')
       initiateCheckout('pro')
-    }
-  }
-
-  const handleBusinessPlan = () => {
-    if (currentPlanId === 'business') {
-      setCancelPlanName('Business')
-      setCancelModalOpen(true)
-    } else {
-      window.location.href = 'mailto:rudrasatani@missi.space'
     }
   }
 
@@ -419,15 +428,15 @@ export default function PricingPage() {
   const freeButtonLabel =
     currentPlanId === 'free' ? 'Current Plan' : 'Get Started'
 
+  const plusButtonLabel =
+    currentPlanId === 'plus'
+      ? (isCancelling ? 'Cancelling...' : cancelAtPeriodEnd ? 'Cancellation Pending' : 'Cancel Subscription')
+      : 'Upgrade to Plus'
+
   const proButtonLabel =
     currentPlanId === 'pro'
       ? (isCancelling ? 'Cancelling...' : cancelAtPeriodEnd ? 'Cancellation Pending' : 'Cancel Subscription')
       : 'Upgrade to Pro'
-
-  const businessButtonLabel =
-    currentPlanId === 'business'
-      ? (isCancelling ? 'Cancelling...' : cancelAtPeriodEnd ? 'Cancellation Pending' : 'Cancel Subscription')
-      : 'Contact Us'
 
   return (
     <div
@@ -601,14 +610,14 @@ export default function PricingPage() {
             currentPlanId={currentPlanId}
             isCurrentPlan={currentPlanId === 'free'}
             features={[
-              '10 voice interactions per day',
+              '10 minutes of voice per day',
               '1 personality mode',
               'Basic memory — up to 20 facts',
               'Action engine for quick tasks',
             ]}
             disabledFeatures={[
               'Multiple personalities',
-              'Unlimited voice',
+              'Long-duration voice',
               'Full memory graph',
             ]}
             onSelect={handleFreePlan}
@@ -617,43 +626,42 @@ export default function PricingPage() {
           />
 
           <PlanCard
-            name="Pro"
+            name="Plus"
             price={9}
-            planId="pro"
+            planId="plus"
             currentPlanId={currentPlanId}
-            isCurrentPlan={currentPlanId === 'pro'}
+            isCurrentPlan={currentPlanId === 'plus'}
             isMostPopular={currentPlanId === 'free'}
-            showPaymentBadges={currentPlanId !== 'pro'}
+            showPaymentBadges={currentPlanId !== 'plus'}
             features={[
-              'Unlimited voice interactions',
+              '2 hours of voice per day',
               'All 4 personality profiles',
               'Full memory graph — unlimited facts',
               'Proactive nudges & intelligent reminders',
               'Plugin integrations (Notion, Calendar…)',
-              'Priority response speed',
             ]}
-            onSelect={handleProPlan}
-            isLoading={isLoading || isUpgrading || isCancelling}
-            buttonLabel={isUpgrading ? 'Processing...' : proButtonLabel}
+            onSelect={handlePlusPlan}
+            isLoading={isLoading || (isUpgrading && upgradingPlan === 'plus') || isCancelling}
+            buttonLabel={(isUpgrading && upgradingPlan === 'plus') ? 'Processing...' : plusButtonLabel}
           />
 
           <PlanCard
-            name="Business"
-            price={49}
-            planId="business"
+            name="Pro"
+            price={19}
+            planId="pro"
             currentPlanId={currentPlanId}
-            isCurrentPlan={currentPlanId === 'business'}
-            showPaymentBadges={currentPlanId !== 'business'}
+            isCurrentPlan={currentPlanId === 'pro'}
+            showPaymentBadges={currentPlanId !== 'pro'}
             features={[
-              'Everything in Pro',
-              'REST API access',
-              'Team workspace (coming soon)',
-              'Dedicated priority support',
+              'Unlimited voice interactions',
+              'Everything in Plus',
+              'Priority response speed',
               'Custom model integrations',
+              'Dedicated priority support',
             ]}
-            onSelect={handleBusinessPlan}
-            isLoading={isLoading || isCancelling}
-            buttonLabel={businessButtonLabel}
+            onSelect={handleProPlan}
+            isLoading={isLoading || (isUpgrading && upgradingPlan === 'pro') || isCancelling}
+            buttonLabel={(isUpgrading && upgradingPlan === 'pro') ? 'Processing...' : proButtonLabel}
           />
         </div>
 

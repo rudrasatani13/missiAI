@@ -8,7 +8,7 @@ export async function getUserPlan(userId: string): Promise<PlanId> {
   const user = await client.users.getUser(userId)
   const plan = (user.publicMetadata as Record<string, unknown>)?.plan as string | undefined
 
-  if (plan === 'pro' || plan === 'business') return plan
+  if (plan === 'plus' || plan === 'pro') return plan as PlanId
   return 'free'
 }
 

@@ -142,10 +142,10 @@ export async function cancelDodoSubscription(
 // ─── Plan Resolution ─────────────────────────────────────────────────────────
 
 export function determinePlanFromDodoProduct(productId: string): PlanId {
-  const businessProductId = process.env.DODO_BUSINESS_PRODUCT_ID
+  const plusProductId = process.env.DODO_PLUS_PRODUCT_ID
   const proProductId = process.env.DODO_PRO_PRODUCT_ID
 
-  if (productId === businessProductId) return 'business'
+  if (productId === plusProductId) return 'plus'
   if (productId === proProductId) return 'pro'
   // Unknown product IDs default to 'free' — never silently upgrade a user
   return 'free'

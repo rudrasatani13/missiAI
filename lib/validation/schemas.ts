@@ -146,7 +146,7 @@ export type ExecutePluginInput = z.infer<typeof executePluginSchema>
 // ─── /api/v1/billing ──────────────────────────────────────────────────────────
 
 export const billingCheckoutSchema = z.object({
-  planId: z.enum(['pro', 'business']),
+  planId: z.enum(['plus', 'pro']),
   email: z.string().email().optional(),
 })
 

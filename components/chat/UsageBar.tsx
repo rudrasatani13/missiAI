@@ -10,7 +10,7 @@ interface UsageBarProps {
 }
 
 export function UsageBar({ used, limit, planId, onUpgrade }: UsageBarProps) {
-  if (planId === 'pro' || planId === 'business') return null
+  if (planId === 'pro') return null
 
   const pct = Math.min((used / limit) * 100, 100)
   const atLimit = used >= limit
@@ -76,7 +76,7 @@ export function UsageBar({ used, limit, planId, onUpgrade }: UsageBarProps) {
                 padding: 0,
               }}
             >
-              Upgrade to Pro
+              Upgrade Plan
             </button>
           </span>
         ) : (
@@ -84,7 +84,7 @@ export function UsageBar({ used, limit, planId, onUpgrade }: UsageBarProps) {
             data-testid="usage-bar-count-text"
             style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.02em' }}
           >
-            {used}/{limit} voice interactions today
+            {used}/{limit} minutes of voice today
           </span>
         )}
       </div>
