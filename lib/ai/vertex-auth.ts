@@ -208,5 +208,5 @@ export function getVertexLocation(): string {
  * Check if the AI backend is configured to use Vertex AI.
  */
 export function isVertexAI(): boolean {
-  return (process.env.AI_BACKEND || "google-ai") === "vertex"
+  return (process.env.AI_BACKEND || "vertex") === "vertex"
 }

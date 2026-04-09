@@ -77,7 +77,7 @@ export function getEnv(): AppEnv {
     NOTION_CLIENT_SECRET: process.env.NOTION_CLIENT_SECRET || undefined,
     NOTION_API_KEY: process.env.NOTION_API_KEY || undefined,
     APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "http://localhost:3000",
-    AI_BACKEND: (process.env.AI_BACKEND as 'vertex' | 'google-ai') || 'google-ai',
+    AI_BACKEND: (process.env.AI_BACKEND as 'vertex' | 'google-ai') || 'vertex',
     VERTEX_AI_PROJECT_ID: process.env.VERTEX_AI_PROJECT_ID || undefined,
     VERTEX_AI_LOCATION: process.env.VERTEX_AI_LOCATION || undefined,
     GOOGLE_SERVICE_ACCOUNT_JSON: process.env.GOOGLE_SERVICE_ACCOUNT_JSON || undefined,
