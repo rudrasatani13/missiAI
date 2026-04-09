@@ -10,6 +10,7 @@
 // See SECURITY.md for the full list and rotation procedure.
 
 export interface AppEnv {
+  /** @deprecated All AI traffic now routes through Vertex AI. Kept for backward compat. */
   GEMINI_API_KEY: string
   ELEVENLABS_API_KEY: string
   ELEVENLABS_VOICE_ID: string | undefined
@@ -58,7 +59,7 @@ function requireEnv(key: string): string {
  */
 export function getEnv(): AppEnv {
   return {
-    GEMINI_API_KEY: requireEnv("GEMINI_API_KEY"),
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY ?? "",
     ELEVENLABS_API_KEY: requireEnv("ELEVENLABS_API_KEY"),
     ELEVENLABS_VOICE_ID: process.env.ELEVENLABS_VOICE_ID || undefined,
     CLERK_SECRET_KEY: requireEnv("CLERK_SECRET_KEY"),

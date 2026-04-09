@@ -55,7 +55,7 @@ async function checkKV(kv: KVStore | null): Promise<"ok" | "error"> {
 }
 
 function checkEnvVars(): "ok" | "missing" {
-  const required = ["GEMINI_API_KEY", "ELEVENLABS_API_KEY", "CLERK_SECRET_KEY"]
+  const required = ["GOOGLE_SERVICE_ACCOUNT_JSON", "ELEVENLABS_API_KEY", "CLERK_SECRET_KEY"]
   for (const key of required) {
     if (!envExists(key)) return "missing"
   }
