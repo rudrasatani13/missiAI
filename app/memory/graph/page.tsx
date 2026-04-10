@@ -63,10 +63,11 @@ export default function GraphPage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 100 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="absolute top-6 bottom-6 right-6 w-80 md:w-96 glass-card glass-noise rounded-2xl border border-white/10 z-20 flex flex-col overflow-hidden shadow-2xl"
+            className="absolute top-6 bottom-6 right-6 left-auto w-80 md:w-96 rounded-2xl border border-white/10 z-20 flex flex-col overflow-hidden shadow-2xl"
             style={{
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)',
-              backdropFilter: 'blur(20px)',
+              background: 'rgba(0, 0, 0, 0.65)',
+              backdropFilter: 'blur(25px)',
+              WebkitBackdropFilter: 'blur(25px)',
             }}
           >
             <div className="p-5 border-b border-white/10 flex items-center justify-between">
