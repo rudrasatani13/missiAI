@@ -38,20 +38,20 @@ export default function GraphPage() {
         </Link>
       </header>
 
-      <section className="flex-1 w-full relative z-0 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.05)] border border-white/10 bg-black flex flex-col">
+      <section className="flex-1 w-full relative z-0 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.05)] border border-white/10 bg-black min-h-[calc(100vh-140px)]">
         {isLoading ? (
-          <div className="w-full h-full min-h-[60vh] flex items-center justify-center border border-white/5 bg-white/[0.02] rounded-xl flex-1">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/[0.02]">
             <div className="flex flex-col items-center gap-3 text-white/40">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white/40"></div>
               <p className="text-sm">Mapping memory clusters...</p>
             </div>
           </div>
         ) : error ? (
-          <div className="w-full h-full min-h-[60vh] flex items-center justify-center border border-red-500/20 bg-red-500/5 rounded-xl text-red-400 flex-1">
+          <div className="absolute inset-0 flex items-center justify-center bg-red-500/5 text-red-400">
             {error}
           </div>
         ) : (
-          <div className="w-full h-full flex-1 relative">
+          <div className="absolute inset-0">
             <MemoryGraph3D nodes={nodes} onNodeSelect={setSelectedNode} />
           </div>
         )}
