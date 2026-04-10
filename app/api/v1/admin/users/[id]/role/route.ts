@@ -9,9 +9,10 @@ export const runtime = "edge"
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const startTime = Date.now()
+  const { id: targetUserId } = await params
 
   // ── 1. Auth ────────────────────────────────────────────────────────────────
   let userId: string
@@ -41,7 +42,7 @@ export async function POST(
       level: "warn",
       event: "admin.role_change.forbidden",
       userId,
-      metadata: { targetUserId: params.id },
+      metadata: { targetUserId },
       timestamp: Date.now(),
     })
     return new NextResponse(
@@ -76,8 +77,6 @@ export async function POST(
       { status: 400, headers: { "Content-Type": "application/json" } }
     )
   }
-
-  const targetUserId = params.id
 
   try {
     const client = await clerkClient()
