@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth, clerkClient } from "@clerk/nextjs/server"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
-import { log, logApiError } from "@/lib/server/logger"
 
 export const runtime = "edge"
 
 // Rate limiting is handled by the middleware's IP-based limiter (100 req/min).
-// Adding KV-backed rate limiting here would pull in @cloudflare/next-on-pages
-// and push the Cloudflare Pages bundle over the 25 MiB limit.
+// Structured logging via @/lib/server/logger is avoided here because it pulls in
+// heavy deps that push the Cloudflare Pages bundle over the 25 MiB limit.
 
 export async function POST(
   req: NextRequest,
@@ -40,13 +39,7 @@ export async function POST(
   const isSuperAdminEnv = process.env.ADMIN_USER_ID ? userId === process.env.ADMIN_USER_ID : false
 
   if (!isRoleAdmin && !isSuperAdminEnv) {
-    log({
-      level: "warn",
-      event: "admin.role_change.forbidden",
-      userId,
-      metadata: { targetUserId },
-      timestamp: Date.now(),
-    })
+    console.warn("[admin.role_change.forbidden]", { userId, targetUserId })
     return new NextResponse(
       JSON.stringify({ success: false, error: "Forbidden", code: "FORBIDDEN" }),
       { status: 403, headers: { "Content-Type": "application/json" } }
@@ -87,19 +80,16 @@ export async function POST(
     const sessions = await client.sessions.getSessionList({ userId: targetUserId })
     
     for (const session of sessions.data) {
-      // Ignore inactive sessions to save API calls
       if (session.status === 'active') {
         await client.sessions.revokeSession(session.id)
       }
     }
 
-    log({
-      level: "info",
-      event: "admin.role_change.success",
+    console.info("[admin.role_change.success]", {
       userId,
+      targetUserId,
+      newRole: body.role,
       durationMs: Date.now() - startTime,
-      metadata: { targetUserId, newRole: body.role },
-      timestamp: Date.now(),
     })
 
     return new NextResponse(
@@ -111,11 +101,10 @@ export async function POST(
     )
 
   } catch (error) {
-    logApiError("admin.role_change.error", error, { userId, httpStatus: 500 })
+    console.error("[admin.role_change.error]", { userId, error: error instanceof Error ? error.message : String(error) })
     return new NextResponse(
       JSON.stringify({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     )
   }
 }
-

@@ -379,15 +379,7 @@ export default function LandingPage() {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Magnetic>
-            {!isSignedIn && (
-              <Magnetic>
-                <Link href="/waitlist"
-                  className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:bg-white/10"
-                  style={{ border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}>
-                  Get Early Access
-                </Link>
-              </Magnetic>
-            )}
+
           </div>
 
           {/* Waveform decoration replaced by MissiOrb */}
@@ -564,7 +556,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
             <AnimatedStat value={200} suffix="ms" label="Voice Latency" />
             <AnimatedStat value={99} suffix="%" label="Uptime" />
-            <AnimatedStat value={50} suffix="k+" label="Waitlist" />
+            <AnimatedStat value={10} suffix="k+" label="Active Users" />
             <AnimatedStat value={100} suffix="%" label="Encrypted" />
           </div>
         </div>
@@ -614,14 +606,7 @@ export default function LandingPage() {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Magnetic>
-            {!isSignedIn && (
-              <Magnetic>
-                <Link href="/waitlist" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium transition-all duration-300 hover:bg-white/10"
-                  style={{ border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}>
-                  Join the waitlist
-                </Link>
-              </Magnetic>
-            )}
+
           </div>
         </Reveal>
       </section>
@@ -638,7 +623,6 @@ export default function LandingPage() {
           <div className="flex items-center gap-6">
             {[
               { label: "Manifesto", href: "/manifesto" },
-              ...(!isSignedIn ? [{ label: "Waitlist", href: "/waitlist" }] : []),
               { label: "Chat", href: "/chat" },
               { label: "Privacy", href: "/privacy" },
               { label: "Terms", href: "/terms" },

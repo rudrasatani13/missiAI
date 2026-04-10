@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { getEnv } from "@/lib/server/env"
-import { logError } from "@/lib/server/logger"
 
 export const runtime = "edge"
 
@@ -23,7 +22,7 @@ export async function GET(req: NextRequest) {
   const env = getEnv()
 
   if (!env.GOOGLE_CLIENT_ID) {
-    logError("oauth.google.not_configured", "GOOGLE_CLIENT_ID missing", userId)
+    console.warn("[oauth.google] Integration not configured", { userId })
     return NextResponse.json(
       { error: "Integration temporarily unavailable" },
       { status: 503 }
