@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { getEnv } from "@/lib/server/env"
-import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
-import { getUserPlan } from "@/lib/billing/tier-checker"
 import { logError } from "@/lib/server/logger"
 
 export const runtime = "edge"
 
 // ─── Notion OAuth Connect ─────────────────────────────────────────────────────
 // Redirects the user to Notion's OAuth consent screen.
+// Rate limiting is handled by the middleware's IP-based limiter (100 req/min).
 
 export async function GET(req: NextRequest) {
   let userId: string
@@ -20,12 +19,6 @@ export async function GET(req: NextRequest) {
     }
     throw e
   }
-
-  // Rate limit OAuth redirects to prevent abuse
-  const planId = await getUserPlan(userId)
-  const rateTier = planId === 'free' ? 'free' : 'paid'
-  const rateResult = await checkRateLimit(userId, rateTier)
-  if (!rateResult.allowed) return rateLimitExceededResponse(rateResult)
 
   const env = getEnv()
 
