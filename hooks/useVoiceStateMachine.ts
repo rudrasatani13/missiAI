@@ -19,6 +19,7 @@ export type { VoiceState }
 export interface UseVoiceStateMachineOptions {
   userId?: string
   personalityRef: React.MutableRefObject<PersonalityKey>
+  customPromptRef?: React.MutableRefObject<string>
   memoriesRef: React.MutableRefObject<string>
   conversationRef: React.MutableRefObject<ConversationEntry[]>
   imagePayloadRef?: React.MutableRefObject<string | null>
@@ -28,7 +29,7 @@ export interface UseVoiceStateMachineOptions {
 /* ── Hook ─────────────────────────────────────────────────────────────────── */
 
 export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
-  const { userId, personalityRef, memoriesRef, conversationRef, imagePayloadRef, onImageConsumed } = options
+  const { userId, personalityRef, customPromptRef, memoriesRef, conversationRef, imagePayloadRef, onImageConsumed } = options
 
   /* ── Public reactive state ──────────────────────────────────────────────── */
   const [state, setState] = useState<VoiceState>("idle")
@@ -38,6 +39,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const [error, setError] = useState<string | null>(null)
   const [streamingText, setStreamingText] = useState("")
   const [lastResponse, setLastResponse] = useState("")
+
+  /* ── Agentic workflow steps ────────────────────────────────────────────── */
+  const [agentSteps, setAgentSteps] = useState<{ toolName: string; status: string; label: string; summary?: string }[]>([])
 
   /* ── Emotion detection ────────────────────────────────────────────────── */
   const { analyzeRecording, getSmoothedAdaptation, resetEmotion, currentEmotion }
@@ -533,6 +537,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     cancelAbort()
     setState("thinking")
     setStatusText("Thinking...")
+    setAgentSteps([]) // Clear previous agent steps
     const ctrl = freshAbort()
 
     const MAX_RETRIES = 2
@@ -565,6 +570,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
             body: JSON.stringify({
               messages: msgs,
               personality: personalityRef.current,
+              customPrompt: customPromptRef?.current,
               memories: memoriesRef.current + emotionSuffix,
               maxOutputTokens: adaptation.maxOutputTokens,
             }),
@@ -641,6 +647,18 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
                     firstSentenceTtsPromise = fnRef.current.speakText(truncateForTTS(firstSentenceText))
                   }
                 }
+              }
+              // ── Agentic step event ──
+              if (p.agentStep) {
+                setAgentSteps(prev => {
+                  const existing = prev.findIndex(s => s.toolName === p.agentStep.toolName)
+                  if (existing >= 0) {
+                    const updated = [...prev]
+                    updated[existing] = p.agentStep
+                    return updated
+                  }
+                  return [...prev, p.agentStep]
+                })
               }
             } catch {}
           }
@@ -1150,5 +1168,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     greet,
     saveMemoryBeacon,
     currentEmotion,
+    agentSteps,
   }
 }

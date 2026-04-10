@@ -1,14 +1,23 @@
 // ─── Life Streak & XP System ──────────────────────────────────────────────────
 
 import type { KVStore } from '@/types'
-import type { GamificationData, HabitStreak, CheckInResult } from '@/types/gamification'
+import type {
+  GamificationData,
+  HabitStreak,
+  CheckInResult,
+  AvatarTier,
+  Achievement,
+  AVATAR_TIERS as AvatarTiersType,
+} from '@/types/gamification'
+import { AVATAR_TIERS } from '@/types/gamification'
+import { checkAchievements } from '@/lib/gamification/achievements'
 
-const XP_PER_CHECKIN = 10
+const XP_PER_CHECKIN = 5
 
 const XP_MILESTONES: Record<number, number> = {
-  7: 50,
-  30: 200,
-  100: 500,
+  7: 25,
+  30: 100,
+  100: 250,
 }
 
 const MILESTONE_DAYS = [7, 30, 100]
@@ -23,9 +32,41 @@ const DEFAULT_DATA = (userId: string): GamificationData => ({
   userId,
   totalXP: 0,
   level: 1,
+  avatarTier: 1,
   habits: [],
+  achievements: [],
+  xpLog: [],
+  xpLogDate: '',
+  loginStreak: 0,
+  lastLoginDate: '',
   lastUpdatedAt: 0,
 })
+
+/**
+ * Calculate the avatar tier based on total XP.
+ * Walks the AVATAR_TIERS array in reverse to find the highest qualifying tier.
+ */
+export function calculateAvatarTier(totalXP: number): AvatarTier {
+  for (let i = AVATAR_TIERS.length - 1; i >= 0; i--) {
+    if (totalXP >= AVATAR_TIERS[i].xpRequired) {
+      return AVATAR_TIERS[i].tier
+    }
+  }
+  return 1
+}
+
+export function calculateLevel(totalXP: number): number {
+  return Math.max(1, Math.floor(totalXP / 100))
+}
+
+/**
+ * Get the XP required for the next tier, or null if already max tier.
+ */
+export function getNextTierXP(currentTier: AvatarTier): number | null {
+  const idx = AVATAR_TIERS.findIndex(t => t.tier === currentTier)
+  if (idx < 0 || idx >= AVATAR_TIERS.length - 1) return null
+  return AVATAR_TIERS[idx + 1].xpRequired
+}
 
 export async function getGamificationData(
   kv: KVStore,
@@ -35,7 +76,20 @@ export async function getGamificationData(
   if (!raw) return DEFAULT_DATA(userId)
 
   const parsed = JSON.parse(raw) as Partial<GamificationData>
-  return { ...DEFAULT_DATA(userId), ...parsed }
+  const data = { ...DEFAULT_DATA(userId), ...parsed }
+
+  // Auto-migrate: recalculate tier for existing users
+  data.avatarTier = calculateAvatarTier(data.totalXP)
+  data.level = calculateLevel(data.totalXP)
+
+  // Reset xpLog if it's a new day
+  const today = new Date().toISOString().slice(0, 10)
+  if (data.xpLogDate !== today) {
+    data.xpLog = []
+    data.xpLogDate = today
+  }
+
+  return data
 }
 
 export async function saveGamificationData(
@@ -45,6 +99,7 @@ export async function saveGamificationData(
 ): Promise<void> {
   data.lastUpdatedAt = Date.now()
   data.level = calculateLevel(data.totalXP)
+  data.avatarTier = calculateAvatarTier(data.totalXP)
   await kv.put(`gamification:${userId}`, JSON.stringify(data))
 }
 
@@ -80,7 +135,9 @@ export async function checkInHabit(
       celebrationText: null,
       totalXP: data.totalXP,
       level: data.level,
+      avatarTier: data.avatarTier,
       alreadyCheckedIn: true,
+      newAchievements: [],
     }
   }
 
@@ -114,6 +171,9 @@ export async function checkInHabit(
 
   data.totalXP += xpEarned
 
+  // Log XP
+  data.xpLog.push({ source: 'checkin', amount: xpEarned, timestamp: Date.now() })
+
   // Upsert habit in array
   const idx = data.habits.findIndex((h) => h.nodeId === nodeId)
   if (idx >= 0) {
@@ -121,6 +181,9 @@ export async function checkInHabit(
   } else {
     data.habits.push(streak)
   }
+
+  // Check achievements
+  const newAchievements = checkAchievements(data, { justCheckedIn: true })
 
   await saveGamificationData(kv, userId, data)
 
@@ -131,7 +194,9 @@ export async function checkInHabit(
     celebrationText,
     totalXP: data.totalXP,
     level: data.level,
+    avatarTier: data.avatarTier,
     alreadyCheckedIn: false,
+    newAchievements,
   }
 }
 
@@ -142,8 +207,4 @@ export async function getHabitStreakForNode(
 ): Promise<HabitStreak | null> {
   const data = await getGamificationData(kv, userId)
   return data.habits.find((h) => h.nodeId === nodeId) ?? null
-}
-
-export function calculateLevel(totalXP: number): number {
-  return Math.max(1, Math.floor(totalXP / 100))
 }

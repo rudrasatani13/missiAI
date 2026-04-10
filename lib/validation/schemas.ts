@@ -22,9 +22,10 @@ export const chatSchema = z.object({
     .min(1, "At least one message is required")
     .max(20, "Too many messages (max 20)"),
   personality: z
-    .enum(["bestfriend", "professional", "playful", "mentor"])
+    .enum(["assistant", "bestfriend", "professional", "playful", "mentor", "custom"])
     .optional()
-    .default("bestfriend"),
+    .default("assistant"),
+  customPrompt: z.string().max(2000, "Custom prompt too long").transform(sanitizeInput).optional(),
   maxOutputTokens: z.number().min(100).max(2000).optional(),
   memories: z.string().max(10000, "Memories payload too large").transform(sanitizeInput).optional(),
   voiceEnabled: z.boolean().optional(),

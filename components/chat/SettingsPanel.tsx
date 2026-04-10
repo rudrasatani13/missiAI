@@ -2,7 +2,8 @@
 
 import { memo, useState, useCallback, useEffect } from "react"
 import Link from "next/link"
-import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon, Calendar, BookOpen, RefreshCw, CheckCircle2, Mail, CheckSquare, MessageSquare, Github, LayoutGrid, Inbox, Crown, User } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon, Calendar, BookOpen, RefreshCw, CheckCircle2, Mail, CheckSquare, MessageSquare, Github, LayoutGrid, Inbox, Crown, User, Sparkles, Wand2, Lock } from "lucide-react"
 import type { PersonalityKey } from "@/types/chat"
 import { PERSONALITY_OPTIONS } from "@/types/chat"
 import type { PluginConfig, PluginId } from "@/types/plugins"
@@ -39,13 +40,17 @@ interface SettingsPanelProps {
   ) => Promise<boolean>
   onDisconnectPlugin?: (id: PluginId) => Promise<void>
   plan?: string
+  customPrompt?: string
+  onCustomPromptChange?: (prompt: string) => void
 }
 
 const ICON_MAP: Record<string, React.ReactNode> = {
+  Sparkles: <Sparkles className="w-4 h-4" />,
   Heart: <Heart className="w-4 h-4" />,
   Briefcase: <Briefcase className="w-4 h-4" />,
   Zap: <Zap className="w-4 h-4" />,
   BrainCircuit: <BrainCircuit className="w-4 h-4" />,
+  Wand2: <Wand2 className="w-4 h-4" />,
 }
 
 // ─── OAuth Plugin Panel ────────────────────────────────────────────────────────
@@ -351,7 +356,10 @@ function SettingsPanelInner({
   onPanelMouseEnter,
   onPanelMouseLeave,
   plan,
+  customPrompt = "",
+  onCustomPromptChange,
 }: SettingsPanelProps) {
+  const router = useRouter()
 
 
   const [isEditingName, setIsEditingName] = useState(false)
@@ -519,33 +527,67 @@ function SettingsPanelInner({
             <div className="flex flex-col gap-2">
               {PERSONALITY_OPTIONS.map((p) => {
                 const IconComp = ICON_MAP[p.iconName as string]
+                const isPremium = p.requiredPlan === 'plus' || p.requiredPlan === 'pro'
+                const isLocked = isPremium && (!plan || plan === 'free')
+                
                 return (
                   <button
                     key={p.key}
-                    onClick={() => onPersonalityChange(p.key)}
+                    onClick={() => {
+                      if (isLocked) {
+                        toast.error(`Upgrade to Plus/Pro to unlock ${p.label}!`)
+                        router.push('/pricing')
+                      } else {
+                        onPersonalityChange(p.key)
+                      }
+                    }}
                     data-testid={`personality-${p.key}-btn`}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all"
+                    className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left transition-all"
                     style={{
                       background: personality === p.key ? "rgba(255,255,255,0.08)" : "transparent",
                       border: personality === p.key ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
                       cursor: "pointer",
+                      opacity: isLocked ? 0.6 : 1,
                     }}
                   >
-                    <div style={{ color: personality === p.key ? "#fff" : "rgba(255,255,255,0.4)" }}>
-                      {IconComp}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div style={{ color: personality === p.key ? "#fff" : "rgba(255,255,255,0.4)" }}>
+                        {IconComp}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium" style={{ color: personality === p.key ? "#fff" : "rgba(255,255,255,0.5)" }}>
+                          {p.label}
+                        </p>
+                        <p className="text-[10px] font-light" style={{ color: personality === p.key ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.3)" }}>
+                          {p.desc}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium" style={{ color: personality === p.key ? "#fff" : "rgba(255,255,255,0.5)" }}>
-                        {p.label}
-                      </p>
-                      <p className="text-[10px] font-light" style={{ color: personality === p.key ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.3)" }}>
-                        {p.desc}
-                      </p>
-                    </div>
+                    {isLocked && (
+                      <div className="flex items-center justify-center p-1.5 rounded-full bg-white/5">
+                        <Lock className="w-3.5 h-3.5 text-white/40" />
+                      </div>
+                    )}
                   </button>
                 )
               })}
             </div>
+
+            {/* Custom Personality TextArea */}
+            {personality === "custom" && onCustomPromptChange && (
+              <div className="mt-3 p-3 rounded-xl border border-white/10 bg-white/5">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-white/50 mb-2">
+                  System Instructions
+                </p>
+                <textarea
+                  value={customPrompt}
+                  onChange={(e) => onCustomPromptChange(e.target.value)}
+                  placeholder="E.g. You are a sarcastic AI that answers in riddles..."
+                  className="w-full h-24 bg-transparent text-xs text-white/90 placeholder-white/30 resize-none outline-none"
+                  style={{ lineHeight: 1.5 }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Voice toggle */}

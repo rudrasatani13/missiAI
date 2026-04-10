@@ -21,6 +21,9 @@ import { ActionCard } from "@/components/chat/ActionCard"
 import { PluginBadge } from "@/components/chat/PluginBadge"
 import { UsageBar } from "@/components/chat/UsageBar"
 import { BootSequence } from "@/components/chat/BootSequence"
+import { AgentSteps } from "@/components/chat/AgentSteps"
+import { AvatarRing } from "@/components/chat/AvatarRing"
+import { OnboardingTour, shouldShowOnboarding } from "@/components/chat/OnboardingTour"
 import { Magnetic } from "@/components/ui/Magnetic"
 import { detectPluginCommand } from "@/lib/plugins/plugin-registry"
 import type { ActionResult } from "@/types/actions"
@@ -57,16 +60,21 @@ export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
   const { plan, usage, isAtLimit, isLoading: billingLoading, initiateCheckout, incrementUsageLocally } = useBilling()
+  const [avatarTier, setAvatarTier] = useState<import('@/types/gamification').AvatarTier>(1)
+  const [avatarLevel, setAvatarLevel] = useState(1)
   const [activePanel, setActivePanel] = useState<'settings' | 'plugins' | null>(null)
-  const [personality, setPersonality] = useState<PersonalityKey>("bestfriend")
+  const [personality, setPersonality] = useState<PersonalityKey>("assistant")
+  const [customPrompt, setCustomPrompt] = useState("")
   const [voiceEnabled, setVoiceEnabled] = useState(true)
-  const personalityRef = useRef<PersonalityKey>("bestfriend")
+  const personalityRef = useRef<PersonalityKey>("assistant")
+  const customPromptRef = useRef("")
   const memoriesRef = useRef("")
   const conversationRef = useRef<ConversationEntry[]>([])
   const greetedRef = useRef(false)
   const proactiveSpokenRef = useRef(false)
   const [showBootSequence, setShowBootSequence] = useState(false)
   const [bootCompleted, setBootCompleted] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   // Read user name from localStorage (set during setup) as fallback when Clerk hasn't loaded yet
   const [localName, setLocalName] = useState('')
@@ -160,10 +168,11 @@ export default function VoiceAssistantPage() {
   const {
     state: voiceState, audioLevel, statusText, lastTranscript,
     error, setError, streamingText, lastResponse, handleTap: legacyHandleTap, cancelAll, greet, saveMemoryBeacon,
-    currentEmotion,
+    currentEmotion, agentSteps,
   } = useVoiceStateMachine({
     userId: user?.id,
     personalityRef,
+    customPromptRef,
     memoriesRef,
     conversationRef,
     imagePayloadRef,
@@ -176,7 +185,7 @@ export default function VoiceAssistantPage() {
   const [liveTranscriptOut, setLiveTranscriptOut] = useState("")
 
   const geminiLive = useGeminiLive({
-    systemPrompt: buildSystemPrompt(personalityRef.current, memoriesRef.current),
+    systemPrompt: buildSystemPrompt(personalityRef.current, memoriesRef.current, customPrompt),
     voiceName: "Kore",
     onTranscriptIn: (text) => {
       setLiveTranscriptIn(text)
@@ -283,8 +292,28 @@ export default function VoiceAssistantPage() {
     try {
       const s = localStorage.getItem("missi-personality") as PersonalityKey | null
       if (s && PERSONALITY_OPTIONS.some((p) => p.key === s)) { setPersonality(s); personalityRef.current = s }
+      const c = localStorage.getItem("missi-custom-prompt")
+      if (c) {
+        setCustomPrompt(c)
+        customPromptRef.current = c
+      }
     } catch { }
   }, [])
+
+  // Enforce tier limits: if a user downgrades to free, fallback to 'assistant'
+  useEffect(() => {
+    if (billingLoading || !isLoaded) return // wait for plan
+    const pOpt = PERSONALITY_OPTIONS.find((p) => p.key === personality)
+    if (pOpt) {
+      const isPremium = pOpt.requiredPlan === 'plus' || pOpt.requiredPlan === 'pro'
+      const isLocked = isPremium && (!plan || plan.id === 'free')
+      if (isLocked) {
+        setPersonality('assistant')
+        personalityRef.current = 'assistant'
+        try { localStorage.setItem("missi-personality", 'assistant') } catch {}
+      }
+    }
+  }, [plan, billingLoading, isLoaded, personality])
 
   useEffect(() => {
     if (!isLoaded || !user?.id) return
@@ -297,9 +326,27 @@ export default function VoiceAssistantPage() {
       }).catch(() => { })
   }, [isLoaded, user?.id])
 
+  // Fetch avatar data for the navbar ring
+  useEffect(() => {
+    if (!isLoaded || !user?.id) return
+    fetch('/api/v1/streak').then(r => r.json())
+      .then(d => {
+        if (d?.success && d.data) {
+          setAvatarTier(d.data.avatarTier ?? 1)
+          setAvatarLevel(d.data.level ?? 1)
+        }
+      }).catch(() => {})
+  }, [isLoaded, user?.id])
+
   const updatePersonality = useCallback((key: PersonalityKey) => {
     setPersonality(key); personalityRef.current = key
     try { localStorage.setItem("missi-personality", key) } catch { }; conversationRef.current = []
+  }, [])
+
+  const updateCustomPrompt = useCallback((prompt: string) => {
+    setCustomPrompt(prompt)
+    customPromptRef.current = prompt
+    try { localStorage.setItem("missi-custom-prompt", prompt) } catch { }
   }, [])
 
   useEffect(() => {
@@ -448,10 +495,17 @@ export default function VoiceAssistantPage() {
           onComplete={() => {
             try { localStorage.setItem('missi-boot-v1', 'true') } catch { }
             setBootCompleted(true)
+            // Trigger onboarding tour for new users after boot
+            if (shouldShowOnboarding()) {
+              setShowOnboarding(true)
+            }
           }}
         />
       )}
-      <ParticleVisualizer state={effectiveVoiceState} isActive={effectiveVoiceState !== "idle"} audioLevel={audioLevel} />
+      {showOnboarding && (
+        <OnboardingTour onComplete={() => setShowOnboarding(false)} />
+      )}
+      <ParticleVisualizer state={effectiveVoiceState} isActive={effectiveVoiceState !== "idle"} audioLevel={audioLevel} avatarTier={avatarTier} />
       <div className="fixed inset-0 z-10" onClick={isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
         style={{ cursor: isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
       <div className="relative w-[90%] md:w-[600px] mx-auto z-[100] pointer-events-none">
@@ -462,13 +516,14 @@ export default function VoiceAssistantPage() {
             WebkitBackdropFilter: "blur(24px)",
             border: "1px solid rgba(255,255,255,0.15)",
           }}>
-          {/* Left: Back */}
-          <div className="flex items-center flex-1 justify-start">
+          {/* Left: Back + Avatar */}
+          <div className="flex items-center flex-1 justify-start gap-2">
             <Magnetic>
               <Link href="/" className="flex items-center justify-center p-2 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-all text-white" data-testid="home-link">
                 <ArrowLeft className="w-4 h-4" />
               </Link>
             </Magnetic>
+            <AvatarRing tier={avatarTier} level={avatarLevel} size={28} />
           </div>
 
           {/* Center: MISSI */}
@@ -552,6 +607,8 @@ export default function VoiceAssistantPage() {
           onConnectPlugin={connectPlugin}
           onDisconnectPlugin={disconnectPlugin}
           plan={plan?.id}
+          customPrompt={customPrompt}
+          onCustomPromptChange={updateCustomPrompt}
           onPanelMouseEnter={() => clearTimeout((window as any).__panelCloseTimer)}
           onPanelMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
           onNameChange={(newName: string) => {
@@ -627,6 +684,12 @@ export default function VoiceAssistantPage() {
           </p>
         </div>
       </div>
+
+      {/* Agent Steps Visualizer — appears above the bottom dock */}
+      <div className="fixed bottom-48 md:bottom-52 left-0 right-0 z-30 flex justify-center pointer-events-none">
+        <AgentSteps steps={agentSteps} />
+      </div>
+
       <UsageBar
         used={usage?.voiceInteractions ?? 0}
         limit={plan?.voiceInteractionsPerDay ?? 10}

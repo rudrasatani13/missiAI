@@ -6,6 +6,7 @@ import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/l
 import { searchLifeGraph, formatLifeGraphForPrompt } from "@/lib/memory/life-graph"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import { buildGeminiRequest, streamGeminiResponse } from "@/lib/ai/gemini-stream"
+import type { GeminiStreamEvent } from "@/lib/ai/gemini-stream"
 import { buildSystemPrompt } from "@/services/ai.service"
 import { estimateRequestTokens, estimateTokens, LIMITS, truncateToTokenLimit } from "@/lib/memory/token-counter"
 import { selectGeminiModel, getFallbackModel } from "@/lib/ai/model-router"
@@ -15,11 +16,16 @@ import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkVoiceLimit, incrementVoiceUsage, getTodayDate } from "@/lib/billing/usage-tracker"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
+import { AGENT_FUNCTION_DECLARATIONS, executeAgentTool, getToolLabel } from "@/lib/ai/agent-tools"
+import type { AgentToolCall } from "@/lib/ai/agent-tools"
+import { awardXP } from "@/lib/gamification/xp-engine"
+import { geminiGenerateStream } from "@/lib/ai/vertex-client"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
 
 const MAX_BODY_BYTES = 5_000_000 // 5 MB
+const MAX_AGENT_LOOPS = 3 // Safety limit: max tool-call rounds
 
 function getKV(): KVStore | null {
   try {
@@ -80,11 +86,11 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return validationErrorResponse(parsed.error)
 
   let { messages } = parsed.data
-  const { personality, voiceEnabled } = parsed.data
+  const { personality, voiceEnabled, customPrompt } = parsed.data
   const maxOutputTokens = parsed.data.maxOutputTokens ?? 600
   const clientMemories = parsed.data.memories ?? ""
 
-  // 4. Memory context
+  // 4. Memory context (pre-fetch)
   let memories = ""
   if (kv) {
     try {
@@ -100,7 +106,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (clientMemories) memories = memories ? `${memories}\n${clientMemories}` : clientMemories
-  const systemPrompt = buildSystemPrompt(personality, memories)
+  const systemPrompt = buildSystemPrompt(personality, memories, customPrompt)
   const estimatedTokens = estimateRequestTokens(messages, systemPrompt, memories)
   if (estimatedTokens > LIMITS.WARN_THRESHOLD) messages = truncateToTokenLimit(messages, LIMITS.WARN_THRESHOLD)
 
@@ -112,101 +118,208 @@ export async function POST(req: NextRequest) {
   const elevenParams = `output_format=pcm_24000&optimize_streaming_latency=3&xi-api-key=${appEnv.ELEVENLABS_API_KEY}` // Low latency profile
   const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream-input?model_id=eleven_turbo_v2_5&${elevenParams}`
 
-  let requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens)
+  // Build request WITH agent tool declarations
+  let requestBody = buildGeminiRequest(
+    messages,
+    personality,
+    memories,
+    model,
+    maxOutputTokens,
+    AGENT_FUNCTION_DECLARATIONS,
+    customPrompt,
+  )
   
   try {
-    let textStream: ReadableStream<string>
-    try {
-      textStream = await streamGeminiResponse(appEnv.GEMINI_API_KEY, model, requestBody)
-    } catch (primaryErr) {
-      const fallback = getFallbackModel(model)
-      if (fallback && primaryErr instanceof Error && primaryErr.message.includes('503')) {
-        model = fallback
-        requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens)
-        textStream = await streamGeminiResponse(appEnv.GEMINI_API_KEY, model, requestBody)
-      } else {
-        throw primaryErr
-      }
-    }
-    const reader = textStream.getReader()
-    
-    // We will establish an SSE stream to the client
     const encoder = new TextEncoder()
+    const vectorizeEnv = getVectorizeEnv()
+
     const sseStream = new ReadableStream({
       async start(controller) {
-        let ws: WebSocket | null = null;
-        let wsOpen = false;
-        const sendQueue: string[] = [];
+        // Helper to send SSE events to the client
+        const sendSSE = (data: Record<string, unknown>) => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
+        }
 
-        // Try to connect WebSocket if voice is enabled and available in runtime
+        let ws: WebSocket | null = null
+        let wsOpen = false
+        const sendQueue: string[] = []
+
+        // Try to connect WebSocket if voice is enabled
         if (voiceEnabled !== false && typeof WebSocket !== 'undefined') {
-          ws = new WebSocket(wsUrl);
-          // Required header mechanism for ElevenLabs WS: The first message must contain the API key and settings.
+          ws = new WebSocket(wsUrl)
           ws.onopen = () => {
-            wsOpen = true;
+            wsOpen = true
             ws!.send(JSON.stringify({
               text: " ",
               voice_settings: { stability: 0.5, similarity_boost: 0.8 }
-            }));
+            }))
             while(sendQueue.length > 0) {
-              const txt = sendQueue.shift();
-              ws!.send(JSON.stringify({ text: txt }));
-            }
-          };
-
-          ws.onmessage = (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              if (data.audio) {
-                // Send SSE data back to client containing the audio chunk
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ audio: data.audio })}\n\n`));
-              }
-              if (data.isFinal) {
-                // Done playing
-              }
-            } catch { }
-          };
-
-          ws.onerror = (e) => {
-            logError("chat_stream.ws_error", e, userId)
-          };
-          
-          ws.onclose = () => { wsOpen = false; };
-        }
-
-        let fullResponse = ""
-        try {
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) {
-              if (ws && wsOpen) ws.send(JSON.stringify({ text: "" })); // Empty text flushes elevenlabs buffer
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
-              controller.close();
-              
-              // Increment Voice Usage & Cost Logging...
-              if (kv) incrementVoiceUsage(kv, userId).catch(()=>{});
-              break;
-            }
-            
-            fullResponse += value
-            // Stream the text to the client
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: value })}\n\n`));
-            
-            // Stream the text to ElevenLabs
-            if (ws) {
-              if (wsOpen) {
-                ws.send(JSON.stringify({ text: value }));
-              } else {
-                sendQueue.push(value);
-              }
+              const txt = sendQueue.shift()
+              ws!.send(JSON.stringify({ text: txt }))
             }
           }
-        } catch (streamErr) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Stream error" })}\n\n`));
-          controller.close();
+          ws.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data)
+              if (data.audio) {
+                sendSSE({ audio: data.audio })
+              }
+            } catch { }
+          }
+          ws.onerror = (e) => {
+            logError("chat_stream.ws_error", e, userId)
+          }
+          ws.onclose = () => { wsOpen = false }
+        }
+
+        // ── Agentic Loop ──────────────────────────────────────────────────
+        // The model may respond with text OR a functionCall.
+        // If it's a functionCall, we execute it, feed the result back,
+        // and let the model generate the final response.
+        // Max iterations = MAX_AGENT_LOOPS to prevent infinite loops.
+
+        let currentRequestBody = requestBody
+        let loopCount = 0
+        let fullResponse = ""
+        // Track conversation contents for multi-turn tool calling
+        let agentContents: any[] = [...(currentRequestBody.contents as any[])]
+
+        while (loopCount < MAX_AGENT_LOOPS) {
+          loopCount++
+
+          let eventStream: ReadableStream<GeminiStreamEvent>
+          try {
+            eventStream = await streamGeminiResponse(appEnv.GEMINI_API_KEY, model, currentRequestBody)
+          } catch (primaryErr) {
+            const fallback = getFallbackModel(model)
+            if (fallback && primaryErr instanceof Error && primaryErr.message.includes('503')) {
+              model = fallback
+              currentRequestBody = buildGeminiRequest(
+                messages,
+                personality,
+                memories,
+                model,
+                maxOutputTokens,
+                AGENT_FUNCTION_DECLARATIONS,
+              )
+              // Update contents reference
+              agentContents = [...(currentRequestBody.contents as any[])]
+              eventStream = await streamGeminiResponse(appEnv.GEMINI_API_KEY, model, currentRequestBody)
+            } else {
+              throw primaryErr
+            }
+          }
+
+          const reader = eventStream.getReader()
+          let pendingFunctionCall: AgentToolCall | null = null
+          let loopText = ""
+
+          // Read the stream for this iteration
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            if (value.type === "text") {
+              loopText += value.text
+              fullResponse += value.text
+              // Stream text to client
+              sendSSE({ text: value.text })
+              // Stream to ElevenLabs
+              if (ws) {
+                if (wsOpen) {
+                  ws.send(JSON.stringify({ text: value.text }))
+                } else {
+                  sendQueue.push(value.text)
+                }
+              }
+            } else if (value.type === "functionCall") {
+              pendingFunctionCall = value.call
+              // Don't break — read remaining events in this chunk
+            }
+          }
+
+          // If no function call, we're done — final text response
+          if (!pendingFunctionCall) {
+            break
+          }
+
+          // ── Execute the tool ──────────────────────────────────────────
+          const toolLabel = getToolLabel(pendingFunctionCall.name)
+
+          // Tell the client about the agent step (running)
+          sendSSE({
+            agentStep: {
+              toolName: pendingFunctionCall.name,
+              status: "running",
+              label: toolLabel,
+            },
+          })
+
+          const toolResult = await executeAgentTool(pendingFunctionCall, {
+            kv,
+            vectorizeEnv,
+            userId,
+            apiKey: appEnv.GEMINI_API_KEY,
+          })
+
+          // Tell the client the step is done
+          sendSSE({
+            agentStep: {
+              toolName: pendingFunctionCall.name,
+              status: toolResult.status,
+              label: toolLabel,
+              summary: toolResult.summary,
+            },
+          })
+
+          // Award XP for agent tool usage
+          if (kv) awardXP(kv, userId, 'agent', 3).catch(() => {})
+
+          // ── Feed tool result back to Gemini ───────────────────────────
+          // Append the model's functionCall and our functionResponse
+          agentContents.push({
+            role: "model",
+            parts: [{
+              functionCall: {
+                name: pendingFunctionCall.name,
+                args: pendingFunctionCall.args,
+              },
+            }],
+          })
+
+          agentContents.push({
+            role: "user",
+            parts: [{
+              functionResponse: {
+                name: pendingFunctionCall.name,
+                response: {
+                  result: toolResult.output,
+                },
+              },
+            }],
+          })
+
+          // Rebuild the request with updated conversation
+          currentRequestBody = {
+            ...currentRequestBody,
+            contents: agentContents,
+          }
+
+          // Reset for next iteration
+          fullResponse = ""
+        }
+
+        // ── Stream Complete ──────────────────────────────────────────────
+        if (ws && wsOpen) ws.send(JSON.stringify({ text: "" }))
+        sendSSE({ done: true })
+        controller.close()
+
+        // Increment Voice Usage & Cost Logging
+        if (kv) {
+          incrementVoiceUsage(kv, userId).catch(()=>{})
         }
       }
-    });
+    })
 
     return new Response(sseStream, {
       headers: {
@@ -224,4 +337,3 @@ export async function POST(req: NextRequest) {
     )
   }
 }
-

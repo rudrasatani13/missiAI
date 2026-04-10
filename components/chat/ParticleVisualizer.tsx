@@ -3,11 +3,13 @@
 import { memo, useRef, useEffect } from "react"
 import * as THREE from "three"
 import type { VoiceState } from "@/types/chat"
+import type { AvatarTier } from "@/types/gamification"
 
 interface ParticleVisualizerProps {
   state: VoiceState
   isActive: boolean
   audioLevel?: number
+  avatarTier?: AvatarTier
 }
 
 function getQualityTier(): "low" | "high" {
@@ -94,7 +96,8 @@ const VERTEX_SHADER = `
     float fromCenter = length(position.xy) / 1.0;
 
     // Global hue shifts slowly with time; each particle has tiny phase offset via aSeed
-    float speed  = 0.18;
+    // Avatar tier modulates cycling speed: higher tier = faster, more vibrant
+    float speed  = 0.18 + uActivityLevel * 0.08;
     float phase  = uTime * speed + aSeed * 1.2; // slight per-particle variation
 
     // Smooth RGB cycling: 3 sine waves 120° apart = full color spectrum loop
@@ -151,7 +154,7 @@ const FRAGMENT_SHADER = `
   }
 `
 
-function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVisualizerProps) {
+function ParticleVisualizerInner({ state, isActive, audioLevel = 0, avatarTier = 1 }: ParticleVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const vizRef = useRef<{
     scene: THREE.Scene
@@ -177,7 +180,7 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0 }: ParticleVi
     const quality = getQualityTier()
     const particleCount = quality === "low"
       ? (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 1500 : 2500)
-      : 5000
+      : Math.min(8000, 4000 + avatarTier * 600)
 
     let renderer: THREE.WebGLRenderer
     try {

@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
   }
 
   let { messages } = parsed.data
-  const { personality } = parsed.data
+  const { personality, customPrompt } = parsed.data
   const maxOutputTokens = parsed.data.maxOutputTokens ?? 600
   const clientMemories = parsed.data.memories ?? ""
 
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
     memories = memories ? memories + "\n" + clientMemories : clientMemories
   }
 
-  const systemPrompt = buildSystemPrompt(personality, memories)
+  const systemPrompt = buildSystemPrompt(personality, memories, customPrompt)
   const estimatedTokens = estimateRequestTokens(messages, systemPrompt, memories)
 
   if (estimatedTokens > LIMITS.WARN_THRESHOLD) {
@@ -234,8 +234,8 @@ export async function POST(req: NextRequest) {
     const appEnv = getEnv()
     const apiKey = appEnv.GEMINI_API_KEY
 
-    let requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens)
-    let textStream: ReadableStream<string>
+    let requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens, undefined, customPrompt)
+    let textStream: ReadableStream<import("@/lib/ai/gemini-stream").GeminiStreamEvent>
     try {
       textStream = await streamGeminiResponse(apiKey, model, requestBody)
     } catch (primaryErr) {
@@ -244,7 +244,7 @@ export async function POST(req: NextRequest) {
       if (fallback && primaryErr instanceof Error && primaryErr.message.includes('503')) {
         logError('chat.primary_model_503', primaryErr, userId)
         model = fallback
-        requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens)
+        requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens, undefined, customPrompt)
         textStream = await streamGeminiResponse(apiKey, model, requestBody)
       } else {
         throw primaryErr
@@ -303,10 +303,13 @@ export async function POST(req: NextRequest) {
               }
               return
             }
-            fullResponse += value
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ text: value })}\n\n`)
-            )
+            // Extract text from the typed GeminiStreamEvent
+            if (value.type === "text") {
+              fullResponse += value.text
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ text: value.text })}\n\n`)
+              )
+            }
           }
         } catch (streamErr) {
           logError("chat.stream_error", streamErr, userId)

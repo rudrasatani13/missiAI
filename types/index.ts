@@ -10,7 +10,7 @@ export interface Message {
 
 // ─── AI / Personality ─────────────────────────────────────────────────────────
 
-export type PersonalityKey = "bestfriend" | "professional" | "playful" | "mentor"
+export type PersonalityKey = "assistant" | "bestfriend" | "professional" | "playful" | "mentor" | "custom"
 export type AIProviderName = "gemini" | "openai" | "claude"
 
 export interface AIServiceOptions {

@@ -19,6 +19,7 @@ import { logRequest, logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { getTodayDate } from "@/lib/billing/usage-tracker"
+import { awardXP } from "@/lib/gamification/xp-engine"
 import type { KVStore } from "@/types"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { MemoryCategory } from "@/types/memory"
@@ -278,10 +279,28 @@ export async function POST(req: NextRequest) {
       totalInteractions: graph.totalInteractions,
     })
 
-    // Analytics: fire-and-forget
+    // Analytics & Gamification: fire-and-forget
     if (kv) {
       recordEvent(kv, { type: 'memory_write', userId }).catch(() => {})
       recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
+
+      // Award chat XP only for meaningful conversations (4+ turns)
+      // and only once per 5-minute window to prevent duplicate beacon awards
+      if (interactionCount >= 4) {
+        const cooldownKey = `xp-cooldown:chat:${userId}`
+        const cooldownHit = await kv.get(cooldownKey).catch(() => null)
+        if (!cooldownHit) {
+          awardXP(kv, userId, 'chat', 3).catch(() => {})
+          kv.put(cooldownKey, '1', { expirationTtl: 300 }).catch(() => {}) // 5-min cooldown
+        }
+      }
+
+      // Award XP for each memory node saved
+      if (added > 0) {
+        for (let i = 0; i < Math.min(added, 10); i++) {
+          awardXP(kv, userId, 'memory', 2).catch(() => {})
+        }
+      }
     }
 
     return jsonResponse({ success: true, data: { added, updated } }, 200, rateLimitHeaders(rateResult))

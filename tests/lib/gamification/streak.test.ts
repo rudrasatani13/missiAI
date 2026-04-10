@@ -18,8 +18,21 @@ function createMockKV(): KVStore {
 }
 
 /** Seed a GamificationData entry directly into the mock KV */
-async function seedData(kv: KVStore, userId: string, data: GamificationData) {
-  await kv.put(`gamification:${userId}`, JSON.stringify(data))
+async function seedData(kv: KVStore, userId: string, data: Partial<GamificationData> & { userId: string }) {
+  const full: GamificationData = {
+    totalXP: 0,
+    level: 1,
+    avatarTier: 1,
+    habits: [],
+    achievements: [],
+    xpLog: [],
+    xpLogDate: '',
+    loginStreak: 0,
+    lastLoginDate: '',
+    lastUpdatedAt: Date.now(),
+    ...data,
+  }
+  await kv.put(`gamification:${userId}`, JSON.stringify(full))
 }
 
 /** Returns a date string offset by `days` from today (negative = past) */
