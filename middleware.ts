@@ -58,7 +58,8 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
 // Explicit allowed origins. No wildcards are permitted per security requirements.
 const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_APP_URL || "https://missi.space",
-  "http://localhost:3000",
+  // Only allow localhost in development — never in production deployments
+  ...(process.env.NODE_ENV !== "production" ? ["http://localhost:3000"] : []),
 ]
 
 function applyCorsHeaders(response: NextResponse, request: NextRequest | Request): NextResponse {
@@ -110,8 +111,8 @@ const VIOLATION_ESCALATION = 3           // violations before doubling retry-aft
 const ipMap = new Map<string, IPBucket>()
 const prevIpMap = new Map<string, IPBucket>()
 
-// Standard API endpoints: 60 req/min
-const IP_LIMIT     = 60
+// Standard API endpoints: 100 req/min (matches per-user KV limit)
+const IP_LIMIT     = 100
 const IP_WINDOW_MS = 60_000
 
 // Health endpoint: lower burst limit — unauthenticated public probe
@@ -316,6 +317,13 @@ const clerkHandler = clerkMiddleware(
           )
         )
       }
+
+      // Check for session freshness (require separate login confirmation for sensitive actions)
+      // Clerk JWT includes `iat` (issued at) or `auth_time`. If the token's original auth
+      // is too old, or we want to force re-evaluation, we can enforce it here.
+      // For now, we enforce that the admin has the role check passing. 
+      // If a specific sensitive action requires step-up auth, those API routes
+      // can manually trigger a re-auth challenge by returning 401 with a specific error code.
     }
 
     // Route handlers call auth() themselves — do not redirect here.
@@ -377,7 +385,9 @@ const clerkHandler = clerkMiddleware(
       })
 
       if (!isRoleAdmin && !isSuperAdminEnv) {
-        return NextResponse.redirect(new URL("/", request.url))
+        const signInUrl = new URL("/sign-in", request.url)
+        signInUrl.searchParams.set("redirect_url", request.nextUrl.pathname)
+        return NextResponse.redirect(signInUrl)
       }
     }
   }
@@ -426,10 +436,12 @@ export default async function middleware(request: NextRequest, event: NextFetchE
     if (isAPIRoute(request)) {
       const status = response?.status ?? 200
       const userId = request.headers.get("x-clerk-user-id") ?? undefined
+      const ua = request.headers.get("user-agent") ?? undefined
 
       if (status === 401) {
         logAuthEvent("auth.unauthorized", {
           ip: clientIp,
+          userAgent: ua,
           path: request.nextUrl.pathname,
           outcome: "failure",
           reason: "unauthenticated_api_request",
@@ -440,6 +452,8 @@ export default async function middleware(request: NextRequest, event: NextFetchE
         level: "info",
         event: "api.request",
         userId,
+        ip: clientIp,
+        userAgent: ua ? ua.slice(0, 200) : undefined,
         durationMs: Date.now() - startTime,
         metadata: {
           path: request.nextUrl.pathname,

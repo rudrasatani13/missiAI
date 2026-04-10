@@ -1,24 +1,29 @@
 "use server"
 
 import { clerkClient } from "@clerk/nextjs/server"
+import { z } from "zod"
+import { sanitizeInput } from "@/lib/validation/sanitizer"
 
-// Email validation regex
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const waitlistEmailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .email("Please enter a valid email address")
+  .max(255, "Email address is too long")
+  .transform(sanitizeInput)
 
 export async function joinWaitlist(email: string) {
   try {
-    // Server-side validation (important for security)
-    const sanitizedEmail = email.trim().toLowerCase()
+    const parseResult = waitlistEmailSchema.safeParse(email)
 
-    if (!sanitizedEmail || !EMAIL_REGEX.test(sanitizedEmail)) {
+    if (!parseResult.success) {
       return {
         success: false,
-        error: "Invalid email address"
+        error: parseResult.error.errors[0]?.message || "Invalid email address"
       }
     }
 
-    // Additional sanitization - remove potentially harmful characters
-    const finalEmail = sanitizedEmail.replace(/[<>]/g, "")
+    const finalEmail = parseResult.data
 
     const client = await clerkClient()
 

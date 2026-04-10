@@ -9,7 +9,7 @@
 
 const RATE_LIMITS = {
   free: { api: 25, ai: 10 },
-  paid: { api: 60, ai: 30 },
+  paid: { api: 100, ai: 30 },
 } as const
 
 export type UserTier  = keyof typeof RATE_LIMITS

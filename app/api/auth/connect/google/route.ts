@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { getEnv } from "@/lib/server/env"
+import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { getUserPlan } from "@/lib/billing/tier-checker"
+import { logError } from "@/lib/server/logger"
 
 export const runtime = "edge"
 
@@ -18,11 +21,18 @@ export async function GET(req: NextRequest) {
     throw e
   }
 
+  // Rate limit OAuth redirects to prevent abuse
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
+  if (!rateResult.allowed) return rateLimitExceededResponse(rateResult)
+
   const env = getEnv()
 
   if (!env.GOOGLE_CLIENT_ID) {
+    logError("oauth.google.not_configured", "GOOGLE_CLIENT_ID missing", userId)
     return NextResponse.json(
-      { error: "Google integration not configured. Add GOOGLE_CLIENT_ID to environment." },
+      { error: "Integration temporarily unavailable" },
       { status: 503 }
     )
   }

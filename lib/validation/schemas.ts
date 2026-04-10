@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { API_ERROR_CODES, type ApiErrorCode } from "@/types/api"
+import { sanitizeInput } from "./sanitizer"
 
 // ─── Shared ───────────────────────────────────────────────────────────────────
 
@@ -8,7 +9,8 @@ const messageSchema = z.object({
   content: z
     .string()
     .min(1, "Message content cannot be empty")
-    .max(2000, "Message too long (max 2000 chars)"),
+    .max(2000, "Message too long (max 2000 chars)")
+    .transform(sanitizeInput),
   image: z.string().optional(),
 })
 
@@ -24,7 +26,7 @@ export const chatSchema = z.object({
     .optional()
     .default("bestfriend"),
   maxOutputTokens: z.number().min(100).max(2000).optional(),
-  memories: z.string().optional(),
+  memories: z.string().max(10000, "Memories payload too large").transform(sanitizeInput).optional(),
   voiceEnabled: z.boolean().optional(),
 })
 
@@ -36,7 +38,8 @@ export const ttsSchema = z.object({
   text: z
     .string()
     .min(1, "text is required")
-    .max(5000, "text too long (max 5000 chars)"),
+    .max(5000, "text too long (max 5000 chars)")
+    .transform(sanitizeInput),
   stability: z.number().min(0).max(1).optional(),
   similarityBoost: z.number().min(0).max(1).optional(),
   style: z.number().min(0).max(1).optional(),
@@ -88,7 +91,7 @@ export const proactiveConfigSchema = z.object({
     .string()
     .regex(/^\d{2}:\d{2}$/, 'Must be HH:MM 24-hour format'),
   // Max 64 chars covers all valid IANA timezone IDs (e.g. "America/New_York")
-  timezone: z.string().min(1, 'Timezone is required').max(64, 'Timezone too long'),
+  timezone: z.string().min(1, 'Timezone is required').max(64, 'Timezone too long').transform(sanitizeInput),
   nudgesEnabled: z.boolean(),
   maxItemsPerBriefing: z
     .number()
@@ -112,7 +115,7 @@ export const dismissSchema = z.object({
   // nodeId follows the same constraint as other node IDs in the codebase
   nodeId: z.string().max(50).optional(),
   // type is an internal briefing-item type; cap to prevent oversized strings
-  type: z.string().min(1, 'type is required').max(50, 'type too long'),
+  type: z.string().min(1, 'type is required').max(50, 'type too long').transform(sanitizeInput),
 })
 
 export type DismissInput = z.infer<typeof dismissSchema>
@@ -120,8 +123,8 @@ export type DismissInput = z.infer<typeof dismissSchema>
 // ─── /api/v1/actions ──────────────────────────────────────────────────────────
 
 export const actionSchema = z.object({
-  userMessage: z.string().min(1).max(2000),
-  conversationContext: z.string().max(3000).optional(),
+  userMessage: z.string().min(1, "User message required").max(2000, "User message too long").transform(sanitizeInput),
+  conversationContext: z.string().max(3000, "Context too long").transform(sanitizeInput).optional(),
 })
 
 export type ActionInput = z.infer<typeof actionSchema>
@@ -130,15 +133,15 @@ export type ActionInput = z.infer<typeof actionSchema>
 
 export const pluginSchema = z.object({
   id: z.enum(["notion", "google_calendar", "webhook"]),
-  credentials: z.record(z.string().max(500)),
-  settings: z.record(z.string().max(500)).optional(),
+  credentials: z.record(z.string().max(500).transform(sanitizeInput)),
+  settings: z.record(z.string().max(500).transform(sanitizeInput)).optional(),
 })
 
 export type PluginInput = z.infer<typeof pluginSchema>
 
 export const executePluginSchema = z.object({
   pluginId: z.enum(["notion", "google_calendar", "webhook"]),
-  userMessage: z.string().min(1).max(2000),
+  userMessage: z.string().min(1, "User message required").max(2000, "User message too long").transform(sanitizeInput),
 })
 
 export type ExecutePluginInput = z.infer<typeof executePluginSchema>
@@ -147,7 +150,7 @@ export type ExecutePluginInput = z.infer<typeof executePluginSchema>
 
 export const billingCheckoutSchema = z.object({
   planId: z.enum(['plus', 'pro']),
-  email: z.string().email().optional(),
+  email: z.string().email("Invalid email format").max(255, "Email too long").transform(sanitizeInput).optional(),
 })
 
 export type BillingCheckoutInput = z.infer<typeof billingCheckoutSchema>
@@ -155,8 +158,8 @@ export type BillingCheckoutInput = z.infer<typeof billingCheckoutSchema>
 // ─── /api/v1/streak ───────────────────────────────────────────────────────────
 
 export const checkInSchema = z.object({
-  nodeId: z.string().min(1).max(50),
-  habitTitle: z.string().min(1).max(80),
+  nodeId: z.string().min(1, "Node ID required").max(50, "Node ID too long").transform(sanitizeInput),
+  habitTitle: z.string().min(1, "Habit title required").max(80, "Habit title too long").transform(sanitizeInput),
 })
 export type CheckInInput = z.infer<typeof checkInSchema>
 

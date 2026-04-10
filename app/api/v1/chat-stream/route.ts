@@ -217,8 +217,11 @@ export async function POST(req: NextRequest) {
       },
     })
   } catch (err) {
-    console.error("CHAT_STREAM FATAL ERROR", err);
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), { status: 500 });
+    logError("chat_stream.fatal_error", err, userId)
+    return new Response(
+      JSON.stringify({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    )
   }
 }
 
