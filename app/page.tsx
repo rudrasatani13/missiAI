@@ -280,7 +280,7 @@ export default function LandingPage() {
         <nav className="relative z-10 flex items-center justify-between px-6 md:px-10 py-5">
           <Link href="/" className="block select-none">
             <div className="relative" onContextMenu={(e) => e.preventDefault()}>
-              <Image src="/images/logo-symbol.png" alt="missiAI" width={40} height={40}
+              <Image src="/missi-ai-logo.png" alt="missiAI" width={40} height={40}
                 className="w-9 h-9 md:w-10 md:h-10 opacity-80 hover:opacity-100 transition-opacity duration-300 select-none pointer-events-none"
                 priority draggable={false} />
             </div>
@@ -289,15 +289,7 @@ export default function LandingPage() {
         </nav>
 
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center pb-24">
-          {/* Status badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-8"
-            style={{
-              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-              color: "rgba(255,255,255,0.5)", animation: "fadeUp 0.8s ease-out both",
-            }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            Voice AI — Early Access
-          </div>
+
 
           {/* LED Matrix Logo */}
           <div className="mb-4 select-none w-full flex justify-center relative z-10 led-logo-container" style={{ animation: "fadeUp 0.8s ease-out 0.1s both, crtFlicker 8s infinite" }}>
@@ -615,7 +607,7 @@ export default function LandingPage() {
       <footer className="relative px-6 md:px-10 py-10" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <Image src="/images/logo-symbol.png" alt="missiAI" width={24} height={24} className="w-6 h-6 opacity-60 select-none pointer-events-none" draggable={false} />
+            <Image src="/missi-ai-logo.png" alt="missiAI" width={24} height={24} className="w-6 h-6 opacity-60 select-none pointer-events-none" draggable={false} />
             <span className="text-xs font-light" style={{ color: "rgba(255,255,255,0.25)" }}>
               &copy; {new Date().getFullYear()} missiAI. All rights reserved.
             </span>

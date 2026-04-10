@@ -21,7 +21,7 @@ export default function LegalLayout({
           <span className="text-xs font-light tracking-wide">Home</span>
         </Link>
         <Image
-          src="/images/logo-symbol.png"
+          src="/missi-ai-logo.png"
           alt="missiAI"
           width={28}
           height={28}
