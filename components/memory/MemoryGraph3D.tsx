@@ -7,7 +7,14 @@ import dynamic from 'next/dynamic'
 // Dynamically import the ForceGraph3D component to disable SSR since Canvas doesn't work server-side
 const ForceGraph3D = dynamic(() => import('react-force-graph-3d'), { ssr: false })
 
-export default function MemoryGraph3D({ nodes }: { nodes: LifeNode[] }) {
+export default function MemoryGraph3D({
+  nodes,
+  onNodeSelect
+}: {
+  nodes: LifeNode[]
+  onNodeSelect?: (node: LifeNode | null) => void
+}) {
+  const fgRef = useRef<any>(null)
   // Generate links based on shared categories, tags, and people
   const graphData = useMemo(() => {
     const links: any[] = []
@@ -115,6 +122,7 @@ export default function MemoryGraph3D({ nodes }: { nodes: LifeNode[] }) {
       </div>
 
       <ForceGraph3D
+        ref={fgRef}
         width={dimensions.width}
         height={dimensions.height}
         graphData={graphData}
@@ -125,23 +133,37 @@ export default function MemoryGraph3D({ nodes }: { nodes: LifeNode[] }) {
         nodeOpacity={0.85}
         linkWidth={(link: any) => Math.min(link.value * 0.3, 2)}
         linkOpacity={0.4}
-        linkColor={() => 'rgba(34, 197, 94, 0.6)'} // Matrix Green
-        linkDirectionalParticles={2} // Glowing photons moving along links
+        linkColor={() => 'rgba(255, 255, 255, 0.15)'}
+        linkDirectionalParticles={1}
         linkDirectionalParticleWidth={1.5}
-        linkDirectionalParticleColor={() => '#4ade80'} // Bright green photons
+        linkDirectionalParticleColor={() => 'rgba(255, 255, 255, 0.6)'}
         backgroundColor="#000000"
         enableNodeDrag={true}
         onNodeDragEnd={(node: any) => {
-          // Pin the node at the dropped location by setting fixed coordinates
           node.fx = node.x
           node.fy = node.y
           node.fz = node.z
         }}
         onNodeClick={(node: any) => {
-          // Unpin node on click so it snaps back to the physics cluster
-          node.fx = undefined
-          node.fy = undefined
-          node.fz = undefined
+          if (fgRef.current) {
+            const distance = 80
+            const distRatio = 1 + distance / Math.max(Math.hypot(node.x, node.y, node.z), 1)
+            fgRef.current.cameraPosition(
+              { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
+              node,
+              1500
+            )
+          }
+          if (onNodeSelect) {
+            onNodeSelect(node)
+          }
+          // Temporarily pin so it doesn't move while inspecting
+          node.fx = node.x
+          node.fy = node.y
+          node.fz = node.z
+        }}
+        onBackgroundClick={() => {
+          if (onNodeSelect) onNodeSelect(null)
         }}
         showNavInfo={false}
       />
