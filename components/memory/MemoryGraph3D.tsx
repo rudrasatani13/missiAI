@@ -107,7 +107,7 @@ export default function MemoryGraph3D({
   }
 
   return (
-    <div ref={containerRef} className="w-full h-[calc(100vh-80px)] bg-black relative rounded-xl overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.05)] border border-white/10">
+    <div ref={containerRef} className="w-full h-full bg-black relative">
       
       {/* Overlay UI elements */}
       <div className="absolute top-4 left-4 z-10 pointer-events-none">
