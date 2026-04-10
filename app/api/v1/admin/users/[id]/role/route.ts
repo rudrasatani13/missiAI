@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth, clerkClient } from "@clerk/nextjs/server"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
-import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
-import { getUserPlan } from "@/lib/billing/tier-checker"
 import { log, logApiError } from "@/lib/server/logger"
 
 export const runtime = "edge"
+
+// Rate limiting is handled by the middleware's IP-based limiter (100 req/min).
+// Adding KV-backed rate limiting here would pull in @cloudflare/next-on-pages
+// and push the Cloudflare Pages bundle over the 25 MiB limit.
 
 export async function POST(
   req: NextRequest,
@@ -51,16 +53,7 @@ export async function POST(
     )
   }
 
-  // ── 3. Rate limit ─────────────────────────────────────────────────────────
-  const planId = await getUserPlan(userId)
-  const rateTier = planId === "free" ? "free" : "paid"
-  const rateResult = await checkRateLimit(userId, rateTier)
-  if (!rateResult.allowed) {
-    log({ level: "warn", event: "admin.role_change.rate_limited", userId, timestamp: Date.now() })
-    return rateLimitExceededResponse(rateResult)
-  }
-
-  // ── 4. Validate body ───────────────────────────────────────────────────────
+  // ── 3. Validate body ───────────────────────────────────────────────────────
   let body: { role?: string }
   try {
     body = await req.json()
@@ -114,7 +107,7 @@ export async function POST(
         success: true, 
         message: "User role updated and active sessions revoked for security." 
       }),
-      { status: 200, headers: { "Content-Type": "application/json", ...rateLimitHeaders(rateResult) } }
+      { status: 200, headers: { "Content-Type": "application/json" } }
     )
 
   } catch (error) {
@@ -125,3 +118,4 @@ export async function POST(
     )
   }
 }
+
