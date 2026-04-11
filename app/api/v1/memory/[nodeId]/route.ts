@@ -44,44 +44,43 @@ export async function DELETE(
   { params }: { params: Promise<{ nodeId: string }> },
 ) {
   const startTime = Date.now()
-
-  let userId: string
-  try {
-    userId = await getVerifiedUserId()
-  } catch (e) {
-    if (e instanceof AuthenticationError) return unauthorizedResponse()
-    logError("memory.node.auth_error", e)
-    throw e
-  }
-
-  // Rate-limit DELETE — each call writes the full life graph to KV
-  const planId = await getUserPlan(userId)
-  const rateTier = planId === "free" ? "free" : "paid"
-  const rateResult = await checkRateLimit(userId, rateTier)
-  if (!rateResult.allowed) {
-    logRequest("memory.node.delete.rate_limited", userId, startTime)
-    return rateLimitExceededResponse(rateResult)
-  }
-
-  const { nodeId } = await params
-  const parsed = nodeIdSchema.safeParse(nodeId)
-  if (!parsed.success) {
-    return jsonResponse(
-      { success: false, error: "Invalid node ID", code: "VALIDATION_ERROR" },
-      400,
-    )
-  }
-
-  const kv = getKV()
-  if (!kv) {
-    logError("memory.node.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
-    return jsonResponse(
-      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
-      500,
-    )
-  }
+  let userId = "unknown"
 
   try {
+    try {
+      userId = await getVerifiedUserId()
+    } catch (e) {
+      if (e instanceof AuthenticationError) return unauthorizedResponse()
+      logError("memory.node.auth_error", e)
+      return jsonResponse({ success: false, error: "Authentication failed", code: "AUTH_ERROR" }, 401)
+    }
+
+    const planId = await getUserPlan(userId)
+    const rateTier = planId === "free" ? "free" : "paid"
+    const rateResult = await checkRateLimit(userId, rateTier)
+    if (!rateResult.allowed) {
+      logRequest("memory.node.delete.rate_limited", userId, startTime)
+      return rateLimitExceededResponse(rateResult)
+    }
+
+    const { nodeId } = await params
+    const parsed = nodeIdSchema.safeParse(nodeId)
+    if (!parsed.success) {
+      return jsonResponse(
+        { success: false, error: "Invalid node ID", code: "VALIDATION_ERROR" },
+        400,
+      )
+    }
+
+    const kv = getKV()
+    if (!kv) {
+      logError("memory.node.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
+      return jsonResponse(
+        { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
+        500,
+      )
+    }
+
     const graph = await getLifeGraph(kv, userId)
     const nodeExists = graph.nodes.some((n) => n.id === nodeId)
 
@@ -99,7 +98,7 @@ export async function DELETE(
   } catch (err) {
     logError("memory.node.delete_error", err, userId)
     return jsonResponse(
-      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
+      { success: false, error: "Failed to process request. Please try again.", code: "INTERNAL_ERROR" },
       500,
     )
   }
@@ -112,66 +111,65 @@ export async function PATCH(
   { params }: { params: Promise<{ nodeId: string }> },
 ) {
   const startTime = Date.now()
-
-  let userId: string
-  try {
-    userId = await getVerifiedUserId()
-  } catch (e) {
-    if (e instanceof AuthenticationError) return unauthorizedResponse()
-    logError("memory.node.auth_error", e)
-    throw e
-  }
-
-  // OWASP API4: rate-limit node updates — each writes the full life graph to KV
-  const planId = await getUserPlan(userId)
-  const rateTier = planId === "free" ? "free" : "paid"
-  const rateResult = await checkRateLimit(userId, rateTier)
-  if (!rateResult.allowed) {
-    logRequest("memory.node.patch.rate_limited", userId, startTime)
-    return rateLimitExceededResponse(rateResult)
-  }
-
-  const { nodeId } = await params
-  const nodeIdParsed = nodeIdSchema.safeParse(nodeId)
-  if (!nodeIdParsed.success) {
-    return jsonResponse(
-      { success: false, error: "Invalid node ID", code: "VALIDATION_ERROR" },
-      400,
-    )
-  }
-
-  let body: unknown
-  try {
-    body = await req.json()
-  } catch {
-    return jsonResponse(
-      { success: false, error: "Invalid JSON body", code: "VALIDATION_ERROR" },
-      400,
-    )
-  }
-
-  const parsed = patchBodySchema.safeParse(body)
-  if (!parsed.success) {
-    return jsonResponse(
-      {
-        success: false,
-        error: parsed.error.issues[0]?.message ?? "Validation error",
-        code: "VALIDATION_ERROR",
-      },
-      400,
-    )
-  }
-
-  const kv = getKV()
-  if (!kv) {
-    logError("memory.node.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
-    return jsonResponse(
-      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
-      500,
-    )
-  }
+  let userId = "unknown"
 
   try {
+    try {
+      userId = await getVerifiedUserId()
+    } catch (e) {
+      if (e instanceof AuthenticationError) return unauthorizedResponse()
+      logError("memory.node.auth_error", e)
+      return jsonResponse({ success: false, error: "Authentication failed", code: "AUTH_ERROR" }, 401)
+    }
+
+    const planId = await getUserPlan(userId)
+    const rateTier = planId === "free" ? "free" : "paid"
+    const rateResult = await checkRateLimit(userId, rateTier)
+    if (!rateResult.allowed) {
+      logRequest("memory.node.patch.rate_limited", userId, startTime)
+      return rateLimitExceededResponse(rateResult)
+    }
+
+    const { nodeId } = await params
+    const nodeIdParsed = nodeIdSchema.safeParse(nodeId)
+    if (!nodeIdParsed.success) {
+      return jsonResponse(
+        { success: false, error: "Invalid node ID", code: "VALIDATION_ERROR" },
+        400,
+      )
+    }
+
+    let body: unknown
+    try {
+      body = await req.json()
+    } catch {
+      return jsonResponse(
+        { success: false, error: "Invalid JSON body", code: "VALIDATION_ERROR" },
+        400,
+      )
+    }
+
+    const parsed = patchBodySchema.safeParse(body)
+    if (!parsed.success) {
+      return jsonResponse(
+        {
+          success: false,
+          error: parsed.error.issues[0]?.message ?? "Validation error",
+          code: "VALIDATION_ERROR",
+        },
+        400,
+      )
+    }
+
+    const kv = getKV()
+    if (!kv) {
+      logError("memory.node.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
+      return jsonResponse(
+        { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
+        500,
+      )
+    }
+
     const graph = await getLifeGraph(kv, userId)
     const nodeIndex = graph.nodes.findIndex((n) => n.id === nodeId)
 
@@ -205,7 +203,7 @@ export async function PATCH(
   } catch (err) {
     logError("memory.node.update_error", err, userId)
     return jsonResponse(
-      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
+      { success: false, error: "Failed to process request. Please try again.", code: "INTERNAL_ERROR" },
       500,
     )
   }
