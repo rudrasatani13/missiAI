@@ -224,6 +224,11 @@ export default function VoiceAssistantPage() {
 
   // Unified handleTap — uses Live mode or legacy
   const handleTap = useCallback(() => {
+    // Close settings/plugins panel if open
+    if (activePanel !== null) {
+      setActivePanel(null)
+      return
+    }
     if (liveMode) {
       if (geminiLive.state === "disconnected" || geminiLive.state === "error") {
         // Cancel any legacy audio that might still be playing
@@ -235,7 +240,7 @@ export default function VoiceAssistantPage() {
     } else {
       legacyHandleTap()
     }
-  }, [liveMode, geminiLive, legacyHandleTap, cancelAll])
+  }, [liveMode, geminiLive, legacyHandleTap, cancelAll, activePanel])
 
   // Unified status text — not used by StatusDisplay (it uses state), kept for compatibility
   const effectiveStatusText = liveMode && geminiLive.state !== "disconnected"
@@ -550,8 +555,7 @@ export default function VoiceAssistantPage() {
           <div className="flex items-center flex-1 justify-end gap-1.5 md:gap-2">
             <Magnetic>
               <button
-                onMouseEnter={() => { clearTimeout((window as any).__panelCloseTimer); setActivePanel('settings') }}
-                onMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
+                onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'settings' ? null : 'settings') }}
                 className="p-2 rounded-full opacity-70 hover:opacity-100 hover:bg-white/20 transition-all text-white"
                 data-testid="settings-toggle-btn"
                 style={{ background: "none", border: "none", cursor: "pointer" }}>
@@ -572,8 +576,8 @@ export default function VoiceAssistantPage() {
           plan={plan?.id}
           customPrompt={customPrompt}
           onCustomPromptChange={updateCustomPrompt}
-          onPanelMouseEnter={() => clearTimeout((window as any).__panelCloseTimer)}
-          onPanelMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
+          onPanelMouseEnter={() => {}}
+          onPanelMouseLeave={() => {}}
           onNameChange={(newName: string) => {
             try { localStorage.setItem('missi-user-name', newName) } catch { }
             setLocalName(newName)

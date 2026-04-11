@@ -332,13 +332,21 @@ function OAuthPluginPanel() {
 }
 
 const panelBox: React.CSSProperties = {
-  background: "rgba(10, 10, 10, 0.85)",
-  backdropFilter: "blur(24px)",
-  WebkitBackdropFilter: "blur(24px)",
-  border: "1px solid rgba(255,255,255,0.15)",
-  borderRadius: "16px",
+  background: "linear-gradient(135deg, rgba(15,15,20,0.97), rgba(8,8,12,0.98))",
+  border: "1px solid rgba(255,255,255,0.1)",
+  borderRadius: "20px",
   padding: "20px",
-  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)",
+  boxShadow: "0 25px 60px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03) inset, 0 1px 0 rgba(255,255,255,0.06) inset",
+  isolation: "isolate" as const,
+}
+
+const glassSection: React.CSSProperties = {
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid rgba(255,255,255,0.06)",
+  borderRadius: "14px",
+  padding: "14px",
+  position: "relative",
+  overflow: "hidden",
 }
 
 function SettingsPanelInner({
@@ -456,85 +464,75 @@ function SettingsPanelInner({
       {/* ── SETTINGS BOX — opens when gear icon is clicked ── */}
       {renderedPanel === 'settings' && (
         <div onClick={(e) => e.stopPropagation()} data-testid="settings-panel" style={{ ...panelBox, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
-          {/* User profile */}
-          <div className="flex items-center gap-3 mb-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-            <div className="relative">
-              {userImageUrl ? (
-                <img src={userImageUrl} alt="" className="w-10 h-10 rounded-full border border-white/10" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                  <User className="w-5 h-5 text-white/50" />
-                </div>
-              )}
-              {/* Golden PRO Badge overlay */}
-              {(plan === 'plus' || plan === 'pro') && (
-                <div className="absolute -bottom-1 -right-1 bg-[#F59E0B] p-[3px] rounded-full border-[1.5px] border-[#050505] shadow-lg flex items-center justify-center" title="PRO Member">
-                  <Crown className="w-2.5 h-2.5 text-white" />
-                </div>
-              )}
-            </div>
-            <div className="flex-1 min-w-0 flex flex-col justify-center">
-              {isEditingName ? (
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveName()
-                      if (e.key === 'Escape') { setIsEditingName(false); setEditName(userName) }
-                    }}
-                    className="text-xs font-semibold text-white tracking-wide bg-white/5 border border-white/15 rounded px-2 py-1 outline-none focus:border-white/30"
-                    style={{ width: '120px', fontSize: '12px' }}
-                    autoFocus
-                    disabled={savingName}
-                  />
-                  <button
-                    onClick={handleSaveName}
-                    disabled={savingName}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4ade80', padding: '2px' }}
-                    title="Save"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => { setIsEditingName(false); setEditName(userName) }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: '2px' }}
-                    title="Cancel"
-                  >
-                    <XIcon className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5">
-                  <p className="text-xs font-semibold text-white tracking-wide">{userName}</p>
-                  {onNameChange && (
-                    <button
-                      onClick={() => { setEditName(userName); setIsEditingName(true) }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', padding: '2px' }}
-                      title="Edit name"
-                      data-testid="edit-name-btn"
-                    >
-                      <Pencil className="w-3 h-3" />
+
+          {/* ── User Profile Card ── */}
+          <div style={glassSection} className="mb-3">
+            <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%)', filter: 'blur(12px)' }} />
+            <div className="relative z-10 flex items-center gap-3">
+              <div className="relative">
+                {userImageUrl ? (
+                  <img src={userImageUrl} alt="" className="w-11 h-11 rounded-full" style={{ border: '2px solid rgba(255,255,255,0.1)', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }} />
+                ) : (
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))', border: '2px solid rgba(255,255,255,0.08)' }}>
+                    <User className="w-5 h-5 text-white/50" />
+                  </div>
+                )}
+                {(plan === 'plus' || plan === 'pro') && (
+                  <div className="absolute -bottom-1 -right-1 p-[3px] rounded-full border-[1.5px] border-[#0c0c10] shadow-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)', boxShadow: '0 2px 8px rgba(245,158,11,0.3)' }} title="PRO Member">
+                    <Crown className="w-2.5 h-2.5 text-white" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                {isEditingName ? (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveName()
+                        if (e.key === 'Escape') { setIsEditingName(false); setEditName(userName) }
+                      }}
+                      className="text-xs font-semibold text-white tracking-wide outline-none focus:border-white/30"
+                      style={{ width: '120px', fontSize: '12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '4px 8px' }}
+                      autoFocus
+                      disabled={savingName}
+                    />
+                    <button onClick={handleSaveName} disabled={savingName} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4ade80', padding: '2px' }} title="Save">
+                      <Check className="w-3.5 h-3.5" />
                     </button>
-                  )}
-                </div>
-              )}
-              <p className="text-[10px] font-light text-white/40">{userEmail}</p>
+                    <button onClick={() => { setIsEditingName(false); setEditName(userName) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: '2px' }} title="Cancel">
+                      <XIcon className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-semibold text-white tracking-wide">{userName}</p>
+                    {onNameChange && (
+                      <button onClick={() => { setEditName(userName); setIsEditingName(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', padding: '2px' }} title="Edit name" data-testid="edit-name-btn">
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                <p className="text-[10px] font-light text-white/40">{userEmail}</p>
+              </div>
             </div>
           </div>
 
-          {/* Personality */}
-          <div className="mb-5">
-            <p className="text-[10px] font-medium tracking-wider uppercase mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>
+          {/* ── Personality Card ── */}
+          <div style={glassSection} className="mb-3">
+            <p className="text-[10px] font-semibold tracking-[0.12em] uppercase mb-3" style={{ color: "rgba(255,255,255,0.35)" }}>
               Personality Profile
             </p>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               {PERSONALITY_OPTIONS.map((p) => {
                 const IconComp = ICON_MAP[p.iconName as string]
                 const isPremium = p.requiredPlan === 'plus' || p.requiredPlan === 'pro'
                 const isLocked = isPremium && (!plan || plan === 'free')
-                
+                const isActive = personality === p.key
+
                 return (
                   <button
                     key={p.key}
@@ -547,30 +545,31 @@ function SettingsPanelInner({
                       }
                     }}
                     data-testid={`personality-${p.key}-btn`}
-                    className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-left transition-all"
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all"
                     style={{
-                      background: personality === p.key ? "rgba(255,255,255,0.08)" : "transparent",
-                      border: personality === p.key ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
+                      background: isActive ? "rgba(255,255,255,0.08)" : "transparent",
+                      border: isActive ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
+                      boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)" : "none",
                       cursor: "pointer",
-                      opacity: isLocked ? 0.6 : 1,
+                      opacity: isLocked ? 0.5 : 1,
                     }}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div style={{ color: personality === p.key ? "#fff" : "rgba(255,255,255,0.4)" }}>
+                      <div style={{ color: isActive ? "#fff" : "rgba(255,255,255,0.35)" }}>
                         {IconComp}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium" style={{ color: personality === p.key ? "#fff" : "rgba(255,255,255,0.5)" }}>
+                        <p className="text-[11px] font-medium" style={{ color: isActive ? "#fff" : "rgba(255,255,255,0.5)" }}>
                           {p.label}
                         </p>
-                        <p className="text-[10px] font-light" style={{ color: personality === p.key ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.3)" }}>
+                        <p className="text-[9px] font-light" style={{ color: isActive ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.25)" }}>
                           {p.desc}
                         </p>
                       </div>
                     </div>
                     {isLocked && (
-                      <div className="flex items-center justify-center p-1.5 rounded-full bg-white/5">
-                        <Lock className="w-3.5 h-3.5 text-white/40" />
+                      <div className="flex items-center justify-center p-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <Lock className="w-3 h-3 text-white/30" />
                       </div>
                     )}
                   </button>
@@ -578,122 +577,123 @@ function SettingsPanelInner({
               })}
             </div>
 
-            {/* Custom Personality TextArea */}
             {personality === "custom" && onCustomPromptChange && (
-              <div className="mt-3 p-3 rounded-xl border border-white/10 bg-white/5">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-white/50 mb-2">
+              <div className="mt-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-white/40 mb-2">
                   System Instructions
                 </p>
                 <textarea
                   value={customPrompt}
                   onChange={(e) => onCustomPromptChange(e.target.value)}
                   placeholder="E.g. You are a sarcastic AI that answers in riddles..."
-                  className="w-full h-24 bg-transparent text-xs text-white/90 placeholder-white/30 resize-none outline-none"
+                  className="w-full h-24 bg-transparent text-xs text-white/90 placeholder-white/20 resize-none outline-none"
                   style={{ lineHeight: 1.5 }}
                 />
               </div>
             )}
           </div>
 
-          {/* Voice toggle */}
-          <div className="mb-4 flex items-center justify-between">
-            <span className="text-[11px] font-semibold tracking-wide uppercase" style={{ color: "rgba(255,255,255,0.4)" }}>
-              Voice Engine
-            </span>
-            <button
-              onClick={onVoiceToggle}
-              data-testid="voice-toggle-btn"
-              className="relative w-10 h-6 rounded-full transition-colors"
-              style={{ background: voiceEnabled ? "#fff" : "rgba(255,255,255,0.15)", border: "none", cursor: "pointer" }}
-            >
-              <span
-                className="absolute top-1 w-4 h-4 rounded-full shadow-sm"
-                style={{
-                  background: voiceEnabled ? "#000" : "#fff",
-                  left: voiceEnabled ? "20px" : "4px",
-                  transition: "left 0.2s ease, background 0.2s ease",
-                }}
-              />
-            </button>
+          {/* ── Toggles Card ── */}
+          <div style={glassSection} className="mb-3">
+            <div className="flex items-center justify-between mb-3.5">
+              <span className="text-[10px] font-semibold tracking-[0.1em] uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>
+                Voice Engine
+              </span>
+              <button
+                onClick={onVoiceToggle}
+                data-testid="voice-toggle-btn"
+                className="relative w-10 h-[22px] rounded-full transition-colors"
+                style={{ background: voiceEnabled ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.1)", border: "none", cursor: "pointer", boxShadow: voiceEnabled ? '0 0 10px rgba(255,255,255,0.15)' : 'none' }}
+              >
+                <span
+                  className="absolute top-[3px] w-4 h-4 rounded-full shadow-sm"
+                  style={{
+                    background: voiceEnabled ? "#0c0c10" : "rgba(255,255,255,0.7)",
+                    left: voiceEnabled ? "20px" : "4px",
+                    transition: "left 0.2s ease, background 0.2s ease",
+                  }}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-semibold tracking-[0.1em] uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>
+                Proactive Check-Ins
+              </span>
+              <button
+                onClick={handleEnablePush}
+                className="text-[9px] font-bold px-3 py-1 rounded-full transition-all hover:scale-105"
+                style={{ background: "rgba(255,255,255,0.06)", border: '1px solid rgba(255,255,255,0.1)', color: "rgba(255,255,255,0.8)", cursor: "pointer" }}
+              >
+                Enable
+              </button>
+            </div>
           </div>
 
-          {/* Notifications */}
-          <div className="mb-5 flex items-center justify-between">
-            <span className="text-[11px] font-semibold tracking-wide uppercase" style={{ color: "rgba(255,255,255,0.4)" }}>
-              Proactive Check-Ins
-            </span>
-            <button
-              onClick={handleEnablePush}
-              className="text-[10px] font-bold px-3 py-1 rounded border transition-colors hover:bg-white/10"
-              style={{ background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}
-            >
-              Enable
-            </button>
-          </div>
-
-          {/* Plan Settings */}
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "16px", paddingBottom: "16px" }}>
+          {/* ── Plan Card ── */}
+          <div style={{ ...glassSection, padding: 0, overflow: 'hidden' }} className="mb-3">
             {(!plan || plan === 'free') ? (
               <Link
                 href="/pricing"
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition-all hover:scale-[1.02]"
-                style={{ 
-                  background: "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(245,158,11,0.1))",
-                  border: "1px solid rgba(245,158,11,0.3)",
+                className="w-full flex items-center justify-between px-4 py-3.5 text-xs font-semibold transition-all hover:scale-[1.01]"
+                style={{
+                  background: "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(245,158,11,0.08))",
                   color: "#F59E0B",
-                  textDecoration: "none"
+                  textDecoration: "none",
                 }}
               >
                 <div className="flex items-center gap-2">
                   <Crown className="w-4 h-4" />
                   <span>Upgrade to PRO</span>
                 </div>
-                <span className="text-[10px] opacity-70 border border-[#F59E0B]/30 px-1.5 py-0.5 rounded">View Plans</span>
+                <span className="text-[9px] opacity-70 px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>View Plans</span>
               </Link>
             ) : (
               <Link
                 href="/pricing"
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all"
-                style={{ 
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.05)",
+                className="w-full flex items-center justify-between px-4 py-3.5 text-xs font-medium transition-all"
+                style={{
+                  background: "rgba(255,255,255,0.02)",
                   color: "rgba(255,255,255,0.7)",
-                  textDecoration: "none"
+                  textDecoration: "none",
                 }}
               >
                 <div className="flex items-center gap-2">
                   <Crown className="w-3.5 h-3.5 text-[#F59E0B]" />
                   <span>Manage Subscription</span>
                 </div>
-                <span className="text-[10px] text-[#F59E0B] uppercase font-bold tracking-wider">{plan}</span>
+                <span className="text-[9px] text-[#F59E0B] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.1)' }}>{plan}</span>
               </Link>
             )}
           </div>
 
-          {/* Sign out */}
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "16px" }}>
-            <button
-              onClick={onLogout}
-              data-testid="logout-btn"
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
-              style={{ color: "#fff", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer" }}
-            >
-              <LogOut className="w-3.5 h-3.5 opacity-80" /> Sign out
-            </button>
-          </div>
+          {/* ── Sign Out ── */}
+          <button
+            onClick={onLogout}
+            data-testid="logout-btn"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium transition-all hover:scale-[1.01]"
+            style={{ color: "rgba(255,255,255,0.6)", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }}
+          >
+            <LogOut className="w-3.5 h-3.5 opacity-60" /> Sign out
+          </button>
         </div>
       )}
 
       {/* ── PLUGINS BOX — opens when plugin badge is clicked ── */}
       {renderedPanel === 'plugins' && (
         <div onClick={(e) => e.stopPropagation()} style={{ ...panelBox, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
-          <div className="flex items-center gap-2 mb-4">
-            <Zap className="w-4 h-4 text-white opacity-80" />
-            <span className="text-xs font-semibold text-white tracking-wide uppercase">
-              Connections
-            </span>
+          <div style={glassSection}>
+            <div className="absolute -top-10 -left-10 w-24 h-24 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)', filter: 'blur(12px)' }} />
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-4">
+                <Zap className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.6)' }} />
+                <span className="text-[10px] font-semibold tracking-[0.12em] uppercase" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  Connections
+                </span>
+              </div>
+              <OAuthPluginPanel />
+            </div>
           </div>
-          <OAuthPluginPanel />
         </div>
       )}
     </div>
