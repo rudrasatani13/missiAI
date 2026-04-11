@@ -494,6 +494,8 @@ export default function VoiceAssistantPage() {
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"
       style={{ fontFamily: "var(--font-body)" }}>
+      {/* Hide global footer on chat page */}
+      <style>{`[data-testid="global-footer"] { display: none !important; }`}</style>
       {showBootSequence && !bootCompleted && (
         <BootSequence
           userName={displayName || "Guest"}
