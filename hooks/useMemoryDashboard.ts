@@ -120,7 +120,7 @@ export function useMemoryDashboard(ready: boolean = true) {
     setDeletingId(nodeId)
     setError(null) // Clear any previous error
     try {
-      const res = await fetch(`/api/v1/memory/${nodeId}`, { method: 'DELETE' })
+      const res = await fetch(`/api/v1/memory?nodeId=${encodeURIComponent(nodeId)}`, { method: 'DELETE' })
       if (res.ok) {
         // Optimistic update — remove from local state immediately
         setGraph((prev) =>

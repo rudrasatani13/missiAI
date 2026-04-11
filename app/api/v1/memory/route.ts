@@ -23,6 +23,7 @@ import { awardXP } from "@/lib/gamification/xp-engine"
 import type { KVStore } from "@/types"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { MemoryCategory } from "@/types/memory"
+import { z } from "zod"
 
 export const runtime = "edge"
 
@@ -310,5 +311,69 @@ export async function POST(req: NextRequest) {
       { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
       500,
     )
+  }
+}
+
+// ─── DELETE — Remove a single memory node ─────────────────────────────────────
+// Accepts nodeId from query param (?nodeId=xxx) or JSON body ({ nodeId: "xxx" })
+// This lives in the parent route because the [nodeId] dynamic route has
+// Cloudflare edge worker compilation issues.
+
+const nodeIdSchema = z.string().min(1).max(50)
+
+export async function DELETE(req: NextRequest) {
+  const startTime = Date.now()
+
+  let userId: string
+  try {
+    userId = await getVerifiedUserId()
+  } catch (e) {
+    if (e instanceof AuthenticationError) return unauthorizedResponse()
+    logError("memory.delete.auth_error", e)
+    return jsonResponse({ success: false, error: "Auth error", code: "AUTH_ERROR" }, 401)
+  }
+
+  try {
+    // Get nodeId from query param or body
+    let nodeId = req.nextUrl.searchParams.get("nodeId")
+
+    if (!nodeId) {
+      // Try reading from body
+      try {
+        const body = await req.json()
+        nodeId = body?.nodeId ?? null
+      } catch {
+        // No body — that's fine, check for null below
+      }
+    }
+
+    if (!nodeId) {
+      return jsonResponse({ success: false, error: "nodeId is required", code: "VALIDATION_ERROR" }, 400)
+    }
+
+    const parsed = nodeIdSchema.safeParse(nodeId)
+    if (!parsed.success) {
+      return jsonResponse({ success: false, error: "Invalid node ID", code: "VALIDATION_ERROR" }, 400)
+    }
+
+    const kv = getKV()
+    if (!kv) {
+      logError("memory.delete.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
+      return jsonResponse({ success: false, error: "Storage unavailable", code: "INTERNAL_ERROR" }, 503)
+    }
+
+    const graph = await getLifeGraph(kv, userId)
+    const before = graph.nodes.length
+    graph.nodes = graph.nodes.filter((n) => n.id !== nodeId)
+
+    if (graph.nodes.length < before) {
+      await saveLifeGraph(kv, userId, graph)
+      logRequest("memory.node.deleted", userId, startTime, { nodeId })
+    }
+
+    return jsonResponse({ success: true, data: { deleted: nodeId } })
+  } catch (err) {
+    logError("memory.delete.error", err, userId)
+    return jsonResponse({ success: false, error: "Failed to delete memory", code: "INTERNAL_ERROR" }, 500)
   }
 }
