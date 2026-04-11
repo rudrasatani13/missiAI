@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import nextDynamic from "next/dynamic"
-import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera } from "lucide-react"
+import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera, Puzzle } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useGeminiLive, type LiveState } from "@/hooks/useGeminiLive"
@@ -516,14 +516,13 @@ export default function VoiceAssistantPage() {
             WebkitBackdropFilter: "blur(24px)",
             border: "1px solid rgba(255,255,255,0.15)",
           }}>
-          {/* Left: Back + Avatar */}
+          {/* Left: Back */}
           <div className="flex items-center flex-1 justify-start gap-2">
             <Magnetic>
               <Link href="/" className="flex items-center justify-center p-2 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-all text-white" data-testid="home-link">
                 <ArrowLeft className="w-4 h-4" />
               </Link>
             </Magnetic>
-            <AvatarRing tier={avatarTier} level={avatarLevel} size={28} />
           </div>
 
           {/* Center: MISSI */}
@@ -547,44 +546,8 @@ export default function VoiceAssistantPage() {
             </svg>
           </div>
 
-          {/* Right: PRO, Plugins, Settings */}
+          {/* Right: Settings */}
           <div className="flex items-center flex-1 justify-end gap-1.5 md:gap-2">
-            <Magnetic>
-              <Link
-                href="/pricing"
-                onClick={(e) => e.stopPropagation()}
-                data-testid="upgrade-to-pro-link"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all hover:scale-105"
-                style={{
-                  background: plan?.id === 'free'
-                    ? 'rgba(255,255,255,0.08)'
-                    : 'linear-gradient(135deg, rgba(124,58,237,0.4), rgba(245,158,11,0.25))',
-                  border: plan?.id === 'free'
-                    ? '1px solid rgba(255,255,255,0.1)'
-                    : '1px solid rgba(124,58,237,0.4)',
-                  fontSize: 10,
-                  color: plan?.id === 'free' ? 'rgba(255,255,255,0.9)' : 'rgba(245,158,11,0.95)',
-                  fontWeight: 600,
-                  letterSpacing: '0.03em',
-                  textDecoration: 'none',
-                }}
-              >
-                <Crown className="w-3.5 h-3.5" style={{ color: '#F59E0B' }} />
-                <span className="hidden sm:inline">
-                  {plan?.id === 'pro' ? 'PRO' : 'PLUS'}
-                </span>
-              </Link>
-            </Magnetic>
-
-            <Magnetic>
-              <div
-                onMouseEnter={() => { clearTimeout((window as any).__panelCloseTimer); setActivePanel('plugins') }}
-                onMouseLeave={() => { (window as any).__panelCloseTimer = setTimeout(() => setActivePanel(null), 200) }}
-              >
-                <PluginBadge plugins={plugins} onManage={() => { }} />
-              </div>
-            </Magnetic>
-
             <Magnetic>
               <button
                 onMouseEnter={() => { clearTimeout((window as any).__panelCloseTimer); setActivePanel('settings') }}
@@ -714,26 +677,46 @@ export default function VoiceAssistantPage() {
           onChange={handleImageSelect}
         />
         <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
-          className="opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          title="The Vision" style={{ color: 'white' }}>
+          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
+          style={{ color: 'white' }}>
           <Camera className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Vision</span>
         </button>
         <div className="w-[60%] h-[1px] bg-white/10" />
+        <Link href="/pricing" onClick={(e) => e.stopPropagation()}
+          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
+          data-testid="upgrade-to-pro-link"
+          style={{ color: '#F59E0B' }}>
+          <Crown className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>{plan?.id === 'pro' ? 'PRO' : 'PLUS'}</span>
+        </Link>
+        <div
+          onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'plugins' ? null : 'plugins') }}
+          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center cursor-pointer"
+          style={{ color: 'white' }}>
+          <Puzzle className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Plugins</span>
+        </div>
+        <div className="w-[60%] h-[1px] bg-white/10" />
         <Link href="/memory" onClick={(e) => e.stopPropagation()}
-          className="opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          title="Memory Graph" style={{ color: 'white' }}>
+          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
+          style={{ color: 'white' }}>
           <Brain className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Memory</span>
         </Link>
         <Link href="/wind-down" onClick={(e) => e.stopPropagation()}
-          className="opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          title="Good night" style={{ color: 'white' }}>
+          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
+          style={{ color: 'white' }}>
           <Moon className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Wind Down</span>
         </Link>
         <Link href="/streak" onClick={(e) => e.stopPropagation()}
-          className="opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          title="Streaks" style={{ color: 'white' }}>
+          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
+          style={{ color: 'white' }}>
           <Flame className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Streaks</span>
         </Link>
       </div>
+
     </div>)
 }

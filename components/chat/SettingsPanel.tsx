@@ -429,9 +429,14 @@ function SettingsPanelInner({
     }
   }
 
+  const isPluginsFromSidebar = renderedPanel === 'plugins'
+
   return (
     <div
-      className="absolute top-full right-0 md:right-4 mt-2 z-40"
+      className={isPluginsFromSidebar
+        ? "fixed bottom-44 md:bottom-36 left-16 md:left-20 z-40"
+        : "absolute top-full right-0 md:right-4 mt-2 z-40"
+      }
       onMouseEnter={onPanelMouseEnter}
       onMouseLeave={onPanelMouseLeave}
       style={{
@@ -441,8 +446,8 @@ function SettingsPanelInner({
     >
     <div
       style={{
-        transform: isOpen ? "translateY(0) scale(1)" : "translateY(-10px) scale(0.96)",
-        transformOrigin: "top right",
+        transform: isOpen ? "translateY(0) scale(1)" : isPluginsFromSidebar ? "translateX(-10px) scale(0.96)" : "translateY(-10px) scale(0.96)",
+        transformOrigin: isPluginsFromSidebar ? "bottom left" : "top right",
         opacity: isOpen ? 1 : 0,
         transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease",
         willChange: "transform, opacity",
@@ -450,7 +455,7 @@ function SettingsPanelInner({
     >
       {/* ── SETTINGS BOX — opens when gear icon is clicked ── */}
       {renderedPanel === 'settings' && (
-        <div onClick={(e) => e.stopPropagation()} data-testid="settings-panel" style={panelBox}>
+        <div onClick={(e) => e.stopPropagation()} data-testid="settings-panel" style={{ ...panelBox, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
           {/* User profile */}
           <div className="flex items-center gap-3 mb-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
             <div className="relative">
@@ -681,7 +686,7 @@ function SettingsPanelInner({
 
       {/* ── PLUGINS BOX — opens when plugin badge is clicked ── */}
       {renderedPanel === 'plugins' && (
-        <div onClick={(e) => e.stopPropagation()} style={panelBox}>
+        <div onClick={(e) => e.stopPropagation()} style={{ ...panelBox, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
           <div className="flex items-center gap-2 mb-4">
             <Zap className="w-4 h-4 text-white opacity-80" />
             <span className="text-xs font-semibold text-white tracking-wide uppercase">
