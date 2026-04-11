@@ -337,7 +337,7 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0, avatarTier =
     camera.lookAt(0, 0, 0)
 
     renderer.setSize(window.innerWidth, window.innerHeight, false)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality === "low" ? 1 : 2))
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
     const uniforms: Record<string, { value: number }> = {
       uTime:            { value: 0 },
