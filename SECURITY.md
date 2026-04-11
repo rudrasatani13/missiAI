@@ -1,97 +1,134 @@
-# Security Runbook — MissiAI Production
+# Security Runbook — missiAI Production
 
-This document is the authoritative checklist for deploying MissiAI securely to
-production (Cloudflare Pages + Workers KV).
+This document is the authoritative security checklist for deploying and operating
+missiAI in production (Cloudflare Pages + Workers KV + Vectorize).
+
+**Domain:** [missi.space](https://missi.space)
 
 ---
 
-## 1. HTTPS Enforcement
+## 1. Authentication & Authorization
 
-HSTS (`Strict-Transport-Security`) headers are already emitted by Next.js
-(`next.config.mjs`) on every response:
+### Clerk Middleware
+
+All non-public routes are protected by Clerk middleware (`middleware.ts`).
+
+**Public routes** (no auth required):
+- `/` (landing page)
+- `/sign-in`, `/sign-up`
+- `/pricing`, `/privacy`, `/terms`, `/manifesto`
+- `/api/health`
+- `/api/webhooks/dodo` (verified via webhook signature)
+
+**Protected routes** (Clerk session required):
+- `/chat`, `/memory`, `/streak`, `/wind-down`, `/setup`
+- All `/api/v1/*` endpoints
+- `/admin` (additionally requires `ADMIN_USER_ID` match)
+
+### Admin Access
+
+The admin dashboard (`/admin`, `/api/v1/admin/*`) is restricted to a single
+Clerk user ID defined in `ADMIN_USER_ID`. All admin API routes verify this
+before processing.
+
+---
+
+## 2. HTTPS Enforcement
+
+HSTS headers are emitted on every response via `next.config.mjs`:
 
 ```
 Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
 ```
 
-The following platform-level settings must be verified for each deployment.
+### Cloudflare Settings
 
-### Cloudflare Pages (primary platform)
-
-| Setting | Location | Required value |
+| Setting | Location | Required Value |
 |---------|----------|---------------|
-| Always Use HTTPS | SSL/TLS → Edge Certificates | **On** |
-| Minimum TLS Version | SSL/TLS → Edge Certificates | **TLS 1.2** |
-| HTTP/2 | Speed → Optimization | **Enabled** |
-| Opportunistic Encryption | SSL/TLS → Edge Certificates | **On** |
+| Always Use HTTPS | SSL/TLS > Edge Certificates | **On** |
+| Minimum TLS Version | SSL/TLS > Edge Certificates | **TLS 1.2** |
+| HTTP/2 | Speed > Optimization | **Enabled** |
+| Opportunistic Encryption | SSL/TLS > Edge Certificates | **On** |
 
 **Verification:**
 ```bash
-# Must return HTTP 301 → https://
+# Must return HTTP 301 -> https://
 curl -I http://missi.space
 
 # Must include HSTS header
 curl -sI https://missi.space | grep -i strict-transport
 ```
 
-### HSTS Preload List
+### HSTS Preload
 
-The `preload` directive is set. Once the site is stable, submit it at
-https://hstspreload.org — this tells browsers to **never** connect over HTTP
-even on first visit (before a redirect is served).
-
-> ⚠️ Preloading is a one-way commitment. Only submit after confirming all
-> subdomains also support HTTPS.
+The `preload` directive is set. Submit at https://hstspreload.org once all
+subdomains support HTTPS. Preloading is a one-way commitment.
 
 ---
 
-## 2. Secrets Management
+## 3. Secrets Management
 
 ### Principle
 
 All secrets belong **only** in:
-- Cloudflare Pages dashboard → Settings → Environment variables (encrypted)
+- Cloudflare Pages dashboard > Settings > Environment variables (encrypted)
 - `wrangler secret put <NAME>` for Worker secrets
-- Local `.env.*.local` files that are **never committed** (listed in `.gitignore`)
+- Local `.env.*.local` files (**never committed**, listed in `.gitignore`)
 
 **Never** put secrets in:
-- `wrangler.toml` `[vars]` section (values are plaintext and committed)
-- `next.config.mjs` or any committed file
+- `wrangler.toml` `[vars]` section (plaintext, committed)
+- `next.config.mjs` or any committed source file
+- Client-side code (only `NEXT_PUBLIC_*` variables are safe for the browser)
 
-### Setting secrets via Wrangler CLI
+### Required Secrets
 
 ```bash
-# Set each secret individually — you will be prompted for the value
+# AI & Voice
 wrangler secret put GEMINI_API_KEY
 wrangler secret put ELEVENLABS_API_KEY
 wrangler secret put ELEVENLABS_VOICE_ID
+
+# Authentication
 wrangler secret put CLERK_SECRET_KEY
 wrangler secret put NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-wrangler secret put ADMIN_USER_ID
+
+# Payments
 wrangler secret put DODO_PAYMENTS_API_KEY
 wrangler secret put DODO_WEBHOOK_SECRET
 wrangler secret put DODO_PRO_PRODUCT_ID
 wrangler secret put DODO_BUSINESS_PRODUCT_ID
+
+# Admin
+wrangler secret put ADMIN_USER_ID
+
+# Push Notifications
 wrangler secret put VAPID_PRIVATE_KEY
+
+# OAuth Integrations (if enabled)
+wrangler secret put GOOGLE_CLIENT_ID
+wrangler secret put GOOGLE_CLIENT_SECRET
+wrangler secret put NOTION_CLIENT_ID
+wrangler secret put NOTION_CLIENT_SECRET
 
 # Verify (values are redacted in output)
 wrangler secret list
 ```
 
-### Setting secrets in Cloudflare Pages dashboard
+### Cloudflare Pages Dashboard
 
-1. Go to **Cloudflare Pages** → select `missiai` project
-2. Navigate to **Settings → Environment variables**
-3. Click **Add variable** → enter name and value → toggle **Encrypt**
+1. Go to **Cloudflare Pages** > select `missiai` project
+2. Navigate to **Settings > Environment variables**
+3. Click **Add variable** > enter name and value > toggle **Encrypt**
 4. Set the same variables for both **Production** and **Preview** environments
 
 ---
 
-## 3. Database / KV Access Hardening
+## 4. Database & Storage Access
 
-Cloudflare Workers KV (`MISSI_MEMORY`) is **not publicly accessible** over the
-internet. It is exclusively accessible via the Cloudflare Workers runtime
-binding declared in `wrangler.toml`:
+### Cloudflare KV (`MISSI_MEMORY`)
+
+KV is **not publicly accessible**. It is only reachable via the Workers runtime
+binding in `wrangler.toml`:
 
 ```toml
 [[kv_namespaces]]
@@ -101,80 +138,186 @@ id = "ddf2e5eb21484fd1a9aecd8e4eaada74"
 
 **Access model:**
 - Code accesses KV only via `getRequestContext().env.MISSI_MEMORY`
-- There is no HTTP API exposed for KV — the binding is the only access path
-- The KV namespace ID in `wrangler.toml` is **not a secret** (it is a resource
-  identifier, not a credential)
-- Only the Worker deployed with the `MISSI_MEMORY` binding can read/write the
-  namespace — no firewall rules needed beyond Cloudflare's standard isolation
+- No HTTP API is exposed — the binding is the only access path
+- The KV namespace ID is a resource identifier, not a credential
+- Only the deployed Worker with the binding can read/write the namespace
 
-**Principle of least privilege:** routes only access KV inside the Worker
-runtime; no external services or admin tools have direct KV access.
+### Cloudflare Vectorize (`missiai-life-graph`)
 
----
+Vector embeddings for semantic memory search are stored in Cloudflare Vectorize.
+Access is restricted to the Workers runtime binding — no external API exposure.
 
-## 4. Key Rotation Procedure (Incident Response)
+### Data Isolation
 
-If a secret is suspected to be compromised:
-
-### Gemini API Key
-1. Go to https://aistudio.google.com/apikey → revoke the key immediately
-2. Generate a new key
-3. `wrangler secret put GEMINI_API_KEY` with the new value
-4. Update in Cloudflare Pages dashboard (both Production and Preview)
-
-### ElevenLabs API Key
-1. Go to https://elevenlabs.io/app/settings/api-keys → delete the key
-2. Create a new key
-3. `wrangler secret put ELEVENLABS_API_KEY`
-
-### Dodo Payments API Key
-1. Go to https://app.dodopayments.com → Developer → API → revoke key
-2. Create a new key
-3. `wrangler secret put DODO_PAYMENTS_API_KEY`
-
-### Dodo Webhook Secret
-1. Go to Dodo dashboard → Webhooks → regenerate secret
-2. `wrangler secret put DODO_WEBHOOK_SECRET`
-3. Verify webhook signature validation still works end-to-end
-
-### Clerk Secret Key
-1. Go to https://dashboard.clerk.com → API Keys → roll the key
-2. `wrangler secret put CLERK_SECRET_KEY`
-3. **Note:** Rolling the Clerk key invalidates all existing sessions — users will
-   be signed out
-
-### VAPID Private Key
-1. Generate a new key pair: `npx web-push generate-vapid-keys`
-2. `wrangler secret put VAPID_PRIVATE_KEY` with the new private key
-3. Update `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (public key can be committed in `.env.example`)
-4. **Note:** Existing push subscriptions will fail until users re-subscribe
+All user data is keyed by Clerk user ID. API routes extract the authenticated
+user ID from the Clerk session and scope all KV/Vectorize operations to that ID.
+There is no cross-user data access path.
 
 ---
 
-## 5. Security Headers Verification
+## 5. Input Validation & Sanitization
+
+### API Input Validation
+
+All API request bodies are validated using **Zod schemas** (`lib/validation.ts`).
+Invalid payloads are rejected with 400 responses before reaching business logic.
+
+**Additional guards:**
+- Payload size limits on all POST endpoints
+- Maximum input length enforced on chat messages and memory content
+- File upload restricted to image types with size caps
+
+### Memory Sanitization
+
+Facts extracted from conversations are sanitized (`lib/memory/memory-sanitizer.ts`)
+before being written to KV. This prevents injection of malicious content into
+the stored knowledge graph.
+
+### Token Counting
+
+A token estimation module (`lib/memory/token-counter.ts`) prevents prompt
+injection via excessively large memory context windows.
+
+---
+
+## 6. Rate Limiting
+
+missiAI uses **dual-layer rate limiting**:
+
+1. **IP-based burst guard** — in-memory, applied in middleware to all API routes.
+   Prevents rapid-fire requests from a single IP.
+
+2. **Per-user KV-backed limits** — applied in route handlers. Tracks usage per
+   authenticated Clerk user ID with configurable windows and thresholds.
+
+### Budget Controls
+
+A daily API spend tracker (`DAILY_BUDGET_USD`, default: $5.00) monitors
+Gemini and ElevenLabs API costs. When the budget threshold is approached,
+the system throttles non-essential API calls.
+
+---
+
+## 7. Webhook Security
+
+### Dodo Payments Webhook
+
+The `/api/webhooks/dodo` endpoint verifies webhook signatures using the
+**Standard Webhooks** specification:
+
+- The `DODO_WEBHOOK_SECRET` is used to verify the `webhook-signature` header
+- Invalid signatures are rejected with 401 before any processing occurs
+- Webhook events are idempotent — duplicate delivery does not cause issues
+
+---
+
+## 8. Security Headers
+
+All responses include security headers via `next.config.mjs`:
 
 ```bash
-# Verify all expected headers are present
 curl -sI https://missi.space | grep -iE \
   "strict-transport|x-frame|x-content-type|referrer-policy|permissions-policy|content-security"
 ```
 
-Expected output (condensed):
-```
-strict-transport-security: max-age=63072000; includeSubDomains; preload
-x-frame-options: DENY
-x-content-type-options: nosniff
-referrer-policy: strict-origin-when-cross-origin
-permissions-policy: camera=(), microphone=(self), geolocation=(), interest-cohort=()
-content-security-policy: frame-ancestors 'none'
-```
+**Expected headers:**
+
+| Header | Value |
+|--------|-------|
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` |
+| `X-Frame-Options` | `DENY` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Permissions-Policy` | `camera=(), microphone=(self), geolocation=(), interest-cohort=()` |
+| `Content-Security-Policy` | `frame-ancestors 'none'` |
 
 ---
 
-## 6. Secret Scanning in CI
+## 9. OAuth Integration Security
+
+### Google Calendar
+
+- OAuth 2.0 authorization code flow with PKCE
+- Tokens stored in KV, scoped to user's Clerk ID
+- Refresh tokens are encrypted at rest in KV
+- Scopes limited to `calendar.readonly` and `calendar.events`
+
+### Notion
+
+- OAuth 2.0 authorization code flow
+- Access tokens stored in KV, scoped to user's Clerk ID
+- Scopes limited to read access on pages and databases
+
+### Token Handling
+
+- OAuth tokens are **never** exposed to the client
+- Refresh is handled server-side in API routes
+- Disconnecting a plugin immediately deletes stored tokens from KV
+
+---
+
+## 10. Key Rotation Procedure (Incident Response)
+
+If a secret is suspected to be compromised, follow the steps below.
+
+### Gemini API Key
+1. Revoke at https://aistudio.google.com/apikey
+2. Generate a new key
+3. `wrangler secret put GEMINI_API_KEY`
+4. Update in Cloudflare Pages dashboard (Production + Preview)
+
+### ElevenLabs API Key
+1. Delete at https://elevenlabs.io/app/settings/api-keys
+2. Create a new key
+3. `wrangler secret put ELEVENLABS_API_KEY`
+
+### Dodo Payments API Key
+1. Revoke at https://app.dodopayments.com > Developer > API
+2. Create a new key
+3. `wrangler secret put DODO_PAYMENTS_API_KEY`
+
+### Dodo Webhook Secret
+1. Regenerate at Dodo dashboard > Webhooks
+2. `wrangler secret put DODO_WEBHOOK_SECRET`
+3. Verify webhook signature validation end-to-end
+
+### Clerk Secret Key
+1. Roll at https://dashboard.clerk.com > API Keys
+2. `wrangler secret put CLERK_SECRET_KEY`
+3. **Impact:** All existing sessions are invalidated — users will be signed out
+
+### VAPID Private Key
+1. Generate new key pair: `npx web-push generate-vapid-keys`
+2. `wrangler secret put VAPID_PRIVATE_KEY`
+3. Update `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in env
+4. **Impact:** Existing push subscriptions will fail until users re-subscribe
+
+### Google / Notion OAuth Credentials
+1. Revoke in the respective developer console
+2. Generate new credentials
+3. Update via `wrangler secret put` for both `CLIENT_ID` and `CLIENT_SECRET`
+4. **Impact:** Users will need to reconnect their integrations
+
+---
+
+## 11. Secret Scanning in CI
 
 The CI pipeline runs [TruffleHog](https://github.com/trufflesecurity/trufflehog)
 on every push to scan for accidentally committed secrets. If a secret pattern is
-detected, the build will fail and alert the team before the commit reaches `main`.
+detected, the build fails and alerts the team before the commit reaches `main`.
 
 See `.github/workflows/ci.yml` for the scanning step configuration.
+
+---
+
+## 12. Reporting Vulnerabilities
+
+If you discover a security vulnerability in missiAI, please report it
+responsibly:
+
+- **Email:** security@missi.space
+- **GitHub:** Open a private security advisory at
+  [github.com/rudrasatani13/missiAI/security/advisories](https://github.com/rudrasatani13/missiAI/security/advisories)
+
+Do not open public issues for security vulnerabilities. We will acknowledge
+receipt within 48 hours and provide a fix timeline within 7 days.
