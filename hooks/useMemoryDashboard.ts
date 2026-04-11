@@ -118,18 +118,32 @@ export function useMemoryDashboard(ready: boolean = true) {
 
   const deleteNode = useCallback(async (nodeId: string): Promise<void> => {
     setDeletingId(nodeId)
+    setError(null) // Clear any previous error
     try {
       const res = await fetch(`/api/v1/memory/${nodeId}`, { method: 'DELETE' })
       if (res.ok) {
+        // Optimistic update — remove from local state immediately
         setGraph((prev) =>
           prev ? { ...prev, nodes: prev.nodes.filter((n) => n.id !== nodeId) } : prev,
         )
       } else {
-        const data = await res.json().catch(() => ({}))
-        setError((data as any).error ?? 'Failed to delete memory')
+        // Try to parse JSON error; if the response is HTML (500 crash), catch it
+        let errorMsg = 'Failed to delete memory'
+        try {
+          const contentType = res.headers.get('content-type') ?? ''
+          if (contentType.includes('application/json')) {
+            const data = await res.json()
+            if (data.error) errorMsg = data.error
+          } else {
+            errorMsg = `Server error (${res.status}). Please try again.`
+          }
+        } catch {
+          errorMsg = `Server error (${res.status}). Please try again.`
+        }
+        setError(errorMsg)
       }
     } catch {
-      setError('Failed to delete memory')
+      setError('Network error. Please check your connection and try again.')
     } finally {
       setDeletingId(null)
     }

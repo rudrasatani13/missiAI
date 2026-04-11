@@ -37,16 +37,31 @@ const patchBodySchema = z.object({
   tags: z.array(z.string()).max(8).optional(),
 })
 
+/**
+ * Safely get the user's plan, falling back to "free" if Clerk is unavailable.
+ * This prevents the entire handler from crashing if the Clerk backend API
+ * is slow or temporarily unreachable on the edge runtime.
+ */
+async function safeGetUserPlan(userId: string): Promise<string> {
+  try {
+    return await getUserPlan(userId)
+  } catch (e) {
+    logError("memory.node.plan_fetch_error", e, userId)
+    return "free"
+  }
+}
+
 // ─── DELETE — Remove a single node by id ──────────────────────────────────────
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: Promise<{ nodeId: string }> },
+  context: { params: Promise<{ nodeId: string }> },
 ) {
   const startTime = Date.now()
   let userId = "unknown"
 
   try {
+    // 1. Auth
     try {
       userId = await getVerifiedUserId()
     } catch (e) {
@@ -55,7 +70,8 @@ export async function DELETE(
       return jsonResponse({ success: false, error: "Authentication failed", code: "AUTH_ERROR" }, 401)
     }
 
-    const planId = await getUserPlan(userId)
+    // 2. Rate limit (non-blocking if getUserPlan fails)
+    const planId = await safeGetUserPlan(userId)
     const rateTier = planId === "free" ? "free" : "paid"
     const rateResult = await checkRateLimit(userId, rateTier)
     if (!rateResult.allowed) {
@@ -63,7 +79,8 @@ export async function DELETE(
       return rateLimitExceededResponse(rateResult)
     }
 
-    const { nodeId } = await params
+    // 3. Validate nodeId
+    const { nodeId } = await context.params
     const parsed = nodeIdSchema.safeParse(nodeId)
     if (!parsed.success) {
       return jsonResponse(
@@ -72,15 +89,17 @@ export async function DELETE(
       )
     }
 
+    // 4. KV
     const kv = getKV()
     if (!kv) {
       logError("memory.node.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
       return jsonResponse(
-        { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
+        { success: false, error: "Storage unavailable", code: "INTERNAL_ERROR" },
         500,
       )
     }
 
+    // 5. Delete
     const graph = await getLifeGraph(kv, userId)
     const nodeExists = graph.nodes.some((n) => n.id === nodeId)
 
@@ -98,7 +117,7 @@ export async function DELETE(
   } catch (err) {
     logError("memory.node.delete_error", err, userId)
     return jsonResponse(
-      { success: false, error: "Failed to process request. Please try again.", code: "INTERNAL_ERROR" },
+      { success: false, error: "Failed to delete memory. Please try again.", code: "INTERNAL_ERROR" },
       500,
     )
   }
@@ -108,12 +127,13 @@ export async function DELETE(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ nodeId: string }> },
+  context: { params: Promise<{ nodeId: string }> },
 ) {
   const startTime = Date.now()
   let userId = "unknown"
 
   try {
+    // 1. Auth
     try {
       userId = await getVerifiedUserId()
     } catch (e) {
@@ -122,7 +142,8 @@ export async function PATCH(
       return jsonResponse({ success: false, error: "Authentication failed", code: "AUTH_ERROR" }, 401)
     }
 
-    const planId = await getUserPlan(userId)
+    // 2. Rate limit (non-blocking if getUserPlan fails)
+    const planId = await safeGetUserPlan(userId)
     const rateTier = planId === "free" ? "free" : "paid"
     const rateResult = await checkRateLimit(userId, rateTier)
     if (!rateResult.allowed) {
@@ -130,7 +151,8 @@ export async function PATCH(
       return rateLimitExceededResponse(rateResult)
     }
 
-    const { nodeId } = await params
+    // 3. Validate nodeId
+    const { nodeId } = await context.params
     const nodeIdParsed = nodeIdSchema.safeParse(nodeId)
     if (!nodeIdParsed.success) {
       return jsonResponse(
@@ -139,6 +161,7 @@ export async function PATCH(
       )
     }
 
+    // 4. Body
     let body: unknown
     try {
       body = await req.json()
@@ -161,15 +184,17 @@ export async function PATCH(
       )
     }
 
+    // 5. KV
     const kv = getKV()
     if (!kv) {
       logError("memory.node.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
       return jsonResponse(
-        { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
+        { success: false, error: "Storage unavailable", code: "INTERNAL_ERROR" },
         500,
       )
     }
 
+    // 6. Update
     const graph = await getLifeGraph(kv, userId)
     const nodeIndex = graph.nodes.findIndex((n) => n.id === nodeId)
 
@@ -203,7 +228,7 @@ export async function PATCH(
   } catch (err) {
     logError("memory.node.update_error", err, userId)
     return jsonResponse(
-      { success: false, error: "Failed to process request. Please try again.", code: "INTERNAL_ERROR" },
+      { success: false, error: "Failed to update memory. Please try again.", code: "INTERNAL_ERROR" },
       500,
     )
   }
