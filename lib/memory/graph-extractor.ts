@@ -39,8 +39,10 @@ export async function extractLifeNodes(
     .map((m) => `${m.role}: ${m.content}`)
     .join('\n')
 
-  const systemPrompt = `Analyze this conversation and extract facts about the user's life.
+  const systemPrompt = `You are a memory extraction engine. Analyze this conversation and extract ONLY genuinely important, lasting facts about the user's life.
+
 Return ONLY a valid JSON array. No markdown. No explanation.
+
 Each item must have exactly these fields:
 category (one of: person|goal|habit|preference|event|emotion|skill|place|belief|relationship),
 title (max 80 chars, specific and descriptive),
@@ -50,8 +52,21 @@ people (array of first names mentioned, empty if none),
 emotionalWeight (0.0-1.0),
 confidence (0.0-1.0),
 source: "conversation"
-Only extract facts with confidence >= 0.6.
-Skip generic small talk. Focus on lasting facts about the person.`
+
+STRICT RULES — FOLLOW PRECISELY:
+1. Only extract facts with confidence >= 0.7
+2. NEVER save small talk, greetings, or generic chitchat (e.g. "how are you", "what's up", "thanks")
+3. NEVER save the AI's own statements — only save facts about the USER
+4. NEVER save things the user is just casually mentioning in passing — only save things they clearly care about or that reveal something meaningful about their life
+5. If the user repeats something they've said before (e.g. "I want to go to Switzerland"), do NOT extract it again — it's already known
+6. Prioritize: life goals, relationships, important events, strong preferences, skills, beliefs, habits
+7. Skip: opinions about weather, temporary moods, one-off comments, hypotheticals, jokes
+8. Keep titles UNIQUE and SPECIFIC — never use generic titles like "User's preference" or "User's goal"
+9. Maximum 3 nodes per conversation — only the most important ones
+10. When in doubt, do NOT extract. Quality over quantity.
+
+EXISTING MEMORIES (do NOT duplicate these):
+${existingGraph.nodes.slice(0, 30).map(n => '- ' + n.title + ': ' + n.detail.slice(0, 80)).join('\n') || '(none yet)'}`;
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), EXTRACTION_TIMEOUT_MS)
@@ -119,16 +134,45 @@ Skip generic small talk. Focus on lasting facts about the person.`
         source: 'conversation' as const,
       }))
 
-    // Deduplicate against existing graph nodes by title similarity
+    // Deduplicate against existing graph nodes — aggressive matching
     return validated.filter((newNode) => {
-      const newTitleLower = newNode.title.toLowerCase()
+      const newTitleLower = newNode.title.toLowerCase().trim()
+      const newDetailLower = newNode.detail.toLowerCase().trim()
+
+      // Normalize: remove common filler words for comparison
+      const normalize = (s: string) => s.replace(/\b(the|a|an|is|are|was|were|has|have|to|for|in|of|and|or|with|about|my|their|user\'s|user)\b/gi, '').replace(/\s+/g, ' ').trim()
+      const newTitleNorm = normalize(newTitleLower)
+
       return !existingGraph.nodes.some((existing) => {
-        const existingLower = existing.title.toLowerCase()
-        return (
-          existingLower === newTitleLower ||
-          existingLower.includes(newTitleLower) ||
-          newTitleLower.includes(existingLower)
-        )
+        const existingTitleLower = existing.title.toLowerCase().trim()
+        const existingDetailLower = existing.detail.toLowerCase().trim()
+        const existingTitleNorm = normalize(existingTitleLower)
+
+        // Exact title match
+        if (existingTitleLower === newTitleLower) return true
+        // One title contains the other
+        if (existingTitleLower.includes(newTitleLower) || newTitleLower.includes(existingTitleLower)) return true
+        // Normalized title match
+        if (existingTitleNorm === newTitleNorm && newTitleNorm.length > 3) return true
+        // Detail overlap — if 60%+ of the new detail words exist in an existing detail
+        const newWords = new Set(newDetailLower.split(/\s+/).filter(w => w.length > 3))
+        const existingWords = new Set(existingDetailLower.split(/\s+/).filter(w => w.length > 3))
+        if (newWords.size > 0) {
+          let overlap = 0
+          for (const w of newWords) { if (existingWords.has(w)) overlap++ }
+          if (overlap / newWords.size > 0.6) return true
+        }
+        // Same category + similar subject keywords
+        if (existing.category === newNode.category) {
+          const existingKeywords = new Set([...existing.tags, ...existingTitleNorm.split(' ')].filter(w => w.length > 3))
+          const newKeywords = [...newNode.tags, ...newTitleNorm.split(' ')].filter(w => w.length > 3)
+          if (newKeywords.length > 0) {
+            let keyOverlap = 0
+            for (const k of newKeywords) { if (existingKeywords.has(k)) keyOverlap++ }
+            if (keyOverlap / newKeywords.length > 0.5) return true
+          }
+        }
+        return false
       })
     })
   } catch {
