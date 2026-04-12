@@ -755,12 +755,11 @@ export function ProfileCardClient() {
             <div
               ref={cardRef}
               id="missi-profile-card"
-              className="relative rounded-3xl overflow-hidden"
+              className="relative rounded-3xl overflow-hidden px-5 py-7 sm:px-8 sm:pt-10 sm:pb-7"
               style={{
                 background: t.background,
                 border: '1px solid rgba(255,255,255,0.06)',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
-                padding: '40px 32px 28px',
               }}
             >
               {/* Subtle top glow — static, no animation */}
@@ -810,7 +809,7 @@ export function ProfileCardClient() {
               </div>
 
               {/* ── 2-Column Grid ─────────────────────────────────────────── */}
-              <div className="grid gap-5 mb-6" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+              <div className="grid gap-5 mb-6 grid-cols-1 sm:grid-cols-2">
                 {/* What I Love */}
                 <div>
                   <SectionHeader icon={Heart} label="What I Love" theme={theme} />
@@ -874,7 +873,7 @@ export function ProfileCardClient() {
               {/* ── Memory Stats 2×2 ──────────────────────────────────────── */}
               <div className="mb-6">
                 <SectionHeader icon={Brain} label="Memory Stats" theme={theme} />
-                <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                <div className="grid gap-2.5 grid-cols-2">
                   <StatBox label="Total Memories" value={String(data.memoryStats.totalMemories)} theme={theme} />
                   <StatBox label="Days Active" value={String(data.memoryStats.daysActive)} theme={theme} />
                   <StatBox label="Most Talked About" value={data.memoryStats.mostTalkedAbout} theme={theme} />
@@ -883,8 +882,8 @@ export function ProfileCardClient() {
               </div>
 
               {/* ── Bottom Bar ─────────────────────────────────────────────── */}
-              <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="flex items-center gap-3">
+              <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                   <div className="flex items-center gap-1.5">
                     <Zap className="w-3 h-3" style={{ color: t.textMuted }} />
                     <span className="text-[10px] font-medium" style={{ color: t.textMuted }}>{data.totalXP} XP</span>

@@ -173,7 +173,13 @@ export async function GET(req: NextRequest) {
       .filter(n => n.category === 'person' || n.category === 'relationship')
       .sort((a, b) => b.emotionalWeight - a.emotionalWeight)
       .slice(0, 4)
-      .map(n => n.title)
+      .map(n => {
+        const title = n.title;
+        if (title.toLowerCase() === "user's name" || title.toLowerCase() === 'user') {
+          return userName;
+        }
+        return title.replace(/user's name/ig, userName);
+      })
 
     // ── Active Goals ───────────────────────────────────────────────────────
     let activeGoals = graph.nodes
