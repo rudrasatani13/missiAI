@@ -3,17 +3,28 @@
 import type { PlanId } from '@/types/billing'
 
 interface UsageBarProps {
-  used: number
-  limit: number
+  usedSeconds: number
+  limitSeconds: number
   planId: PlanId
   onUpgrade: () => void
 }
 
-export function UsageBar({ used, limit, planId, onUpgrade }: UsageBarProps) {
+function formatTime(totalSeconds: number): string {
+  const mins = Math.floor(totalSeconds / 60)
+  const secs = totalSeconds % 60
+  return `${mins}:${String(secs).padStart(2, '0')}`
+}
+
+function formatMinutes(totalSeconds: number): string {
+  const mins = Math.ceil(totalSeconds / 60)
+  return `${mins} min`
+}
+
+export function UsageBar({ usedSeconds, limitSeconds, planId, onUpgrade }: UsageBarProps) {
   if (planId === 'pro') return null
 
-  const pct = Math.min((used / limit) * 100, 100)
-  const atLimit = used >= limit
+  const pct = Math.min((usedSeconds / limitSeconds) * 100, 100)
+  const atLimit = usedSeconds >= limitSeconds
 
   let barColor = 'rgba(255,255,255,0.2)'
   if (pct >= 90) barColor = '#EF4444'
@@ -84,7 +95,7 @@ export function UsageBar({ used, limit, planId, onUpgrade }: UsageBarProps) {
             data-testid="usage-bar-count-text"
             style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.02em' }}
           >
-            {used}/{limit} minutes of voice today
+            {formatTime(usedSeconds)} / {formatMinutes(limitSeconds)} voice today
           </span>
         )}
       </div>

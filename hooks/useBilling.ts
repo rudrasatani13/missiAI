@@ -8,10 +8,10 @@ import type { PlanConfig, DailyUsage, UserBilling } from '@/types/billing'
 // When server returns 0, we use Math.max to prevent false resets
 // (KV cold starts / edge-function restarts can return 0 temporarily).
 function todayStorageKey(): string {
-  return `missi-usage-${new Date().toISOString().split('T')[0]}`
+  return `missi-voice-secs-${new Date().toISOString().split('T')[0]}`
 }
 
-function getLocalCount(): number {
+function getLocalSeconds(): number {
   try {
     const key = todayStorageKey()
     const val = localStorage.getItem(key)
@@ -20,28 +20,27 @@ function getLocalCount(): number {
   } catch { return 0 }
 }
 
-function setLocalCount(count: number): void {
+function setLocalSeconds(seconds: number): void {
   try {
-    // Clean up any stale keys from previous days
     const todayKey = todayStorageKey()
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i)
-      if (k && k.startsWith('missi-usage-') && k !== todayKey) {
+      if (k && k.startsWith('missi-voice-secs-') && k !== todayKey) {
         localStorage.removeItem(k)
       }
     }
-    localStorage.setItem(todayKey, String(count))
+    localStorage.setItem(todayKey, String(seconds))
   } catch {}
 }
 
 /**
- * Reconcile server count with local count.
+ * Reconcile server seconds with local seconds.
  * - If server returns non-zero, server wins (it's authoritative).
  * - If server returns 0, use Math.max to prevent false reset from KV miss.
  */
-function reconcileCount(serverCount: number, localCount: number): number {
-  if (serverCount > 0) return serverCount
-  return Math.max(serverCount, localCount)
+function reconcileSeconds(serverSecs: number, localSecs: number): number {
+  if (serverSecs > 0) return serverSecs
+  return Math.max(serverSecs, localSecs)
 }
 
 export function useBilling() {
@@ -71,10 +70,10 @@ export function useBilling() {
       setPlan(data.plan ?? null)
 
       if (data.usage) {
-        const serverCount = data.usage.voiceInteractions ?? 0
-        const finalCount = reconcileCount(serverCount, getLocalCount())
-        setLocalCount(finalCount)
-        setUsage({ ...data.usage, voiceInteractions: finalCount })
+        const serverSecs = data.usage.voiceSecondsUsed ?? 0
+        const finalSecs = reconcileSeconds(serverSecs, getLocalSeconds())
+        setLocalSeconds(finalSecs)
+        setUsage({ ...data.usage, voiceSecondsUsed: finalSecs })
       } else {
         setUsage(null)
       }
@@ -93,9 +92,9 @@ export function useBilling() {
         const res = await fetch('/api/v1/billing')
         if (!res.ok) {
           if (res.status === 401) {
-            const localCount = getLocalCount()
-            if (localCount > 0) {
-              setUsage({ userId: '', date: todayStorageKey().replace('missi-usage-', ''), voiceInteractions: localCount, lastUpdatedAt: Date.now() })
+            const localSecs = getLocalSeconds()
+            if (localSecs > 0) {
+              setUsage({ userId: '', date: todayStorageKey().replace('missi-voice-secs-', ''), voiceInteractions: 0, voiceSecondsUsed: localSecs, lastUpdatedAt: Date.now() })
             }
             return
           }
@@ -106,10 +105,10 @@ export function useBilling() {
         setPlan(data.plan ?? null)
 
         if (data.usage) {
-          const serverCount = data.usage.voiceInteractions ?? 0
-          const finalCount = reconcileCount(serverCount, getLocalCount())
-          setLocalCount(finalCount)
-          setUsage({ ...data.usage, voiceInteractions: finalCount })
+          const serverSecs = data.usage.voiceSecondsUsed ?? 0
+          const finalSecs = reconcileSeconds(serverSecs, getLocalSeconds())
+          setLocalSeconds(finalSecs)
+          setUsage({ ...data.usage, voiceSecondsUsed: finalSecs })
         } else {
           setUsage(null)
         }
@@ -209,25 +208,38 @@ export function useBilling() {
     }
   }, [refreshBilling])
 
+  const limitSeconds = useMemo(() => {
+    if (!plan) return 600 // default 10 min
+    return plan.voiceMinutesPerDay * 60
+  }, [plan])
+
+  const usedSeconds = useMemo(() => {
+    return usage?.voiceSecondsUsed ?? 0
+  }, [usage])
+
   const isAtLimit = useMemo(() => {
     if (!usage || !plan) return false
     if (plan.id === 'pro') return false
-    return usage.voiceInteractions >= plan.voiceInteractionsPerDay
-  }, [usage, plan])
+    return usedSeconds >= limitSeconds
+  }, [usage, plan, usedSeconds, limitSeconds])
 
-  const remainingInteractions = useMemo(() => {
-    if (!usage || !plan) return 0
+  const remainingSeconds = useMemo(() => {
+    if (!plan) return 0
     if (plan.id === 'pro') return 999999
-    return Math.max(0, plan.voiceInteractionsPerDay - usage.voiceInteractions)
-  }, [usage, plan])
+    return Math.max(0, limitSeconds - usedSeconds)
+  }, [plan, usedSeconds, limitSeconds])
 
-  // Called after each successful voice interaction to keep UI in sync
-  const incrementUsageLocally = useCallback(() => {
+  /**
+   * Called after each successful voice interaction to keep UI in sync.
+   * @param durationMs — recording duration in ms (server clamps to 3–120s)
+   */
+  const incrementUsageLocally = useCallback((durationMs?: number) => {
+    const addSecs = durationMs ? Math.max(3, Math.min(Math.ceil(durationMs / 1000), 120)) : 3
     setUsage((prev) => {
       if (!prev) return prev
-      const newCount = prev.voiceInteractions + 1
-      setLocalCount(newCount)
-      return { ...prev, voiceInteractions: newCount }
+      const newSecs = prev.voiceSecondsUsed + addSecs
+      setLocalSeconds(newSecs)
+      return { ...prev, voiceSecondsUsed: newSecs, voiceInteractions: prev.voiceInteractions + 1 }
     })
   }, [])
 
@@ -243,7 +255,9 @@ export function useBilling() {
     cancelSubscription,
     refreshBilling,
     isAtLimit,
-    remainingInteractions,
+    usedSeconds,
+    limitSeconds,
+    remainingSeconds,
     incrementUsageLocally,
   }
 }

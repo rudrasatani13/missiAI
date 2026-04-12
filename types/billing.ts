@@ -6,6 +6,9 @@ export interface PlanConfig {
   id: PlanId
   name: string
   priceUsd: number
+  /** Daily voice cap in minutes (real time tracking) */
+  voiceMinutesPerDay: number
+  /** @deprecated Use voiceMinutesPerDay instead */
   voiceInteractionsPerDay: number
   personalitiesAllowed: number
   maxMemoryFacts: number
@@ -19,7 +22,8 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     id: 'free',
     name: 'Free',
     priceUsd: 0,
-    voiceInteractionsPerDay: 10,
+    voiceMinutesPerDay: 10,
+    voiceInteractionsPerDay: 10, // kept for backward compat
     personalitiesAllowed: 1,
     maxMemoryFacts: 20,
     apiAccess: false,
@@ -28,8 +32,9 @@ export const PLANS: Record<PlanId, PlanConfig> = {
   plus: {
     id: 'plus',
     name: 'Plus',
-    priceUsd: 9, // $9.99 can be represented closely as 9 or exactly in stripe as required, here we just use 9 visually
-    voiceInteractionsPerDay: 120, // Technically 2 hours = 120 minutes
+    priceUsd: 9,
+    voiceMinutesPerDay: 120,
+    voiceInteractionsPerDay: 120, // kept for backward compat
     personalitiesAllowed: 4,
     maxMemoryFacts: 999999,
     apiAccess: false,
@@ -38,8 +43,9 @@ export const PLANS: Record<PlanId, PlanConfig> = {
   pro: {
     id: 'pro',
     name: 'Pro',
-    priceUsd: 19, // $19.99
-    voiceInteractionsPerDay: 999999, // Unlimited
+    priceUsd: 19,
+    voiceMinutesPerDay: 999999,
+    voiceInteractionsPerDay: 999999, // kept for backward compat
     personalitiesAllowed: 4,
     maxMemoryFacts: 999999,
     apiAccess: true,
@@ -68,5 +74,7 @@ export interface DailyUsage {
   userId: string
   date: string
   voiceInteractions: number
+  /** Actual voice seconds used today (real time tracking) */
+  voiceSecondsUsed: number
   lastUpdatedAt: number
 }

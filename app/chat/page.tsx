@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import nextDynamic from "next/dynamic"
-import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera, Puzzle } from "lucide-react"
+import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera, Puzzle, IdCard } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useGeminiLive, type LiveState } from "@/hooks/useGeminiLive"
@@ -59,7 +59,7 @@ function pluginResultToActionResult(result: PluginResult): ActionResult {
 export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
-  const { plan, usage, isAtLimit, isLoading: billingLoading, initiateCheckout, incrementUsageLocally } = useBilling()
+  const { plan, usage, isAtLimit, usedSeconds, limitSeconds, isLoading: billingLoading, initiateCheckout, incrementUsageLocally } = useBilling()
   const [avatarTier, setAvatarTier] = useState<import('@/types/gamification').AvatarTier>(1)
   const [avatarLevel, setAvatarLevel] = useState(1)
   const [activePanel, setActivePanel] = useState<'settings' | 'plugins' | null>(null)
@@ -168,7 +168,7 @@ export default function VoiceAssistantPage() {
   const {
     state: voiceState, audioLevel, statusText, lastTranscript,
     error, setError, streamingText, lastResponse, handleTap: legacyHandleTap, cancelAll, greet, saveMemoryBeacon,
-    currentEmotion, agentSteps,
+    currentEmotion, agentSteps, getLastRecordingDurationMs,
   } = useVoiceStateMachine({
     userId: user?.id,
     personalityRef,
@@ -458,8 +458,8 @@ export default function VoiceAssistantPage() {
     lastResponseForPluginRef.current = lastResponse
 
     // Increment local usage counter so UsageBar updates immediately
-    // (server already incremented via incrementVoiceUsage in the chat API)
-    if (plan?.id === 'free') incrementUsageLocally()
+    // (server already incremented via checkAndIncrementVoiceTime in the chat API)
+    incrementUsageLocally(getLastRecordingDurationMs())
 
     if (!lastTranscript) return
 
@@ -473,7 +473,7 @@ export default function VoiceAssistantPage() {
     if (matchedPlugin) {
       executeVoiceCommand(matchedPlugin, lastTranscript).catch(() => { })
     }
-  }, [lastResponse, lastTranscript, plugins, executeVoiceCommand, plan?.id, incrementUsageLocally])
+  }, [lastResponse, lastTranscript, plugins, executeVoiceCommand, incrementUsageLocally, getLastRecordingDurationMs])
 
   const handleActionCopy = useCallback(() => {
     if (!lastResult) return
@@ -660,8 +660,8 @@ export default function VoiceAssistantPage() {
       </div>
 
       <UsageBar
-        used={usage?.voiceInteractions ?? 0}
-        limit={plan?.voiceInteractionsPerDay ?? 10}
+        usedSeconds={usedSeconds}
+        limitSeconds={limitSeconds}
         planId={plan?.id ?? 'free'}
         onUpgrade={() => initiateCheckout('pro')}
       />
@@ -721,6 +721,12 @@ export default function VoiceAssistantPage() {
           style={{ color: 'white' }}>
           <Flame className="w-4 h-4 md:w-5 md:h-5" />
           <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Streaks</span>
+        </Link>
+        <Link href="/profile" onClick={(e) => e.stopPropagation()}
+          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
+          style={{ color: 'white' }}>
+          <IdCard className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Profile Card</span>
         </Link>
       </div>
 

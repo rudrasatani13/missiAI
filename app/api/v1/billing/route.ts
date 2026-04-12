@@ -42,7 +42,7 @@ export async function GET() {
   const kv = getKV()
   const dailyUsage = kv
     ? await getDailyUsage(kv, userId)
-    : { userId, date: new Date().toISOString().split('T')[0], voiceInteractions: 0, lastUpdatedAt: Date.now() }
+    : { userId, date: new Date().toISOString().split('T')[0], voiceInteractions: 0, voiceSecondsUsed: 0, lastUpdatedAt: Date.now() }
   const billingData = await getUserBillingData(userId)
 
   log({

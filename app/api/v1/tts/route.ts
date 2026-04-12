@@ -8,7 +8,7 @@ import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { getRequestContext } from "@cloudflare/next-on-pages"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
-import { getTodayDate } from "@/lib/billing/usage-tracker"
+import { checkVoiceLimit, getTodayDate } from "@/lib/billing/usage-tracker"
 import { COST_CONSTANTS } from "@/lib/server/cost-tracker"
 import type { KVStore } from "@/types"
 
@@ -50,8 +50,37 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ── 3. Rate limit ─────────────────────────────────────────────────────────
+  // ── 3. Voice limit check (read-only — chat endpoint does the increment) ──
   const planId = await getUserPlan(userId)
+
+  // Fail-closed: block non-pro users if KV unavailable
+  {
+    let kvCheck: KVStore | null = null
+    try {
+      const { env } = getRequestContext()
+      kvCheck = (env as any).MISSI_MEMORY ?? null
+    } catch {}
+
+    if (!kvCheck && planId !== 'pro') {
+      return NextResponse.json(
+        { success: false, error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" },
+        { status: 503 }
+      )
+    }
+
+    if (kvCheck && planId !== 'pro') {
+      const voiceLimit = await checkVoiceLimit(kvCheck, userId, planId)
+      if (!voiceLimit.allowed) {
+        logRequest("tts.voice_limit", userId, startTime)
+        return NextResponse.json(
+          { success: false, error: "Daily voice limit reached", code: "USAGE_LIMIT_EXCEEDED", upgrade: "/pricing", usedSeconds: voiceLimit.usedSeconds, limitSeconds: voiceLimit.limitSeconds },
+          { status: 429 }
+        )
+      }
+    }
+  }
+
+  // ── 4. Rate limit ─────────────────────────────────────────────────────────
   const rateTier = planId === "free" ? "free" : "paid"
   const rateResult = await checkRateLimit(userId, rateTier, 'ai')
   if (!rateResult.allowed) {

@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server"
+import { getRequestContext } from "@cloudflare/next-on-pages"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { sttSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { speechToText } from "@/services/voice.service"
@@ -6,8 +7,19 @@ import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/l
 import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
+import { checkVoiceLimit } from "@/lib/billing/usage-tracker"
+import type { KVStore } from "@/types"
 
 export const runtime = "edge"
+
+function getKV(): KVStore | null {
+  try {
+    const { env } = getRequestContext()
+    return (env as any).MISSI_MEMORY ?? null
+  } catch {
+    return null
+  }
+}
 
 const STT_TIMEOUT_MS = 15_000
 
@@ -40,8 +52,30 @@ export async function POST(req: NextRequest) {
     throw e
   }
 
-  // ── 2. Rate limit ─────────────────────────────────────────────────────────
+  // ── 2. Voice limit check (read-only — chat endpoint does the increment) ──
   const planId = await getUserPlan(userId)
+  const kv = getKV()
+
+  if (!kv && planId !== 'pro') {
+    return jsonResponse({ success: false, error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" }, 503)
+  }
+
+  if (kv && planId !== 'pro') {
+    const voiceLimit = await checkVoiceLimit(kv, userId, planId)
+    if (!voiceLimit.allowed) {
+      logRequest("stt.voice_limit", userId, startTime)
+      return jsonResponse({
+        success: false,
+        error: "Daily voice limit reached",
+        code: "USAGE_LIMIT_EXCEEDED",
+        upgrade: "/pricing",
+        usedSeconds: voiceLimit.usedSeconds,
+        limitSeconds: voiceLimit.limitSeconds,
+      }, 429)
+    }
+  }
+
+  // ── 3. Rate limit ─────────────────────────────────────────────────────────
   const rateTier = planId === "free" ? "free" : "paid"
   const rateResult = await checkRateLimit(userId, rateTier, 'ai')
   if (!rateResult.allowed) {

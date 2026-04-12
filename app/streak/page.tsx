@@ -526,7 +526,7 @@ export default function StreakAvatarPage() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-start px-4 py-8 md:py-12"
+      className="min-h-screen flex flex-col items-center justify-start px-4 py-8 md:py-12 lg:px-10"
       style={{
         background: 'radial-gradient(ellipse at 50% 0%, rgba(20,20,30,1) 0%, #000000 60%)',
         fontFamily: 'var(--font-body)',
@@ -538,7 +538,7 @@ export default function StreakAvatarPage() {
         <div className="absolute bottom-[-10%] right-[10%] w-[400px] h-[400px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.04) 0%, transparent 70%)' }} />
       </div>
 
-      <div className="w-full max-w-md relative z-10">
+      <div className="w-full max-w-md lg:max-w-6xl relative z-10">
         {/* Back link */}
         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
           <Link
@@ -551,93 +551,107 @@ export default function StreakAvatarPage() {
           </Link>
         </motion.div>
 
-        {/* ── Avatar Section ───────────────────────────────────────────── */}
-        <GlassCard className="px-6 py-8 mb-4" delay={0.1} glow="rgba(124,58,237,0.3)">
-          <div className="flex flex-col items-center gap-6">
-            <AvatarOrb tier={avatar.tier} tierName={avatar.tierName} level={avatar.level} />
-            <TierProgressBar
-              totalXP={avatar.totalXP}
-              tierProgress={avatar.tierProgress}
-              nextTierName={avatar.nextTierName}
-              nextTierXP={avatar.nextTierXP}
-            />
-          </div>
-        </GlassCard>
+        {/* ── Desktop: 2-column grid / Mobile: stacked ──────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        {/* ── Tier Roadmap ─────────────────────────────────────────────── */}
-        <GlassCard className="px-5 py-5 mb-4" delay={0.2}>
-          <TierRoadmap currentTier={avatar.tier} />
-        </GlassCard>
+          {/* ── Left Column ─────────────────────────────────────────── */}
+          <div className="flex flex-col gap-4">
+            {/* Avatar Section */}
+            <GlassCard className="px-6 py-8" delay={0.1} glow="rgba(124,58,237,0.3)">
+              <div className="flex flex-col items-center gap-6">
+                <AvatarOrb tier={avatar.tier} tierName={avatar.tierName} level={avatar.level} />
+                <TierProgressBar
+                  totalXP={avatar.totalXP}
+                  tierProgress={avatar.tierProgress}
+                  nextTierName={avatar.nextTierName}
+                  nextTierXP={avatar.nextTierXP}
+                />
+              </div>
+            </GlassCard>
 
-        {/* ── Today's XP ───────────────────────────────────────────────── */}
-        {avatar.xpTodayTotal > 0 && (
-          <GlassCard className="px-5 py-5 mb-4" delay={0.25} glow="rgba(74,222,128,0.2)">
-            <XPBreakdown xpToday={avatar.xpToday} xpTodayTotal={avatar.xpTodayTotal} />
-          </GlassCard>
-        )}
+            {/* Tier Roadmap */}
+            <GlassCard className="px-5 py-5" delay={0.2}>
+              <TierRoadmap currentTier={avatar.tier} />
+            </GlassCard>
 
-        {/* ── Streaks / Habits Section ─────────────────────────────────── */}
-        <GlassCard className="px-5 py-5 mb-4" delay={0.3}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Flame className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
-              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                Habits
-              </p>
-            </div>
-            {avatar.loginStreak > 0 && (
-              <span
-                className="text-[10px] font-medium px-2.5 py-0.5 rounded-full"
-                style={{
-                  color: 'rgba(255,255,255,0.5)',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
-                {avatar.loginStreak}-day login streak
-              </span>
+            {/* Today's XP */}
+            {avatar.xpTodayTotal > 0 && (
+              <GlassCard className="px-5 py-5" delay={0.25} glow="rgba(74,222,128,0.2)">
+                <XPBreakdown xpToday={avatar.xpToday} xpTodayTotal={avatar.xpTodayTotal} />
+              </GlassCard>
             )}
           </div>
 
-          {avatar.isLoading && (
-            <div className="flex justify-center py-12">
-              <div className="w-6 h-6 rounded-full border-2 border-white/10 border-t-white/40 animate-spin" />
-            </div>
-          )}
-
-          {!avatar.isLoading && habits.length === 0 && (
-            <div className="text-center py-10 px-4">
-              <div className="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <Flame className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.15)' }} />
+          {/* ── Right Column ────────────────────────────────────────── */}
+          <div className="flex flex-col gap-4">
+            {/* Streaks / Habits Section */}
+            <GlassCard className="px-5 py-5" delay={0.3}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Flame className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
+                  <p className="text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    Habits
+                  </p>
+                </div>
+                {avatar.loginStreak > 0 && (
+                  <span
+                    className="text-[10px] font-medium px-2.5 py-0.5 rounded-full"
+                    style={{
+                      color: 'rgba(255,255,255,0.5)',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                    }}
+                  >
+                    {avatar.loginStreak}-day login streak
+                  </span>
+                )}
               </div>
-              <p className="text-sm font-light leading-relaxed" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                No habits tracked yet.
-              </p>
-              <p className="text-xs font-light mt-1" style={{ color: 'rgba(255,255,255,0.15)' }}>
-                Tell Missi about a habit you want to build.
-              </p>
-            </div>
-          )}
 
-          {!avatar.isLoading && habits.length > 0 && (
-            <div className="flex flex-col gap-2.5">
-              {habits.map((streak, i) => (
-                <HabitCard
-                  key={streak.nodeId}
-                  streak={streak}
-                  onCheckIn={handleCheckIn}
-                  isCheckedInToday={checkedInToday.has(streak.nodeId)}
-                  index={i}
-                />
-              ))}
-            </div>
-          )}
-        </GlassCard>
+              {avatar.isLoading && (
+                <div className="flex justify-center py-12">
+                  <div className="w-6 h-6 rounded-full border-2 border-white/10 border-t-white/40 animate-spin" />
+                </div>
+              )}
 
-        {/* ── Achievements ─────────────────────────────────────────────── */}
-        <GlassCard className="px-5 py-5 mb-16" delay={0.35}>
-          <AchievementGrid achievements={allAchievements} />
-        </GlassCard>
+              {!avatar.isLoading && habits.length === 0 && (
+                <div className="text-center py-10 px-4">
+                  <div className="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <Flame className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.15)' }} />
+                  </div>
+                  <p className="text-sm font-light leading-relaxed" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    No habits tracked yet.
+                  </p>
+                  <p className="text-xs font-light mt-1" style={{ color: 'rgba(255,255,255,0.15)' }}>
+                    Tell Missi about a habit you want to build.
+                  </p>
+                </div>
+              )}
+
+              {!avatar.isLoading && habits.length > 0 && (
+                <div className="flex flex-col gap-2.5">
+                  {habits.map((streak, i) => (
+                    <HabitCard
+                      key={streak.nodeId}
+                      streak={streak}
+                      onCheckIn={handleCheckIn}
+                      isCheckedInToday={checkedInToday.has(streak.nodeId)}
+                      index={i}
+                    />
+                  ))}
+                </div>
+              )}
+            </GlassCard>
+
+            {/* Achievements */}
+            <GlassCard className="px-5 py-5" delay={0.35}>
+              <AchievementGrid achievements={allAchievements} />
+            </GlassCard>
+          </div>
+
+        </div>
+
+        {/* Bottom spacer */}
+        <div className="mb-16" />
       </div>
 
       {/* ── Milestone Toast ──────────────────────────────────────────── */}

@@ -14,7 +14,7 @@ import { createTimer, logRequest, logError, logApiError } from "@/lib/server/log
 import { calculateTotalCost, checkBudgetAlert } from "@/lib/server/cost-tracker"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { checkVoiceLimit, incrementVoiceUsage, getTodayDate } from "@/lib/billing/usage-tracker"
+import { checkAndIncrementVoiceTime, getTodayDate } from "@/lib/billing/usage-tracker"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import type { KVStore } from "@/types"
 
@@ -66,26 +66,21 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ── 3. Voice usage gating ───────────────────────────────────────────────────
+  // ── 3. Plan & KV setup (fail-closed) ────────────────────────────────────────
   const planId = await getUserPlan(userId)
   const kv = getKV()
 
-  if (kv) {
-    const voiceLimit = await checkVoiceLimit(kv, userId, planId)
-    if (!voiceLimit.allowed) {
-      logRequest("chat.voice_limit", userId, startTime)
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "Daily voice limit reached",
-          code: "USAGE_LIMIT_EXCEEDED",
-          upgrade: "/pricing",
-          used: voiceLimit.used,
-          limit: voiceLimit.limit,
-        }),
-        { status: 429, headers: { "Content-Type": "application/json" } }
-      )
-    }
+  // If KV is unavailable, block non-pro users entirely (fail-closed security)
+  if (!kv && planId !== 'pro') {
+    logRequest("chat.kv_unavailable_blocked", userId, startTime)
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: "Service temporarily unavailable — please try again",
+        code: "SERVICE_UNAVAILABLE",
+      }),
+      { status: 503, headers: { "Content-Type": "application/json" } }
+    )
   }
 
   // ── 4. Rate limit ─────────────────────────────────────────────────────────
@@ -118,6 +113,27 @@ export async function POST(req: NextRequest) {
   const { personality, customPrompt } = parsed.data
   const maxOutputTokens = parsed.data.maxOutputTokens ?? 600
   const clientMemories = parsed.data.memories ?? ""
+  const voiceDurationMs = parsed.data.voiceDurationMs
+
+  // ── 5b. Voice usage gating (time-based, pessimistic) ──────────────────────
+  // Check-and-increment BEFORE serving the response using actual duration
+  if (kv) {
+    const voiceLimit = await checkAndIncrementVoiceTime(kv, userId, planId, voiceDurationMs)
+    if (!voiceLimit.allowed) {
+      logRequest("chat.voice_limit", userId, startTime)
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Daily voice limit reached",
+          code: "USAGE_LIMIT_EXCEEDED",
+          upgrade: "/pricing",
+          usedSeconds: voiceLimit.usedSeconds,
+          limitSeconds: voiceLimit.limitSeconds,
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      )
+    }
+  }
 
   // ── 6. Fetch Life Graph context via semantic search ─────────────────────────
   // Capped at 3s so memory lookup doesn't delay the response
@@ -284,10 +300,8 @@ export async function POST(req: NextRequest) {
               // Budget alert check (non-blocking)
               checkBudgetAlert(kv, costData.totalCostUsd).catch(() => {})
 
-              // Increment voice usage after successful response
+              // Usage already incremented pre-response via checkAndIncrementVoice
               if (kv) {
-                incrementVoiceUsage(kv, userId).catch(() => {})
-
                 // Analytics: fire-and-forget
                 recordEvent(kv, {
                   type: 'chat',

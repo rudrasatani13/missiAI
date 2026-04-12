@@ -55,6 +55,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const audioChunksRef = useRef<Blob[]>([])
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  /** Duration of the last recording in ms (for time-based voice billing) */
+  const lastRecordingDurationMsRef = useRef<number>(0)
 
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
@@ -573,6 +575,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
               customPrompt: customPromptRef?.current,
               memories: memoriesRef.current + emotionSuffix,
               maxOutputTokens: adaptation.maxOutputTokens,
+              voiceDurationMs: lastRecordingDurationMsRef.current || undefined,
             }),
             signal: ctrl.signal,
           },
@@ -898,6 +901,12 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       }
 
       recorder.onstop = async () => {
+        // Capture recording duration for time-based voice tracking
+        lastRecordingDurationMsRef.current = recordingStartRef.current > 0
+          ? Date.now() - recordingStartRef.current
+          : 0
+        recordingStartRef.current = 0
+
         stream.getTracks().forEach((t) => t.stop())
         streamRef.current = null
         stopAudioMonitor()
@@ -920,6 +929,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       }
 
       recorder.start()
+      recordingStartRef.current = Date.now()
       isTransitioningRef.current = false
     } catch {
       setError("Microphone access denied.")
@@ -1169,5 +1179,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     saveMemoryBeacon,
     currentEmotion,
     agentSteps,
+    /** Get duration of the last voice recording in ms (for billing) */
+    getLastRecordingDurationMs: () => lastRecordingDurationMsRef.current,
   }
 }

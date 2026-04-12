@@ -14,7 +14,7 @@ import { createTimer, logRequest, logError, logApiError } from "@/lib/server/log
 import { calculateTotalCost, checkBudgetAlert } from "@/lib/server/cost-tracker"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { checkVoiceLimit, incrementVoiceUsage, getTodayDate } from "@/lib/billing/usage-tracker"
+import { checkAndIncrementVoiceTime, getTodayDate } from "@/lib/billing/usage-tracker"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { AGENT_FUNCTION_DECLARATIONS, executeAgentTool, getToolLabel } from "@/lib/ai/agent-tools"
 import type { AgentToolCall } from "@/lib/ai/agent-tools"
@@ -65,15 +65,15 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: "Payload too large" }), { status: 413 })
   }
 
-  // 2. Billing & Rate limits
+  // 2. Plan & KV setup (fail-closed)
   const planId = await getUserPlan(userId)
   const kv = getKV()
 
-  if (kv) {
-    const voiceLimit = await checkVoiceLimit(kv, userId, planId)
-    if (!voiceLimit.allowed) {
-      return new Response(JSON.stringify({ error: "Daily voice limit reached", code: "USAGE_LIMIT_EXCEEDED" }), { status: 429 })
-    }
+  if (!kv && planId !== 'pro') {
+    return new Response(
+      JSON.stringify({ error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" }),
+      { status: 503, headers: { "Content-Type": "application/json" } }
+    )
   }
 
   const rateResult = await checkRateLimit(userId, planId === 'free' ? 'free' : 'paid', 'ai')
@@ -89,6 +89,18 @@ export async function POST(req: NextRequest) {
   const { personality, voiceEnabled, customPrompt } = parsed.data
   const maxOutputTokens = parsed.data.maxOutputTokens ?? 600
   const clientMemories = parsed.data.memories ?? ""
+  const voiceDurationMs = parsed.data.voiceDurationMs
+
+  // 3b. Voice usage gating (time-based, pessimistic)
+  if (kv) {
+    const voiceLimit = await checkAndIncrementVoiceTime(kv, userId, planId, voiceDurationMs)
+    if (!voiceLimit.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Daily voice limit reached", code: "USAGE_LIMIT_EXCEEDED", usedSeconds: voiceLimit.usedSeconds, limitSeconds: voiceLimit.limitSeconds }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      )
+    }
+  }
 
   // 4. Memory context (pre-fetch)
   let memories = ""
@@ -314,10 +326,7 @@ export async function POST(req: NextRequest) {
         sendSSE({ done: true })
         controller.close()
 
-        // Increment Voice Usage & Cost Logging
-        if (kv) {
-          incrementVoiceUsage(kv, userId).catch(()=>{})
-        }
+        // Usage already incremented pre-response via checkAndIncrementVoice
       }
     })
 
