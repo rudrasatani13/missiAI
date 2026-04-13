@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server"
 import { getRequestContext } from "@cloudflare/next-on-pages"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
+import { analyzeMoodFromConversation } from "@/lib/mood/mood-analyzer"
+import { addMoodEntry } from "@/lib/mood/mood-store"
 import { chatSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
 import { searchLifeGraph, formatLifeGraphForPrompt } from "@/lib/memory/life-graph"
@@ -315,6 +317,27 @@ export async function POST(req: NextRequest) {
               if (cacheKey && isCacheable(userMessageText, fullResponse)) {
                 setCachedResponse(cacheKey, fullResponse).catch(() => {})
               }
+
+              // ── Mood capture: fire-and-forget, never blocks the response ──
+              // Only analyse if the conversation has at least 3 user messages
+              if (kv && messages.filter((m) => m.role === "user").length >= 3) {
+                const moodTranscript = messages
+                  .map((m) =>
+                    m.role === "user"
+                      ? `User: ${m.content}`
+                      : `Missi: ${m.content}`,
+                  )
+                  .join("\n")
+                const today = new Date().toISOString().slice(0, 10)
+                const sessionId = Math.random().toString(36).slice(2, 10)
+                let geminiKey = ""
+                try { geminiKey = getEnv().GEMINI_API_KEY } catch { /* no-op */ }
+
+                analyzeMoodFromConversation(moodTranscript, today, geminiKey, sessionId)
+                  .then((entry) => addMoodEntry(kv, userId, entry))
+                  .catch(() => {})
+              }
+
               return
             }
             // Extract text from the typed GeminiStreamEvent
