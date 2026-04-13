@@ -329,7 +329,7 @@ export async function POST(req: NextRequest) {
                   )
                   .join("\n")
                 const today = new Date().toISOString().slice(0, 10)
-                const sessionId = Math.random().toString(36).slice(2, 10)
+                const sessionId = crypto.randomUUID().slice(0, 8)
                 let geminiKey = ""
                 try { geminiKey = getEnv().GEMINI_API_KEY } catch { /* no-op */ }
 

@@ -7,6 +7,8 @@ import {
 import { getRequestContext } from "@cloudflare/next-on-pages"
 import { getLifeGraph, saveLifeGraph } from "@/lib/memory/life-graph"
 import { z } from "zod"
+import { sanitizeInput } from "@/lib/validation/sanitizer"
+import { logError } from "@/lib/server/logger"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
@@ -30,8 +32,8 @@ function getKV(): KVStore | null {
 const nodeIdSchema = z.string().min(1).max(50)
 
 const patchBodySchema = z.object({
-  detail: z.string().max(500).optional(),
-  tags: z.array(z.string()).max(8).optional(),
+  detail: z.string().max(500).transform(sanitizeInput).optional(),
+  tags: z.array(z.string().max(50).transform(sanitizeInput)).max(8).optional(),
 })
 
 // ─── DELETE — Remove a single node by id ──────────────────────────────────────
@@ -74,7 +76,7 @@ export async function DELETE(
 
     return jsonResponse({ success: true, data: { deleted: nodeId } })
   } catch (err) {
-    console.error("[memory.node.delete_error]", err instanceof Error ? err.message : String(err))
+    logError("memory.node.delete_error", err)
     return jsonResponse({ success: false, error: "Delete failed" }, 500)
   }
 }
@@ -148,7 +150,7 @@ export async function PATCH(
     const { userId: _uid, ...nodeWithoutUserId } = node
     return jsonResponse({ success: true, data: nodeWithoutUserId })
   } catch (err) {
-    console.error("[memory.node.update_error]", err instanceof Error ? err.message : String(err))
+    logError("memory.node.update_error", err)
     return jsonResponse({ success: false, error: "Update failed" }, 500)
   }
 }

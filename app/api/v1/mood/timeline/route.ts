@@ -16,6 +16,9 @@ import {
   getMoodTimeline,
 } from '@/lib/mood/mood-store'
 import { generateWeeklyInsight } from '@/lib/mood/mood-analyzer'
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
+import { getUserPlan } from '@/lib/billing/tier-checker'
+import { logRequest } from '@/lib/server/logger'
 import type { KVStore } from '@/types'
 import type { MoodEntry, MoodLabel, MoodScore, WeeklyMoodInsight } from '@/types/mood'
 
@@ -125,6 +128,15 @@ export async function GET(req: NextRequest) {
     )
   }
 
+  // SECURITY (M1): Rate limit mood reads to prevent timeline scraping
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
+  if (!rateResult.allowed) {
+    logRequest('mood.timeline.get.rate_limited', userId, Date.now())
+    return rateLimitExceededResponse(rateResult)
+  }
+
   const url = new URL(req.url)
   const daysParam = url.searchParams.get('days')
   const days = Math.min(Math.max(parseInt(daysParam ?? '30', 10) || 30, 1), 365)
@@ -201,6 +213,15 @@ export async function POST(req: NextRequest) {
       JSON.stringify({ success: false, error: 'Service unavailable', code: 'SERVICE_UNAVAILABLE' }),
       { status: 503, headers: { 'Content-Type': 'application/json' } },
     )
+  }
+
+  // SECURITY (M1): Rate limit mood writes to prevent spam logging
+  const planId = await getUserPlan(userId)
+  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier)
+  if (!rateResult.allowed) {
+    logRequest('mood.timeline.post.rate_limited', userId, Date.now())
+    return rateLimitExceededResponse(rateResult)
   }
 
   let body: unknown

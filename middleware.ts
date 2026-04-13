@@ -304,7 +304,8 @@ const clerkHandler = clerkMiddleware(
 
     if (isAdminRoute(request)) {
       const authObj = await auth()
-      const role = (authObj.sessionClaims?.metadata as any)?.role
+      const rawRole = (authObj.sessionClaims?.metadata as any)?.role
+      const role = typeof rawRole === 'string' ? rawRole : undefined
       const isRoleAdmin = role === "admin"
       const isSuperAdminEnv = process.env.ADMIN_USER_ID ? authObj.userId === process.env.ADMIN_USER_ID : false
 
@@ -362,18 +363,11 @@ const clerkHandler = clerkMiddleware(
 
     if (isAdminRoute(request)) {
       const authObj = await auth()
-      const role = (authObj.sessionClaims?.metadata as any)?.role
+      const rawPageRole = (authObj.sessionClaims?.metadata as any)?.role
+      const role = typeof rawPageRole === 'string' ? rawPageRole : undefined
       const isRoleAdmin = role === "admin"
       const adminEnv = process.env.ADMIN_USER_ID
       const isSuperAdminEnv = adminEnv ? authObj.userId === adminEnv : false
-
-      console.log("[admin.access_check]", JSON.stringify({ 
-        currentUserId: authObj.userId, 
-        envUserId: adminEnv, 
-        role, 
-        isRoleAdmin, 
-        isSuperAdminEnv 
-      }))
 
       log({
         level: "debug",

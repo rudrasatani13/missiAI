@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth, clerkClient } from "@clerk/nextjs/server"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
+import { z } from "zod"
 
 export const runtime = "edge"
 
 // Rate limiting is handled by the middleware's IP-based limiter (100 req/min).
 // Structured logging via @/lib/server/logger is avoided here because it pulls in
 // heavy deps that push the Cloudflare Pages bundle over the 25 MiB limit.
+
+// SECURITY (H1): Whitelist of allowed role values — prevents arbitrary metadata injection.
+const roleSchema = z.object({
+  role: z.enum(['user', 'admin'], { message: 'Role must be "user" or "admin"' }),
+})
 
 export async function POST(
   req: NextRequest,
@@ -39,7 +45,8 @@ export async function POST(
   const isSuperAdminEnv = process.env.ADMIN_USER_ID ? userId === process.env.ADMIN_USER_ID : false
 
   if (!isRoleAdmin && !isSuperAdminEnv) {
-    console.warn("[admin.role_change.forbidden]", { userId, targetUserId })
+    // Structured log: admin access denied
+    console.warn(JSON.stringify({ event: "admin.role_change.forbidden", userId, targetUserId, timestamp: Date.now() }))
     return new NextResponse(
       JSON.stringify({ success: false, error: "Forbidden", code: "FORBIDDEN" }),
       { status: 403, headers: { "Content-Type": "application/json" } }
@@ -47,9 +54,9 @@ export async function POST(
   }
 
   // ── 3. Validate body ───────────────────────────────────────────────────────
-  let body: { role?: string }
+  let rawBody: unknown
   try {
-    body = await req.json()
+    rawBody = await req.json()
   } catch {
     return new NextResponse(
       JSON.stringify({ success: false, error: "Invalid JSON body", code: "VALIDATION_ERROR" }),
@@ -57,10 +64,21 @@ export async function POST(
     )
   }
 
-  if (!body.role) {
+  const parsed = roleSchema.safeParse(rawBody)
+  if (!parsed.success) {
     return new NextResponse(
-      JSON.stringify({ success: false, error: "Role is required", code: "VALIDATION_ERROR" }),
+      JSON.stringify({ success: false, error: parsed.error.issues[0]?.message ?? "Invalid role", code: "VALIDATION_ERROR" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
+    )
+  }
+
+  const { role: newRole } = parsed.data
+
+  // SECURITY: Prevent admin from demoting themselves — requires a different admin
+  if (targetUserId === userId && newRole !== 'admin') {
+    return new NextResponse(
+      JSON.stringify({ success: false, error: "Cannot demote your own admin account", code: "FORBIDDEN" }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
     )
   }
 
@@ -70,7 +88,7 @@ export async function POST(
     // 1. Update the user's role in Clerk public metadata
     await client.users.updateUserMetadata(targetUserId, {
       publicMetadata: {
-        role: body.role,
+        role: newRole,
       },
     })
 
@@ -85,12 +103,14 @@ export async function POST(
       }
     }
 
-    console.info("[admin.role_change.success]", {
+    console.info(JSON.stringify({
+      event: "admin.role_change.success",
       userId,
       targetUserId,
-      newRole: body.role,
+      newRole,
       durationMs: Date.now() - startTime,
-    })
+      timestamp: Date.now(),
+    }))
 
     return new NextResponse(
       JSON.stringify({ 
@@ -101,7 +121,7 @@ export async function POST(
     )
 
   } catch (error) {
-    console.error("[admin.role_change.error]", { userId, error: error instanceof Error ? error.message : String(error) })
+    console.error(JSON.stringify({ event: "admin.role_change.error", userId, error: error instanceof Error ? error.message : String(error), timestamp: Date.now() }))
     return new NextResponse(
       JSON.stringify({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }),
       { status: 500, headers: { "Content-Type": "application/json" } }

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { getEnv } from "@/lib/server/env"
 import { saveNotionTokens, fetchNotionContext } from "@/lib/plugins/data-fetcher"
 import { getRequestContext } from "@cloudflare/next-on-pages"
+import { logError } from "@/lib/server/logger"
+import type { KVStore } from "@/types"
 
 export const runtime = "edge"
 
-function getKV() {
+function getKV(): KVStore | null {
   try {
     const { env } = getRequestContext()
     return (env as any).MISSI_MEMORY ?? null
@@ -14,6 +17,9 @@ function getKV() {
 
 // ─── Notion OAuth Callback ────────────────────────────────────────────────────
 // Exchanges authorization code for Notion access token.
+//
+// SECURITY (C1, H4): Verifies state token against KV and confirms the
+// authenticated Clerk session matches the userId that initiated the flow.
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -28,13 +34,52 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(chatUrl)
   }
 
-  let userId: string
+  // ── SECURITY: Verify the authenticated session ──────────────────────────
+  let currentUserId: string
   try {
-    const decoded = JSON.parse(atob(state))
-    userId = decoded.userId
-    if (!userId) throw new Error("No userId in state")
-  } catch {
-    chatUrl.searchParams.set("oauth_error", "invalid_state")
+    currentUserId = await getVerifiedUserId()
+  } catch (e) {
+    if (e instanceof AuthenticationError) {
+      chatUrl.searchParams.set("oauth_error", "unauthenticated")
+      return NextResponse.redirect(chatUrl)
+    }
+    chatUrl.searchParams.set("oauth_error", "server_error")
+    return NextResponse.redirect(chatUrl)
+  }
+
+  // ── SECURITY: Verify state token against KV ─────────────────────────────
+  const kv = getKV()
+  let userId: string
+
+  if (kv) {
+    const stateKey = `oauth:state:${state}`
+    try {
+      const raw = await kv.get(stateKey)
+      if (!raw) {
+        logError("oauth.notion.invalid_state", "State token not found or expired", currentUserId)
+        chatUrl.searchParams.set("oauth_error", "invalid_state")
+        return NextResponse.redirect(chatUrl)
+      }
+
+      const stateData = JSON.parse(raw) as { userId: string; createdAt: number }
+      userId = stateData.userId
+
+      // Delete the state token immediately to prevent replay attacks
+      await kv.delete(stateKey)
+
+      // Verify the authenticated user matches the one who initiated the flow
+      if (userId !== currentUserId) {
+        logError("oauth.notion.user_mismatch", "Authenticated user does not match state userId", currentUserId)
+        chatUrl.searchParams.set("oauth_error", "invalid_state")
+        return NextResponse.redirect(chatUrl)
+      }
+    } catch {
+      chatUrl.searchParams.set("oauth_error", "invalid_state")
+      return NextResponse.redirect(chatUrl)
+    }
+  } else {
+    // Fail closed — cannot verify state without KV
+    chatUrl.searchParams.set("oauth_error", "server_error")
     return NextResponse.redirect(chatUrl)
   }
 
@@ -77,23 +122,11 @@ export async function GET(req: NextRequest) {
       botId: tokenData.bot_id ?? "",
     }
 
-    const kv = getKV()
-    if (kv) {
-      await saveNotionTokens(kv, userId, tokens)
+    // KV is guaranteed available here (verified above)
+    await saveNotionTokens(kv!, userId, tokens)
 
-      // Pre-fetch notion context in background
-      fetchNotionContext(kv, userId, true).catch(() => {})
-    } else {
-      // Fallback: cookie for local dev
-      const response = NextResponse.redirect(chatUrl)
-      response.cookies.set(`notion_tokens_${userId}`, JSON.stringify(tokens), {
-        httpOnly: true,
-        secure: false,
-        maxAge: 60 * 60 * 24 * 90,
-        path: "/"
-      })
-      return response
-    }
+    // Pre-fetch notion context in background
+    fetchNotionContext(kv!, userId, true).catch(() => {})
 
     chatUrl.searchParams.set("oauth_success", "notion")
     return NextResponse.redirect(chatUrl)

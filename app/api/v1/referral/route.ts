@@ -4,6 +4,7 @@ import { getOrCreateReferral, trackReferral, getReferralByCode, getReferrer } fr
 import { log } from '@/lib/server/logger'
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
 import { getUserPlan } from '@/lib/billing/tier-checker'
+import { sanitizeInput } from '@/lib/validation/sanitizer'
 import type { KVStore } from '@/types'
 import { z } from 'zod'
 
@@ -64,7 +65,7 @@ export async function GET() {
 }
 
 const trackSchema = z.object({
-  referralCode: z.string().min(1).max(20),
+  referralCode: z.string().min(1).max(20).transform(sanitizeInput),
 })
 
 // POST /api/v1/referral — Track a referral (called when user visits with ?ref= and is logged in)

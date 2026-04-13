@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import nextDynamic from "next/dynamic"
-import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera, Puzzle, IdCard, Heart } from "lucide-react"
+import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera, Puzzle, IdCard, Heart, Target } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useGeminiLive, type LiveState } from "@/hooks/useGeminiLive"
@@ -25,6 +25,7 @@ import { AgentSteps } from "@/components/chat/AgentSteps"
 import { AvatarRing } from "@/components/chat/AvatarRing"
 import { OnboardingTour, shouldShowOnboarding } from "@/components/chat/OnboardingTour"
 import { Magnetic } from "@/components/ui/Magnetic"
+import { DailyBriefBanner } from "@/components/chat/DailyBriefBanner"
 import { detectPluginCommand } from "@/lib/plugins/plugin-registry"
 import type { ActionResult } from "@/types/actions"
 import type { PluginId, PluginResult } from "@/types/plugins"
@@ -496,6 +497,11 @@ export default function VoiceAssistantPage() {
       style={{ fontFamily: "var(--font-body)" }}>
       {/* Hide global footer on chat page */}
       <style>{`[data-testid="global-footer"] { display: none !important; }`}</style>
+
+      {/* Daily brief banner — fire-and-forget, never blocks chat */}
+      <div className="fixed top-0 left-0 right-0 z-[200] p-3 md:p-4 pointer-events-auto" style={{ maxWidth: 600, margin: '0 auto' }}>
+        <DailyBriefBanner />
+      </div>
       {showBootSequence && !bootCompleted && (
         <BootSequence
           userName={displayName || "Guest"}
@@ -703,6 +709,12 @@ export default function VoiceAssistantPage() {
           <Puzzle className="w-4 h-4 md:w-5 md:h-5" />
           <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Plugins</span>
         </div>
+        <Link href="/today" onClick={(e) => e.stopPropagation()}
+          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
+          style={{ color: '#fbbf24' }}>
+          <Target className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Mission</span>
+        </Link>
         <div className="w-[60%] h-[1px] bg-white/10" />
         <Link href="/memory" onClick={(e) => e.stopPropagation()}
           className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
