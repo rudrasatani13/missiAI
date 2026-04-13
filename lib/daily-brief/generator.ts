@@ -93,10 +93,10 @@ function sanitizeBriefContent(input: string, maxLength: number = MAX_BRIEF_FIELD
 
 function getTimeOfDay(hour?: number): { greeting: string; period: string } {
   const h = hour ?? new Date().getHours()
-  if (h >= 5 && h < 12) return { greeting: 'Good morning! Ready to make today count? ☀️', period: 'morning' }
-  if (h >= 12 && h < 17) return { greeting: 'Good afternoon! Let\'s keep the momentum going 🌤️', period: 'afternoon' }
-  if (h >= 17 && h < 21) return { greeting: 'Good evening! Here\'s your daily roundup 🌅', period: 'evening' }
-  return { greeting: 'Good night! Here\'s what\'s on your plate 🌙', period: 'night' }
+  if (h >= 5 && h < 12) return { greeting: 'Good morning', period: 'morning' }
+  if (h >= 12 && h < 17) return { greeting: 'Good afternoon', period: 'afternoon' }
+  if (h >= 17 && h < 21) return { greeting: 'Good evening', period: 'evening' }
+  return { greeting: 'Good night', period: 'night' }
 }
 
 // ─── Safe Fallback Brief ──────────────────────────────────────────────────────
@@ -107,7 +107,7 @@ function safeFallbackBrief(
 ): Omit<DailyBrief, 'userId' | 'date' | 'viewed' | 'viewedAt' | 'generatedAt'> {
   const { greeting } = getTimeOfDay(localHour)
   const name = context?.userName && context.userName !== 'friend' ? context.userName : ''
-  const greetName = name ? ` ${name}!` : '!'
+  const greetName = name ? ` ${name}` : ''
 
   // Build context-aware tasks when possible
   const tasks: DailyTask[] = []
@@ -163,7 +163,7 @@ function safeFallbackBrief(
   const challengeIndex = new Date().getDate() % challenges.length
 
   return {
-    greeting: `${greeting.replace('!', '')}${greetName} Here's what's on your plate today.`,
+    greeting: `${greeting}${greetName}! Here's what's on your plate today.`,
     tasks: tasks.slice(0, 3),
     streakNudge: context?.loginStreak && context.loginStreak > 1
       ? `${context.loginStreak}-day login streak! Keep it going.`

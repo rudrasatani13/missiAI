@@ -479,8 +479,8 @@ export default function TodayMissionClient() {
             <>
               {/* Greeting */}
               <p
-                className="text-center text-lg md:text-xl italic leading-relaxed"
-                style={{ color: 'rgba(255,255,255,0.85)' }}
+                className="text-center text-lg md:text-xl font-medium leading-relaxed"
+                style={{ color: 'rgba(255,255,255,0.95)', letterSpacing: '-0.01em' }}
               >
                 {brief.greeting}
               </p>
