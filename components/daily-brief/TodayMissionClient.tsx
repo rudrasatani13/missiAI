@@ -275,47 +275,21 @@ export default function TodayMissionClient() {
 
       if (!res.ok) {
         if (res.status === 403) {
-          // Task not found on server — revert the optimistic update
-          setCompletedTaskIds(prev => {
-            const next = new Set(prev)
-            next.delete(taskId)
-            return next
-          })
-          setBrief((prev) => {
-            if (!prev) return prev
-            return {
-              ...prev,
-              tasks: prev.tasks.map((t) =>
-                t.id === taskId ? { ...t, completed: false, completedAt: null } : t,
-              ),
-            }
-          })
+          // Cloudflare KV Eventual Consistency: The edge node might be reading a stale KV cache
+          // and doesn't see the newly generated task ID yet.
+          // Keep it marked as checked in the UI and silently retry after a delay.
+          setTimeout(() => {
+            fetch(`/api/v1/daily-brief/tasks/${taskId}`, { method: 'PATCH' }).catch(() => {})
+          }, 2500)
           return
         }
-        throw new Error(`PATCH failed: ${res.status}`)
+        console.error(`[TodayMission] PATCH failed: ${res.status}`)
       }
-
-      // Server confirmed — DON'T overwrite with server brief
-      // because the optimistic state is already correct and
-      // overwriting can cause race-condition flicker
-      // The task state is persisted in KV, so next page load will be correct
-
-    } catch {
-      // Revert optimistic update on error
-      setCompletedTaskIds(prev => {
-        const next = new Set(prev)
-        next.delete(taskId)
-        return next
-      })
-      setBrief((prev) => {
-        if (!prev) return prev
-        return {
-          ...prev,
-          tasks: prev.tasks.map((t) =>
-            t.id === taskId ? { ...t, completed: false, completedAt: null } : t,
-          ),
-        }
-      })
+    } catch (err) {
+      console.error('[TodayMission] Network error toggling task:', err)
+      // We explicitly do NOT revert the optimistic update here.
+      // Reverting causes a jarring "bouncing checkbox" UX if the user's connection flickers
+      // or if Cloudflare KV is slightly delayed.
     }
   }, [brief, completedTaskIds])
 
