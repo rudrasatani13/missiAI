@@ -5,7 +5,7 @@ import { useAnalytics } from '@/hooks/useAnalytics'
 import { calculateGrowthRate, formatCostUsd } from '@/lib/analytics/aggregator'
 import type { DailyStats } from '@/types/analytics'
 
-export const runtime = 'edge'
+export const dynamic = 'force-dynamic'
 
 export default function AdminPage() {
   const { isLoaded } = useUser()

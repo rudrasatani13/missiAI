@@ -36,7 +36,6 @@ const ParticleVisualizer = nextDynamic(
   { ssr: false }
 )
 
-export const runtime = "edge"
 export const dynamic = "force-dynamic"
 
 /** Convert a PluginResult to an ActionResult shape for display in ActionCard. */
