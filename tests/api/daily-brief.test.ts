@@ -56,6 +56,10 @@ vi.mock('@/lib/gamification/xp-engine', () => ({
   awardXP: vi.fn(() => Promise.resolve(0)),
 }))
 
+vi.mock('@/lib/billing/tier-checker', () => ({
+  getUserPlan: vi.fn(),
+}))
+
 // ─── Imports ──────────────────────────────────────────────────────────────────
 
 import { GET, POST } from '@/app/api/v1/daily-brief/route'
@@ -79,6 +83,7 @@ import {
   generateBriefWithGemini,
 } from '@/lib/daily-brief/generator'
 import { awardXP } from '@/lib/gamification/xp-engine'
+import { getUserPlan } from '@/lib/billing/tier-checker'
 
 const mockGetRequestContext = vi.mocked(getRequestContext)
 const mockGetVerifiedUserId = vi.mocked(getVerifiedUserId)
@@ -90,6 +95,7 @@ const mockIncrementRateLimit = vi.mocked(incrementRateLimit)
 const mockMarkTaskComplete = vi.mocked(markTaskComplete)
 const mockBuildContext = vi.mocked(buildGenerationContext)
 const mockGenerateBrief = vi.mocked(generateBriefWithGemini)
+const mockGetUserPlan = vi.mocked(getUserPlan)
 
 const TEST_USER_ID = 'user_test_brief_123'
 const TODAY = new Date().toISOString().slice(0, 10)
@@ -143,6 +149,7 @@ beforeEach(() => {
   mockMarkBriefViewed.mockResolvedValue(undefined)
   mockIncrementRateLimit.mockResolvedValue(undefined)
   mockGetRateLimit.mockResolvedValue(0)
+  mockGetUserPlan.mockResolvedValue('free')
 })
 
 // ─── GET Tests ────────────────────────────────────────────────────────────────
@@ -245,14 +252,15 @@ describe('POST /api/v1/daily-brief', () => {
   })
 
   it('returns 429 when rate limit (3) is exceeded', async () => {
-    mockGetRateLimit.mockResolvedValueOnce(3)
+    mockGetUserPlan.mockResolvedValueOnce('free')
+    mockGetRateLimit.mockResolvedValueOnce(1) // Limit for free is 1
 
     const req = makeRequest('POST', '/api/v1/daily-brief')
     const res = await POST(req)
     const body = await res.json()
 
     expect(res.status).toBe(429)
-    expect(body.error).toContain('Daily brief already generated')
+    expect(body.error).toContain('Free plan allows 1 daily brief per day')
     expect(mockGenerateBrief).not.toHaveBeenCalled()
   })
 

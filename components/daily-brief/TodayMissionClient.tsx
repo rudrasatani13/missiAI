@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Check, RefreshCw, Target, Flame, Heart, Zap, Calendar, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Check, RefreshCw, Target, Flame, Heart, Zap, Calendar, MessageCircle, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { DailyBrief, DailyTask } from '@/types/daily-brief'
 
@@ -73,6 +73,91 @@ function BriefSkeleton() {
   )
 }
 
+// ─── Confirm Modal Component ──────────────────────────────────────────────────
+
+function ConfirmModal({
+  isOpen,
+  onConfirm,
+  onCancel,
+  remaining,
+}: {
+  isOpen: boolean
+  onConfirm: () => void
+  onCancel: () => void
+  remaining: number
+}) {
+  if (!isOpen) return null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(8px)' }}
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+        className="w-full max-w-sm rounded-2xl p-6 text-center"
+        style={{
+          background: 'linear-gradient(135deg, rgba(20, 20, 30, 0.98), rgba(10, 10, 18, 0.99))',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5), 0 0 60px rgba(251, 191, 36, 0.05)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <RefreshCw className="w-8 h-8 mx-auto mb-4" style={{ color: 'rgba(251, 191, 36, 0.7)' }} />
+        <h3
+          className="text-lg font-semibold mb-2"
+          style={{ color: 'rgba(255, 255, 255, 0.9)' }}
+        >
+          Regenerate Mission?
+        </h3>
+        <p
+          className="text-sm mb-6 leading-relaxed"
+          style={{ color: 'rgba(255, 255, 255, 0.5)' }}
+        >
+          This will create a fresh new mission for today.
+          <br />
+          <span style={{ color: 'rgba(251, 191, 36, 0.7)' }}>
+            {remaining} regeneration{remaining !== 1 ? 's' : ''} remaining today
+          </span>
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/10"
+            style={{
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: 'rgba(255, 255, 255, 0.6)',
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-90"
+            style={{
+              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.15))',
+              border: '1px solid rgba(251, 191, 36, 0.3)',
+              color: 'rgba(251, 191, 36, 0.95)',
+              cursor: 'pointer',
+            }}
+          >
+            Regenerate
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function TodayMissionClient() {
@@ -80,6 +165,11 @@ export default function TodayMissionClient() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [regenerationsRemaining, setRegenerationsRemaining] = useState(1)
+  const [maxGenerations, setMaxGenerations] = useState(1)
+  // Track which tasks have been completed locally to prevent revert
+  const [completedTaskIds, setCompletedTaskIds] = useState<Set<string>>(new Set())
 
   // ── Fetch or generate brief on mount ──────────────────────────────────────
 
@@ -100,8 +190,21 @@ export default function TodayMissionClient() {
 
       const getData = await getRes.json()
 
+      if (getData.data?.regenerationsRemaining !== undefined) {
+        setRegenerationsRemaining(getData.data.regenerationsRemaining)
+      }
+      if (getData.data?.maxGenerations !== undefined) {
+        setMaxGenerations(getData.data.maxGenerations)
+      }
+
       if (getData.data?.brief) {
         setBrief(getData.data.brief)
+        // Track already completed tasks
+        const alreadyCompleted = new Set<string>()
+        for (const task of getData.data.brief.tasks) {
+          if (task.completed) alreadyCompleted.add(task.id)
+        }
+        setCompletedTaskIds(alreadyCompleted)
         return
       }
 
@@ -113,13 +216,22 @@ export default function TodayMissionClient() {
 
       if (!postRes.ok) {
         if (postRes.status === 429) {
-          setError("You've used all 3 daily regenerations. Come back tomorrow.")
+          const errData = await postRes.json().catch(() => ({}))
+          setError(errData.error || "You've used all your daily regenerations. Come back tomorrow.")
           return
         }
         throw new Error(`POST failed: ${postRes.status}`)
       }
 
       const postData = await postRes.json()
+
+      if (postData.data?.regenerationsRemaining !== undefined) {
+        setRegenerationsRemaining(postData.data.regenerationsRemaining)
+      }
+      if (postData.data?.maxGenerations !== undefined) {
+        setMaxGenerations(postData.data.maxGenerations)
+      }
+
       if (postData.data?.brief) {
         setBrief(postData.data.brief)
       }
@@ -141,7 +253,11 @@ export default function TodayMissionClient() {
   const handleTaskToggle = useCallback(async (taskId: string) => {
     if (!brief) return
 
+    // Prevent re-toggling already completed tasks
+    if (completedTaskIds.has(taskId)) return
+
     // Optimistic update — mark checked immediately
+    setCompletedTaskIds(prev => new Set(prev).add(taskId))
     setBrief((prev) => {
       if (!prev) return prev
       return {
@@ -159,7 +275,12 @@ export default function TodayMissionClient() {
 
       if (!res.ok) {
         if (res.status === 403) {
-          // Revert optimistic update — task not found
+          // Task not found on server — revert the optimistic update
+          setCompletedTaskIds(prev => {
+            const next = new Set(prev)
+            next.delete(taskId)
+            return next
+          })
           setBrief((prev) => {
             if (!prev) return prev
             return {
@@ -174,12 +295,18 @@ export default function TodayMissionClient() {
         throw new Error(`PATCH failed: ${res.status}`)
       }
 
-      const data = await res.json()
-      if (data.data?.brief) {
-        setBrief(data.data.brief)
-      }
+      // Server confirmed — DON'T overwrite with server brief
+      // because the optimistic state is already correct and
+      // overwriting can cause race-condition flicker
+      // The task state is persisted in KV, so next page load will be correct
+
     } catch {
       // Revert optimistic update on error
+      setCompletedTaskIds(prev => {
+        const next = new Set(prev)
+        next.delete(taskId)
+        return next
+      })
       setBrief((prev) => {
         if (!prev) return prev
         return {
@@ -190,15 +317,12 @@ export default function TodayMissionClient() {
         }
       })
     }
-  }, [brief])
+  }, [brief, completedTaskIds])
 
   // ── Regenerate handler ────────────────────────────────────────────────────
 
   const handleRegenerate = useCallback(async () => {
-    const confirmed = window.confirm(
-      'This will use one of your 3 daily regenerations. Continue?',
-    )
-    if (!confirmed) return
+    setShowConfirm(false)
 
     try {
       setGenerating(true)
@@ -209,15 +333,31 @@ export default function TodayMissionClient() {
       const res = await fetch(`/api/v1/daily-brief?refresh=true&tz=${encodeURIComponent(tz)}&hour=${localHour}`, { method: 'POST' })
 
       if (res.status === 429) {
-        setError("You've used all 3 daily regenerations. Come back tomorrow.")
+        const errData = await res.json().catch(() => ({}))
+        setError(errData.error || "You've used all your daily regenerations. Come back tomorrow.")
+        setRegenerationsRemaining(0)
         return
       }
 
       if (!res.ok) throw new Error(`Regenerate failed: ${res.status}`)
 
       const data = await res.json()
+
+      if (data.data?.regenerationsRemaining !== undefined) {
+        setRegenerationsRemaining(data.data.regenerationsRemaining)
+      }
+      if (data.data?.maxGenerations !== undefined) {
+        setMaxGenerations(data.data.maxGenerations)
+      }
+
       if (data.data?.brief) {
         setBrief(data.data.brief)
+        // Reset completed task tracking for new brief
+        const alreadyCompleted = new Set<string>()
+        for (const task of data.data.brief.tasks) {
+          if (task.completed) alreadyCompleted.add(task.id)
+        }
+        setCompletedTaskIds(alreadyCompleted)
       }
     } catch {
       setError('Failed to regenerate. Please try again.')
@@ -473,11 +613,30 @@ export default function TodayMissionClient() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="mt-8 w-full max-w-lg flex justify-end"
+          className="mt-8 w-full max-w-lg flex justify-end items-center gap-3"
         >
+          {regenerationsRemaining > 0 && (
+            <span
+              className="text-[10px] font-medium"
+              style={{ color: 'rgba(255, 255, 255, 0.2)' }}
+            >
+              {regenerationsRemaining} left today
+            </span>
+          )}
           <button
-            onClick={handleRegenerate}
-            className="flex items-center gap-1.5 text-xs font-medium transition-all hover:opacity-80"
+            onClick={() => {
+              if (regenerationsRemaining <= 0) {
+                setError(
+                  maxGenerations === 1
+                    ? 'Free plan allows 1 daily brief per day. Upgrade to Plus for more.'
+                    : "You've used all your daily regenerations. Come back tomorrow."
+                )
+                return
+              }
+              setShowConfirm(true)
+            }}
+            disabled={regenerationsRemaining <= 0}
+            className="flex items-center gap-1.5 text-xs font-medium transition-all hover:opacity-80 disabled:opacity-20 disabled:cursor-not-allowed"
             style={{ color: 'rgba(255,255,255,0.25)' }}
           >
             <RefreshCw className="w-3 h-3" />
@@ -485,6 +644,18 @@ export default function TodayMissionClient() {
           </button>
         </motion.div>
       )}
+
+      {/* Confirm Modal */}
+      <AnimatePresence>
+        {showConfirm && (
+          <ConfirmModal
+            isOpen={showConfirm}
+            onConfirm={handleRegenerate}
+            onCancel={() => setShowConfirm(false)}
+            remaining={regenerationsRemaining}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

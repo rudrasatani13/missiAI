@@ -25,8 +25,8 @@ import { geminiGenerate } from '@/lib/ai/vertex-client'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const GEMINI_MODEL = 'gemini-2.5-pro'
-const GEMINI_TIMEOUT_MS = 5000
+const GEMINI_MODEL = 'gemma-4-31b-it'
+const GEMINI_TIMEOUT_MS = 15000
 const MAX_BRIEF_FIELD_LENGTH = 800
 const CALENDAR_FETCH_TIMEOUT_MS = 3000
 
@@ -101,23 +101,77 @@ function getTimeOfDay(hour?: number): { greeting: string; period: string } {
 
 // ─── Safe Fallback Brief ──────────────────────────────────────────────────────
 
-function safeFallbackBrief(localHour?: number): Omit<DailyBrief, 'userId' | 'date' | 'viewed' | 'viewedAt' | 'generatedAt'> {
+function safeFallbackBrief(
+  localHour?: number,
+  context?: BriefGenerationContext,
+): Omit<DailyBrief, 'userId' | 'date' | 'viewed' | 'viewedAt' | 'generatedAt'> {
   const { greeting } = getTimeOfDay(localHour)
+  const name = context?.userName && context.userName !== 'friend' ? context.userName : ''
+  const greetName = name ? ` ${name}!` : '!'
+
+  // Build context-aware tasks when possible
+  const tasks: DailyTask[] = []
+
+  // Add a goal-based task if user has goals
+  if (context?.topGoals && context.topGoals.length > 0) {
+    const goal = context.topGoals[0]
+    tasks.push({
+      id: nanoid(8),
+      title: `Work on: ${goal}`,
+      context: 'Take one step closer to your goal today',
+      source: 'goal' as const,
+      completed: false,
+      completedAt: null,
+    })
+  }
+
+  // Add a habit-based task if user has active habits
+  if (context?.activeHabits && context.activeHabits.length > 0) {
+    const habit = context.activeHabits[0]
+    const streak = context?.bestStreak?.days || 0
+    tasks.push({
+      id: nanoid(8),
+      title: `Keep up: ${habit}`,
+      context: streak > 0 ? `${streak}-day streak going strong!` : 'Build consistency today',
+      source: 'habit' as const,
+      completed: false,
+      completedAt: null,
+    })
+  }
+
+  // Always add a Missi check-in task
+  tasks.push({
+    id: nanoid(8),
+    title: 'Check in with Missi',
+    context: 'Share how your day is going',
+    source: 'missi' as const,
+    completed: false,
+    completedAt: null,
+  })
+
+  // Pick a varied challenge
+  const challenges = [
+    'Try one new thing today, no matter how small.',
+    'Take a 10-minute walk and notice 3 things you haven\'t before.',
+    'Reach out to someone you haven\'t spoken to recently.',
+    'Write down 3 things you\'re grateful for right now.',
+    'Spend 15 minutes learning something completely new.',
+    'Do something kind for a stranger today.',
+    'Take a break from screens for 30 minutes.',
+    'Set one small goal and finish it before the day ends.',
+  ]
+  const challengeIndex = new Date().getDate() % challenges.length
+
   return {
-    greeting,
-    tasks: [
-      {
-        id: nanoid(8),
-        title: 'Check in with Missi',
-        context: 'Start your day with a quick chat',
-        source: 'missi' as const,
-        completed: false,
-        completedAt: null,
-      },
-    ],
-    streakNudge: null,
-    moodPrompt: null,
-    challenge: 'Try one new thing today, no matter how small.',
+    greeting: `${greeting.replace('!', '')}${greetName} Here's what's on your plate today.`,
+    tasks: tasks.slice(0, 3),
+    streakNudge: context?.loginStreak && context.loginStreak > 1
+      ? `${context.loginStreak}-day login streak! Keep it going.`
+      : null,
+    moodPrompt: context?.yesterdayMood
+      ? `Yesterday you felt ${context.yesterdayMood}. How are you feeling now?`
+      : null,
+    challenge: challenges[challengeIndex],
   }
 }
 
@@ -331,8 +385,9 @@ Generate the daily brief JSON now. Remember: greeting must match ${timeOfDay} ti
     ])
 
     if (!res.ok) {
-      console.warn(`[DailyBrief] Gemini returned ${res.status} — using fallback`)
-      return safeFallbackBrief(context.localHour)
+      const errText = await res.text().catch(() => 'unknown')
+      console.warn(`[DailyBrief] Gemini returned ${res.status} — ${errText.slice(0, 200)} — using fallback`)
+      return safeFallbackBrief(context.localHour, context)
     }
 
     const data = (await res.json()) as {
@@ -341,7 +396,7 @@ Generate the daily brief JSON now. Remember: greeting must match ${timeOfDay} ti
 
     // Extract text from Gemini response
     const parts = data?.candidates?.[0]?.content?.parts
-    if (!parts) return safeFallbackBrief(context.localHour)
+    if (!parts) return safeFallbackBrief(context.localHour, context)
 
     let rawText = parts
       .filter((p) => typeof p.text === 'string')
@@ -362,9 +417,9 @@ Generate the daily brief JSON now. Remember: greeting must match ${timeOfDay} ti
     }
     try {
       parsed = JSON.parse(rawText)
-    } catch {
-      console.warn('[DailyBrief] Gemini returned invalid JSON — using fallback')
-      return safeFallbackBrief(context.localHour)
+    } catch (jsonErr) {
+      console.warn('[DailyBrief] Gemini returned invalid JSON — using fallback. Raw:', rawText.slice(0, 200))
+      return safeFallbackBrief(context.localHour, context)
     }
 
     // Validate shape: greeting must be non-empty, tasks must be 1-3 items
@@ -376,25 +431,25 @@ Generate the daily brief JSON now. Remember: greeting must match ${timeOfDay} ti
       parsed.tasks.length > 3
     ) {
       console.warn('[DailyBrief] Gemini response failed shape validation — using fallback')
-      return safeFallbackBrief(context.localHour)
+      return safeFallbackBrief(context.localHour, context)
     }
 
     // Validate each task has required fields
     for (const task of parsed.tasks) {
       if (typeof task.title !== 'string' || !task.title.trim()) {
         console.warn('[DailyBrief] Gemini task missing title — using fallback')
-        return safeFallbackBrief(context.localHour)
+        return safeFallbackBrief(context.localHour, context)
       }
       if (typeof task.source !== 'string' || !task.source.trim()) {
         console.warn('[DailyBrief] Gemini task missing source — using fallback')
-        return safeFallbackBrief(context.localHour)
+        return safeFallbackBrief(context.localHour, context)
       }
     }
 
     // SECURITY (Rule 3): Sanitize ALL Gemini-generated string fields before storage.
     // If any field is stripped >50%, the entire response is discarded.
     const greeting = sanitizeBriefContent(parsed.greeting, 150)
-    if (!greeting) return safeFallbackBrief(context.localHour)
+    if (!greeting) return safeFallbackBrief(context.localHour, context)
 
     const streakNudge = parsed.streakNudge
       ? sanitizeBriefContent(parsed.streakNudge, 100) || null
@@ -436,6 +491,6 @@ Generate the daily brief JSON now. Remember: greeting must match ${timeOfDay} ti
     // Timeout or network error — return safe fallback
     const msg = err instanceof Error ? err.message : String(err)
     console.warn(`[DailyBrief] Gemini call failed: ${msg} — using fallback`)
-    return safeFallbackBrief(context.localHour)
+    return safeFallbackBrief(context.localHour, context)
   }
 }

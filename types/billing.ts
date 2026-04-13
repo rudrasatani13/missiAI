@@ -14,6 +14,8 @@ export interface PlanConfig {
   maxMemoryFacts: number
   apiAccess: boolean
   dodoProductId: string
+  /** Max daily brief generations per day (includes initial + regenerations) */
+  briefGenerationsPerDay: number
 }
 
 // Server-side code resolves Dodo product IDs via process.env directly.
@@ -28,6 +30,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     maxMemoryFacts: 20,
     apiAccess: false,
     dodoProductId: '',
+    briefGenerationsPerDay: 1, // 1 generation, no regeneration
   },
   plus: {
     id: 'plus',
@@ -39,6 +42,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     maxMemoryFacts: 999999,
     apiAccess: false,
     dodoProductId: '',
+    briefGenerationsPerDay: 3, // 1 initial + 2 regenerations
   },
   pro: {
     id: 'pro',
@@ -50,6 +54,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     maxMemoryFacts: 999999,
     apiAccess: true,
     dodoProductId: '',
+    briefGenerationsPerDay: 10, // generous limit for pro users
   },
 }
 
