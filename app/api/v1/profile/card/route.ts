@@ -8,6 +8,7 @@ import {
 } from '@/lib/server/auth'
 import { getLifeGraph } from '@/lib/memory/life-graph'
 import { getGamificationData } from '@/lib/gamification/streak'
+import { awardXP } from '@/lib/gamification/xp-engine'
 import { geminiGenerate } from '@/lib/ai/vertex-client'
 import { AVATAR_TIERS } from '@/types/gamification'
 import { logRequest, logError } from '@/lib/server/logger'
@@ -53,6 +54,143 @@ interface ProfileCardData {
   }
   unlockedAchievements: number
   generatedAt: string
+}
+
+// ─── Deduplication Helpers ───────────────────────────────────────────────────
+
+/**
+ * Compute word overlap ratio between two strings.
+ * Returns 0-1 (1 = identical words).
+ */
+function wordOverlap(a: string, b: string): number {
+  const wordsA = new Set(a.toLowerCase().split(/\s+/).filter(w => w.length > 2))
+  const wordsB = new Set(b.toLowerCase().split(/\s+/).filter(w => w.length > 2))
+  if (wordsA.size === 0 || wordsB.size === 0) return 0
+  let overlap = 0
+  for (const w of wordsA) {
+    if (wordsB.has(w)) overlap++
+  }
+  return overlap / Math.min(wordsA.size, wordsB.size)
+}
+
+/**
+ * Remove semantically similar strings based on word overlap.
+ * Keeps the first occurrence (highest priority).
+ */
+function deduplicateStrings(items: string[], threshold = 0.5): string[] {
+  const result: string[] = []
+  for (const item of items) {
+    const isDuplicate = result.some(existing => wordOverlap(existing, item) >= threshold)
+    if (!isDuplicate) {
+      result.push(item)
+    }
+  }
+  return result
+}
+
+/**
+ * Patterns that indicate behavioral observations rather than genuine interests.
+ * These should be filtered out from "What I Love".
+ */
+const BEHAVIORAL_PATTERNS = [
+  /^uses?\s/i,                    // "Uses formal honorifics..."
+  /\bcommunicat/i,                // "Communicates in..."
+  /\bproficient\s+in\b/i,        // "Proficient in Hindi"
+  /\bprefers?\s+to\s/i,          // "Prefers to speak..."
+  /\blanguage\b/i,               // anything about language
+  /\bstyle\b/i,                  // communication style
+  /\bhinglish\b/i,               // specific language refs
+  /\bformal\b.*\bhonorific/i,    // honorifics
+  /\binformal\b/i,               // informal speech patterns
+  /\bspeaks?\s/i,                // "Speaks Hindi"
+  /\brespond/i,                  // "Responds in..."
+  /\bconversat/i,                // "Conversational..."
+  /\bgreet/i,                    // "Greets with..."
+  /\baddress/i,                  // "Addresses people..."
+  /\btrack/i,                    // "Tracks habits..."
+  /\bshow\s+respect/i,           // behavior patterns
+]
+
+/**
+ * Check if a node represents a genuine interest/preference vs behavioral observation.
+ */
+function isGenuineInterest(node: LifeNode): boolean {
+  const text = node.title
+  // Reject if it matches any behavioral pattern
+  for (const pattern of BEHAVIORAL_PATTERNS) {
+    if (pattern.test(text)) return false
+  }
+  // Too long titles are usually observations, not interests
+  if (text.length > 60) return false
+  return true
+}
+
+/**
+ * Extract a clean person name from a relationship/person node title.
+ * Returns null if the title is about the user themselves or AI.
+ */
+function extractPersonName(title: string, userName: string): string | null {
+  const lower = title.toLowerCase().trim()
+
+  // Skip AI assistant references
+  if (lower.includes('ai assistant') || lower.includes('ai companion') ||
+      lower.includes('missi') || lower.includes('chatbot') || lower.includes('assistant')) {
+    return null
+  }
+
+  // Skip self-references
+  const userLower = userName.toLowerCase()
+  if (lower === userLower || lower === 'user' || lower === "user's name") {
+    return null
+  }
+
+  // If the title is a simple name (1-3 words, no relationship verbs), return as-is
+  const words = title.trim().split(/\s+/)
+  if (words.length <= 3 && !lower.includes('friend') && !lower.includes('rapport') &&
+      !lower.includes('relationship') && !lower.includes('close') && !lower.includes('best')) {
+    return title.trim()
+  }
+
+  // Try to extract person name from relationship descriptions
+  // Patterns: "Best friends with X", "X is Y's best friend", "Close to X", "Married to X"
+  const namePatterns = [
+    /(?:best\s+)?friends?\s+with\s+(.+)/i,
+    /(.+?)\s+is\s+.+(?:friend|partner|spouse|sibling)/i,
+    /close\s+(?:to|with|rapport\s+with)\s+(.+)/i,
+    /married\s+to\s+(.+)/i,
+    /(?:loves?|cares?\s+about|adores?)\s+(.+)/i,
+    /(.+?)'s\s+(?:best\s+)?friend/i,
+  ]
+
+  for (const pattern of namePatterns) {
+    const match = title.match(pattern)
+    if (match?.[1]) {
+      const name = match[1].trim().replace(/[.,!?]+$/, '')
+      // Validate it's actually a name (not too long, no common words)
+      if (name.length > 0 && name.length < 30 && name.split(/\s+/).length <= 4) {
+        // Skip if the extracted name is the user or AI
+        const nameLower = name.toLowerCase()
+        if (nameLower === userLower || nameLower.includes('ai') || nameLower.includes('assistant')) {
+          return null
+        }
+        return name
+      }
+    }
+  }
+
+  // If it contains the user's name, it's about the user's relationship — skip
+  if (lower.includes(userLower) && lower !== userLower) {
+    // Extract the other person's name
+    const cleaned = title.replace(new RegExp(userName, 'gi'), '').trim()
+    const relWords = cleaned.replace(/\b(is|and|with|the|a|an|best|close|friend|friends|rapport)\b/gi, '').trim()
+    if (relWords.length > 0 && relWords.length < 30) return relWords
+    return null
+  }
+
+  // Fallback: return the title if short enough to be a name
+  if (title.length < 25) return title.trim()
+
+  return null
 }
 
 // ─── Personality Snapshot via Gemini ──────────────────────────────────────────
@@ -113,6 +251,15 @@ export async function GET(req: NextRequest) {
     return jsonResponse({ success: false, error: 'Failed to load profile data' }, 500)
   }
 
+  // Award daily login XP (fire-and-forget) — triggers loginStreak update
+  const loginCooldownKey = `xp-cooldown:login:${userId}`
+  kv.get(loginCooldownKey).then(existing => {
+    if (!existing) {
+      awardXP(kv!, userId, 'login').catch(() => {})
+      kv!.put(loginCooldownKey, '1', { expirationTtl: 86400 }).catch(() => {})
+    }
+  }).catch(() => {})
+
   // Check for cached result (unless refresh=true)
   const refresh = req.nextUrl.searchParams.get('refresh') === 'true'
   const cacheKey = `profile:card:${userId}`
@@ -146,53 +293,68 @@ export async function GET(req: NextRequest) {
       // Fallback to default
     }
 
-    // ── Top Interests ──────────────────────────────────────────────────────
+    // ── Top Interests (What I Love) ───────────────────────────────────────
+    // Only show genuine interests/preferences, not behavioral observations.
+    // Deduplicate semantically similar items.
     const interestNodes = graph.nodes
-      .filter(n => n.category === 'preference' || n.category === 'skill')
-      .sort((a, b) => b.accessCount - a.accessCount)
-    const topInterests = interestNodes.slice(0, 5).map(n => n.title)
-
-    // Fill with top tags if fewer than 5
-    if (topInterests.length < 5) {
-      const allTopNodes = [...graph.nodes].sort((a, b) => b.accessCount - a.accessCount)
-      const existingSet = new Set(topInterests.map(t => t.toLowerCase()))
-      for (const node of allTopNodes) {
-        for (const tag of node.tags) {
-          if (!existingSet.has(tag.toLowerCase())) {
-            topInterests.push(tag)
-            existingSet.add(tag.toLowerCase())
-            if (topInterests.length >= 5) break
-          }
-        }
-        if (topInterests.length >= 5) break
-      }
-    }
-
-    // ── People in My World ─────────────────────────────────────────────────
-    const peopleInMyWorld = graph.nodes
-      .filter(n => n.category === 'person' || n.category === 'relationship')
-      .sort((a, b) => b.emotionalWeight - a.emotionalWeight)
-      .slice(0, 4)
-      .map(n => {
-        const title = n.title;
-        if (title.toLowerCase() === "user's name" || title.toLowerCase() === 'user') {
-          return userName;
-        }
-        return title.replace(/user's name/ig, userName);
+      .filter(n => (n.category === 'preference' || n.category === 'skill') && isGenuineInterest(n))
+      .sort((a, b) => {
+        // Prioritize high emotional weight, then access count
+        const emotionDiff = b.emotionalWeight - a.emotionalWeight
+        if (Math.abs(emotionDiff) > 0.1) return emotionDiff
+        return b.accessCount - a.accessCount
       })
 
-    // ── Active Goals ───────────────────────────────────────────────────────
-    let activeGoals = graph.nodes
-      .filter(n => n.category === 'goal')
-      .slice(0, 3)
-      .map(n => n.title)
+    const rawInterests = interestNodes.slice(0, 8).map(n => n.title)
+    const topInterests = deduplicateStrings(rawInterests, 0.4).slice(0, 5)
 
-    if (activeGoals.length === 0) {
-      activeGoals = graph.nodes
-        .filter(n => n.tags.some(t => t.toLowerCase() === 'goal'))
-        .slice(0, 3)
-        .map(n => n.title)
+    // ── People in My World ─────────────────────────────────────────────────
+    // Extract unique person names, remove AI refs and self-refs.
+    const peopleNodes = graph.nodes
+      .filter(n => n.category === 'person' || n.category === 'relationship')
+      .sort((a, b) => b.emotionalWeight - a.emotionalWeight)
+
+    const seenNames = new Set<string>()
+    const peopleInMyWorld: string[] = []
+    for (const node of peopleNodes) {
+      if (peopleInMyWorld.length >= 4) break
+      const name = extractPersonName(node.title, userName)
+      if (!name) continue
+      const nameLower = name.toLowerCase()
+      // Dedup by lowercase name
+      if (seenNames.has(nameLower)) continue
+      // Also check if any existing name is a substring of this or vice versa
+      let isDup = false
+      for (const existing of seenNames) {
+        if (existing.includes(nameLower) || nameLower.includes(existing)) {
+          isDup = true
+          break
+        }
+      }
+      if (isDup) continue
+      seenNames.add(nameLower)
+      peopleInMyWorld.push(name)
     }
+
+    // ── Active Goals ───────────────────────────────────────────────────────
+    // Show genuinely distinct goals, deduplicate overlapping ones.
+    let goalNodes = graph.nodes
+      .filter(n => n.category === 'goal')
+      .sort((a, b) => {
+        // Prefer higher confidence and more recently updated
+        const confDiff = b.confidence - a.confidence
+        if (Math.abs(confDiff) > 0.1) return confDiff
+        return b.updatedAt - a.updatedAt
+      })
+
+    if (goalNodes.length === 0) {
+      goalNodes = graph.nodes
+        .filter(n => n.tags.some(t => t.toLowerCase() === 'goal'))
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+    }
+
+    const rawGoals = goalNodes.slice(0, 6).map(n => n.title)
+    const activeGoals = deduplicateStrings(rawGoals, 0.35).slice(0, 3)
 
     // ── Top Habit ──────────────────────────────────────────────────────────
     let topHabit: ProfileCardData['topHabit'] = null

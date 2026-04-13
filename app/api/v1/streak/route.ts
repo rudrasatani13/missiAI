@@ -13,6 +13,7 @@ import { getGamificationData, checkInHabit } from '@/lib/gamification/streak'
 import { logRequest, logError } from '@/lib/server/logger'
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
 import { getUserPlan } from '@/lib/billing/tier-checker'
+import { awardXP } from '@/lib/gamification/xp-engine'
 import type { KVStore } from '@/types'
 
 export const runtime = 'edge'
@@ -59,6 +60,19 @@ export async function GET(_req: NextRequest) {
   if (!kv) return jsonResponse({ success: true, data: null }, 200, rateLimitHeaders(rateResult))
 
   try {
+    // Award daily login XP (once per day) — triggers loginStreak update
+    const loginCooldownKey = `xp-cooldown:login:${userId}`
+    try {
+      const existing = await kv.get(loginCooldownKey)
+      if (!existing) {
+        await awardXP(kv, userId, 'login')
+        await kv.put(loginCooldownKey, '1', { expirationTtl: 86400 })
+      }
+    } catch {
+      // Login XP award failed — non-critical, continue
+    }
+
+    // Fetch gamification data (now includes any login XP just awarded)
     const data = await getGamificationData(kv, userId)
     logRequest('streak.get', userId, startTime)
     return jsonResponse({ success: true, data }, 200, rateLimitHeaders(rateResult))

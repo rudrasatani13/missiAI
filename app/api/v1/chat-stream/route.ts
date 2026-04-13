@@ -79,6 +79,17 @@ export async function POST(req: NextRequest) {
   const rateResult = await checkRateLimit(userId, planId === 'free' ? 'free' : 'paid', 'ai')
   if (!rateResult.allowed) return rateLimitExceededResponse(rateResult)
 
+  // 2b. Daily login XP — triggers loginStreak update (fire-and-forget, once per day)
+  if (kv) {
+    const loginCooldownKey = `xp-cooldown:login:${userId}`
+    kv.get(loginCooldownKey).then(existing => {
+      if (!existing) {
+        awardXP(kv, userId, 'login').catch(() => {})
+        kv.put(loginCooldownKey, '1', { expirationTtl: 86400 }).catch(() => {}) // 24h cooldown
+      }
+    }).catch(() => {})
+  }
+
   // 3. Body validation
   let body: unknown
   try { body = await req.json() } catch { return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 }) }
