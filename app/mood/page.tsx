@@ -1,13 +1,21 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 import MoodTimelineClient from '@/components/mood/MoodTimelineClient'
 
-export const runtime = 'edge'
-export const dynamic = 'force-dynamic'
+export default function MoodPage() {
+  const { isLoaded, isSignedIn } = useUser()
+  const router = useRouter()
 
-export default async function MoodPage() {
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push('/sign-in')
+    }
+  }, [isLoaded, isSignedIn, router])
+
+  if (!isLoaded || !isSignedIn) return null
 
   return <MoodTimelineClient />
 }
