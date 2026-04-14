@@ -151,5 +151,7 @@ export async function POST(req: NextRequest) {
   }
 
   logApiError("stt.error", lastErr, { userId, httpStatus: 500 })
-  return jsonResponse({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }, 500)
+  // Surface ElevenLabs error detail for debugging (no sensitive data exposed)
+  const detail = (lastErr as any)?.detail || (lastErr instanceof Error ? lastErr.message : "Unknown error")
+  return jsonResponse({ success: false, error: "Transcription failed", code: "INTERNAL_ERROR", detail }, 500)
 }

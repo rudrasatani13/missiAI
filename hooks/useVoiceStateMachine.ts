@@ -745,6 +745,10 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
   /* ── transcribeAudio ────────────────────────────────────────────────────── */
 
+  /** Track consecutive STT failures to break out of the listen→fail→listen loop */
+  const sttFailCountRef = useRef(0)
+  const MAX_STT_RETRIES_CLIENT = 3
+
   const transcribeAudio = useCallback(
     async (blob: Blob) => {
       cancelAbort()
@@ -771,7 +775,17 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           { method: "POST", body: fd, signal: ctrl.signal },
           STT_TIMEOUT,
         )
-        if (!res.ok) throw new Error("STT failed")
+        if (!res.ok) {
+          // Log the server error detail for debugging
+          try {
+            const errData = await res.json()
+            console.error("[STT] Server error:", res.status, errData.detail || errData.error)
+          } catch {}
+          throw new Error(`STT failed: ${res.status}`)
+        }
+
+        // Success — reset fail counter
+        sttFailCountRef.current = 0
 
         const data = await res.json()
         // Handle new API envelope format
@@ -805,8 +819,18 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           return
         }
         if (continuousRef.current) {
-          setError("Transcription hiccup \u2014 listening again...")
-          await fnRef.current.startRecording()
+          sttFailCountRef.current++
+          if (sttFailCountRef.current >= MAX_STT_RETRIES_CLIENT) {
+            // Too many consecutive failures — break out of the loop
+            sttFailCountRef.current = 0
+            continuousRef.current = false
+            setError("Voice transcription unavailable — please try again later")
+            resetToIdle()
+          } else {
+            setError("Transcription hiccup \u2014 listening again...")
+            await new Promise(r => setTimeout(r, 800)) // brief delay before retry
+            await fnRef.current.startRecording()
+          }
         } else {
           setError("Transcription failed. Try again.")
           resetToIdle()

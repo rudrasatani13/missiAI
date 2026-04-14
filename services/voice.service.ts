@@ -4,24 +4,6 @@ const TTS_ENDPOINT = "https://api.elevenlabs.io/v1/text-to-speech"
 const STT_ENDPOINT = "https://api.elevenlabs.io/v1/speech-to-text"
 const MAX_TTS_CHARS = 4000
 
-// ─── Default Hinglish keyterms ────────────────────────────────────────────────
-// Biases ElevenLabs STT model towards common Hindi/Hinglish words for accuracy
-
-const HINGLISH_KEYTERMS: string[] = [
-  "kya", "hai", "nahi", "haan", "yaar", "arre",
-  "acha", "accha", "theek", "matlab", "samajh",
-  "batao", "bata", "sunao", "dekho", "chalo",
-  "kaise", "kaha", "kab", "kyun", "kaun",
-  "mujhe", "tujhe", "humein", "tumhe",
-  "karo", "karna", "chahiye", "sakta", "sakti",
-  "bahut", "thoda", "zyada", "kam", "abhi",
-  "pehle", "baad", "phir", "fir", "lekin",
-  "aur", "ya", "par", "toh", "woh", "yeh",
-  "kuch", "sab", "bohot", "bilkul",
-  "paisa", "kaam", "ghar", "dost",
-  "missi", "missiAI",
-]
-
 // ─── TTS ──────────────────────────────────────────────────────────────────────
 
 export async function textToSpeech(options: TTSOptions): Promise<ArrayBuffer> {
@@ -69,21 +51,25 @@ export async function textToSpeech(options: TTSOptions): Promise<ArrayBuffer> {
 // ─── STT ──────────────────────────────────────────────────────────────────────
 
 export async function speechToText(options: STTOptions): Promise<STTResult> {
-  const {
-    audio,
-    apiKey,
-    keyterms = HINGLISH_KEYTERMS,
-  } = options
+  const { audio, apiKey } = options
+
+  // CRITICAL: On Cloudflare Workers edge runtime, the File object received
+  // from the incoming request's FormData can have a non-replayable body stream.
+  // We MUST read the file into memory first, then create a fresh Blob for the
+  // outgoing request. Without this, ElevenLabs receives an empty/corrupt file
+  // and returns 500. This works fine on Node.js (localhost) because Node's File
+  // implementation buffers data in memory.
+  const audioBuffer = await audio.arrayBuffer()
+  const mimeType = audio.type || "audio/webm"
+  const fileName = (audio as File).name || "recording.webm"
+  const freshBlob = new Blob([audioBuffer], { type: mimeType })
 
   const form = new FormData()
-  form.append("file", audio)
+  form.append("file", freshBlob, fileName)
   form.append("model_id", "scribe_v2")
-  // Omit language_code entirely — scribe_v2 auto-detects language when not provided
-  // keyterms must be sent as a JSON-encoded array string, NOT as repeated form fields.
-  // Sending repeated fields causes ElevenLabs backend to return 500.
-  if (keyterms.length > 0) {
-    form.append("keyterms", JSON.stringify(keyterms))
-  }
+  // Omit language_code — scribe_v2 auto-detects language
+  // Omit keyterms — optional, adds 20% cost surcharge, and format varies
+  // between edge runtimes. Scribe_v2 handles Hindi/Hinglish well without them.
   form.append("tag_audio_events", "false")
 
   const res = await fetch(STT_ENDPOINT, {
@@ -96,6 +82,7 @@ export async function speechToText(options: STTOptions): Promise<STTResult> {
     const errText = await res.text().catch(() => "(no body)")
     const err = new Error(`ElevenLabs STT error ${res.status}: ${errText}`)
     ;(err as any).status = res.status
+    ;(err as any).detail = errText
     throw err
   }
 
@@ -106,3 +93,4 @@ export async function speechToText(options: STTOptions): Promise<STTResult> {
     confidence: (result.language_probability as number) ?? 0,
   }
 }
+
