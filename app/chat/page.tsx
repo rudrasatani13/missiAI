@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import nextDynamic from "next/dynamic"
 import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera, Puzzle, IdCard, Heart, Target, Mic2, Check } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
@@ -92,6 +93,20 @@ export default function VoiceAssistantPage() {
   // Resolved display name: prefer Clerk's firstName, fallback to localStorage name
   const displayName = user?.firstName || localName || ''
   const displayFullName = user?.fullName || localName || 'User'
+
+  // ── Client-side setup guard (replaces server-side layout check) ──
+  // If the user's Clerk publicMetadata doesn't have setupComplete, redirect
+  // to /setup. This was previously in chat/layout.tsx as a server-side check
+  // but was moved here to avoid requiring edge runtime on the layout, which
+  // bloats the Cloudflare bundle by ~2MB.
+  const router = useRouter()
+  useEffect(() => {
+    if (!isLoaded || !user) return
+    const setupDone = (user.publicMetadata as any)?.setupComplete
+    if (!setupDone) {
+      router.replace('/setup')
+    }
+  }, [isLoaded, user, router])
 
   // Vision State
   const imagePayloadRef = useRef<string | null>(null)
