@@ -193,7 +193,7 @@ export default function VoiceAssistantPage() {
 
   const geminiLive = useGeminiLive({
     systemPrompt: buildSystemPrompt(personalityRef.current, memoriesRef.current, customPrompt),
-    voiceName: activePersona?.geminiVoiceName || "Kore",
+    voiceName: "Kore", // Always Kore for Gemini Live — personas only affect ElevenLabs voice
     onTranscriptIn: (text) => {
       setLiveTranscriptIn(text)
       // Add to conversation for memory
