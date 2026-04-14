@@ -126,8 +126,10 @@ export async function POST(req: NextRequest) {
   
   const apiKey = appEnv.ELEVENLABS_API_KEY
 
-  // Resolve persona-specific voice_id, falling back to the default
-  let voiceId = appEnv.ELEVENLABS_VOICE_ID
+  // Resolve persona-specific voice_id, falling back to the default.
+  // Hardcoded fallback ensures TTS never 500s just because env var is unset.
+  const DEFAULT_VOICE_FALLBACK = "21m00Tcm4TlvDq8ikWAM" // ElevenLabs Rachel
+  let voiceId = appEnv.ELEVENLABS_VOICE_ID || DEFAULT_VOICE_FALLBACK
   try {
     let kvForPersona: KVStore | null = null
     try { const { env } = getRequestContext(); kvForPersona = (env as any).MISSI_MEMORY ?? null } catch {}
@@ -141,51 +143,58 @@ export async function POST(req: NextRequest) {
     // Fall back to default voice — don't break TTS
   }
 
-  if (!voiceId) {
-    logError("tts.missing_voice_id", "ELEVENLABS_VOICE_ID not configured", userId)
-    return NextResponse.json(
-      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
-      { status: 500 }
-    )
-  }
+  // ── 6. Call ElevenLabs with retry for transient errors ────────────────────
+  const MAX_TTS_RETRIES = 2
+  let lastErr: unknown = null
 
-  // ── 6. Call ElevenLabs with timeout ───────────────────────────────────────
-  try {
-    const audioData = await withTimeout(
-      textToSpeech({ text, voiceId, apiKey, stability, similarityBoost, style, speed }),
-      TTS_TIMEOUT_MS
-    )
-
-    logRequest("tts.completed", userId, startTime, { charCount })
-
-    // Analytics: fire-and-forget
+  for (let attempt = 1; attempt <= MAX_TTS_RETRIES; attempt++) {
     try {
-      const { env } = getRequestContext()
-      const kv = (env as any).MISSI_MEMORY as KVStore | null
-      if (kv) {
-        recordEvent(kv, {
-          type: 'tts',
-          userId,
-          costUsd: charCount * COST_CONSTANTS.TTS_COST_PER_CHAR,
-        }).catch(() => {})
-        recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
-      }
-    } catch {
-      // KV unavailable, skip analytics
-    }
+      const audioData = await withTimeout(
+        textToSpeech({ text, voiceId, apiKey, stability, similarityBoost, style, speed }),
+        TTS_TIMEOUT_MS
+      )
 
-    return new NextResponse(audioData, {
-      headers: {
-        "Content-Type": "audio/mpeg",
-        "Cache-Control": "no-cache",
-        ...rateLimitHeaders(rateResult),
-      },
-    })
-  } catch (err) {
-    logApiError("tts.error", err, { userId, httpStatus: 500 })
-    return NextResponse.json(
-      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
-      { status: 500 },
-    )
+      logRequest("tts.completed", userId, startTime, { charCount, attempt })
+
+      // Analytics: fire-and-forget
+      try {
+        const { env } = getRequestContext()
+        const kv = (env as any).MISSI_MEMORY as KVStore | null
+        if (kv) {
+          recordEvent(kv, {
+            type: 'tts',
+            userId,
+            costUsd: charCount * COST_CONSTANTS.TTS_COST_PER_CHAR,
+          }).catch(() => {})
+          recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
+        }
+      } catch {
+        // KV unavailable, skip analytics
+      }
+
+      return new NextResponse(audioData, {
+        headers: {
+          "Content-Type": "audio/mpeg",
+          "Cache-Control": "no-cache",
+          ...rateLimitHeaders(rateResult),
+        },
+      })
+    } catch (err) {
+      lastErr = err
+      // Retry on transient ElevenLabs errors (500, 502, 503)
+      const errStatus = (err as any)?.status
+      const isTransient = errStatus === 500 || errStatus === 502 || errStatus === 503
+      if (isTransient && attempt < MAX_TTS_RETRIES) {
+        await new Promise(r => setTimeout(r, 500 * attempt))
+        continue
+      }
+      break
+    }
   }
+
+  logApiError("tts.error", lastErr, { userId, httpStatus: 500 })
+  return NextResponse.json(
+    { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
+    { status: 500 },
+  )
 }

@@ -57,8 +57,10 @@ export async function textToSpeech(options: TTSOptions): Promise<ArrayBuffer> {
   })
 
   if (!res.ok) {
-    const errText = await res.text()
-    throw new Error(`ElevenLabs TTS error ${res.status}: ${errText}`)
+    const errText = await res.text().catch(() => "(no body)")
+    const err = new Error(`ElevenLabs TTS error ${res.status}: ${errText}`)
+    ;(err as any).status = res.status
+    throw err
   }
 
   return res.arrayBuffer()
@@ -77,8 +79,10 @@ export async function speechToText(options: STTOptions): Promise<STTResult> {
   form.append("file", audio)
   form.append("model_id", "scribe_v2")
   // Omit language_code entirely — scribe_v2 auto-detects language when not provided
-  for (const term of keyterms) {
-    form.append("keyterms", term)
+  // keyterms must be sent as a JSON-encoded array string, NOT as repeated form fields.
+  // Sending repeated fields causes ElevenLabs backend to return 500.
+  if (keyterms.length > 0) {
+    form.append("keyterms", JSON.stringify(keyterms))
   }
   form.append("tag_audio_events", "false")
 
@@ -89,8 +93,10 @@ export async function speechToText(options: STTOptions): Promise<STTResult> {
   })
 
   if (!res.ok) {
-    const errText = await res.text()
-    throw new Error(`ElevenLabs STT error ${res.status}: ${errText}`)
+    const errText = await res.text().catch(() => "(no body)")
+    const err = new Error(`ElevenLabs STT error ${res.status}: ${errText}`)
+    ;(err as any).status = res.status
+    throw err
   }
 
   const result = await res.json()

@@ -119,21 +119,37 @@ export async function POST(req: NextRequest) {
     return jsonResponse({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }, 500)
   }
 
-  // ── 6. Call ElevenLabs with timeout ───────────────────────────────────────
-  try {
-    const result = await withTimeout(
-      speechToText({ audio: audioFile, apiKey }),
-      STT_TIMEOUT_MS
-    )
+  // ── 6. Call ElevenLabs with retry for transient errors ─────────────────────
+  const MAX_STT_RETRIES = 2
+  let lastErr: unknown = null
 
-    logRequest("stt.completed", userId, startTime, { 
-      audioSize: audioFile.size,
-      textLength: result.text?.length ?? 0 
-    })
+  for (let attempt = 1; attempt <= MAX_STT_RETRIES; attempt++) {
+    try {
+      const result = await withTimeout(
+        speechToText({ audio: audioFile, apiKey }),
+        STT_TIMEOUT_MS
+      )
 
-    return jsonResponse({ success: true, data: result }, 200, rateLimitHeaders(rateResult))
-  } catch (err) {
-    logApiError("stt.error", err, { userId, httpStatus: 500 })
-    return jsonResponse({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }, 500)
+      logRequest("stt.completed", userId, startTime, { 
+        audioSize: audioFile.size,
+        textLength: result.text?.length ?? 0,
+        attempt,
+      })
+
+      return jsonResponse({ success: true, data: result }, 200, rateLimitHeaders(rateResult))
+    } catch (err) {
+      lastErr = err
+      // Retry on transient ElevenLabs errors (500, 502, 503)
+      const errStatus = (err as any)?.status
+      const isTransient = errStatus === 500 || errStatus === 502 || errStatus === 503
+      if (isTransient && attempt < MAX_STT_RETRIES) {
+        await new Promise(r => setTimeout(r, 500 * attempt))
+        continue
+      }
+      break
+    }
   }
+
+  logApiError("stt.error", lastErr, { userId, httpStatus: 500 })
+  return jsonResponse({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }, 500)
 }
