@@ -119,10 +119,10 @@ const HEALTH_IP_LIMIT = 20
 const healthIpMap = new Map<string, IPBucket>()
 const prevHealthIpMap = new Map<string, IPBucket>()
 
-// Auth pages (/sign-in, /sign-up): 15 req / 15 min — deters credential
-// stuffing and mass sign-up bots
-const AUTH_IP_LIMIT  = 15
-const AUTH_WINDOW_MS = 15 * 60_000
+// Auth pages (/sign-in, /sign-up): 30 req / 5 min — deters credential
+// stuffing and mass sign-up bots while staying developer-friendly
+const AUTH_IP_LIMIT  = 30
+const AUTH_WINDOW_MS = 5 * 60_000
 const authIpMap = new Map<string, IPBucket>()
 const prevAuthIpMap = new Map<string, IPBucket>()
 
