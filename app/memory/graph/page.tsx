@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import nextDynamic from 'next/dynamic'
 import Link from 'next/link'
 import { ArrowLeft, Brain, X, Calendar, Tag, Activity } from 'lucide-react'
 import { useMemoryDashboard } from '@/hooks/useMemoryDashboard'
-import MemoryGraph3D from '@/components/memory/MemoryGraph3D'
 import { LifeNode } from '@/types/memory'
 import { motion, AnimatePresence } from 'framer-motion'
+
+const MemoryGraph3D = nextDynamic(() => import('@/components/memory/MemoryGraph3D'), { ssr: false })
 
 export const dynamic = 'force-dynamic'
 

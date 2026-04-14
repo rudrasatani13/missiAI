@@ -1,8 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
 
-export const runtime = "edge"
-
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 relative overflow-hidden">
