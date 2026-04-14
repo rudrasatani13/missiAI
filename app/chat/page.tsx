@@ -640,10 +640,12 @@ export default function VoiceAssistantPage() {
               geminiLive.disconnect()
               setLiveMode(false)
             }
+            setActivePanel(null)
           }}
           onSwitchToLive={() => {
             setLiveMode(true)
             setActivePersona(null)
+            setActivePanel(null)
           }}
           activePersona={activePersona}
         />
@@ -811,111 +813,6 @@ export default function VoiceAssistantPage() {
         </Link>
       </div>
 
-      {/* Voice & Persona floating card — positioned next to sidebar */}
-      {activePanel === 'personas' && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="fixed z-30 pointer-events-auto"
-          style={{
-            left: 60,
-            bottom: 'calc(50vh - 160px)',
-            width: 260,
-            maxHeight: 'calc(100vh - 200px)',
-            overflowY: 'auto',
-            background: 'rgba(12,12,18,0.95)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 16,
-            padding: 14,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05) inset',
-          }}
-        >
-          <p className="text-[10px] font-semibold tracking-[0.12em] uppercase mb-3" style={{ color: "rgba(255,255,255,0.35)" }}>
-            Voice & Persona
-          </p>
-
-          <button
-            onClick={async () => {
-              setLiveMode(true); setActivePersona(null); setActivePanel(null);
-              // Clear stored persona from KV so text chat goes back to default missi
-              try {
-                await fetch("/api/v1/persona", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ personaId: "default" })
-                })
-              } catch {}
-            }}
-            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all hover:bg-white/[0.06] mb-1.5"
-            style={{
-              background: (liveMode || !activePersona) ? "rgba(255,255,255,0.06)" : "transparent",
-              border: (liveMode || !activePersona) ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
-              cursor: "pointer", color: "white",
-            }}
-          >
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ADE80", flexShrink: 0 }} />
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-medium" style={{ color: (liveMode || !activePersona) ? "#fff" : "rgba(255,255,255,0.5)", margin: 0 }}>Missi Voice</p>
-              <p className="text-[8px] font-light" style={{ color: "rgba(255,255,255,0.25)", margin: "1px 0 0" }}>Real-time conversation</p>
-            </div>
-            {(liveMode || !activePersona) && <Check className="w-3 h-3 text-emerald-400 opacity-70" />}
-          </button>
-
-          {[
-            { id: "calm", displayName: "Calm Therapist", tagline: "Warm & validating", accentColor: "#7DD3FC", geminiVoiceName: "Kore" },
-            { id: "coach", displayName: "Energetic Coach", tagline: "Direct & motivating", accentColor: "#F97316", geminiVoiceName: "Fenrir" },
-            { id: "friend", displayName: "Sassy Friend", tagline: "Witty, Hinglish vibes", accentColor: "#A78BFA", geminiVoiceName: "Aoede" },
-            { id: "bollywood", displayName: "Bollywood Narrator", tagline: "Dramatic & theatrical", accentColor: "#FBBF24", geminiVoiceName: "Charon" },
-            { id: "desi-mom", displayName: "Desi Mom", tagline: "Caring, lovingly bossy", accentColor: "#FB7185", geminiVoiceName: "Leda" },
-          ].map((p) => {
-            const isActive = !liveMode && activePersona?.displayName === p.displayName
-            const isFree = !plan || plan.id === 'free'
-            return (
-              <button
-                key={p.id}
-                onClick={async () => {
-                  if (isFree) {
-                    const { toast } = await import("sonner")
-                    toast.error("Upgrade to Plus or Pro to use AI Personas!")
-                    window.location.href = "/pricing"
-                    return
-                  }
-                  try {
-                    const res = await fetch("/api/v1/persona", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personaId: p.id }) })
-                    if (res.ok) {
-                      setActivePersona({ personaId: p.id, displayName: p.displayName, accentColor: p.accentColor, geminiVoiceName: p.geminiVoiceName })
-                      if (liveMode) { geminiLive.disconnect(); setLiveMode(false) }
-                      setActivePanel(null)
-                    }
-                  } catch {}
-                }}
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all hover:bg-white/[0.06] mb-0.5"
-                style={{
-                  background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
-                  border: isActive ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
-                  cursor: "pointer", color: "white",
-                  opacity: isFree ? 0.45 : 1,
-                }}
-              >
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.accentColor, flexShrink: 0 }} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium" style={{ color: isActive ? "#fff" : "rgba(255,255,255,0.5)", margin: 0 }}>{p.displayName}</p>
-                  <p className="text-[8px] font-light" style={{ color: "rgba(255,255,255,0.25)", margin: "1px 0 0" }}>{p.tagline}</p>
-                </div>
-                {isFree ? (
-                  <div className="flex items-center gap-1">
-                    <Crown className="w-3 h-3 text-amber-400/50" />
-                    <span className="text-[8px] font-semibold text-amber-400/60">PLUS</span>
-                  </div>
-                ) : isActive ? (
-                  <Check className="w-3 h-3 opacity-50" />
-                ) : null}
-              </button>
-            )
-          })}
-        </div>
-      )}
 
     </div>)
 }

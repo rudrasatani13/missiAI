@@ -585,11 +585,11 @@ function SettingsPanelInner({
     }
   }
 
-  const isPluginsFromSidebar = renderedPanel === 'plugins'
+  const isSidebarPanel = renderedPanel === 'plugins' || renderedPanel === 'personas'
 
   return (
     <div
-      className={isPluginsFromSidebar
+      className={isSidebarPanel
         ? "fixed bottom-44 md:bottom-36 left-16 md:left-20 z-40"
         : "absolute top-full right-0 md:right-4 mt-2 z-40"
       }
@@ -602,8 +602,8 @@ function SettingsPanelInner({
     >
     <div
       style={{
-        transform: isOpen ? "translateY(0) scale(1)" : isPluginsFromSidebar ? "translateX(-10px) scale(0.96)" : "translateY(-10px) scale(0.96)",
-        transformOrigin: isPluginsFromSidebar ? "bottom left" : "top right",
+        transform: isOpen ? "translateY(0) scale(1)" : isSidebarPanel ? "translateX(-10px) scale(0.96)" : "translateY(-10px) scale(0.96)",
+        transformOrigin: isSidebarPanel ? "bottom left" : "top right",
         opacity: isOpen ? 1 : 0,
         transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease",
         willChange: "transform, opacity",
@@ -843,6 +843,20 @@ function SettingsPanelInner({
               <OAuthPluginPanel />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── PERSONAS BOX — opens when mic/persona icon is clicked ── */}
+      {renderedPanel === 'personas' && (
+        <div onClick={(e) => e.stopPropagation()} data-testid="personas-side-panel" style={{ ...panelBox, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
+          <InlinePersonaPicker
+            isLiveMode={isLiveMode}
+            onPersonaChange={onPersonaChange}
+            onSwitchToLive={onSwitchToLive}
+            activePersona={activePersona}
+            glassSection={glassSection}
+            plan={plan}
+          />
         </div>
       )}
     </div>
