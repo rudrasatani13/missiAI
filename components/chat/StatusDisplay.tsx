@@ -67,6 +67,7 @@ interface StatusDisplayProps {
   onDismissItem?: (item: BriefingItem) => void
   onBriefingDelivered?: () => void
   currentEmotion?: EmotionProfile | null
+  isLiveMode?: boolean
 }
 
 function StatusDisplayInner({
@@ -82,6 +83,7 @@ function StatusDisplayInner({
   onDismissItem,
   onBriefingDelivered,
   currentEmotion,
+  isLiveMode,
 }: StatusDisplayProps) {
   const deliveredRef = useRef(false)
 
@@ -118,7 +120,7 @@ function StatusDisplayInner({
             state === "idle"        ? `Hey${userName ? ` ${userName}` : ""}` :
             state === "recording"   ? "Listening..."   :
             state === "transcribing"? "Processing..."  :
-            state === "thinking"    ? "Thinking..."    :
+            state === "thinking"    ? (isLiveMode ? "Starting..." : "Thinking...")    :
             state === "speaking"    ? "Speaking..."    : ""
           }
           color={

@@ -709,6 +709,7 @@ export default function VoiceAssistantPage() {
           onDismissItem={dismissItem}
           onBriefingDelivered={markDelivered}
           currentEmotion={currentEmotion}
+          isLiveMode={liveMode}
         />
         <div className="mt-4 pointer-events-auto">
           <p className="text-[10px] font-medium tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.4)" }}>

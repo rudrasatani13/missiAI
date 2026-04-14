@@ -207,14 +207,14 @@ export async function POST(req: NextRequest) {
 
   const systemPromptBase = buildSystemPrompt(personality, memories, customPrompt)
 
-  // Append persona prompt modifier at the very end (after memory, personality, safety)
+  // Prepend persona prompt modifier BEFORE the base prompt so it takes priority
   let systemPrompt = systemPromptBase
   try {
     if (kv) {
       const personaId = await getUserPersona(kv, userId)
       if (personaId !== "default") {
         const personaConfig = getPersonaConfig(personaId)
-        systemPrompt = `${systemPromptBase}\n\nVoice Persona Style: ${personaConfig.promptModifier}`
+        systemPrompt = `${personaConfig.promptModifier}\n\n---\n\n${systemPromptBase}`
       }
     }
   } catch { /* persona modifier is non-critical */ }

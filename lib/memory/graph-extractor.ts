@@ -54,16 +54,29 @@ confidence (0.0-1.0),
 source: "conversation"
 
 STRICT RULES — FOLLOW PRECISELY:
-1. Only extract facts with confidence >= 0.7
-2. NEVER save small talk, greetings, or generic chitchat (e.g. "how are you", "what's up", "thanks")
-3. NEVER save the AI's own statements — only save facts about the USER
-4. NEVER save things the user is just casually mentioning in passing — only save things they clearly care about or that reveal something meaningful about their life
-5. If the user repeats something they've said before (e.g. "I want to go to Switzerland"), do NOT extract it again — it's already known
-6. Prioritize: life goals, relationships, important events, strong preferences, skills, beliefs, habits
-7. Skip: opinions about weather, temporary moods, one-off comments, hypotheticals, jokes
-8. Keep titles UNIQUE and SPECIFIC — never use generic titles like "User's preference" or "User's goal"
-9. Maximum 3 nodes per conversation — only the most important ones
-10. When in doubt, do NOT extract. Quality over quantity.
+1. Only extract facts with confidence >= 0.8
+2. Maximum 2 nodes per conversation — ONLY the most significant ones
+3. When in doubt, do NOT extract. Quality over quantity. Return [] if nothing important.
+4. Prioritize: life goals, relationships, important events, strong preferences, skills, beliefs, habits
+5. Keep titles UNIQUE and SPECIFIC — never use generic titles like "User's preference" or "User's goal"
+
+NEVER EXTRACT (return [] instead):
+- Greetings: "hi", "hello", "how are you", "what's up", "thanks", "bye", "good morning"
+- Small talk: "the weather is nice", "I'm fine", "nothing much", casual chitchat
+- Temporary states: "I'm tired right now", "I'm hungry", "I'm bored today"
+- AI's own statements: only save facts about THE USER, never what the AI said
+- Things said in passing: "maybe I'll try yoga someday" (too vague, not committed)
+- Questions the user asked: "what is machine learning?" is NOT a memory
+- Hypotheticals: "I might go to Paris" (not certain enough)
+- One-time opinions: "that movie was ok" (too trivial)
+- Redundant info: anything already in EXISTING MEMORIES below
+
+ONLY EXTRACT things like:
+- "I work as a software developer at Google" → YES (career fact)
+- "My girlfriend's name is Priya" → YES (relationship)
+- "I want to move to Canada next year" → YES (life goal)
+- "I've been learning guitar for 6 months" → YES (skill/habit)
+- "My mom's birthday is March 15" → YES (important personal fact)
 
 EXISTING MEMORIES (do NOT duplicate these):
 ${existingGraph.nodes.slice(0, 30).map(n => '- ' + n.title + ': ' + n.detail.slice(0, 80)).join('\n') || '(none yet)'}`;
@@ -114,7 +127,7 @@ ${existingGraph.nodes.slice(0, 30).map(n => '- ' + n.title + ': ' + n.detail.sli
           typeof item.title === 'string' &&
           typeof item.detail === 'string' &&
           typeof item.confidence === 'number' &&
-          item.confidence >= 0.6 &&
+          item.confidence >= 0.75 &&
           VALID_CATEGORIES.includes(item.category),
       )
       .map((item: any) => ({
