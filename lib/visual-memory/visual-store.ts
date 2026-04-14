@@ -13,6 +13,7 @@
 
 import type { KVStore } from '@/types'
 import type { VisualMemoryRecord } from '@/types/visual-memory'
+import { getTodayUTC } from '@/lib/server/date-utils'
 
 // ─── KV Key Helpers ───────────────────────────────────────────────────────────
 
@@ -29,8 +30,9 @@ function rateLimitKey(userId: string, today: string): string {
   return `${RATE_LIMIT_PREFIX}${userId}:${today}`
 }
 
+// BUGFIX (B3): Use centralized date utility instead of raw UTC slicing.
 function getTodayDate(): string {
-  return new Date().toISOString().slice(0, 10)
+  return getTodayUTC()
 }
 
 // ─── Index Operations ─────────────────────────────────────────────────────────

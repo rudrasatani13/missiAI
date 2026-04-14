@@ -19,7 +19,9 @@ export function DailyBriefBanner() {
     // Fire-and-forget — never block chat from loading
     ;(async () => {
       try {
-        const today = new Date().toISOString().slice(0, 10)
+        // BUGFIX (F1): Use local date, not UTC. At 11 PM IST, toISOString()
+        // returns the next UTC day, creating a wrong dismiss key.
+        const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local time
         const dismissKey = `missi-brief-dismissed:${today}`
 
         // Check if already dismissed today
@@ -46,7 +48,8 @@ export function DailyBriefBanner() {
   const handleDismiss = () => {
     setVisible(false)
     try {
-      const today = new Date().toISOString().slice(0, 10)
+      // BUGFIX (F1): Use local date for dismiss key consistency
+      const today = new Date().toLocaleDateString('en-CA')
       localStorage.setItem(`missi-brief-dismissed:${today}`, 'true')
     } catch {
       // localStorage might be unavailable

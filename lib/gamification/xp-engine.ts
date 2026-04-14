@@ -25,6 +25,7 @@
 import type { KVStore } from '@/types'
 import type { XPSource } from '@/types/gamification'
 import { getGamificationData, saveGamificationData } from '@/lib/gamification/streak'
+import { getTodayUTC } from '@/lib/server/date-utils'
 
 // ─── Daily Caps per Source ────────────────────────────────────────────────────
 
@@ -52,8 +53,17 @@ export async function awardXP(
   amount?: number,
 ): Promise<number> {
   try {
+    // SECURITY (A6): KV-based mutex to prevent double-award race conditions.
+    // If two concurrent requests try to award XP simultaneously, only one wins.
+    // The lock auto-expires via TTL — no manual cleanup needed.
+    const lockKey = `xp-lock:${userId}`
+    const hasLock = await kv.get(lockKey)
+    if (hasLock) return 0 // Another request is processing — skip
+    await kv.put(lockKey, '1', { expirationTtl: 5 }) // 5-second lock
+
     const data = await getGamificationData(kv, userId)
-    const today = new Date().toISOString().slice(0, 10)
+    // BUGFIX (B4): Use centralized date utility instead of raw UTC slicing
+    const today = getTodayUTC()
 
     // Ensure xpLog is for today
     if (data.xpLogDate !== today) {

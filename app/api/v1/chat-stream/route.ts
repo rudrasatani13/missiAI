@@ -134,11 +134,13 @@ export async function POST(req: NextRequest) {
   let systemPrompt = buildSystemPrompt(personality, memories, customPrompt)
 
   // Append persona prompt modifier at the very end (after memory, personality, safety)
-  let activePersonaId: import("@/lib/personas/persona-config").PersonaId = "calm"
+  // SECURITY (A1): Init to "default" — NOT "calm". On KV failure, no persona override is applied.
+  let activePersonaId: import("@/lib/personas/persona-config").PersonaId = "default"
   try {
     if (kv) activePersonaId = await getUserPersona(kv, userId)
     if (activePersonaId !== "default") {
-      const personaConfig = getPersonaConfig(activePersonaId)
+      // SECURITY (A1): TypeScript narrows PersonaId after !== "default" check
+      const personaConfig = getPersonaConfig(activePersonaId as Exclude<import("@/lib/personas/persona-config").PersonaId, "default">)
       systemPrompt = `${systemPrompt}\n\nVoice Persona Style: ${personaConfig.promptModifier}`
     }
   } catch { /* persona modifier is non-critical */ }

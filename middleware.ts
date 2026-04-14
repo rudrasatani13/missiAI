@@ -39,8 +39,10 @@ const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   // Disallow embedding in iframes — prevents clickjacking
   "X-Frame-Options": "DENY",
-  // Modern replacement for X-Frame-Options; also blocks all framing origins
-  "Content-Security-Policy": "frame-ancestors 'none'",
+  // Modern replacement for X-Frame-Options; also blocks all framing origins.
+  // SECURITY (E2): img-src allows 'self' and data: URIs (needed for html2canvas
+  // profile card capture). Blocks external image injection vectors.
+  "Content-Security-Policy": "frame-ancestors 'none'; img-src 'self' data: blob:",
   // Emit only the origin, never the full referrer URL, on cross-origin requests
   "Referrer-Policy": "strict-origin-when-cross-origin",
 }

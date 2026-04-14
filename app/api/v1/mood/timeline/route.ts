@@ -8,6 +8,7 @@ import {
 } from '@/lib/server/auth'
 import { validationErrorResponse } from '@/lib/validation/schemas'
 import { logError } from '@/lib/server/logger'
+import { getTodayInTimezone } from '@/lib/server/date-utils'
 import {
   getRecentEntries,
   getCachedWeeklyInsight,
@@ -31,9 +32,12 @@ const VALID_LABELS = [
   'tired', 'anxious', 'stressed', 'sad', 'overwhelmed',
 ] as const
 
+// TYPE SAFETY (D1): Score validated as integer 1-10, label from strict enum.
+// The schema output types match MoodScore and MoodLabel exactly,
+// eliminating the need for unsafe 'as' casts downstream.
 const moodLogSchema = z.object({
-  score: z.number().int().min(1).max(10),
-  label: z.enum(VALID_LABELS),
+  score: z.number().int().min(1).max(10) as z.ZodType<MoodScore>,
+  label: z.enum(VALID_LABELS) as z.ZodType<MoodLabel>,
   note: z.string().max(60).optional(),
 })
 
@@ -50,10 +54,14 @@ function getKV(): KVStore | null {
 
 // ─── Stat Helpers ─────────────────────────────────────────────────────────────
 
-function computeCurrentStreak(entries: MoodEntry[]): number {
+// BUGFIX (B6): Accept optional timezone so streak computation uses the same
+// date logic as mood entry creation. Prevents streak breaks at UTC midnight.
+function computeCurrentStreak(entries: MoodEntry[], timezone?: string): number {
   if (entries.length === 0) return 0
 
-  const today = new Date()
+  // Use timezone-aware "today" to match the date used when entries were created
+  const todayStr = getTodayInTimezone(timezone)
+  const today = new Date(todayStr + 'T12:00:00Z') // noon UTC to avoid DST edge cases
   let streak = 0
   const checked = new Date(today)
 
@@ -88,8 +96,13 @@ function buildWeeklyInsightObject(
   for (const e of entries) {
     labelCounts[e.label] = (labelCounts[e.label] ?? 0) + 1
   }
+  // BUGFIX (C3): Guard against empty labelCounts (defensive — caller checks
+  // entries.length >= 3, but prevents crash if entries are somehow empty).
+  const sortedLabels = Object.entries(labelCounts).sort(
+    (a, b) => (b[1] ?? 0) - (a[1] ?? 0),
+  )
   const dominantLabel = (
-    Object.entries(labelCounts).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0][0]
+    sortedLabels.length > 0 ? sortedLabels[0][0] : 'neutral'
   ) as MoodLabel
 
   const bestEntry = entries.reduce(
@@ -140,6 +153,8 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const daysParam = url.searchParams.get('days')
   const days = Math.min(Math.max(parseInt(daysParam ?? '30', 10) || 30, 1), 365)
+  // BUGFIX (B6): Accept timezone from client for streak computation
+  const clientTz = url.searchParams.get('tz') || undefined
 
   try {
     // Load requested window of entries
@@ -171,7 +186,7 @@ export async function GET(req: NextRequest) {
             (allEntries.reduce((s, e) => s + e.score, 0) / allEntries.length) * 10,
           ) / 10
         : 0
-    const currentStreak = computeCurrentStreak(allEntries)
+    const currentStreak = computeCurrentStreak(allEntries, clientTz)
 
     return new Response(
       JSON.stringify({
@@ -239,11 +254,15 @@ export async function POST(req: NextRequest) {
     return validationErrorResponse(parsed.error)
   }
 
-  const today = new Date().toISOString().slice(0, 10)
+  // BUGFIX (B2): Use timezone-aware date instead of UTC.
+  // Accepts optional 'tz' query param from client (e.g. "Asia/Kolkata").
+  const url = new URL(req.url)
+  const clientTz = url.searchParams.get('tz') || undefined
+  const today = getTodayInTimezone(clientTz)
   const entry: MoodEntry = {
     date: today,
-    score: parsed.data.score as MoodScore,
-    label: parsed.data.label as MoodLabel,
+    score: parsed.data.score,
+    label: parsed.data.label,
     trigger: (parsed.data.note?.trim() ?? 'manual entry').slice(0, 60),
     recordedAt: Date.now(),
   }

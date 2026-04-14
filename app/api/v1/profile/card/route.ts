@@ -394,7 +394,11 @@ export async function GET(req: NextRequest) {
 
     let daysActive = 0
     if (graph.nodes.length > 0) {
-      const oldestCreatedAt = Math.min(...graph.nodes.map(n => n.createdAt))
+      // PERF (C2): Use reduce instead of Math.min(...spread) to avoid
+      // stack overflow with large node counts (>10,000 nodes).
+      const oldestCreatedAt = graph.nodes.reduce(
+        (min, n) => Math.min(min, n.createdAt), Infinity
+      )
       const lastUpdated = graph.lastUpdatedAt || Date.now()
       daysActive = Math.max(1, Math.ceil((lastUpdated - oldestCreatedAt) / (1000 * 60 * 60 * 24)))
     }

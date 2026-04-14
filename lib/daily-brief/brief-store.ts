@@ -5,6 +5,7 @@
 
 import type { KVStore } from '@/types'
 import type { DailyBrief } from '@/types/daily-brief'
+import { getTodayUTC } from '@/lib/server/date-utils'
 
 // ─── KV Key Helpers ───────────────────────────────────────────────────────────
 
@@ -16,8 +17,10 @@ function rateLimitKey(userId: string, date: string): string {
   return `ratelimit:daily-brief:${userId}:${date}`
 }
 
+// BUGFIX (B1): Use centralized date utility instead of raw UTC slicing.
+// Brief-store uses UTC intentionally — timezone context is applied at the route layer.
 function getToday(): string {
-  return new Date().toISOString().slice(0, 10)
+  return getTodayUTC()
 }
 
 // ─── Brief TTL (48 hours) ─────────────────────────────────────────────────────

@@ -193,9 +193,11 @@ function MoodHeatmap({
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Organise days into 7-row grid (Mon=0 … Sun=6)
-  // Find day-of-week for first day (0=Sun→6=Mon→5=Tue→…)
-  const firstDate = new Date(days[0] + 'T00:00:00')
-  const firstDow = firstDate.getDay() // 0=Sun
+  // BUGFIX (B5): Use 'T12:00:00Z' for consistent UTC parsing across all browsers.
+  // Without the 'Z' suffix, some browsers parse as local time, causing
+  // day-of-week misalignment in different timezones.
+  const firstDate = new Date(days[0] + 'T12:00:00Z')
+  const firstDow = firstDate.getUTCDay() // 0=Sun, using getUTCDay for consistency
 
   // Monday-indexed day of week: Mon=0, Sun=6
   const mondayDow = (firstDow + 6) % 7
@@ -223,10 +225,14 @@ function MoodHeatmap({
     const rect = (e.target as HTMLElement).getBoundingClientRect()
     const containerRect = containerRef.current?.getBoundingClientRect()
     if (!containerRect) return
+    // UX (F2): Clamp x-position to prevent tooltip from rendering off-screen
+    // on narrow mobile viewports. Tooltip width is 160px.
+    const rawX = rect.left - containerRect.left + CELL / 2
+    const maxX = Math.max(0, containerRect.width - 160)
     setTooltip({
       entry,
       date,
-      x: rect.left - containerRect.left + CELL / 2,
+      x: Math.max(0, Math.min(rawX - 80, maxX)),
       y: rect.top - containerRect.top,
       visible: true,
     })
@@ -306,7 +312,8 @@ function MoodHeatmap({
                 transition={{ duration: 0.12 }}
                 style={{
                   position: 'absolute',
-                  left: Math.max(0, tooltip.x - 80),
+                  // UX (F2): tooltip.x is pre-clamped in showTooltip handler
+                  left: tooltip.x,
                   top: Math.max(0, tooltip.y - 76),
                   width: 160,
                   zIndex: 50,
@@ -414,9 +421,13 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
 
   const n = last30.length
 
+  // BUGFIX (A5): Guard against divide-by-zero if n === 1 (defensive — currently
+  // impossible due to the < 5 guard above, but prevents future regressions)
+  const xDivisor = Math.max(1, n - 1)
+
   // Map entries to SVG coordinates
   const pts = last30.map((e, i) => ({
-    x: PAD_L + (i / (n - 1)) * chartW,
+    x: PAD_L + (i / xDivisor) * chartW,
     y: PAD_T + chartH - ((e.score - 1) / 9) * chartH,
     entry: e,
   }))
@@ -567,7 +578,7 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
 
         {/* X-axis labels */}
         {xLabels.map(({ date, i }) => {
-          const lx = PAD_L + (i / (n - 1)) * chartW
+          const lx = PAD_L + (i / xDivisor) * chartW
           return (
             <text
               key={date}

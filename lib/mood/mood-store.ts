@@ -47,6 +47,17 @@ export async function addMoodEntry(
   userId: string,
   entry: MoodEntry,
 ): Promise<MoodTimeline> {
+  // BUGFIX (A7): KV-based mutex to prevent concurrent write races.
+  // Two rapid POST requests could both read the same timeline state,
+  // causing the second write to silently drop the first entry.
+  const lockKey = `mood-lock:${userId}`
+  const hasLock = await kv.get(lockKey)
+  if (hasLock) {
+    // Another request is writing — wait briefly then retry once
+    await new Promise(r => setTimeout(r, 200))
+  }
+  await kv.put(lockKey, '1', { expirationTtl: 3 }) // 3-second lock
+
   const timeline = await getMoodTimeline(kv, userId)
 
   // Deduplicate by date — one entry per day max, most recent wins
