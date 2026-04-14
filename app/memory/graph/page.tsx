@@ -10,7 +10,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 const MemoryGraph3D = nextDynamic(() => import('@/components/memory/MemoryGraph3D'), { ssr: false })
 
-export const dynamic = 'force-dynamic'
 
 export default function GraphPage() {
   const { graph, isLoading, error } = useMemoryDashboard()

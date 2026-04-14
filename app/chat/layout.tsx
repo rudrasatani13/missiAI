@@ -1,6 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 
+export const runtime = 'edge'
+
 export default async function ChatLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth()
   

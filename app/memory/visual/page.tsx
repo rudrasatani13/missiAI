@@ -1,6 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
 
 import { VisualMemoryGallery } from '@/components/memory/VisualMemoryGallery'
 import { ArrowLeft, Camera } from 'lucide-react'

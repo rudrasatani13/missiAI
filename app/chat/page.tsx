@@ -37,8 +37,6 @@ const ParticleVisualizer = nextDynamic(
   { ssr: false }
 )
 
-export const dynamic = "force-dynamic"
-
 /** Convert a PluginResult to an ActionResult shape for display in ActionCard. */
 function pluginResultToActionResult(result: PluginResult): ActionResult {
   const typeMap: Record<PluginId, ActionResult["type"]> = {
