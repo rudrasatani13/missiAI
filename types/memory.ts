@@ -21,7 +21,7 @@ export interface LifeNode {
   category: MemoryCategory
   /** Short label (max 80 chars) */
   title: string
-  /** Rich context with nuance (max 500 chars) */
+  /** Rich context with nuance (max 2500 chars) */
   detail: string
   /** Topic tags for retrieval (max 8) */
   tags: string[]
@@ -40,7 +40,7 @@ export interface LifeNode {
   /** Unix timestamp (ms) of last retrieval */
   lastAccessedAt: number
   /** How the fact was learned */
-  source: 'conversation' | 'explicit' | 'inferred'
+  source: 'conversation' | 'explicit' | 'inferred' | 'visual'
 }
 
 export interface LifeGraph {

@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
         apiKey,
         { topK: 5 },
       )
-      const MEMORY_TIMEOUT_MS = 3000
+      const MEMORY_TIMEOUT_MS = 6000
       const results = await Promise.race([
         memoryPromise,
         new Promise<never>((_, reject) =>

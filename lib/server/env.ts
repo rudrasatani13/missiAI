@@ -30,7 +30,7 @@ export interface AppEnv {
   DODO_PAYMENTS_API_KEY: string
   DODO_WEBHOOK_SECRET: string
   DODO_PRO_PRODUCT_ID: string
-  DODO_BUSINESS_PRODUCT_ID: string | undefined
+
   DODO_PAYMENTS_MODE: string
   /** Web Push VAPID private key — required for sending push notifications. */
   VAPID_PRIVATE_KEY: string | undefined
@@ -84,7 +84,7 @@ export function getEnv(): AppEnv {
     DODO_PAYMENTS_API_KEY: requireEnv("DODO_PAYMENTS_API_KEY"),
     DODO_WEBHOOK_SECRET: requireEnv("DODO_WEBHOOK_SECRET"),
     DODO_PRO_PRODUCT_ID: requireEnv("DODO_PRO_PRODUCT_ID"),
-    DODO_BUSINESS_PRODUCT_ID: process.env.DODO_BUSINESS_PRODUCT_ID || undefined,
+
     DODO_PAYMENTS_MODE: process.env.DODO_PAYMENTS_MODE ?? "live_mode",
     VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || undefined,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || undefined,

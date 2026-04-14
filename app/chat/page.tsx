@@ -70,6 +70,7 @@ export default function VoiceAssistantPage() {
   const personalityRef = useRef<PersonalityKey>("assistant")
   const customPromptRef = useRef("")
   const memoriesRef = useRef("")
+  const [memoriesState, setMemoriesState] = useState("")
   const conversationRef = useRef<ConversationEntry[]>([])
   const greetedRef = useRef(false)
   const proactiveSpokenRef = useRef(false)
@@ -99,6 +100,91 @@ export default function VoiceAssistantPage() {
   const [thumbnail, setThumbnail] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Visual Memory State — for "Save to Memory" flow (separate from voice chat)
+  const [visualNote, setVisualNote] = useState('')
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [visualResult, setVisualResult] = useState<{
+    title: string
+    recallHint: string
+    tags: string[]
+  } | null>(null)
+  const visualResultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleSaveToMemory = async () => {
+    if (!thumbnail || !imagePayloadRef.current || isAnalyzing) return
+
+    // Convert the already-computed canvas JPEG (1024px, 0.85 quality) to a Blob.
+    // Using the compressed version avoids sending a raw 3-5MB file which
+    // can hit the 30s Gemini timeout on slow connections.
+    const dataUrl = imagePayloadRef.current // "data:image/jpeg;base64,..."
+    const base64Data = dataUrl.split(',')[1]
+    const binaryStr = atob(base64Data)
+    const imgBytes = new Uint8Array(binaryStr.length)
+    for (let i = 0; i < binaryStr.length; i++) imgBytes[i] = binaryStr.charCodeAt(i)
+    const blob = new Blob([imgBytes], { type: 'image/jpeg' })
+    const compressedFile = new File([blob], 'visual-memory.jpg', { type: 'image/jpeg' })
+
+    setIsAnalyzing(true)
+    setVisualResult(null)
+
+    const formData = new FormData()
+    formData.append('file', compressedFile)
+    if (visualNote.trim()) {
+      formData.append('note', visualNote.trim().slice(0, 200))
+    }
+
+    try {
+      const res = await fetch('/api/v1/visual-memory/analyze', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        const code = data?.code ?? ''
+        let msg = 'Couldn\'t save that image. Please try again.'
+        if (res.status === 413 || code === 'PAYLOAD_TOO_LARGE') {
+          msg = 'Image too large — please use a photo under 5MB'
+        } else if (res.status === 415 || code === 'UNSUPPORTED_MEDIA_TYPE') {
+          msg = 'This file type isn\'t supported. Try JPEG, PNG, or WebP'
+        } else if (res.status === 429 || code === 'RATE_LIMIT_EXCEEDED') {
+          msg = data?.error ?? 'You\'ve reached your daily image limit. Upgrade to Pro for more.'
+        }
+        // Show error as the visual result so it appears in the UI
+        setVisualResult({ title: msg, recallHint: '', tags: [] })
+      } else {
+        // Success — show synthetic confirmation message
+        setVisualResult({
+          title: data.title ?? 'Saved to memory',
+          recallHint: data.recallHint ?? '',
+          tags: data.tags ?? [],
+        })
+        // Clear the image and note
+        setThumbnail(null)
+        imagePayloadRef.current = null
+        setVisualNote('')
+        // Reset file input so the same file can be selected again
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        // Refresh memories so the next Gemini Live session includes this visual memory
+        fetchMemories().catch(() => {})
+      }
+    } catch {
+      setVisualResult({ title: 'Couldn\'t save that image. Please try again.', recallHint: '', tags: [] })
+    } finally {
+      setIsAnalyzing(false)
+      // Auto-dismiss result after 8 seconds
+      if (visualResultTimerRef.current) clearTimeout(visualResultTimerRef.current)
+      visualResultTimerRef.current = setTimeout(() => setVisualResult(null), 8000)
+    }
+  }
+
+  // Clean up auto-dismiss timer on unmount
+  useEffect(() => {
+    return () => {
+      if (visualResultTimerRef.current) clearTimeout(visualResultTimerRef.current)
+    }
+  }, [])
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -115,8 +201,8 @@ export default function VoiceAssistantPage() {
       const canvas = document.createElement("canvas")
       let width = img.width
       let height = img.height
-      // 512px is plenty for Gemini vision and keeps base64 small (~30-60KB)
-      const maxSize = 512
+      // 1024px preserves text readability for OCR (marks, names, numbers)
+      const maxSize = 1024
 
       if (width > height && width > maxSize) {
         height = Math.round(height * maxSize / width)
@@ -132,8 +218,8 @@ export default function VoiceAssistantPage() {
       if (!ctx) return
       ctx.drawImage(img, 0, 0, width, height)
 
-      // JPEG at 0.5 quality — keeps payload under 50KB for fast upload
-      const compressedBase64 = canvas.toDataURL("image/jpeg", 0.5)
+      // JPEG at 0.85 quality — good text clarity, ~150-300KB payload
+      const compressedBase64 = canvas.toDataURL("image/jpeg", 0.85)
       imagePayloadRef.current = compressedBase64
       setThumbnail(compressedBase64)
     }
@@ -192,7 +278,7 @@ export default function VoiceAssistantPage() {
   const [liveTranscriptOut, setLiveTranscriptOut] = useState("")
 
   const geminiLive = useGeminiLive({
-    systemPrompt: buildSystemPrompt(personalityRef.current, memoriesRef.current, customPrompt),
+    systemPrompt: buildSystemPrompt(personalityRef.current, memoriesState, customPrompt),
     voiceName: "Kore", // Always Kore for Gemini Live — personas only affect ElevenLabs voice
     onTranscriptIn: (text) => {
       setLiveTranscriptIn(text)
@@ -327,16 +413,23 @@ export default function VoiceAssistantPage() {
     }
   }, [plan, billingLoading, isLoaded, personality])
 
+  const fetchMemories = useCallback(async () => {
+    try {
+      const d = await fetch('/api/v1/memory').then(r => r.json())
+      if (d.data?.nodes?.length) {
+        const mem = d.data.nodes
+          .map((n: any) => `${n.category}: ${n.title} — ${n.detail}`)
+          .join("\n")
+        memoriesRef.current = mem
+        setMemoriesState(mem)
+      }
+    } catch { }
+  }, [])
+
   useEffect(() => {
     if (!isLoaded || !user?.id) return
-    // Memory is fetched server-side via getVerifiedUserId() - no userId in URL
-    fetch(`/api/v1/memory`).then((r) => r.json())
-      .then((d) => {
-        if (d.data?.nodes?.length) {
-          memoriesRef.current = d.data.nodes.map((n: any) => `${n.category}: ${n.title} — ${n.detail}`).join("\n")
-        }
-      }).catch(() => { })
-  }, [isLoaded, user?.id])
+    fetchMemories()
+  }, [isLoaded, user?.id, fetchMemories])
 
   // Fetch active persona info on load (display only — does NOT switch off real-time voice)
   useEffect(() => {
@@ -676,14 +769,96 @@ export default function VoiceAssistantPage() {
       <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pb-10 md:pb-14 pointer-events-none"
         style={{ paddingBottom: plan?.id === 'free' ? 52 : undefined }}>
 
-        {/* Thumbnail Preview */}
-        {thumbnail && (
-          <div className="relative mb-4 -translate-y-4 shadow-lg pointer-events-auto transition-transform">
-            <img src={thumbnail} alt="Upload preview" className="w-16 h-16 object-cover rounded-xl border border-white/20" />
-            <button onClick={(e) => { e.stopPropagation(); setThumbnail(null); imagePayloadRef.current = null; }}
-              className="absolute -top-2 -right-2 bg-black text-white rounded-full p-0.5 border border-white/20 hover:scale-110 transition-transform">
+        {/* Visual Memory Result Card — shown after successful analysis or on error */}
+        {visualResult && (
+          <div className="mb-3 pointer-events-auto w-72 rounded-2xl px-4 py-3 shadow-xl"
+            style={{ background: 'rgba(0,255,140,0.07)', border: '1px solid rgba(0,255,140,0.15)', backdropFilter: 'blur(20px)' }}>
+            <p className="text-[11px] font-medium mb-0.5" style={{ color: 'rgba(0,255,140,0.9)' }}>
+              {visualResult.recallHint ? `Got it! I've saved this to your visual memory.` : visualResult.title}
+            </p>
+            {visualResult.recallHint && (
+              <>
+                <p className="text-[11px] font-light" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  {visualResult.title} ✨
+                </p>
+                <p className="text-[10px] italic mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  Try asking: "{visualResult.recallHint}"
+                </p>
+                {visualResult.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {visualResult.tags.slice(0, 5).map((tag) => (
+                      <span key={tag} className="text-[9px] px-2 py-0.5 rounded-full"
+                        style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+            <button onClick={() => setVisualResult(null)}
+              className="absolute top-2 right-2 text-white/30 hover:text-white/60 transition-colors"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'absolute' }}>
               <X className="w-3 h-3" />
             </button>
+          </div>
+        )}
+
+        {/* Thumbnail Preview — shown when image is attached, before saving */}
+        {thumbnail && !isAnalyzing && (
+          <div className="mb-3 pointer-events-auto flex flex-col items-center gap-2">
+            <div className="relative">
+              <img src={thumbnail} alt="Upload preview" className="w-16 h-16 object-cover rounded-xl border border-white/20" />
+              <button onClick={(e) => {
+                e.stopPropagation()
+                setThumbnail(null)
+                imagePayloadRef.current = null
+                setVisualNote('')
+                if (fileInputRef.current) fileInputRef.current.value = ''
+              }}
+                className="absolute -top-2 -right-2 bg-black text-white rounded-full p-0.5 border border-white/20 hover:scale-110 transition-transform">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+            {/* Optional note field */}
+            <input
+              type="text"
+              value={visualNote}
+              onChange={(e) => setVisualNote(e.target.value)}
+              maxLength={200}
+              placeholder="Add a note (optional)"
+              className="w-64 text-[11px] px-3 py-1.5 rounded-full outline-none"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: 'rgba(255,255,255,0.75)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+            {/* Save to Memory button */}
+            <button
+              onClick={(e) => { e.stopPropagation(); handleSaveToMemory() }}
+              className="px-4 py-1.5 rounded-full text-[11px] font-medium transition-all hover:scale-105 active:scale-95"
+              style={{
+                background: 'linear-gradient(135deg, rgba(0,255,140,0.2), rgba(0,200,100,0.1))',
+                border: '1px solid rgba(0,255,140,0.25)',
+                color: 'rgba(0,255,140,0.9)',
+                cursor: 'pointer',
+              }}
+            >
+              Save to Memory
+            </button>
+          </div>
+        )}
+
+        {/* Loading state — while Gemini analyzes the image */}
+        {isAnalyzing && (
+          <div className="mb-3 pointer-events-none flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white/70"
+              style={{ animation: 'spin 0.8s linear infinite' }} />
+            <p className="text-[11px] font-light" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              Missi is saving this to memory...
+            </p>
           </div>
         )}
 

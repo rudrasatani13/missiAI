@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Brain, RefreshCw, Network, Plus, X } from 'lucide-react'
+import { ArrowLeft, Brain, RefreshCw, Network, Plus, X, Camera } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
 import { useMemoryDashboard } from '@/hooks/useMemoryDashboard'
@@ -185,6 +185,17 @@ export default function MemoryPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              href="/memory/visual"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all hover:scale-105 no-underline"
+              style={{
+                background: 'rgba(0,255,140,0.06)',
+                border: '1px solid rgba(0,255,140,0.12)',
+                color: 'rgba(0,255,140,0.7)',
+              }}
+            >
+              <Camera className="w-3 h-3" /> Visual
+            </Link>
             <Link
               href="/memory/graph"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all hover:scale-105 no-underline"

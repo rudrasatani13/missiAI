@@ -104,7 +104,7 @@ export async function addOrUpdateNode(
     existingNode.detail =
       nodeInput.detail.length > existingNode.detail.length
         ? nodeInput.detail
-        : `${existingNode.detail} ${nodeInput.detail}`.slice(0, 500)
+        : `${existingNode.detail} ${nodeInput.detail}`.slice(0, 8000)
     existingNode.tags = [
       ...new Set([...existingNode.tags, ...nodeInput.tags]),
     ].slice(0, 8)
@@ -139,7 +139,7 @@ export async function addOrUpdateNode(
       userId,
       category: nodeInput.category,
       title: nodeInput.title.slice(0, 80),
-      detail: nodeInput.detail.slice(0, 500),
+      detail: nodeInput.detail.slice(0, 8000),
       tags: nodeInput.tags.slice(0, 8),
       people: [...nodeInput.people],
       emotionalWeight: nodeInput.emotionalWeight,
@@ -282,7 +282,7 @@ function kvFallbackSearch(
   // Only return nodes that had actual keyword matches
   const maxScore = scored[0]?.score || 1
   const topResults = scored
-    .filter((s) => s.hasKeywordMatch && s.score >= 3)
+    .filter((s) => s.hasKeywordMatch && s.score >= 1)
     .slice(0, topK)
 
   // If nothing is relevant, return empty — don't force unrelated memories
@@ -305,10 +305,11 @@ export function formatLifeGraphForPrompt(
   if (results.length === 0) return ''
 
   const limited = results.slice(0, 8)
-  const lines = limited.map(
-    (r) =>
-      `${r.node.category.toUpperCase()}: ${r.node.title} — ${r.node.detail}`,
-  )
+  const lines = limited.map((r) => {
+    // Prefix visual memories so Missi knows this knowledge came from an image
+    const prefix = r.node.source === 'visual' ? '[Visual Memory] ' : ''
+    return `${prefix}${r.node.category.toUpperCase()}: ${r.node.title} — ${r.node.detail}`
+  })
 
   return `[LIFE GRAPH — RELEVANT CONTEXT]
 ${lines.join('\n')}

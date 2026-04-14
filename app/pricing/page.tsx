@@ -614,6 +614,7 @@ export default function PricingPage() {
               'Real-time Gemini Live voice',
               '1 personality mode',
               'Basic memory — up to 20 facts',
+              'Visual Memory — 10 images/day',
               'Daily mission (1 per day)',
               'Mood & streak tracking',
             ]}
@@ -641,6 +642,7 @@ export default function PricingPage() {
               '5 AI voice personas (Calm, Coach, Friend & more)',
               'All 4 personality profiles',
               'Full memory graph — unlimited facts',
+              'Visual Memory — 50 images/day',
               'Daily missions (3 per day)',
               'Proactive nudges & smart reminders',
               'Plugin integrations (Notion, Calendar)',
@@ -664,7 +666,7 @@ export default function PricingPage() {
               '5 AI voice personas — unlimited usage',
               'Unlimited daily missions (10/day)',
               'Priority response speed',
-              'Vision — analyze images via voice',
+              'Visual Memory — 50 images/day',
               'API access for custom integrations',
               'Dedicated priority support',
             ]}

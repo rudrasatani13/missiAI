@@ -27,7 +27,6 @@ function mockEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     DODO_PAYMENTS_API_KEY: "test",
     DODO_WEBHOOK_SECRET: "test",
     DODO_PRO_PRODUCT_ID: "test",
-    DODO_BUSINESS_PRODUCT_ID: "test",
     DODO_PAYMENTS_MODE: "test_mode",
     VAPID_PRIVATE_KEY: undefined,
     GOOGLE_CLIENT_ID: undefined,

@@ -75,6 +75,27 @@ function buildVertexAIUrl(model: string, method: string, queryParams?: string): 
   return queryParams ? `${base}?${queryParams}` : base
 }
 
+/**
+ * Build Vertex AI URL using the 'global' endpoint.
+ * Preview models (e.g. gemini-3.1-pro-preview) are often only available
+ * via the global endpoint, not region-specific ones.
+ */
+function buildVertexAIGlobalUrl(model: string, method: string, queryParams?: string): string {
+  const project = getVertexProjectId()
+  const base = `https://global-aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:${method}`
+  return queryParams ? `${base}?${queryParams}` : base
+}
+
+/**
+ * Models that should use the global Vertex AI endpoint
+ * because they aren't available in all regional endpoints.
+ */
+const GLOBAL_ENDPOINT_MODELS = new Set<string>([
+  'gemini-3.1-pro-preview',
+  'gemini-3.1-flash-lite-preview',
+  'gemini-3-flash-preview',
+])
+
 // ─── Auth Headers ───────────────────────────────────────────────────────────────
 
 /**
@@ -108,8 +129,11 @@ export async function geminiGenerate(
   const forceGoogleAI = shouldUseGoogleAI(model)
   const useVertex = isVertexAI() && !forceGoogleAI
   const resolvedModel = useVertex ? resolveVertexModel(model) : model
+  const useGlobalEndpoint = useVertex && GLOBAL_ENDPOINT_MODELS.has(resolvedModel)
   const url = useVertex
-    ? buildVertexAIUrl(resolvedModel, "generateContent")
+    ? (useGlobalEndpoint
+        ? buildVertexAIGlobalUrl(resolvedModel, "generateContent")
+        : buildVertexAIUrl(resolvedModel, "generateContent"))
     : buildGoogleAIUrl(resolvedModel, "generateContent")
 
   const authHeaders = await getAuthHeaders(forceGoogleAI)
