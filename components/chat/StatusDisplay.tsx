@@ -118,7 +118,7 @@ function StatusDisplayInner({
             state === "idle"        ? `Hey${userName ? ` ${userName}` : ""}` :
             state === "recording"   ? "Listening..."   :
             state === "transcribing"? "Processing..."  :
-            state === "thinking"    ? "Starting..."    :
+            state === "thinking"    ? "Thinking..."    :
             state === "speaking"    ? "Speaking..."    : ""
           }
           color={

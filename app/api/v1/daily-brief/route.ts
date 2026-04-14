@@ -36,6 +36,7 @@ import type { KVStore } from '@/types'
 import type { DailyBrief } from '@/types/daily-brief'
 
 export const runtime = 'edge'
+export const dynamic = 'force-dynamic'
 
 // ─── KV Helper ────────────────────────────────────────────────────────────────
 

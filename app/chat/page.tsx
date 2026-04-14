@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import nextDynamic from "next/dynamic"
-import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera, Puzzle, IdCard, Heart, Target } from "lucide-react"
+import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera, Puzzle, IdCard, Heart, Target, Mic2, Check } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useGeminiLive, type LiveState } from "@/hooks/useGeminiLive"
@@ -26,6 +26,7 @@ import { AvatarRing } from "@/components/chat/AvatarRing"
 import { OnboardingTour, shouldShowOnboarding } from "@/components/chat/OnboardingTour"
 import { Magnetic } from "@/components/ui/Magnetic"
 import { DailyBriefBanner } from "@/components/chat/DailyBriefBanner"
+
 import { detectPluginCommand } from "@/lib/plugins/plugin-registry"
 import type { ActionResult } from "@/types/actions"
 import type { PluginId, PluginResult } from "@/types/plugins"
@@ -62,7 +63,7 @@ export default function VoiceAssistantPage() {
   const { plan, usage, isAtLimit, usedSeconds, limitSeconds, isLoading: billingLoading, initiateCheckout, incrementUsageLocally } = useBilling()
   const [avatarTier, setAvatarTier] = useState<import('@/types/gamification').AvatarTier>(1)
   const [avatarLevel, setAvatarLevel] = useState(1)
-  const [activePanel, setActivePanel] = useState<'settings' | 'plugins' | null>(null)
+  const [activePanel, setActivePanel] = useState<'settings' | 'plugins' | 'personas' | null>(null)
   const [personality, setPersonality] = useState<PersonalityKey>("assistant")
   const [customPrompt, setCustomPrompt] = useState("")
   const [voiceEnabled, setVoiceEnabled] = useState(true)
@@ -75,6 +76,10 @@ export default function VoiceAssistantPage() {
   const [showBootSequence, setShowBootSequence] = useState(false)
   const [bootCompleted, setBootCompleted] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
+
+  // Voice Persona state
+
+  const [activePersona, setActivePersona] = useState<{ personaId: string; displayName: string; accentColor: string; geminiVoiceName: string } | null>(null)
 
   // Read user name from localStorage (set during setup) as fallback when Clerk hasn't loaded yet
   const [localName, setLocalName] = useState('')
@@ -179,14 +184,16 @@ export default function VoiceAssistantPage() {
     onImageConsumed: () => setThumbnail(null)
   })
 
-  // ── Gemini Live Mode (ChatGPT-like instant voice) ─────────────────────────
-  const [liveMode, setLiveMode] = useState(true) // Live mode enabled by default
+  // ── Real-time Voice Mode ──────────────────────────────────────────────────
+  // Default ON — instant, real-time voice (Missi Voice).
+  // Switches OFF only when user explicitly picks an AI persona.
+  const [liveMode, setLiveMode] = useState(true)
   const [liveTranscriptIn, setLiveTranscriptIn] = useState("")
   const [liveTranscriptOut, setLiveTranscriptOut] = useState("")
 
   const geminiLive = useGeminiLive({
     systemPrompt: buildSystemPrompt(personalityRef.current, memoriesRef.current, customPrompt),
-    voiceName: "Kore",
+    voiceName: activePersona?.geminiVoiceName || "Kore",
     onTranscriptIn: (text) => {
       setLiveTranscriptIn(text)
       // Add to conversation for memory
@@ -329,6 +336,23 @@ export default function VoiceAssistantPage() {
           memoriesRef.current = d.data.nodes.map((n: any) => `${n.category}: ${n.title} — ${n.detail}`).join("\n")
         }
       }).catch(() => { })
+  }, [isLoaded, user?.id])
+
+  // Fetch active persona info on load (display only — does NOT switch off real-time voice)
+  useEffect(() => {
+    if (!isLoaded || !user?.id) return
+    fetch('/api/v1/persona').then(r => r.json())
+      .then(d => {
+        if (d.displayName) {
+          setActivePersona({
+            personaId: d.personaId ?? 'calm',
+            displayName: d.displayName,
+            accentColor: d.accentColor ?? '#7DD3FC',
+            geminiVoiceName: d.geminiVoiceName ?? 'Kore',
+          })
+          // liveMode stays ON — Gemini Live is the default experience
+        }
+      }).catch(() => {})
   }, [isLoaded, user?.id])
 
   // Fetch avatar data for the navbar ring
@@ -558,8 +582,22 @@ export default function VoiceAssistantPage() {
             </svg>
           </div>
 
-          {/* Right: Settings */}
+          {/* Right: Persona Indicator + Settings */}
           <div className="flex items-center flex-1 justify-end gap-1.5 md:gap-2">
+            {/* Persona Indicator — only shows when AI persona is active */}
+            {!liveMode && activePersona && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'settings' ? null : 'settings') }}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-full opacity-70 hover:opacity-100 hover:bg-white/10 transition-all"
+                data-testid="persona-indicator"
+                style={{ background: "none", border: "none", cursor: "pointer", maxHeight: 24 }}
+              >
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: activePersona.accentColor, flexShrink: 0 }} />
+                <span className="text-[9px] font-medium text-white/50 hidden md:inline" style={{ whiteSpace: "nowrap" }}>
+                  {activePersona.displayName}
+                </span>
+              </button>
+            )}
             <Magnetic>
               <button
                 onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'settings' ? null : 'settings') }}
@@ -589,6 +627,25 @@ export default function VoiceAssistantPage() {
             try { localStorage.setItem('missi-user-name', newName) } catch { }
             setLocalName(newName)
           }}
+          isLiveMode={liveMode}
+          onPersonaChange={(p) => {
+            setActivePersona({
+              personaId: p.personaId,
+              displayName: p.displayName,
+              accentColor: p.accentColor,
+              geminiVoiceName: p.geminiVoiceName,
+            })
+            // Switch to persona voice pipeline
+            if (liveMode) {
+              geminiLive.disconnect()
+              setLiveMode(false)
+            }
+          }}
+          onSwitchToLive={() => {
+            setLiveMode(true)
+            setActivePersona(null)
+          }}
+          activePersona={activePersona}
         />
       </div>
 
@@ -714,6 +771,13 @@ export default function VoiceAssistantPage() {
           <Target className="w-4 h-4 md:w-5 md:h-5" />
           <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Mission</span>
         </Link>
+        <div
+          onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'personas' ? null : 'personas') }}
+          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center cursor-pointer"
+          style={{ color: (!liveMode && activePersona) ? activePersona.accentColor : 'white' }}>
+          <Mic2 className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Voice & Persona</span>
+        </div>
         <div className="w-[60%] h-[1px] bg-white/10" />
         <Link href="/memory" onClick={(e) => e.stopPropagation()}
           className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
@@ -746,6 +810,97 @@ export default function VoiceAssistantPage() {
           <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Profile Card</span>
         </Link>
       </div>
+
+      {/* Voice & Persona floating card — positioned next to sidebar */}
+      {activePanel === 'personas' && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="fixed z-30 pointer-events-auto"
+          style={{
+            left: 60,
+            bottom: 'calc(50vh - 160px)',
+            width: 260,
+            maxHeight: 'calc(100vh - 200px)',
+            overflowY: 'auto',
+            background: 'rgba(12,12,18,0.95)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 16,
+            padding: 14,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05) inset',
+          }}
+        >
+          <p className="text-[10px] font-semibold tracking-[0.12em] uppercase mb-3" style={{ color: "rgba(255,255,255,0.35)" }}>
+            Voice & Persona
+          </p>
+
+          <button
+            onClick={async () => {
+              setLiveMode(true); setActivePersona(null); setActivePanel(null);
+              // Clear stored persona from KV so text chat goes back to default missi
+              try {
+                await fetch("/api/v1/persona", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ personaId: "default" })
+                })
+              } catch {}
+            }}
+            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all hover:bg-white/[0.06] mb-1.5"
+            style={{
+              background: (liveMode || !activePersona) ? "rgba(255,255,255,0.06)" : "transparent",
+              border: (liveMode || !activePersona) ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
+              cursor: "pointer", color: "white",
+            }}
+          >
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ADE80", flexShrink: 0 }} />
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-medium" style={{ color: (liveMode || !activePersona) ? "#fff" : "rgba(255,255,255,0.5)", margin: 0 }}>Missi Voice</p>
+              <p className="text-[8px] font-light" style={{ color: "rgba(255,255,255,0.25)", margin: "1px 0 0" }}>Real-time conversation</p>
+            </div>
+            {(liveMode || !activePersona) && <Check className="w-3 h-3 text-emerald-400 opacity-70" />}
+          </button>
+
+          {[
+            { id: "calm", displayName: "Calm Therapist", tagline: "Warm & validating", accentColor: "#7DD3FC", geminiVoiceName: "Kore" },
+            { id: "coach", displayName: "Energetic Coach", tagline: "Direct & motivating", accentColor: "#F97316", geminiVoiceName: "Fenrir" },
+            { id: "friend", displayName: "Sassy Friend", tagline: "Witty, Hinglish vibes", accentColor: "#A78BFA", geminiVoiceName: "Aoede" },
+            { id: "bollywood", displayName: "Bollywood Narrator", tagline: "Dramatic & theatrical", accentColor: "#FBBF24", geminiVoiceName: "Charon" },
+            { id: "desi-mom", displayName: "Desi Mom", tagline: "Caring, lovingly bossy", accentColor: "#FB7185", geminiVoiceName: "Leda" },
+          ].map((p) => {
+            const isActive = !liveMode && activePersona?.displayName === p.displayName
+            return (
+              <button
+                key={p.id}
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/v1/persona", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personaId: p.id }) })
+                    if (res.ok) {
+                      setActivePersona({ personaId: p.id, displayName: p.displayName, accentColor: p.accentColor, geminiVoiceName: p.geminiVoiceName })
+                      if (liveMode) { geminiLive.disconnect(); setLiveMode(false) }
+                      setActivePanel(null)
+                    }
+                  } catch {}
+                }}
+                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all hover:bg-white/[0.06] mb-0.5"
+                style={{
+                  background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+                  border: isActive ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
+                  cursor: "pointer", color: "white",
+                }}
+              >
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.accentColor, flexShrink: 0 }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-medium" style={{ color: isActive ? "#fff" : "rgba(255,255,255,0.5)", margin: 0 }}>{p.displayName}</p>
+                  <p className="text-[8px] font-light" style={{ color: "rgba(255,255,255,0.25)", margin: "1px 0 0" }}>{p.tagline}</p>
+                </div>
+                {isActive && <Check className="w-3 h-3 opacity-50" />}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
     </div>)
 }

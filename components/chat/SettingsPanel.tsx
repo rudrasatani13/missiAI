@@ -3,7 +3,7 @@
 import { memo, useState, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon, Calendar, BookOpen, RefreshCw, CheckCircle2, Mail, CheckSquare, MessageSquare, Github, LayoutGrid, Inbox, Crown, User, Sparkles, Wand2, Lock } from "lucide-react"
+import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon, Calendar, BookOpen, RefreshCw, CheckCircle2, Mail, CheckSquare, MessageSquare, Github, LayoutGrid, Inbox, Crown, User, Sparkles, Wand2, Lock, Mic2 } from "lucide-react"
 import type { PersonalityKey } from "@/types/chat"
 import { PERSONALITY_OPTIONS } from "@/types/chat"
 import type { PluginConfig, PluginId } from "@/types/plugins"
@@ -23,7 +23,7 @@ interface SettingsPanelProps {
   voiceEnabled: boolean
   onVoiceToggle: () => void
   isOpen: boolean
-  activePanel: 'settings' | 'plugins' | null
+  activePanel: 'settings' | 'plugins' | 'personas' | null
   onClose: () => void
   userName: string
   userEmail: string
@@ -42,6 +42,14 @@ interface SettingsPanelProps {
   plan?: string
   customPrompt?: string
   onCustomPromptChange?: (prompt: string) => void
+  /** Whether real-time voice mode is currently active */
+  isLiveMode?: boolean
+  /** Called when user picks an AI persona */
+  onPersonaChange?: (persona: { personaId: string; displayName: string; accentColor: string; geminiVoiceName: string }) => void
+  /** Called when user switches back to default voice */
+  onSwitchToLive?: () => void
+  /** Currently active persona info */
+  activePersona?: { displayName: string; accentColor: string } | null
 }
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -349,6 +357,126 @@ const glassSection: React.CSSProperties = {
   overflow: "hidden",
 }
 
+// ─── Persona Data ────────────────────────────────────────────────────────────
+
+const ALL_PERSONAS = [
+  { id: "calm",      displayName: "Calm Therapist",     tagline: "Warm & validating",      accentColor: "#7DD3FC", geminiVoiceName: "Kore" },
+  { id: "coach",     displayName: "Energetic Coach",    tagline: "Direct & motivating",     accentColor: "#F97316", geminiVoiceName: "Fenrir" },
+  { id: "friend",    displayName: "Sassy Friend",       tagline: "Witty, Hinglish vibes",   accentColor: "#A78BFA", geminiVoiceName: "Aoede" },
+  { id: "bollywood", displayName: "Bollywood Narrator", tagline: "Dramatic & theatrical",   accentColor: "#FBBF24", geminiVoiceName: "Charon" },
+  { id: "desi-mom",  displayName: "Desi Mom",           tagline: "Caring, lovingly bossy",  accentColor: "#FB7185", geminiVoiceName: "Leda" },
+]
+
+// ─── Inline Persona Picker ───────────────────────────────────────────────────
+
+function InlinePersonaPicker({
+  isLiveMode,
+  onPersonaChange,
+  onSwitchToLive,
+  activePersona,
+  glassSection: gs,
+}: {
+  isLiveMode?: boolean
+  onPersonaChange?: (p: { personaId: string; displayName: string; accentColor: string; geminiVoiceName: string }) => void
+  onSwitchToLive?: () => void
+  activePersona?: { displayName: string; accentColor: string } | null
+  glassSection: React.CSSProperties
+}) {
+  const [saving, setSaving] = useState(false)
+
+  const handleSelect = useCallback(async (persona: typeof ALL_PERSONAS[0]) => {
+    if (saving) return
+    setSaving(true)
+    try {
+      const res = await fetch("/api/v1/persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ personaId: persona.id }),
+      })
+      if (res.ok) {
+        onPersonaChange?.({
+          personaId: persona.id,
+          displayName: persona.displayName,
+          accentColor: persona.accentColor,
+          geminiVoiceName: persona.geminiVoiceName,
+        })
+        toast.success(`Switched to ${persona.displayName}`)
+      } else if (res.status === 429) {
+        toast.error("Too many switches. Try again later.")
+      }
+    } catch {
+      toast.error("Failed to change persona.")
+    } finally {
+      setSaving(false)
+    }
+  }, [saving, onPersonaChange])
+
+  const handleSwitchToDefault = useCallback(() => {
+    onSwitchToLive?.()
+    toast.success("Switched to Missi Voice")
+  }, [onSwitchToLive])
+
+  const isDefault = isLiveMode || !activePersona
+
+  return (
+    <div style={gs} className="mb-3">
+      <p className="text-[10px] font-semibold tracking-[0.12em] uppercase mb-3" style={{ color: "rgba(255,255,255,0.35)" }}>
+        Voice & Persona
+      </p>
+
+      {/* Default Voice */}
+      <button
+        onClick={handleSwitchToDefault}
+        data-testid="switch-to-default-voice-btn"
+        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all hover:bg-white/[0.06] mb-2"
+        style={{
+          background: isDefault ? "rgba(255,255,255,0.06)" : "transparent",
+          border: isDefault ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
+          cursor: "pointer",
+          color: "white",
+        }}
+      >
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ADE80", boxShadow: isDefault ? "0 0 6px #4ADE8030" : "none", flexShrink: 0 }} />
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-medium" style={{ color: isDefault ? "#fff" : "rgba(255,255,255,0.5)", margin: 0 }}>Missi Voice</p>
+          <p className="text-[8px] font-light" style={{ color: "rgba(255,255,255,0.25)", margin: "1px 0 0" }}>Real-time conversation</p>
+        </div>
+        {isDefault && <Check className="w-3 h-3 text-emerald-400 opacity-70" />}
+      </button>
+
+      {/* Persona list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {ALL_PERSONAS.map((p) => {
+          const isActive = !isDefault && activePersona?.displayName === p.displayName
+          return (
+            <button
+              key={p.id}
+              onClick={() => handleSelect(p)}
+              disabled={saving}
+              data-testid={`persona-inline-${p.id}-btn`}
+              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all hover:bg-white/[0.06]"
+              style={{
+                background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+                border: isActive ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
+                cursor: saving ? "default" : "pointer",
+                opacity: saving ? 0.5 : 1,
+                color: "white",
+              }}
+            >
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.accentColor, boxShadow: isActive ? `0 0 6px ${p.accentColor}40` : "none", flexShrink: 0 }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-medium" style={{ color: isActive ? "#fff" : "rgba(255,255,255,0.5)", margin: 0 }}>{p.displayName}</p>
+                <p className="text-[8px] font-light" style={{ color: "rgba(255,255,255,0.25)", margin: "1px 0 0" }}>{p.tagline}</p>
+              </div>
+              {isActive && <Check className="w-3 h-3 opacity-50" />}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function SettingsPanelInner({
   personality,
   onPersonalityChange,
@@ -366,6 +494,10 @@ function SettingsPanelInner({
   plan,
   customPrompt = "",
   onCustomPromptChange,
+  isLiveMode,
+  onPersonaChange,
+  onSwitchToLive,
+  activePersona,
 }: SettingsPanelProps) {
   const router = useRouter()
 
@@ -373,7 +505,7 @@ function SettingsPanelInner({
   const [isEditingName, setIsEditingName] = useState(false)
   const [editName, setEditName] = useState(userName)
   const [savingName, setSavingName] = useState(false)
-  const [renderedPanel, setRenderedPanel] = useState<'settings' | 'plugins' | null>(activePanel)
+  const [renderedPanel, setRenderedPanel] = useState<'settings' | 'plugins' | 'personas' | null>(activePanel)
 
   useEffect(() => {
     if (activePanel) {
@@ -592,6 +724,7 @@ function SettingsPanelInner({
               </div>
             )}
           </div>
+
 
           {/* ── Toggles Card ── */}
           <div style={glassSection} className="mb-3">

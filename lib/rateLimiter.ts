@@ -8,8 +8,8 @@
 // misbehaving clients while still giving real users a smooth experience.
 
 const RATE_LIMITS = {
-  free: { api: 60, ai: 10 },
-  paid: { api: 200, ai: 30 },
+  free: { api: 60, ai: 60 },
+  paid: { api: 200, ai: 120 },
 } as const
 
 export type UserTier  = keyof typeof RATE_LIMITS

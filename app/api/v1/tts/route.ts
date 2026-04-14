@@ -10,6 +10,8 @@ import { getRequestContext } from "@cloudflare/next-on-pages"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { checkVoiceLimit, getTodayDate } from "@/lib/billing/usage-tracker"
 import { COST_CONSTANTS } from "@/lib/server/cost-tracker"
+import { getUserPersona } from "@/lib/personas/persona-store"
+import { getVoiceId as getPersonaVoiceId } from "@/lib/personas/persona-config"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
@@ -123,7 +125,21 @@ export async function POST(req: NextRequest) {
   }
   
   const apiKey = appEnv.ELEVENLABS_API_KEY
-  const voiceId = appEnv.ELEVENLABS_VOICE_ID
+
+  // Resolve persona-specific voice_id, falling back to the default
+  let voiceId = appEnv.ELEVENLABS_VOICE_ID
+  try {
+    let kvForPersona: KVStore | null = null
+    try { const { env } = getRequestContext(); kvForPersona = (env as any).MISSI_MEMORY ?? null } catch {}
+    if (kvForPersona) {
+      const personaId = await getUserPersona(kvForPersona, userId)
+      const personaVoice = getPersonaVoiceId(personaId, appEnv)
+      if (personaVoice) voiceId = personaVoice
+    }
+  } catch (e) {
+    logError("tts.persona_voice_error", e, userId)
+    // Fall back to default voice — don't break TTS
+  }
 
   if (!voiceId) {
     logError("tts.missing_voice_id", "ELEVENLABS_VOICE_ID not configured", userId)

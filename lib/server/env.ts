@@ -14,6 +14,16 @@ export interface AppEnv {
   GEMINI_API_KEY: string
   ELEVENLABS_API_KEY: string
   ELEVENLABS_VOICE_ID: string | undefined
+  /** ElevenLabs voice ID for Calm Therapist persona — set via wrangler secret or dashboard */
+  ELEVENLABS_VOICE_CALM: string | undefined
+  /** ElevenLabs voice ID for Energetic Coach persona */
+  ELEVENLABS_VOICE_COACH: string | undefined
+  /** ElevenLabs voice ID for Sassy Friend persona */
+  ELEVENLABS_VOICE_FRIEND: string | undefined
+  /** ElevenLabs voice ID for Bollywood Narrator persona */
+  ELEVENLABS_VOICE_BOLLYWOOD: string | undefined
+  /** ElevenLabs voice ID for Desi Mom persona */
+  ELEVENLABS_VOICE_DESI_MOM: string | undefined
   CLERK_SECRET_KEY: string
   DAILY_BUDGET_USD: number
   NODE_ENV: string
@@ -62,6 +72,12 @@ export function getEnv(): AppEnv {
     GEMINI_API_KEY: process.env.GEMINI_API_KEY ?? "",
     ELEVENLABS_API_KEY: requireEnv("ELEVENLABS_API_KEY"),
     ELEVENLABS_VOICE_ID: process.env.ELEVENLABS_VOICE_ID || undefined,
+    // Voice Persona IDs — must be filled with real ElevenLabs voice IDs before the feature is active
+    ELEVENLABS_VOICE_CALM: process.env.ELEVENLABS_VOICE_CALM || undefined,
+    ELEVENLABS_VOICE_COACH: process.env.ELEVENLABS_VOICE_COACH || undefined,
+    ELEVENLABS_VOICE_FRIEND: process.env.ELEVENLABS_VOICE_FRIEND || undefined,
+    ELEVENLABS_VOICE_BOLLYWOOD: process.env.ELEVENLABS_VOICE_BOLLYWOOD || undefined,
+    ELEVENLABS_VOICE_DESI_MOM: process.env.ELEVENLABS_VOICE_DESI_MOM || undefined,
     CLERK_SECRET_KEY: requireEnv("CLERK_SECRET_KEY"),
     DAILY_BUDGET_USD: parseFloat(process.env.DAILY_BUDGET_USD ?? "5.0") || 5.0,
     NODE_ENV: process.env.NODE_ENV ?? "production",

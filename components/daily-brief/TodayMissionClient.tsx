@@ -179,7 +179,7 @@ export default function TodayMissionClient() {
       setError(null)
 
       // Step 1: Try GET
-      const getRes = await fetch('/api/v1/daily-brief')
+      const getRes = await fetch('/api/v1/daily-brief', { cache: 'no-store' })
       if (!getRes.ok) {
         if (getRes.status === 401) {
           setError('Please sign in to view your daily mission.')

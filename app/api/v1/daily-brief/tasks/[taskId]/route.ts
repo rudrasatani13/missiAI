@@ -23,6 +23,7 @@ import { awardXP } from '@/lib/gamification/xp-engine'
 import type { KVStore } from '@/types'
 
 export const runtime = 'edge'
+export const dynamic = 'force-dynamic'
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 

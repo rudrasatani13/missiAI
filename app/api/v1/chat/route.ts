@@ -18,6 +18,8 @@ import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkAndIncrementVoiceTime, getTodayDate } from "@/lib/billing/usage-tracker"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
+import { getUserPersona } from "@/lib/personas/persona-store"
+import { getPersonaConfig } from "@/lib/personas/persona-config"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
@@ -203,7 +205,20 @@ export async function POST(req: NextRequest) {
     memories = memories ? memories + "\n" + clientMemories : clientMemories
   }
 
-  const systemPrompt = buildSystemPrompt(personality, memories, customPrompt)
+  const systemPromptBase = buildSystemPrompt(personality, memories, customPrompt)
+
+  // Append persona prompt modifier at the very end (after memory, personality, safety)
+  let systemPrompt = systemPromptBase
+  try {
+    if (kv) {
+      const personaId = await getUserPersona(kv, userId)
+      if (personaId !== "default") {
+        const personaConfig = getPersonaConfig(personaId)
+        systemPrompt = `${systemPromptBase}\n\nVoice Persona Style: ${personaConfig.promptModifier}`
+      }
+    }
+  } catch { /* persona modifier is non-critical */ }
+
   const estimatedTokens = estimateRequestTokens(messages, systemPrompt, memories)
 
   if (estimatedTokens > LIMITS.WARN_THRESHOLD) {
@@ -246,6 +261,12 @@ export async function POST(req: NextRequest) {
 
   // ── 8. Select model dynamically ───────────────────────────────────────────
   let model = selectGeminiModel(messages, memories)
+
+  // Voice requests (ElevenLabs pipeline) use Flash for speed — Pro's thinking
+  // overhead adds 5-8s latency which is unacceptable for real-time voice.
+  if (voiceDurationMs && voiceDurationMs > 0) {
+    model = "gemini-2.5-flash" as any
+  }
 
   // ── 9. Build Gemini request & stream ──────────────────────────────────────
   try {

@@ -12,6 +12,13 @@ compatibility_flags = ["nodejs_compat"]
 # - ELEVENLABS_API_KEY
 # - ELEVENLABS_VOICE_ID
 #
+# Voice Persona IDs (optional — feature degrades gracefully if not set)
+# - ELEVENLABS_VOICE_CALM       # Calm Therapist persona
+# - ELEVENLABS_VOICE_COACH      # Energetic Coach persona
+# - ELEVENLABS_VOICE_FRIEND     # Sassy Friend persona
+# - ELEVENLABS_VOICE_BOLLYWOOD  # Bollywood Narrator persona
+# - ELEVENLABS_VOICE_DESI_MOM   # Desi Mom persona
+#
 # Auth
 # - CLERK_SECRET_KEY
 # - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY

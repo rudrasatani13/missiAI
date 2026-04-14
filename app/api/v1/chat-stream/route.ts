@@ -20,6 +20,8 @@ import { AGENT_FUNCTION_DECLARATIONS, executeAgentTool, getToolLabel } from "@/l
 import type { AgentToolCall } from "@/lib/ai/agent-tools"
 import { awardXP } from "@/lib/gamification/xp-engine"
 import { geminiGenerateStream } from "@/lib/ai/vertex-client"
+import { getUserPersona } from "@/lib/personas/persona-store"
+import { getVoiceId as getPersonaVoiceId, getPersonaConfig } from "@/lib/personas/persona-config"
 import type { KVStore } from "@/types"
 
 export const runtime = "edge"
@@ -129,7 +131,18 @@ export async function POST(req: NextRequest) {
   }
 
   if (clientMemories) memories = memories ? `${memories}\n${clientMemories}` : clientMemories
-  const systemPrompt = buildSystemPrompt(personality, memories, customPrompt)
+  let systemPrompt = buildSystemPrompt(personality, memories, customPrompt)
+
+  // Append persona prompt modifier at the very end (after memory, personality, safety)
+  let activePersonaId: import("@/lib/personas/persona-config").PersonaId = "calm"
+  try {
+    if (kv) activePersonaId = await getUserPersona(kv, userId)
+    if (activePersonaId !== "default") {
+      const personaConfig = getPersonaConfig(activePersonaId)
+      systemPrompt = `${systemPrompt}\n\nVoice Persona Style: ${personaConfig.promptModifier}`
+    }
+  } catch { /* persona modifier is non-critical */ }
+
   const estimatedTokens = estimateRequestTokens(messages, systemPrompt, memories)
   if (estimatedTokens > LIMITS.WARN_THRESHOLD) messages = truncateToTokenLimit(messages, LIMITS.WARN_THRESHOLD)
 
@@ -137,7 +150,13 @@ export async function POST(req: NextRequest) {
 
   // 5. Build Streams
   const appEnv = getEnv()
-  const voiceId = appEnv.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM"
+
+  // Resolve persona-specific voice_id, falling back to the default
+  let voiceId = appEnv.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM"
+  try {
+    const personaVoice = getPersonaVoiceId(activePersonaId, appEnv)
+    if (personaVoice) voiceId = personaVoice
+  } catch { /* fall back to default voice */ }
   // SECURITY (H2): The ElevenLabs streaming WebSocket requires xi-api-key
   // as a query parameter for authentication. This URL is constructed server-side
   // only and MUST NEVER be logged, included in error messages, or sent to clients.

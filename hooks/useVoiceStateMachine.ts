@@ -177,7 +177,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
     const analyser = ctx.createAnalyser()
     analyser.fftSize = 2048
-    analyser.smoothingTimeConstant = 0.3
+    analyser.smoothingTimeConstant = 0.6
     analyserRef.current = analyser
 
     const source = ctx.createMediaStreamSource(stream)
@@ -215,7 +215,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       analyser.getByteFrequencyData(freqData)
       let fSum = 0
       for (let i = 0; i < freqData.length; i++) fSum += freqData[i]
-      const vizLevel = Math.min(1, (fSum / freqData.length / 255) * 4)
+      const vizLevel = Math.min(1, (fSum / freqData.length / 255) * 2)
       setAudioLevel(vizLevel)
 
       // Snapshot audio data for emotion detection
@@ -339,7 +339,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
       const analyser = ctx.createAnalyser()
       analyser.fftSize = 256
-      analyser.smoothingTimeConstant = 0.85
+      analyser.smoothingTimeConstant = 0.92
       ttsAnalyserRef.current = analyser
 
       // createMediaElementSource can only be called once per element.
@@ -356,10 +356,14 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       const monitor = () => {
         if (!ttsAnalyserRef.current) return
         ttsAnalyserRef.current.getByteFrequencyData(data)
-        let sum = 0
-        for (let i = 0; i < data.length; i++) sum += data[i] * data[i]
-        const rms = Math.sqrt(sum / data.length) / 255
-        setAudioLevel(Math.min(1, rms * 4))
+        // Use average frequency (like mic monitor) instead of RMS of squared values.
+        // ElevenLabs audio is heavily normalized — raw RMS*4 was maxing out at 1.0
+        // constantly, making particles go crazy. This matches the mic monitor's
+        // calmer visual behavior.
+        let fSum = 0
+        for (let i = 0; i < data.length; i++) fSum += data[i]
+        const avg = fSum / data.length / 255
+        setAudioLevel(Math.min(1, avg * 1.8))
         levelAnimRef.current = requestAnimationFrame(monitor)
       }
       levelAnimRef.current = requestAnimationFrame(monitor)
@@ -389,10 +393,12 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
   const speakText = useCallback(
     async (text: string) => {
-      cancelAbort()
+      // IMPORTANT: Do NOT call cancelAbort()/freshAbort() here!
+      // speakText is called FROM getAIResponse — aborting would kill the chat stream.
+      // Use a local AbortController for TTS only.
+      const ttsAbort = new AbortController()
       setState("speaking")
       setStatusText("")
-      const ctrl = freshAbort()
 
       /** Helper: move to next state after speaking */
       const afterSpeak = async () => {
@@ -425,9 +431,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
               stability: adaptation.ttsStability,
               similarityBoost: adaptation.ttsSimilarityBoost,
               style: adaptation.ttsStyle,
-              speed: adaptation.ttsSpeed ?? 1.0,
+              speed: adaptation.ttsSpeed ?? 1.05,
             }),
-            signal: ctrl.signal,
+            signal: ttsAbort.signal,
           },
           TTS_TIMEOUT,
         )
@@ -438,7 +444,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         if (audioPlayerRef.current) audioPlayerRef.current.pause()
         const audio = new Audio(url)
         audio.volume = 1.0
-        // MOBILE FIX: preload + playsinline ensure audio buffers and plays inline
         audio.preload = 'auto'
         audio.setAttribute('playsinline', 'true')
         audio.setAttribute('webkit-playsinline', 'true')
@@ -461,19 +466,14 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           }
         })
 
-        // Mobile browsers may reject play() if not in a user gesture context.
         let playSucceeded = false
         try {
           await audio.play()
           playSucceeded = true
         } catch {
           if (isMobileRef.current) {
-            // MOBILE FIX: Skip retry, go straight to Web Speech API
-            // Retrying audio.play() on mobile almost never works — the
-            // gesture token is already consumed by the first attempt.
             playSucceeded = false
           } else {
-            // Desktop: wait briefly and retry (gesture unlock can be async)
             await new Promise((r) => setTimeout(r, 300))
             try {
               await audio.play()
@@ -485,12 +485,10 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         }
 
         if (!playSucceeded) {
-          // Autoplay blocked — clean up ElevenLabs audio
           stopTTSMonitor()
           URL.revokeObjectURL(url)
           audioPlayerRef.current = null
 
-          // Try Web Speech API as fallback (works on most mobile browsers)
           if (isMobileRef.current) {
             const webSpeechOk = await tryWebSpeechFallback(text)
             if (webSpeechOk) {
@@ -499,7 +497,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
             }
           }
 
-          // Everything failed — skip TTS, continue flow
           await afterSpeak()
           return
         }
@@ -513,7 +510,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           return
         }
 
-        // ElevenLabs TTS failed — try Web Speech API fallback on mobile
         if (isMobileRef.current) {
           const webSpeechOk = await tryWebSpeechFallback(text)
           if (webSpeechOk) {
@@ -522,15 +518,13 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           }
         }
 
-        // All TTS methods failed — show text response and continue
         setError("Voice response unavailable — see text above")
-        // Always continue the flow, don't get stuck
         await afterSpeak()
       } finally {
         isTransitioningRef.current = false
       }
     },
-    [freshAbort, cancelAbort, startTTSMonitor, stopTTSMonitor, resetToIdle, getSmoothedAdaptation],
+    [startTTSMonitor, stopTTSMonitor, resetToIdle, getSmoothedAdaptation],
   )
 
   /* ── getAIResponse ──────────────────────────────────────────────────────── */
@@ -574,7 +568,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
               personality: personalityRef.current,
               customPrompt: customPromptRef?.current,
               memories: memoriesRef.current + emotionSuffix,
-              maxOutputTokens: adaptation.maxOutputTokens,
+              // Cap voice responses — shorter text = faster TTS = less delay
+              maxOutputTokens: Math.min(adaptation.maxOutputTokens ?? 600, 400),
               voiceDurationMs: lastRecordingDurationMsRef.current || undefined,
             }),
             signal: ctrl.signal,
@@ -621,8 +616,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
         const dec = new TextDecoder()
         let full = ""
-        let firstSentenceTtsPromise: Promise<void> | null = null
-        let firstSentenceText = ""
 
         while (true) {
           const { done, value } = await reader.read()
@@ -636,20 +629,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
               if (p.text) {
                 full += p.text
                 setStreamingText(full)
-
-                // ── Sentence-level TTS pipelining ──
-                // As soon as the first sentence is complete, fire TTS in parallel
-                // while the rest of the response continues streaming.
-                if (!firstSentenceTtsPromise && /[.!?।]\s/.test(full)) {
-                  const match = full.match(/^(.+?[.!?।])\s/)
-                  if (match && shouldUseTTS(full, true)) {
-                    firstSentenceText = match[1]
-                    setState("speaking")
-                    setStatusText("")
-                    // Fire TTS for first sentence NOW — don't wait for full response
-                    firstSentenceTtsPromise = fnRef.current.speakText(truncateForTTS(firstSentenceText))
-                  }
-                }
               }
               // ── Agentic step event ──
               if (p.agentStep) {
@@ -683,8 +662,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         setStreamingText("")
         setLastResponse(full)
 
-        // Strip image from the user message that triggered this — it's been
-        // consumed by Gemini and must not be re-sent in future requests
+        // Strip image from the user message that triggered this
         for (let ci = conversationRef.current.length - 1; ci >= 0; ci--) {
           if (conversationRef.current[ci].role === 'user' && conversationRef.current[ci].image) {
             conversationRef.current[ci].image = undefined
@@ -712,27 +690,11 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           }).catch(() => {})
         }
 
-        // If first-sentence TTS was already fired, wait for it;
-        // then speak the remaining text if any
-        if (firstSentenceTtsPromise) {
-          await firstSentenceTtsPromise
-          // Speak remaining text after the first sentence
-          const remaining = full.slice(firstSentenceText.length).trim()
-          if (remaining && shouldUseTTS(remaining, true)) {
-            await fnRef.current.speakText(truncateForTTS(remaining))
-          } else {
-            if (continuousRef.current) {
-              await fnRef.current.startRecording()
-            } else {
-              resetToIdle()
-            }
-          }
-        } else if (shouldUseTTS(full, true)) {
-          // No early TTS was fired — speak the full response
+        // Speak the full response — simple, reliable, no stream interruption
+        if (shouldUseTTS(full, true)) {
           const ttsText = truncateForTTS(full)
           await fnRef.current.speakText(ttsText)
         } else {
-          // Code blocks or voice disabled — show text only, skip TTS
           if (continuousRef.current) {
             await fnRef.current.startRecording()
           } else {
@@ -990,8 +952,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const greet = useCallback(
     async (text: string) => {
       cancelAbort()
-      setState("speaking")
-      setStatusText("")
+      setStatusText("Loading voice...")
       const ctrl = freshAbort()
 
       /** After greeting, always enter continuous recording */
@@ -1057,6 +1018,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         try {
           await audio.play()
           playSucceeded = true
+          setState("speaking")
+          setStatusText("")
         } catch {
           if (isMobileRef.current) {
             // MOBILE FIX: Skip retry, go straight to Web Speech fallback
@@ -1067,6 +1030,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
             try {
               await audio.play()
               playSucceeded = true
+              setState("speaking")
+              setStatusText("")
             } catch {
               playSucceeded = false
             }
