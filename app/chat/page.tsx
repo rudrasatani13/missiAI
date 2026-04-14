@@ -251,7 +251,7 @@ export default function VoiceAssistantPage() {
 
   // Unified status text — not used by StatusDisplay (it uses state), kept for compatibility
   const effectiveStatusText = liveMode && geminiLive.state !== "disconnected"
-    ? geminiLive.state === "connecting" ? "Connecting..."
+    ? geminiLive.state === "connecting" ? "Starting..."
     : geminiLive.state === "connected" ? (liveTranscriptIn || "Listening...")
     : geminiLive.state === "speaking" ? (liveTranscriptOut || "Speaking...")
     : geminiLive.error || "Tap to start"
@@ -870,10 +870,17 @@ export default function VoiceAssistantPage() {
             { id: "desi-mom", displayName: "Desi Mom", tagline: "Caring, lovingly bossy", accentColor: "#FB7185", geminiVoiceName: "Leda" },
           ].map((p) => {
             const isActive = !liveMode && activePersona?.displayName === p.displayName
+            const isFree = !plan || plan.id === 'free'
             return (
               <button
                 key={p.id}
                 onClick={async () => {
+                  if (isFree) {
+                    const { toast } = await import("sonner")
+                    toast.error("Upgrade to Plus or Pro to use AI Personas!")
+                    window.location.href = "/pricing"
+                    return
+                  }
                   try {
                     const res = await fetch("/api/v1/persona", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personaId: p.id }) })
                     if (res.ok) {
@@ -888,6 +895,7 @@ export default function VoiceAssistantPage() {
                   background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
                   border: isActive ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
                   cursor: "pointer", color: "white",
+                  opacity: isFree ? 0.45 : 1,
                 }}
               >
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.accentColor, flexShrink: 0 }} />
@@ -895,7 +903,14 @@ export default function VoiceAssistantPage() {
                   <p className="text-[11px] font-medium" style={{ color: isActive ? "#fff" : "rgba(255,255,255,0.5)", margin: 0 }}>{p.displayName}</p>
                   <p className="text-[8px] font-light" style={{ color: "rgba(255,255,255,0.25)", margin: "1px 0 0" }}>{p.tagline}</p>
                 </div>
-                {isActive && <Check className="w-3 h-3 opacity-50" />}
+                {isFree ? (
+                  <div className="flex items-center gap-1">
+                    <Crown className="w-3 h-3 text-amber-400/50" />
+                    <span className="text-[8px] font-semibold text-amber-400/60">PLUS</span>
+                  </div>
+                ) : isActive ? (
+                  <Check className="w-3 h-3 opacity-50" />
+                ) : null}
               </button>
             )
           })}

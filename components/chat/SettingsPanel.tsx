@@ -375,17 +375,26 @@ function InlinePersonaPicker({
   onSwitchToLive,
   activePersona,
   glassSection: gs,
+  plan,
 }: {
   isLiveMode?: boolean
   onPersonaChange?: (p: { personaId: string; displayName: string; accentColor: string; geminiVoiceName: string }) => void
   onSwitchToLive?: () => void
   activePersona?: { displayName: string; accentColor: string } | null
   glassSection: React.CSSProperties
+  plan?: string
 }) {
+  const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const isFreePlan = !plan || plan === 'free'
 
   const handleSelect = useCallback(async (persona: typeof ALL_PERSONAS[0]) => {
     if (saving) return
+    if (isFreePlan) {
+      toast.error("Upgrade to Plus or Pro to use AI Personas!")
+      router.push('/pricing')
+      return
+    }
     setSaving(true)
     try {
       const res = await fetch("/api/v1/persona", {
@@ -409,7 +418,7 @@ function InlinePersonaPicker({
     } finally {
       setSaving(false)
     }
-  }, [saving, onPersonaChange])
+  }, [saving, isFreePlan, onPersonaChange, router])
 
   const handleSwitchToDefault = useCallback(() => {
     onSwitchToLive?.()
@@ -459,7 +468,7 @@ function InlinePersonaPicker({
                 background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
                 border: isActive ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
                 cursor: saving ? "default" : "pointer",
-                opacity: saving ? 0.5 : 1,
+                opacity: isFreePlan ? 0.45 : saving ? 0.5 : 1,
                 color: "white",
               }}
             >
@@ -468,7 +477,14 @@ function InlinePersonaPicker({
                 <p className="text-[11px] font-medium" style={{ color: isActive ? "#fff" : "rgba(255,255,255,0.5)", margin: 0 }}>{p.displayName}</p>
                 <p className="text-[8px] font-light" style={{ color: "rgba(255,255,255,0.25)", margin: "1px 0 0" }}>{p.tagline}</p>
               </div>
-              {isActive && <Check className="w-3 h-3 opacity-50" />}
+              {isFreePlan ? (
+                <div className="flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-white/30" />
+                  <span className="text-[8px] font-semibold text-amber-400/60">PLUS</span>
+                </div>
+              ) : isActive ? (
+                <Check className="w-3 h-3 opacity-50" />
+              ) : null}
             </button>
           )
         })}

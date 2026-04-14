@@ -897,6 +897,13 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         streamRef.current = null
         stopAudioMonitor()
 
+        // If cancelAll() was called (sets continuousRef=false + resetToIdle),
+        // the recorder fires onstop asynchronously AFTER reset. Bail out to
+        // prevent re-entering the transcription/recording flow.
+        if (!continuousRef.current && stateRef.current === "idle") {
+          return
+        }
+
         const actualMime = recorder.mimeType || mime || "audio/mp4"
         const blob = new Blob(audioChunksRef.current, { type: actualMime })
         if (blob.size < 500) {
