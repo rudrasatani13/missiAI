@@ -53,6 +53,112 @@ const EMOTION_DOT_COLORS: Record<string, string> = {
   hesitant: '#9CA3AF',
 }
 
+interface NudgePillProps {
+  item: BriefingItem
+  onDismiss?: (item: BriefingItem) => void
+  hasBriefing?: boolean
+}
+
+function NudgePill({ item, onDismiss, hasBriefing }: NudgePillProps) {
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation()
+        onDismiss?.(item)
+      }}
+      className={`${hasBriefing ? "mt-1" : "mt-2"} px-3 py-1 rounded-full pointer-events-auto`}
+      data-testid="nudge-pill"
+      style={{
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        color: hasBriefing ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.35)",
+        fontSize: "10px",
+        fontWeight: 300,
+        cursor: "pointer",
+        animation: `fadeIn ${hasBriefing ? "0.7s" : "0.6s"} ease-out both`,
+      }}
+    >
+      {item.message}
+    </button>
+  )
+}
+
+interface ErrorDisplayProps {
+  message: string
+  onDismiss: () => void
+}
+
+function ErrorDisplay({ message, onDismiss }: ErrorDisplayProps) {
+  return (
+    <div
+      className="flex items-center gap-2 mt-2 pointer-events-auto"
+      data-testid="error-display"
+      style={{ animation: "fadeIn 0.3s ease-out both" }}
+    >
+      <p className="text-xs font-light" style={{ color: "rgba(239,68,68,0.7)" }}>
+        {message}
+      </p>
+      <button
+        onClick={onDismiss}
+        data-testid="error-dismiss-btn"
+        style={{
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          color: "rgba(239,68,68,0.5)",
+        }}
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </div>
+  )
+}
+
+interface BriefingCardProps {
+  item: BriefingItem
+  onDismiss?: (item: BriefingItem) => void
+}
+
+function BriefingCard({ item, onDismiss }: BriefingCardProps) {
+  return (
+    <div
+      className="flex items-center gap-2 mt-3 max-w-[300px] rounded-lg px-3 py-2 pointer-events-auto"
+      data-testid="briefing-card"
+      style={{
+        background: "rgba(255,255,255,0.06)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        animation: "fadeIn 0.5s ease-out both",
+      }}
+    >
+      <p
+        className="text-[11px] font-light flex-1 leading-snug"
+        data-testid="briefing-card-message"
+        style={{ color: "rgba(255,255,255,0.55)" }}
+      >
+        {item.message}
+      </p>
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onDismiss?.(item)
+        }}
+        data-testid="briefing-card-dismiss-btn"
+        aria-label="Dismiss suggestion"
+        style={{
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          color: "rgba(255,255,255,0.25)",
+          padding: "2px",
+          flexShrink: 0,
+        }}
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </div>
+  )
+}
+
 interface StatusDisplayProps {
   state: VoiceState
   streamingText: string
@@ -144,87 +250,16 @@ function StatusDisplayInner({
 
       {/* ── Proactive briefing card ─────────────────────────────────────── */}
       {state === "idle" && topBriefingItem && (
-        <div
-          className="flex items-center gap-2 mt-3 max-w-[300px] rounded-lg px-3 py-2 pointer-events-auto"
-          data-testid="briefing-card"
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            animation: "fadeIn 0.5s ease-out both",
-          }}
-        >
-          <p
-            className="text-[11px] font-light flex-1 leading-snug"
-            data-testid="briefing-card-message"
-            style={{ color: "rgba(255,255,255,0.55)" }}
-          >
-            {topBriefingItem.message}
-          </p>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onDismissItem?.(topBriefingItem)
-            }}
-            data-testid="briefing-card-dismiss-btn"
-            aria-label="Dismiss suggestion"
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "rgba(255,255,255,0.25)",
-              padding: "2px",
-              flexShrink: 0,
-            }}
-          >
-            <X className="w-3 h-3" />
-          </button>
-        </div>
+        <BriefingCard item={topBriefingItem} onDismiss={onDismissItem} />
       )}
 
       {/* ── Nudge pill ──────────────────────────────────────────────────── */}
-      {state === "idle" && firstNudge && !topBriefingItem && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onDismissItem?.(firstNudge)
-          }}
-          className="mt-2 px-3 py-1 rounded-full pointer-events-auto"
-          data-testid="nudge-pill"
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            color: "rgba(255,255,255,0.35)",
-            fontSize: "10px",
-            fontWeight: 300,
-            cursor: "pointer",
-            animation: "fadeIn 0.6s ease-out both",
-          }}
-        >
-          {firstNudge.message}
-        </button>
-      )}
-
-      {/* Show nudge pill below briefing card if both exist */}
-      {state === "idle" && firstNudge && topBriefingItem && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onDismissItem?.(firstNudge)
-          }}
-          className="mt-1 px-3 py-1 rounded-full pointer-events-auto"
-          data-testid="nudge-pill"
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            color: "rgba(255,255,255,0.3)",
-            fontSize: "10px",
-            fontWeight: 300,
-            cursor: "pointer",
-            animation: "fadeIn 0.7s ease-out both",
-          }}
-        >
-          {firstNudge.message}
-        </button>
+      {state === "idle" && firstNudge && (
+        <NudgePill
+          item={firstNudge}
+          onDismiss={onDismissItem}
+          hasBriefing={!!topBriefingItem}
+        />
       )}
 
       {state === "recording" && (
@@ -273,27 +308,7 @@ function StatusDisplayInner({
       )}
 
       {errorMessage && (
-        <div
-          className="flex items-center gap-2 mt-2 pointer-events-auto"
-          data-testid="error-display"
-          style={{ animation: "fadeIn 0.3s ease-out both" }}
-        >
-          <p className="text-xs font-light" style={{ color: "rgba(239,68,68,0.7)" }}>
-            {errorMessage}
-          </p>
-          <button
-            onClick={onDismissError}
-            data-testid="error-dismiss-btn"
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "rgba(239,68,68,0.5)",
-            }}
-          >
-            <X className="w-3 h-3" />
-          </button>
-        </div>
+        <ErrorDisplay message={errorMessage} onDismiss={onDismissError} />
       )}
     </>
   )
