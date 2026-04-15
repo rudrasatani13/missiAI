@@ -4,6 +4,14 @@ if (process.env.NODE_ENV === 'development') {
   await setupDevPlatform()
 }
 
+// Ensure Clerk has a valid publishable key at build time so static prerendering doesn't crash
+// when run in environments without it (like Cloudflare Pages or CI)
+if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+  // Use a base64 encoded dummy string that parses as valid publishable key regex
+  // It has to look like a valid test key (pk_test_ + base64)
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_Y2xlcmsuZGV2ZWxvcGVycy5hcHBzZWMuY28k'
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
