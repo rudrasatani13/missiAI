@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, Sparkles, Heart } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
-import type { MoodEntry, MoodLabel, MoodScore, WeeklyMoodInsight } from '@/types/mood'
+import type { MoodEntry, MoodLabel, WeeklyMoodInsight } from '@/types/mood'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -161,6 +161,30 @@ function StatsRow({
 }
 
 // ─── Heatmap ──────────────────────────────────────────────────────────────────
+
+function MoodLegend() {
+  return (
+    <div className="flex items-center gap-3 mt-4">
+      <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+        Difficult
+      </span>
+      {[0, 2, 4, 7, 9].map((s) => (
+        <div
+          key={s}
+          style={{
+            width: 10,
+            height: 10,
+            borderRadius: 2,
+            background: moodColor(s === 0 ? 0 : s),
+          }}
+        />
+      ))}
+      <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+        Great
+      </span>
+    </div>
+  )
+}
 
 const CELL = 11  // px (10px square + 1px inner spacing, gap handles the rest)
 const GAP = 2    // px gap between cells
@@ -370,33 +394,63 @@ function MoodHeatmap({
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-3 mt-4">
-        <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
-          Difficult
-        </span>
-        {[0, 2, 4, 7, 9].map((s) => (
-          <div
-            key={s}
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: 2,
-              background: moodColor(s === 0 ? 0 : s),
-            }}
-          />
-        ))}
-        <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
-          Great
-        </span>
-      </div>
+      <MoodLegend />
     </div>
   )
 }
 
 // ─── Line Chart (raw SVG) ─────────────────────────────────────────────────────
 
+function MoodLineChartTooltip({
+  p,
+  W,
+  PAD_L,
+  PAD_R,
+  PAD_T,
+}: {
+  p: { x: number; y: number; entry: MoodEntry }
+  W: number
+  PAD_L: number
+  PAD_R: number
+  PAD_T: number
+}) {
+  return (
+    <g>
+      <rect
+        x={Math.max(PAD_L, Math.min(p.x - 50, W - PAD_R - 100))}
+        y={Math.max(PAD_T, p.y - 46)}
+        width={100}
+        height={40}
+        rx={6}
+        fill="rgba(10,10,14,0.92)"
+        stroke="rgba(255,255,255,0.1)"
+      />
+      <text
+        x={Math.max(PAD_L + 50, Math.min(p.x, W - PAD_R - 50))}
+        y={Math.max(PAD_T + 14, p.y - 28)}
+        textAnchor="middle"
+        fontSize={9}
+        fill="rgba(255,255,255,0.45)"
+      >
+        {formatDate(p.entry.date)}
+      </text>
+      <text
+        x={Math.max(PAD_L + 50, Math.min(p.x, W - PAD_R - 50))}
+        y={Math.max(PAD_T + 26, p.y - 16)}
+        textAnchor="middle"
+        fontSize={11}
+        fontWeight={600}
+        fill={moodColorSolid(p.entry.score)}
+      >
+        {p.entry.label} · {p.entry.score}/10
+      </text>
+    </g>
+  )
+}
+
 function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
   const [hovered, setHovered] = useState<number | null>(null)
+
   const last30 = entries.slice(-30)
 
   if (last30.length < 5) {
@@ -541,36 +595,13 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
               onMouseLeave={() => setHovered(null)}
             />
             {hovered === i && (
-              <g>
-                <rect
-                  x={Math.max(PAD_L, Math.min(p.x - 50, W - PAD_R - 100))}
-                  y={Math.max(PAD_T, p.y - 46)}
-                  width={100}
-                  height={40}
-                  rx={6}
-                  fill="rgba(10,10,14,0.92)"
-                  stroke="rgba(255,255,255,0.1)"
-                />
-                <text
-                  x={Math.max(PAD_L + 50, Math.min(p.x, W - PAD_R - 50))}
-                  y={Math.max(PAD_T + 14, p.y - 28)}
-                  textAnchor="middle"
-                  fontSize={9}
-                  fill="rgba(255,255,255,0.45)"
-                >
-                  {formatDate(p.entry.date)}
-                </text>
-                <text
-                  x={Math.max(PAD_L + 50, Math.min(p.x, W - PAD_R - 50))}
-                  y={Math.max(PAD_T + 26, p.y - 16)}
-                  textAnchor="middle"
-                  fontSize={11}
-                  fontWeight={600}
-                  fill={moodColorSolid(p.entry.score)}
-                >
-                  {p.entry.label} · {p.entry.score}/10
-                </text>
-              </g>
+              <MoodLineChartTooltip
+                p={p}
+                W={W}
+                PAD_L={PAD_L}
+                PAD_R={PAD_R}
+                PAD_T={PAD_T}
+              />
             )}
           </g>
         ))}
