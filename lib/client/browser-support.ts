@@ -158,19 +158,19 @@ function pickBestVoice(voices: SpeechSynthesisVoice[], text: string): SpeechSynt
  * MOBILE FIX: Waits for voices to load asynchronously before speaking.
  * Without this, mobile browsers get no voice and speak silently.
  */
-export function speakWithWebSpeechAPI(text: string): Promise<void> {
-  return new Promise(async (resolve, reject) => {
-    if (typeof speechSynthesis === "undefined") {
-      reject(new Error("Web Speech API not available"))
-      return
-    }
+export async function speakWithWebSpeechAPI(text: string): Promise<void> {
+  if (typeof speechSynthesis === "undefined") {
+    throw new Error("Web Speech API not available")
+  }
 
-    // Cancel any ongoing speech
-    speechSynthesis.cancel()
+  // MOBILE FIX: Wait for voices to actually load before speaking
+  const voices = await waitForVoices()
 
-    // MOBILE FIX: Wait for voices to actually load before speaking
-    const voices = await waitForVoices()
+  // Cancel any ongoing speech after awaiting voices to ensure
+  // any previous cancel takes effect right before we speak.
+  speechSynthesis.cancel()
 
+  return new Promise((resolve, reject) => {
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.rate = 0.95
     utterance.pitch = 1.0
