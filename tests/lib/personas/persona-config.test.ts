@@ -39,8 +39,9 @@ function mockEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     VERTEX_AI_PROJECT_ID: undefined,
     VERTEX_AI_LOCATION: undefined,
     GOOGLE_SERVICE_ACCOUNT_JSON: undefined,
+    MISSI_KV_ENCRYPTION_SECRET: undefined,
     ...overrides,
-  }
+  } as AppEnv
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────

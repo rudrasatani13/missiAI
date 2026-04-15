@@ -17,6 +17,7 @@ import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkAndIncrementVoiceTime, getTodayDate } from "@/lib/billing/usage-tracker"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { AGENT_FUNCTION_DECLARATIONS, executeAgentTool, getToolLabel } from "@/lib/ai/agent-tools"
+import { getGoogleTokens } from "@/lib/plugins/data-fetcher"
 import type { AgentToolCall } from "@/lib/ai/agent-tools"
 import { awardXP } from "@/lib/gamification/xp-engine"
 import { geminiGenerateStream } from "@/lib/ai/vertex-client"
@@ -164,6 +165,17 @@ export async function POST(req: NextRequest) {
   // only and MUST NEVER be logged, included in error messages, or sent to clients.
   const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream-input?model_id=eleven_turbo_v2_5&output_format=pcm_24000&optimize_streaming_latency=3&xi-api-key=${appEnv.ELEVENLABS_API_KEY}`
 
+  // Filter available tools based on integrations
+  let availableDeclarations = AGENT_FUNCTION_DECLARATIONS;
+  if (kv) {
+    const hasCalendar = await getGoogleTokens(kv, userId);
+    if (!hasCalendar) {
+      availableDeclarations = availableDeclarations.filter(d =>
+        d.name !== 'readCalendar' && d.name !== 'createCalendarEvent'
+      );
+    }
+  }
+
   // Build request WITH agent tool declarations
   let requestBody = buildGeminiRequest(
     messages,
@@ -171,7 +183,7 @@ export async function POST(req: NextRequest) {
     memories,
     model,
     maxOutputTokens,
-    AGENT_FUNCTION_DECLARATIONS,
+    availableDeclarations,
     customPrompt,
   )
   
@@ -248,7 +260,7 @@ export async function POST(req: NextRequest) {
                 memories,
                 model,
                 maxOutputTokens,
-                AGENT_FUNCTION_DECLARATIONS,
+                availableDeclarations,
               )
               // Update contents reference
               agentContents = [...(currentRequestBody.contents as any[])]
@@ -317,11 +329,18 @@ export async function POST(req: NextRequest) {
               status: toolResult.status,
               label: toolLabel,
               summary: toolResult.summary,
+              output: toolResult.output // include output for UI if client wants to display destructive inline
             },
           })
 
           // Award XP for agent tool usage
           if (kv) awardXP(kv, userId, 'agent', 3).catch(() => {})
+
+          // If tool is searchWeb, we inject a prompt to Gemini telling it to use its internal search
+          let functionResponseOutput = toolResult.output;
+          if (toolResult.output && toolResult.output.startsWith('SEARCH:')) {
+             functionResponseOutput = `Please search the web for: ${toolResult.output.slice(7)}`;
+          }
 
           // ── Feed tool result back to Gemini ───────────────────────────
           // Append the model's functionCall and our functionResponse
@@ -341,7 +360,7 @@ export async function POST(req: NextRequest) {
               functionResponse: {
                 name: pendingFunctionCall.name,
                 response: {
-                  result: toolResult.output,
+                  result: functionResponseOutput,
                 },
               },
             }],

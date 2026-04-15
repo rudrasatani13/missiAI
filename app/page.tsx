@@ -616,6 +616,7 @@ export default function LandingPage() {
             {[
               { label: "Manifesto", href: "/manifesto" },
               { label: "Chat", href: "/chat" },
+              { label: "Agents", href: "/agents" },
               { label: "Privacy", href: "/privacy" },
               { label: "Terms", href: "/terms" },
               { label: "GitHub", href: "https://github.com/rudrasatani13/missiAI" },

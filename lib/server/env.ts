@@ -52,6 +52,7 @@ export interface AppEnv {
   VERTEX_AI_LOCATION: string | undefined
   /** Service Account JSON (inline) for Vertex AI edge-compatible auth */
   GOOGLE_SERVICE_ACCOUNT_JSON: string | undefined
+  MISSI_KV_ENCRYPTION_SECRET: string | undefined
 }
 
 function requireEnv(key: string): string {
@@ -97,6 +98,7 @@ export function getEnv(): AppEnv {
     VERTEX_AI_PROJECT_ID: process.env.VERTEX_AI_PROJECT_ID || undefined,
     VERTEX_AI_LOCATION: process.env.VERTEX_AI_LOCATION || undefined,
     GOOGLE_SERVICE_ACCOUNT_JSON: process.env.GOOGLE_SERVICE_ACCOUNT_JSON || undefined,
+    MISSI_KV_ENCRYPTION_SECRET: process.env.MISSI_KV_ENCRYPTION_SECRET || undefined
   }
 }
 
