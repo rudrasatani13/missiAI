@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Link from "next/link";
 import { SmoothScrollProvider } from "@/components/ui/SmoothScrollProvider";
 import { CustomCursor } from "@/components/ui/CustomCursor";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "missiAI — AI with Memory",
@@ -58,8 +59,8 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet" />
       </head>
       <body className="antialiased bg-black text-white" style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Inter', system-ui, sans-serif" }}>
-        <script dangerouslySetInnerHTML={{
-          __html: `
+        <Script id="service-worker-registration">
+          {`
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/sw.js').then(function(registration) {
@@ -69,8 +70,8 @@ export default function RootLayout({
                 });
               });
             }
-          `
-        }} />
+          `}
+        </Script>
         <Providers>
           <SmoothScrollProvider>
             <CustomCursor />

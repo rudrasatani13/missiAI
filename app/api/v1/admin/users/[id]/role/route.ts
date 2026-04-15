@@ -97,11 +97,11 @@ export async function POST(
     // strictly mints fresh tokens reflecting the newly assigned access privileges.
     const sessions = await client.sessions.getSessionList({ userId: targetUserId })
     
-    for (const session of sessions.data) {
-      if (session.status === 'active') {
-        await client.sessions.revokeSession(session.id)
-      }
-    }
+    const revokePromises = sessions.data
+      .filter(session => session.status === 'active')
+      .map(session => client.sessions.revokeSession(session.id))
+
+    await Promise.all(revokePromises)
 
     console.info(JSON.stringify({
       event: "admin.role_change.success",

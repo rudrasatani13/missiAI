@@ -121,6 +121,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       try {
         const silence = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=")
         silence.volume = 0
+        silence.preload = 'auto'
+        silence.setAttribute('playsinline', 'true')
+        silence.setAttribute('webkit-playsinline', 'true')
         silence.play().then(() => silence.pause()).catch(() => {})
       } catch {}
       // On non-mobile, remove after first successful unlock
@@ -470,14 +473,19 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         try {
           await audio.play()
           playSucceeded = true
+          setState("speaking")
+          setStatusText("")
         } catch {
           if (isMobileRef.current) {
+            // MOBILE FIX: Skip retry, go straight to Web Speech fallback
             playSucceeded = false
           } else {
             await new Promise((r) => setTimeout(r, 300))
             try {
               await audio.play()
               playSucceeded = true
+              setState("speaking")
+              setStatusText("")
             } catch {
               playSucceeded = false
             }
@@ -490,6 +498,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           audioPlayerRef.current = null
 
           if (isMobileRef.current) {
+            setState("speaking")
+            setStatusText("")
             const webSpeechOk = await tryWebSpeechFallback(text)
             if (webSpeechOk) {
               await afterSpeak()
@@ -511,6 +521,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         }
 
         if (isMobileRef.current) {
+          setState("speaking")
+          setStatusText("")
           const webSpeechOk = await tryWebSpeechFallback(text)
           if (webSpeechOk) {
             await afterSpeak()
@@ -1008,6 +1020,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           // TTS API failed — try Web Speech fallback on mobile
           if (isMobileRef.current) {
             try {
+              setState("speaking")
+              setStatusText("")
               await speakWithWebSpeechAPI(text)
               await afterGreet()
               return
@@ -1077,6 +1091,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
           if (isMobileRef.current) {
             try {
+              setState("speaking")
+              setStatusText("")
               await speakWithWebSpeechAPI(text)
             } catch {}
           }
@@ -1096,6 +1112,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         // Network error or timeout — try Web Speech fallback
         if (isMobileRef.current) {
           try {
+            setState("speaking")
+            setStatusText("")
             await speakWithWebSpeechAPI(text)
             await afterGreet()
             return

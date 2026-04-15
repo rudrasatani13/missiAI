@@ -101,6 +101,9 @@ export default function WindDownPage() {
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const audio = new Audio(url)
+      audio.preload = 'auto'
+      audio.setAttribute('playsinline', 'true')
+      audio.setAttribute('webkit-playsinline', 'true')
       audio.onended = () => {
         setIsPlayingTTS(false)
         URL.revokeObjectURL(url)

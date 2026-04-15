@@ -26,7 +26,8 @@ function generateCode(userId: string): string {
   // Use a simple hash-like approach: take parts of userId and make it readable
   const base = userId.replace(/[^a-zA-Z0-9]/g, '')
   const code = base.slice(-8).toUpperCase()
-  return code || Math.random().toString(36).substring(2, 10).toUpperCase()
+  // Fallback to a secure random string if base is empty
+  return code || crypto.randomUUID().split('-')[0].toUpperCase()
 }
 
 export async function getOrCreateReferral(kv: KVStore, userId: string): Promise<ReferralData> {

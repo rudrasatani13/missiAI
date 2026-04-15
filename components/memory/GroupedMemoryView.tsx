@@ -30,7 +30,8 @@ function groupNodes(nodes: LifeNode[]): { group: CategoryGroup; nodes: LifeNode[
   const result: { group: CategoryGroup; nodes: LifeNode[] }[] = []
 
   for (const group of GROUPS) {
-    const matched = nodes.filter((n) => group.categories.includes(n.category))
+    const categorySet = new Set<string>(group.categories)
+    const matched = nodes.filter((n) => categorySet.has(n.category))
     if (matched.length > 0) {
       // Sort by most recent first
       matched.sort((a, b) => b.updatedAt - a.updatedAt)
@@ -39,8 +40,8 @@ function groupNodes(nodes: LifeNode[]): { group: CategoryGroup; nodes: LifeNode[
   }
 
   // Catch any uncategorized nodes
-  const allGroupedCategories = GROUPS.flatMap((g) => g.categories)
-  const ungrouped = nodes.filter((n) => !allGroupedCategories.includes(n.category))
+  const allGroupedCategories = new Set<string>(GROUPS.flatMap((g) => g.categories))
+  const ungrouped = nodes.filter((n) => !allGroupedCategories.has(n.category))
   if (ungrouped.length > 0) {
     result.push({
       group: { label: 'Other', icon: FileText, categories: [] },
