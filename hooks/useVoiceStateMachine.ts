@@ -495,6 +495,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           audioPlayerRef.current = null
 
           if (isMobileRef.current) {
+            setState("speaking")
+            setStatusText("")
             const webSpeechOk = await tryWebSpeechFallback(text)
             if (webSpeechOk) {
               await afterSpeak()
@@ -516,6 +518,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         }
 
         if (isMobileRef.current) {
+          setState("speaking")
+          setStatusText("")
           const webSpeechOk = await tryWebSpeechFallback(text)
           if (webSpeechOk) {
             await afterSpeak()
