@@ -52,6 +52,133 @@ export async function saveLifeGraph(
 
 // ─── Add or Update Node ───────────────────────────────────────────────────────
 
+export async function addOrUpdateNodes(
+  kv: KVStore,
+  vectorizeEnv: VectorizeEnv | null,
+  userId: string,
+  nodeInputs: Omit<
+    LifeNode,
+    'id' | 'createdAt' | 'updatedAt' | 'accessCount' | 'lastAccessedAt'
+  >[],
+  geminiApiKey: string,
+): Promise<LifeNode[]> {
+  const graph = await getLifeGraph(kv, userId)
+  const now = Date.now()
+  const results: LifeNode[] = []
+
+  // We process nodes in parallel where possible, but safely update the graph
+  const processPromises = nodeInputs.map(async (nodeInput) => {
+    // 1. Check for existing node — title match first
+    const titleLower = nodeInput.title.toLowerCase()
+    let existingNode = graph.nodes.find(
+      (n) => n.title.toLowerCase() === titleLower,
+    )
+
+    // 2. If no title match, check cosine similarity via Vectorize
+    let embedding: number[] | null = null
+
+    if (geminiApiKey) {
+      try {
+        const inputText = buildEmbeddingText(nodeInput)
+        embedding = await generateEmbedding(inputText, geminiApiKey)
+
+        if (!existingNode && vectorizeEnv) {
+          const similar = await searchSimilarNodes(
+            vectorizeEnv,
+            embedding,
+            userId,
+            { topK: 1, minScore: 0.9 },
+          )
+          if (similar.length > 0) {
+            existingNode = graph.nodes.find(
+              (n) => n.id === similar[0].node.id,
+            )
+          }
+        }
+      } catch {
+        // Embedding failed — continue without cosine check
+      }
+    }
+
+    return { nodeInput, existingNode, embedding }
+  })
+
+  const processedNodes = await Promise.all(processPromises)
+
+  for (const { nodeInput, existingNode, embedding } of processedNodes) {
+    let resultNode: LifeNode
+    let finalEmbedding = embedding
+
+    if (existingNode) {
+      // ── Merge into existing node ──────────────────────────────────────────
+      existingNode.detail =
+        nodeInput.detail.length > existingNode.detail.length
+          ? nodeInput.detail
+          : `${existingNode.detail} ${nodeInput.detail}`.slice(0, 500)
+      existingNode.tags = [
+        ...new Set([...existingNode.tags, ...nodeInput.tags]),
+      ].slice(0, 8)
+      existingNode.people = [
+        ...new Set([...existingNode.people, ...nodeInput.people]),
+      ]
+      existingNode.emotionalWeight = Math.max(
+        existingNode.emotionalWeight,
+        nodeInput.emotionalWeight,
+      )
+      existingNode.confidence = Math.min(
+        1.0,
+        existingNode.confidence + 0.1,
+      )
+      existingNode.updatedAt = now
+      existingNode.category = nodeInput.category
+      resultNode = existingNode
+
+      // Re-generate embedding for the updated node
+      if (geminiApiKey) {
+        try {
+          const updatedText = buildEmbeddingText(resultNode)
+          finalEmbedding = await generateEmbedding(updatedText, geminiApiKey)
+        } catch {
+          // Keep the original embedding
+        }
+      }
+    } else {
+      // ── Create new node ───────────────────────────────────────────────────
+      resultNode = {
+        id: nanoid(12),
+        userId,
+        category: nodeInput.category,
+        title: nodeInput.title.slice(0, 80),
+        detail: nodeInput.detail.slice(0, 500),
+        tags: nodeInput.tags.slice(0, 8),
+        people: [...nodeInput.people],
+        emotionalWeight: nodeInput.emotionalWeight,
+        confidence: nodeInput.confidence,
+        createdAt: now,
+        updatedAt: now,
+        accessCount: 0,
+        lastAccessedAt: 0,
+        source: nodeInput.source,
+      }
+      graph.nodes.push(resultNode)
+    }
+
+    results.push(resultNode)
+
+    // 3. Upsert to Vectorize if available
+    if (vectorizeEnv && finalEmbedding) {
+      try {
+        await upsertLifeNode(vectorizeEnv, resultNode, finalEmbedding)
+      } catch {
+        // Vectorize upsert failed — node is still persisted in KV
+      }
+    }
+  }
+
+  await saveLifeGraph(kv, userId, graph)
+  return results
+}
+
 export async function addOrUpdateNode(
   kv: KVStore,
   vectorizeEnv: VectorizeEnv | null,
@@ -62,108 +189,8 @@ export async function addOrUpdateNode(
   >,
   geminiApiKey: string,
 ): Promise<LifeNode> {
-  const graph = await getLifeGraph(kv, userId)
-  const now = Date.now()
-
-  // 1. Check for existing node — title match first
-  const titleLower = nodeInput.title.toLowerCase()
-  let existingNode = graph.nodes.find(
-    (n) => n.title.toLowerCase() === titleLower,
-  )
-
-  // 2. If no title match, check cosine similarity via Vectorize
-  let embedding: number[] | null = null
-
-  if (geminiApiKey) {
-    try {
-      const inputText = buildEmbeddingText(nodeInput)
-      embedding = await generateEmbedding(inputText, geminiApiKey)
-
-      if (!existingNode && vectorizeEnv) {
-        const similar = await searchSimilarNodes(
-          vectorizeEnv,
-          embedding,
-          userId,
-          { topK: 1, minScore: 0.9 },
-        )
-        if (similar.length > 0) {
-          existingNode = graph.nodes.find(
-            (n) => n.id === similar[0].node.id,
-          )
-        }
-      }
-    } catch {
-      // Embedding failed — continue without cosine check
-    }
-  }
-
-  let resultNode: LifeNode
-
-  if (existingNode) {
-    // ── Merge into existing node ──────────────────────────────────────────
-    existingNode.detail =
-      nodeInput.detail.length > existingNode.detail.length
-        ? nodeInput.detail
-        : `${existingNode.detail} ${nodeInput.detail}`.slice(0, 8000)
-    existingNode.tags = [
-      ...new Set([...existingNode.tags, ...nodeInput.tags]),
-    ].slice(0, 8)
-    existingNode.people = [
-      ...new Set([...existingNode.people, ...nodeInput.people]),
-    ]
-    existingNode.emotionalWeight = Math.max(
-      existingNode.emotionalWeight,
-      nodeInput.emotionalWeight,
-    )
-    existingNode.confidence = Math.min(
-      1.0,
-      existingNode.confidence + 0.1,
-    )
-    existingNode.updatedAt = now
-    existingNode.category = nodeInput.category
-    resultNode = existingNode
-
-    // Re-generate embedding for the updated node
-    if (geminiApiKey) {
-      try {
-        const updatedText = buildEmbeddingText(resultNode)
-        embedding = await generateEmbedding(updatedText, geminiApiKey)
-      } catch {
-        // Keep the original embedding
-      }
-    }
-  } else {
-    // ── Create new node ───────────────────────────────────────────────────
-    resultNode = {
-      id: nanoid(12),
-      userId,
-      category: nodeInput.category,
-      title: nodeInput.title.slice(0, 80),
-      detail: nodeInput.detail.slice(0, 8000),
-      tags: nodeInput.tags.slice(0, 8),
-      people: [...nodeInput.people],
-      emotionalWeight: nodeInput.emotionalWeight,
-      confidence: nodeInput.confidence,
-      createdAt: now,
-      updatedAt: now,
-      accessCount: 0,
-      lastAccessedAt: 0,
-      source: nodeInput.source,
-    }
-    graph.nodes.push(resultNode)
-  }
-
-  // 3. Upsert to Vectorize if available
-  if (vectorizeEnv && embedding) {
-    try {
-      await upsertLifeNode(vectorizeEnv, resultNode, embedding)
-    } catch {
-      // Vectorize upsert failed — node is still persisted in KV
-    }
-  }
-
-  await saveLifeGraph(kv, userId, graph)
-  return resultNode
+  const results = await addOrUpdateNodes(kv, vectorizeEnv, userId, [nodeInput], geminiApiKey)
+  return results[0]
 }
 
 // ─── Search ───────────────────────────────────────────────────────────────────
