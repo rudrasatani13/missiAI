@@ -396,6 +396,7 @@ function MoodHeatmap({
 // ─── Line Chart (raw SVG) ─────────────────────────────────────────────────────
 
 function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
+  const [hovered, setHovered] = useState<number | null>(null)
   const last30 = entries.slice(-30)
 
   if (last30.length < 5) {
@@ -465,8 +466,6 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
   const xLabels = last30
     .map((e, i) => ({ date: e.date, i }))
     .filter(({ i }) => i % 5 === 0 || i === last30.length - 1)
-
-  const [hovered, setHovered] = useState<number | null>(null)
 
   return (
     <div style={{ overflowX: 'auto' }}>

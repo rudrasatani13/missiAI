@@ -121,6 +121,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       try {
         const silence = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=")
         silence.volume = 0
+        silence.preload = 'auto'
+        silence.setAttribute('playsinline', 'true')
+        silence.setAttribute('webkit-playsinline', 'true')
         silence.play().then(() => silence.pause()).catch(() => {})
       } catch {}
       // On non-mobile, remove after first successful unlock
