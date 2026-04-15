@@ -315,24 +315,44 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => b.emotionalWeight - a.emotionalWeight)
 
     const seenNames = new Set<string>()
+    const seenSubstrings = new Set<string>()
     const peopleInMyWorld: string[] = []
     for (const node of peopleNodes) {
       if (peopleInMyWorld.length >= 4) break
       const name = extractPersonName(node.title, userName)
       if (!name) continue
       const nameLower = name.toLowerCase()
-      // Dedup by lowercase name
+
+      // Exact match check
       if (seenNames.has(nameLower)) continue
-      // Also check if any existing name is a substring of this or vice versa
-      let isDup = false
-      for (const existing of seenNames) {
-        if (existing.includes(nameLower) || nameLower.includes(existing)) {
-          isDup = true
-          break
+
+      // Check if nameLower is a substring of an already seen name in O(1)
+      let isDup = seenSubstrings.has(nameLower)
+
+      // Check if any existing name is a substring of nameLower in O(L^2) where L is string length, avoiding O(N) loop over seenNames
+      if (!isDup) {
+        for (let j = 0; j < nameLower.length; j++) {
+          for (let k = j + 1; k <= nameLower.length; k++) {
+            if (seenNames.has(nameLower.slice(j, k))) {
+              isDup = true
+              break
+            }
+          }
+          if (isDup) break
         }
       }
+
       if (isDup) continue
+
       seenNames.add(nameLower)
+
+      // Pre-compute all substrings of nameLower and add to seenSubstrings for O(1) lookups
+      for (let j = 0; j < nameLower.length; j++) {
+        for (let k = j + 1; k <= nameLower.length; k++) {
+          seenSubstrings.add(nameLower.slice(j, k))
+        }
+      }
+
       peopleInMyWorld.push(name)
     }
 
