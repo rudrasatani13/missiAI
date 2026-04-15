@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { AgentDashboard } from "@/components/agents/AgentDashboard"
 
+export const runtime = "edge"
+
 export default async function AgentsPage() {
   const { userId } = await auth()
   if (!userId) redirect("/sign-in")
