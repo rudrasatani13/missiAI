@@ -9,7 +9,7 @@ import { getRequestContext } from "@cloudflare/next-on-pages"
 import {
   getLifeGraph,
   saveLifeGraph,
-  addOrUpdateNode,
+  addOrUpdateNodes,
   searchLifeGraph,
 } from "@/lib/memory/life-graph"
 import { extractLifeNodes } from "@/lib/memory/graph-extractor"
@@ -256,15 +256,14 @@ export async function POST(req: NextRequest) {
 
         const beforeCount = graph.nodes.length
 
-        for (const nodeInput of extractedNodes) {
-          await addOrUpdateNode(
-            kv,
-            vectorizeEnv,
-            userId,
-            { ...nodeInput, userId },
-            apiKey,
-          )
-        }
+        // Batch update to fix N+1 query issue
+        await addOrUpdateNodes(
+          kv,
+          vectorizeEnv,
+          userId,
+          extractedNodes.map((nodeInput) => ({ ...nodeInput, userId })),
+          apiKey,
+        )
 
         // Reload to count changes
         graph = await getLifeGraph(kv, userId)
