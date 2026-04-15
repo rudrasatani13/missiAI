@@ -29,24 +29,19 @@ const GROUPS: CategoryGroup[] = [
 function groupNodes(nodes: LifeNode[]): { group: CategoryGroup; nodes: LifeNode[] }[] {
   const result: { group: CategoryGroup; nodes: LifeNode[] }[] = []
 
-  // Pre-create category sets for O(1) lookups
-  const groupSets = GROUPS.map(g => new Set(g.categories))
-
-  GROUPS.forEach((group, i) => {
-    const categorySet = groupSets[i]
+  for (const group of GROUPS) {
+    const categorySet = new Set<string>(group.categories)
     const matched = nodes.filter((n) => categorySet.has(n.category))
-
     if (matched.length > 0) {
       // Sort by most recent first
       matched.sort((a, b) => b.updatedAt - a.updatedAt)
       result.push({ group, nodes: matched })
     }
-  })
+  }
 
   // Catch any uncategorized nodes
-  const allGroupedCategories = new Set(GROUPS.flatMap((g) => g.categories))
+  const allGroupedCategories = new Set<string>(GROUPS.flatMap((g) => g.categories))
   const ungrouped = nodes.filter((n) => !allGroupedCategories.has(n.category))
-
   if (ungrouped.length > 0) {
     result.push({
       group: { label: 'Other', icon: FileText, categories: [] },
