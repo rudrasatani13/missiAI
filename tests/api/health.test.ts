@@ -21,6 +21,7 @@ beforeEach(() => {
   process.env.GEMINI_API_KEY = "test-gemini-key"
   process.env.ELEVENLABS_API_KEY = "test-elevenlabs-key"
   process.env.CLERK_SECRET_KEY = "test-clerk-secret"
+  process.env.GOOGLE_SERVICE_ACCOUNT_JSON = "test-google-key"
 })
 
 describe("GET /api/health", () => {
@@ -80,7 +81,7 @@ describe("GET /api/health", () => {
     } as any)
 
     // Remove a required env var
-    delete process.env.GEMINI_API_KEY
+    delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON
 
     const response = await GET()
     const body = await response.json()
@@ -90,7 +91,7 @@ describe("GET /api/health", () => {
     expect(body.checks.env).toBe("missing")
 
     // Restore for other tests
-    process.env.GEMINI_API_KEY = "test-gemini-key"
+    process.env.GOOGLE_SERVICE_ACCOUNT_JSON = "test-google-key"
   })
 
   it("returns 503 with status 'down' when both KV and env fail", async () => {
@@ -98,7 +99,7 @@ describe("GET /api/health", () => {
       throw new Error("No request context")
     })
 
-    delete process.env.GEMINI_API_KEY
+    delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON
 
     const response = await GET()
     const body = await response.json()
@@ -109,6 +110,6 @@ describe("GET /api/health", () => {
     expect(body.checks.env).toBe("missing")
 
     // Restore
-    process.env.GEMINI_API_KEY = "test-gemini-key"
+    process.env.GOOGLE_SERVICE_ACCOUNT_JSON = "test-google-key"
   })
 })
