@@ -3,7 +3,7 @@
 import { memo, useState, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon, Calendar, BookOpen, RefreshCw, CheckCircle2, Mail, CheckSquare, MessageSquare, Github, LayoutGrid, Inbox, Crown, User, Sparkles, Wand2, Lock, Mic2 } from "lucide-react"
+import { LogOut, Heart, Briefcase, Zap, BrainCircuit, Pencil, Check, X as XIcon, Calendar, BookOpen, RefreshCw, Mail, CheckSquare, MessageSquare, Github, LayoutGrid, Inbox, Crown, User, Sparkles, Wand2, Lock } from "lucide-react"
 import type { PersonalityKey } from "@/types/chat"
 import { PERSONALITY_OPTIONS } from "@/types/chat"
 import type { PluginConfig, PluginId } from "@/types/plugins"
@@ -198,41 +198,53 @@ function OAuthPluginPanel() {
     flexShrink: 0,
   }
 
+  const pluginsConfig: {
+    id: "google" | "notion"
+    title: string
+    icon: React.ReactNode
+    getConnectedText: (s: PluginConnectionStatus | null) => string
+  }[] = [
+    {
+      id: "google",
+      title: "Google Calendar",
+      icon: <Calendar className="w-4 h-4 text-white opacity-60" style={{ flexShrink: 0 }} />,
+      getConnectedText: (s) => (s?.google?.connected ? "✓ Connected — events synced" : "Not connected"),
+    },
+    {
+      id: "notion",
+      title: "Notion",
+      icon: <BookOpen className="w-4 h-4 text-white opacity-60" style={{ flexShrink: 0 }} />,
+      getConnectedText: (s) =>
+        s?.notion?.connected ? `✓ ${s.notion.workspaceName ?? "Connected"}` : "Not connected",
+    },
+  ]
+
   return (
     <div>
-      {/* Google Calendar */}
-      <div style={rowStyle}>
-        <Calendar className="w-4 h-4 text-white opacity-60" style={{ flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: "12px", fontWeight: 500, color: "#fff", margin: 0 }}>Google Calendar</p>
-          <p style={{ fontSize: "10px", color: status?.google?.connected ? "#4ade80" : "rgba(255,255,255,0.3)", margin: "2px 0 0" }}>
-            {status?.google?.connected ? "✓ Connected — events synced" : "Not connected"}
-          </p>
-        </div>
-        {status?.google?.connected ? (
-          <button style={disconnectBtnStyle} onClick={() => handleDisconnect("google")}>Disconnect</button>
-        ) : (
-          <a href="/api/auth/connect/google" style={connectBtnStyle}>Connect</a>
-        )}
-      </div>
+      {pluginsConfig.map(({ id, title, icon, getConnectedText }) => {
+        const isConnected = status?.[id]?.connected
 
-      {/* Notion */}
-      <div style={rowStyle}>
-        <BookOpen className="w-4 h-4 text-white opacity-60" style={{ flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: "12px", fontWeight: 500, color: "#fff", margin: 0 }}>Notion</p>
-          <p style={{ fontSize: "10px", color: status?.notion?.connected ? "#4ade80" : "rgba(255,255,255,0.3)", margin: "2px 0 0" }}>
-            {status?.notion?.connected
-              ? `✓ ${status.notion.workspaceName ?? "Connected"}`
-              : "Not connected"}
-          </p>
-        </div>
-        {status?.notion?.connected ? (
-          <button style={disconnectBtnStyle} onClick={() => handleDisconnect("notion")}>Disconnect</button>
-        ) : (
-          <a href="/api/auth/connect/notion" style={connectBtnStyle}>Connect</a>
-        )}
-      </div>
+        return (
+          <div key={id} style={rowStyle}>
+            {icon}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: "12px", fontWeight: 500, color: "#fff", margin: 0 }}>{title}</p>
+              <p style={{ fontSize: "10px", color: isConnected ? "#4ade80" : "rgba(255,255,255,0.3)", margin: "2px 0 0" }}>
+                {getConnectedText(status)}
+              </p>
+            </div>
+            {isConnected ? (
+              <button style={disconnectBtnStyle} onClick={() => handleDisconnect(id)}>
+                Disconnect
+              </button>
+            ) : (
+              <a href={`/api/auth/connect/${id}`} style={connectBtnStyle}>
+                Connect
+              </a>
+            )}
+          </div>
+        )
+      })}
 
       {/* ── Coming Soon ─────────────────────────────────────────────────────── */}
       <div style={{
