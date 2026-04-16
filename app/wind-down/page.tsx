@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { Moon, Clock, Star, Sunrise, ArrowLeft } from 'lucide-react'
 import { useWindDown } from '@/hooks/useWindDown'
 import type { BriefingItem } from '@/types/proactive'
+import SleepSessions from '@/components/wind-down/SleepSessions'
 
 function getCurrentTime(): string {
   const now = new Date()
@@ -37,8 +38,10 @@ function ReflectionCard({ item }: { item: BriefingItem }) {
       style={{
         background: isSleepNudge
           ? 'rgba(255,255,255,0.04)'
-          : 'rgba(255,255,255,0.07)',
-        border: '1px solid rgba(255,255,255,0.08)',
+          : 'rgba(255,255,255,0.08)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        border: '1px solid rgba(255,255,255,0.12)',
       }}
     >
       <div className={`flex items-start gap-3 ${isGratitude ? 'justify-center' : ''}`}>
@@ -76,10 +79,15 @@ export default function WindDownPage() {
     return () => clearInterval(interval)
   }, [])
 
+  const hasMarkedRef = useRef(false)
+
   // Mark delivered after 2 seconds if reflection exists
   useEffect(() => {
-    if (!reflection) return
-    const timer = setTimeout(() => markDelivered(), 2000)
+    if (!reflection || hasMarkedRef.current) return
+    const timer = setTimeout(() => {
+      hasMarkedRef.current = true
+      markDelivered()
+    }, 2000)
     return () => clearTimeout(timer)
   }, [reflection, markDelivered])
 
@@ -93,7 +101,7 @@ export default function WindDownPage() {
       const res = await fetch('/api/v1/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, useSleepVoice: true }),
       })
 
       if (!res.ok) return
@@ -137,13 +145,18 @@ export default function WindDownPage() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-start px-4 py-12"
+      className="min-h-screen flex flex-col items-center justify-start px-4 py-12 relative overflow-hidden"
       style={{
         background: '#000000',
         fontFamily: 'var(--font-body)',
       }}
     >
-      <div className="w-full max-w-md">
+      {/* Vibrant Ambient Background Mesh for Glass Effect */}
+      <div className="absolute top-[10%] left-[10%] w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] bg-indigo-600/15 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-[20%] right-[10%] w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] bg-fuchsia-600/10 blur-[130px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[0%] left-1/2 -translate-x-1/2 w-[60vw] h-[40vw] max-w-[1000px] bg-blue-500/10 blur-[150px] rounded-full pointer-events-none" />
+      
+      <div className="w-full max-w-6xl relative z-10 flex flex-col h-full">
         {/* Back button */}
         <Link
           href="/chat"
@@ -156,14 +169,29 @@ export default function WindDownPage() {
 
         {/* Header */}
         <div className="flex flex-col items-center mb-10">
-          <Moon className="w-8 h-8 text-white opacity-40 mb-4" />
-          <h1 className="text-2xl font-light text-white tracking-wide mb-1">
+          <Moon className="w-8 h-8 text-white opacity-60 mb-5" />
+          <h1 className="text-3xl md:text-4xl font-light text-white tracking-wide mb-2">
             Good night
           </h1>
-          <p className="text-sm font-light" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-sm font-light text-white/40 tracking-widest uppercase">
             {currentTime}
           </p>
         </div>
+
+        {/* Content Layout - Two Glass Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch w-full mb-16">
+          
+          {/* LEFT COLUMN: Evaluation & Reflection */}
+          <div className="flex flex-col w-full bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[32px] p-8 lg:p-10 relative overflow-hidden transform-gpu">
+             {/* Inner Card Glow */}
+             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+             <div className="flex flex-col items-start mb-8">
+                 <h2 className="text-2xl font-light text-white tracking-wide mb-2">Evening Reflection</h2>
+                 <p className="text-sm font-light leading-relaxed text-white/40">
+                   Review the highlights of your day.
+                 </p>
+             </div>
 
         {/* Content */}
         {isLoading && (
@@ -197,8 +225,10 @@ export default function WindDownPage() {
                 disabled={isPlayingTTS}
                 className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-light transition-opacity"
                 style={{
-                  background: 'rgba(255,255,255,0.07)',
-                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'rgba(255,255,255,0.08)',
+                  backdropFilter: 'blur(24px)',
+                  WebkitBackdropFilter: 'blur(24px)',
+                  border: '1px solid rgba(255,255,255,0.15)',
                   color: isPlayingTTS ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.7)',
                   cursor: isPlayingTTS ? 'default' : 'pointer',
                   letterSpacing: '0.03em',
@@ -210,6 +240,16 @@ export default function WindDownPage() {
             </div>
           </>
         )}
+          </div>
+
+          {/* RIGHT COLUMN: Sleep Sessions */}
+          <div className="flex flex-col w-full bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[32px] p-8 lg:p-10 relative overflow-hidden transform-gpu">
+             {/* Inner Card Glow */}
+             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+             <SleepSessions />
+          </div>
+
+        </div>
       </div>
     </div>
   )
