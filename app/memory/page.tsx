@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Brain, RefreshCw, Network, Plus, X, Camera } from 'lucide-react'
+import { ArrowLeft, Brain, RefreshCw, Network, Plus, X, Camera, BookOpen } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
 import { useMemoryDashboard } from '@/hooks/useMemoryDashboard'
@@ -205,6 +205,17 @@ export default function MemoryPage() {
               }}
             >
               <Network className="w-3 h-3" /> 3D
+            </Link>
+            <Link
+              href="/memory/story"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all hover:scale-105 no-underline"
+              style={{
+                background: 'rgba(59,130,246,0.06)',
+                border: '1px solid rgba(59,130,246,0.12)',
+                color: 'rgba(59,130,246,0.7)',
+              }}
+            >
+              <BookOpen className="w-3 h-3" /> Story
             </Link>
             <button
               onClick={() => setShowAddForm((v) => !v)}
