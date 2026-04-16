@@ -43,18 +43,38 @@ function reconcileSeconds(serverSecs: number, localSecs: number): number {
   return Math.max(serverSecs, localSecs)
 }
 
-export function useBilling() {
+export function usePlanFeatures(plan: PlanConfig | null, usage: DailyUsage | null) {
+  const limitSeconds = useMemo(() => {
+    if (!plan) return 600 // default 10 min
+    return plan.voiceMinutesPerDay * 60
+  }, [plan])
+
+  const usedSeconds = useMemo(() => {
+    return usage?.voiceSecondsUsed ?? 0
+  }, [usage])
+
+  const isAtLimit = useMemo(() => {
+    if (!usage || !plan) return false
+    if (plan.id === 'pro') return false
+    return usedSeconds >= limitSeconds
+  }, [usage, plan, usedSeconds, limitSeconds])
+
+  const remainingSeconds = useMemo(() => {
+    if (!plan) return 0
+    if (plan.id === 'pro') return 999999
+    return Math.max(0, limitSeconds - usedSeconds)
+  }, [plan, usedSeconds, limitSeconds])
+
+  return { limitSeconds, usedSeconds, isAtLimit, remainingSeconds }
+}
+
+export function useFetchBilling() {
   const [plan, setPlan] = useState<PlanConfig | null>(null)
   const [usage, setUsage] = useState<DailyUsage | null>(null)
   const [billing, setBilling] = useState<UserBilling | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isUpgrading, setIsUpgrading] = useState(false)
-  const [isCancelling, setIsCancelling] = useState(false)
-  // Track mounted state to prevent state updates after unmount
   const mountedRef = useRef(true)
-
-  const { user } = useUser()
 
   useEffect(() => {
     mountedRef.current = true
@@ -156,6 +176,16 @@ export function useBilling() {
     return () => { cancelled = true }
   }, [])
 
+  return { plan, usage, billing, isLoading, error, setUsage, setError, mountedRef, refreshBilling }
+}
+
+export function useBilling() {
+  const { plan, usage, billing, isLoading, error, setUsage, setError, mountedRef, refreshBilling } = useFetchBilling()
+  const [isUpgrading, setIsUpgrading] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
+
+  useUser()
+
   // ─── Dodo Checkout: redirect to hosted checkout page ─────────────────────
   const initiateCheckout = useCallback(async (planId: 'plus' | 'pro') => {
     setIsUpgrading(true)
@@ -185,7 +215,7 @@ export function useBilling() {
         setIsUpgrading(false)
       }
     }
-  }, [])
+  }, [mountedRef, setError])
 
   const cancelSubscription = useCallback(async () => {
     setIsCancelling(true)
@@ -206,28 +236,9 @@ export function useBilling() {
         setIsCancelling(false)
       }
     }
-  }, [refreshBilling])
+  }, [refreshBilling, mountedRef, setError])
 
-  const limitSeconds = useMemo(() => {
-    if (!plan) return 600 // default 10 min
-    return plan.voiceMinutesPerDay * 60
-  }, [plan])
-
-  const usedSeconds = useMemo(() => {
-    return usage?.voiceSecondsUsed ?? 0
-  }, [usage])
-
-  const isAtLimit = useMemo(() => {
-    if (!usage || !plan) return false
-    if (plan.id === 'pro') return false
-    return usedSeconds >= limitSeconds
-  }, [usage, plan, usedSeconds, limitSeconds])
-
-  const remainingSeconds = useMemo(() => {
-    if (!plan) return 0
-    if (plan.id === 'pro') return 999999
-    return Math.max(0, limitSeconds - usedSeconds)
-  }, [plan, usedSeconds, limitSeconds])
+  const { limitSeconds, usedSeconds, isAtLimit, remainingSeconds } = usePlanFeatures(plan, usage)
 
   /**
    * Called after each successful voice interaction to keep UI in sync.
@@ -241,7 +252,7 @@ export function useBilling() {
       setLocalSeconds(newSecs)
       return { ...prev, voiceSecondsUsed: newSecs, voiceInteractions: prev.voiceInteractions + 1 }
     })
-  }, [])
+  }, [setUsage])
 
   return {
     plan,
