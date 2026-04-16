@@ -155,6 +155,29 @@ function isSuspiciousUA(ua: string | null): boolean {
 
 // ── Sliding-window check ─────────────────────────────────────────────────────
 
+function sweepStaleIPs() {
+  const now = Date.now()
+  const sweepMap = (map: Map<string, IPBucket>, windowMs: number) => {
+    for (const [ip, bucket] of map.entries()) {
+      if (now >= bucket.windowStart + windowMs) {
+        map.delete(ip)
+      }
+    }
+  }
+  sweepMap(ipMap, IP_WINDOW_MS)
+  sweepMap(prevIpMap, IP_WINDOW_MS * 2)
+  sweepMap(healthIpMap, IP_WINDOW_MS)
+  sweepMap(prevHealthIpMap, IP_WINDOW_MS * 2)
+  sweepMap(authIpMap, AUTH_WINDOW_MS)
+  sweepMap(prevAuthIpMap, AUTH_WINDOW_MS * 2)
+  
+  for (const [ip, v] of violationMap.entries()) {
+    if (now - v.firstViolationAt >= VIOLATION_WINDOW_MS) {
+      violationMap.delete(ip)
+    }
+  }
+}
+
 function checkIPRateLimitInternal(
   currentMap: Map<string, IPBucket>,
   prevMap: Map<string, IPBucket>,
@@ -162,6 +185,10 @@ function checkIPRateLimitInternal(
   limit: number,
   windowMs: number = IP_WINDOW_MS,
 ): { allowed: boolean; retryAfter: number; remaining: number; limit: number; resetAt: number } {
+  if (Math.random() < 0.01) {
+    sweepStaleIPs();
+  }
+
   const now = Date.now()
 
   // ── Current bucket ──────────────────────────────────────────────────────

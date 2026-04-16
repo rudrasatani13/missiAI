@@ -7,11 +7,10 @@ import type { VoiceState } from "@/types/chat"
 interface VoiceButtonProps {
   state: VoiceState
   onPress: () => void
-  onRelease: () => void
   disabled: boolean
 }
 
-function VoiceButtonInner({ state, onPress, onRelease, disabled }: VoiceButtonProps) {
+function VoiceButtonInner({ state, onPress, disabled }: VoiceButtonProps) {
   return (
     <motion.button
       whileTap={!disabled ? { scale: 0.85, y: 3 } : {}}
@@ -21,15 +20,13 @@ function VoiceButtonInner({ state, onPress, onRelease, disabled }: VoiceButtonPr
       aria-label={`Voice assistant - ${state}`}
       disabled={disabled}
       onPointerDown={(e) => {
-        // use onPointerDown instead of onClick for more robust tap holding
+        // use onPointerDown instead of onClick for more robust tap handling
         e.preventDefault()
         if (typeof navigator !== "undefined" && navigator.vibrate && !disabled) {
           navigator.vibrate([30])
         }
         onPress()
       }}
-      onPointerUp={onRelease}
-      onPointerLeave={onRelease}
       className="mb-3 flex items-center justify-center gap-2 pointer-events-auto select-none"
       style={{ background: "none", border: "none", cursor: disabled ? "default" : "pointer", padding: "12px" }}
     >

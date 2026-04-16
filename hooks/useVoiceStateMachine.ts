@@ -61,6 +61,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const noSpeechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const levelAnimRef = useRef<number | null>(null)
   const hasSpokenRef = useRef(false)
 
@@ -71,6 +73,11 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const ttsContextRef = useRef<AudioContext | null>(null)
   const ttsAnalyserRef = useRef<AnalyserNode | null>(null)
   const continuousRef = useRef(false)
+  /** EDITH mode: agent asked a follow-up question — extend silence timeout & auto-record */
+  const expectingResponseRef = useRef(false)
+  /** EDITH mode: always active — auto-restart recording after every response.
+   *  BUG-004 fix: Defaults to false. Set to true when user explicitly enables continuous mode. */
+  const edithModeRef = useRef(false)
   const pcmPlayerRef = useRef<PCMPlayer | null>(null)
   const stateRef = useRef<VoiceState>("idle")
   
@@ -191,19 +198,21 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
     const SPEECH_THRESH = 0.04
     const SILENCE_THRESH = 0.025
-    const SILENCE_MS = 1500
+    // BUG-008 fix: Read expectingResponseRef dynamically inside the callback
+    // instead of capturing SILENCE_MS once at recording start.
+    const getSilenceMs = () => expectingResponseRef.current ? 4000 : 1500
     const MAX_RECORD_MS = 30_000
     const NO_SPEECH_MS = 5000   // stop recording if no speech detected within 5s
     let silentFrameCount = 0
     const SILENT_FRAMES_NEEDED = 12  // ~200ms of consecutive silence at 60fps
 
-    const noSpeechTimer = setTimeout(() => {
+    noSpeechTimerRef.current = setTimeout(() => {
       if (!hasSpokenRef.current && mediaRecorderRef.current?.state === "recording") {
         mediaRecorderRef.current.stop()
       }
     }, NO_SPEECH_MS)
 
-    const maxTimer = setTimeout(() => {
+    maxTimerRef.current = setTimeout(() => {
       if (mediaRecorderRef.current?.state === "recording") {
         mediaRecorderRef.current.stop()
       }
@@ -246,7 +255,10 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         }
         hasSpokenRef.current = true
         silentFrameCount = 0
-        clearTimeout(noSpeechTimer)
+        if (noSpeechTimerRef.current) {
+          clearTimeout(noSpeechTimerRef.current)
+          noSpeechTimerRef.current = null
+        }
         if (silenceTimerRef.current) {
           clearTimeout(silenceTimerRef.current)
           silenceTimerRef.current = null
@@ -261,7 +273,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
             if (mediaRecorderRef.current?.state === "recording") {
               mediaRecorderRef.current.stop()
             }
-          }, SILENCE_MS)
+          }, getSilenceMs()) // BUG-008 fix: dynamic silence timeout
         }
       } else if (rms >= SILENCE_THRESH) {
         silentFrameCount = 0
@@ -274,20 +286,14 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       levelAnimRef.current = requestAnimationFrame(monitor)
     }
 
-    ;(analyser as any)._maxTimer = maxTimer
-    ;(analyser as any)._noSpeechTimer = noSpeechTimer
     levelAnimRef.current = requestAnimationFrame(monitor)
   }, [])
 
   const stopAudioMonitor = useCallback(() => {
     if (levelAnimRef.current) cancelAnimationFrame(levelAnimRef.current)
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
-    if (analyserRef.current && (analyserRef.current as any)._maxTimer) {
-      clearTimeout((analyserRef.current as any)._maxTimer)
-    }
-    if (analyserRef.current && (analyserRef.current as any)._noSpeechTimer) {
-      clearTimeout((analyserRef.current as any)._noSpeechTimer)
-    }
+    if (maxTimerRef.current) clearTimeout(maxTimerRef.current)
+    if (noSpeechTimerRef.current) clearTimeout(noSpeechTimerRef.current)
 
     // Analyze emotion from last audio snapshot before clearing
     if (lastTimeDomainSnapshotRef.current && lastFreqSnapshotRef.current) {
@@ -345,8 +351,9 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       analyser.smoothingTimeConstant = 0.92
       ttsAnalyserRef.current = analyser
 
-      // createMediaElementSource can only be called once per element.
-      // Disconnect the previous source if it exists, then create a new one.
+      // BUG-009: createMediaElementSource can only be called once per HTML element.
+      // We create a new Audio() for each playback, so this is safe. The disconnect
+      // below cleans up the previous source's routing to avoid orphaned connections.
       if (ttsSourceRef.current) {
         try { ttsSourceRef.current.disconnect() } catch {}
       }
@@ -405,7 +412,10 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
       /** Helper: move to next state after speaking */
       const afterSpeak = async () => {
-        if (continuousRef.current) {
+        // EDITH mode: ALWAYS restart recording after speaking — like a real assistant
+        // Also restart if agent asked a follow-up question or continuous mode is on
+        if (edithModeRef.current || expectingResponseRef.current || continuousRef.current) {
+          expectingResponseRef.current = false
           await fnRef.current.startRecording()
         } else {
           resetToIdle()
@@ -571,7 +581,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           : ''
 
         const res = await fetchWithTimeout(
-          "/api/v1/chat",
+          "/api/v1/chat-stream",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -580,8 +590,12 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
               personality: personalityRef.current,
               customPrompt: customPromptRef?.current,
               memories: memoriesRef.current + emotionSuffix,
-              // Cap voice responses — shorter text = faster TTS = less delay
-              maxOutputTokens: Math.min(adaptation.maxOutputTokens ?? 600, 400),
+              // BUG-H1 fix: only enable EDITH mode when the user has explicitly turned
+              // it on. Previously hardcoded true, which always injected the full EDITH
+              // system prompt (autonomous execution, Hinglish tone, tool chaining) even
+              // for simple one-off voice queries — increasing token cost and causing
+              // unexpectedly aggressive autonomous behaviour.
+              voiceMode: edithModeRef.current,
               voiceDurationMs: lastRecordingDurationMsRef.current || undefined,
             }),
             signal: ctrl.signal,
@@ -654,6 +668,10 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
                   return [...prev, p.agentStep]
                 })
               }
+              // ── EDITH: needsInput event — auto-restart recording after TTS ──
+              if (p.needsInput) {
+                expectingResponseRef.current = true
+              }
             } catch {}
           }
         }
@@ -702,12 +720,17 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           }).catch(() => {})
         }
 
+        // Clear agent steps after response completes
+        setAgentSteps([])
+
         // Speak the full response — simple, reliable, no stream interruption
         if (shouldUseTTS(full, true)) {
           const ttsText = truncateForTTS(full)
           await fnRef.current.speakText(ttsText)
         } else {
-          if (continuousRef.current) {
+          // EDITH mode: always restart recording; also restart for follow-ups or continuous
+          if (edithModeRef.current || expectingResponseRef.current || continuousRef.current) {
+            expectingResponseRef.current = false
             await fnRef.current.startRecording()
           } else {
             resetToIdle()
@@ -969,7 +992,17 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
   /* ── handleTap (main interaction entry-point) ───────────────────────────── */
 
+  // BUG-M1 fix: debounce rapid taps. Two fast taps both see state="idle" (React
+  // state, read synchronously) before the first startRecording() updates it.
+  // isTransitioningRef blocks the second startRecording body, but continuousRef
+  // was still being set twice. A 150ms guard prevents duplicate dispatch.
+  const lastTapTimeRef = useRef(0)
+
   const handleTap = useCallback(() => {
+    const now = Date.now()
+    if (now - lastTapTimeRef.current < 150) return
+    lastTapTimeRef.current = now
+
     if (state === "idle") {
       continuousRef.current = true
       fnRef.current.startRecording()
@@ -1161,7 +1194,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       "/api/v1/memory",
       new Blob([payload], { type: "application/json" }),
     )
-  }, [userId, conversationRef, memoriesRef])
+  }, [userId, conversationRef]) // BUG-010 fix: removed unused memoriesRef from deps
 
   /* ── Keep fnRef in sync after every render ──────────────────────────────── */
 
@@ -1173,6 +1206,12 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       speakText,
     }
   })
+
+  useEffect(() => {
+    return () => {
+      cancelAll()
+    }
+  }, [cancelAll])
 
   /* ── Public API ─────────────────────────────────────────────────────────── */
 

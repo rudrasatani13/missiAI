@@ -29,6 +29,8 @@ export const chatSchema = z.object({
   maxOutputTokens: z.number().min(100).max(2000).optional(),
   memories: z.string().max(10000, "Memories payload too large").transform(sanitizeInput).optional(),
   voiceEnabled: z.boolean().optional(),
+  /** When true, enables EDITH autonomous agent mode — voice-first, no typing */
+  voiceMode: z.boolean().optional(),
   /** Client-reported recording duration in milliseconds (server clamps to 3–120s) */
   voiceDurationMs: z.number().min(0).max(300000).optional(),
 })

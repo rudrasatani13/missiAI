@@ -59,7 +59,7 @@ export async function awardXP(
     const lockKey = `xp-lock:${userId}`
     const hasLock = await kv.get(lockKey)
     if (hasLock) return 0 // Another request is processing — skip
-    await kv.put(lockKey, '1', { expirationTtl: 5 }) // 5-second lock
+    await kv.put(lockKey, '1', { expirationTtl: 60 }) // 60-second lock (KV minimum TTL)
 
     const data = await getGamificationData(kv, userId)
     // BUGFIX (B4): Use centralized date utility instead of raw UTC slicing

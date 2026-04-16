@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -9,11 +9,15 @@ export type LiveState = "disconnected" | "connecting" | "connected" | "speaking"
 export interface GeminiLiveConfig {
   systemPrompt: string
   voiceName?: string // Default: "Kore"
+  /** Tool declarations for Gemini Live — enables agent tools in real-time voice */
+  toolDeclarations?: Array<{ name: string; description: string; parameters: Record<string, unknown> }>
   onTranscriptIn?: (text: string) => void   // What user said
   onTranscriptOut?: (text: string) => void  // What Gemini said
   onStateChange?: (state: LiveState) => void
   onError?: (error: string) => void
   onAudioLevel?: (level: number) => void
+  /** Called when Gemini invokes a tool — caller must execute and call sendToolResponse */
+  onToolCall?: (toolName: string, args: Record<string, unknown>) => void
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -133,10 +137,11 @@ export function useGeminiLive(config: GeminiLiveConfig) {
       }
 
       // Send as base64 — Gemini's server-side VAD handles turn detection
+      // BUG-H2 fix: use Array.from + join instead of character-by-character
+      // string concatenation. The old loop was O(n²) — each += allocates a new
+      // string, causing micro-stutters in the hot audio encoding path (~15Hz).
       const bytes = new Uint8Array(int16.buffer)
-      let binary = ""
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
-      const b64 = btoa(binary)
+      const b64 = btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(""))
 
       ws.send(JSON.stringify({
         realtimeInput: {
@@ -265,6 +270,46 @@ export function useGeminiLive(config: GeminiLiveConfig) {
             configRef.current.onTranscriptOut?.(outputTranscriptRef.current)
           }
 
+          // Tool call from model — execute via /api/v1/tools/execute
+          // BUG-C1 fix: Gemini Live requires ALL function responses for a single toolCall
+          // to be sent together in ONE toolResponse message. Sending separate messages per
+          // tool causes the model to stall waiting for remaining responses.
+          if (msg.toolCall?.functionCalls) {
+            for (const fc of msg.toolCall.functionCalls) {
+              console.log("[GeminiLive] Tool call:", fc.name, fc.args)
+              configRef.current.onToolCall?.(fc.name, fc.args || {})
+            }
+
+            // Execute all tools in parallel, then send one batched toolResponse
+            const functionResponses = await Promise.all(
+              msg.toolCall.functionCalls.map(async (fc: { id?: string; name: string; args?: Record<string, unknown> }) => {
+                try {
+                  const toolRes = await fetch("/api/v1/tools/execute", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: fc.name, args: fc.args || {} }),
+                  })
+                  const toolResult = await toolRes.json() as { output?: string; summary?: string; status?: string }
+                  return {
+                    name: fc.name,
+                    response: { result: toolResult.output || toolResult.summary || "Done" },
+                  }
+                } catch (toolErr) {
+                  console.error("[GeminiLive] Tool execution error:", fc.name, toolErr)
+                  return {
+                    name: fc.name,
+                    response: { result: "Tool execution failed" },
+                  }
+                }
+              })
+            )
+
+            // Send all responses in a single message as required by the Gemini Live protocol
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ toolResponse: { functionResponses } }))
+            }
+          }
+
           // Interrupted — user spoke while model was talking
           if (msg.serverContent?.interrupted) {
             if (turnCompleteTimeoutRef.current) clearTimeout(turnCompleteTimeoutRef.current)
@@ -300,6 +345,14 @@ export function useGeminiLive(config: GeminiLiveConfig) {
         console.log("[GeminiLive] WebSocket connected — sending setup")
         isConnectedRef.current = true
 
+        // Build tools array for Gemini Live
+        const liveTools: Record<string, unknown>[] = [{ google_search: {} }]
+        if (configRef.current.toolDeclarations && configRef.current.toolDeclarations.length > 0) {
+          liveTools.push({
+            function_declarations: configRef.current.toolDeclarations,
+          })
+        }
+
         // Send setup config with server-side VAD for instant turn detection
         ws.send(JSON.stringify({
           setup: {
@@ -325,6 +378,8 @@ export function useGeminiLive(config: GeminiLiveConfig) {
                 endOfSpeechSensitivity: "END_SENSITIVITY_HIGH",
               },
             },
+            // Agent tools for EDITH mode
+            tools: liveTools,
             systemInstruction: {
               parts: [{ text: configRef.current.systemPrompt }],
             },
@@ -356,6 +411,11 @@ export function useGeminiLive(config: GeminiLiveConfig) {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current)
       animFrameRef.current = null
+    }
+
+    if (turnCompleteTimeoutRef.current) {
+      clearTimeout(turnCompleteTimeoutRef.current)
+      turnCompleteTimeoutRef.current = null
     }
 
     // Disconnect processor
@@ -395,6 +455,12 @@ export function useGeminiLive(config: GeminiLiveConfig) {
     updateState("disconnected")
     configRef.current.onAudioLevel?.(0)
   }, [updateState])
+
+  useEffect(() => {
+    return () => {
+      disconnect()
+    }
+  }, [disconnect])
 
   return {
     state,

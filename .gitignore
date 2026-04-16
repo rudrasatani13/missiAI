@@ -57,3 +57,7 @@ test_dodo*
 
 # Google Cloud Service Account keys — NEVER commit these
 service-account*.json
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json

@@ -503,6 +503,10 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0, avatarTier =
       document.removeEventListener("visibilitychange", onVisibility)
       try { renderer.dispose() } catch { }
     }
+    // BUG-016: This effect intentionally runs once (mount-only initialization).
+    // Three.js WebGL contexts are expensive to create/destroy — re-initializing
+    // on every prop change would cause GPU resource leaks. State-driven updates
+    // (voiceState, audioLevel, avatarTier) are handled in the separate useEffect below.
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── State-driven behavior ──

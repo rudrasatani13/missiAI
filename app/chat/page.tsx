@@ -4,11 +4,12 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import nextDynamic from "next/dynamic"
-import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera, Puzzle, IdCard, Heart, Target, Mic2, Check } from "lucide-react"
+import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera, Puzzle, IdCard, Heart, Target, Mic2, Check, Zap } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useGeminiLive, type LiveState } from "@/hooks/useGeminiLive"
 import { buildSystemPrompt } from "@/services/ai.service"
+import { AGENT_FUNCTION_DECLARATIONS } from "@/lib/ai/agent-tools"
 import { useProactive } from "@/hooks/useProactive"
 import { useActionEngine } from "@/hooks/useActionEngine"
 import { usePlugins } from "@/hooks/usePlugins"
@@ -293,6 +294,8 @@ export default function VoiceAssistantPage() {
   const geminiLive = useGeminiLive({
     systemPrompt: buildSystemPrompt(personalityRef.current, memoriesState, customPrompt),
     voiceName: "Kore", // Always Kore for Gemini Live — personas only affect ElevenLabs voice
+    // EDITH: pass agent tool declarations for live voice tool calling
+    toolDeclarations: AGENT_FUNCTION_DECLARATIONS,
     onTranscriptIn: (text) => {
       setLiveTranscriptIn(text)
       // Add to conversation for memory
@@ -879,7 +882,6 @@ export default function VoiceAssistantPage() {
           <VoiceButton
             state={effectiveVoiceState}
             onPress={handleTap}
-            onRelease={() => { }}
             disabled={isAtLimit || billingLoading}
           />
         </div>
@@ -920,12 +922,15 @@ export default function VoiceAssistantPage() {
       />
 
       {/* Floating side nav — bottom-left */}
+      {/* BUG-015 fix: Added max-height and overflow-auto to prevent overflow on short viewports */}
       <div className="fixed bottom-44 md:bottom-36 left-4 md:left-6 z-20 pointer-events-auto flex flex-col items-center gap-4 px-2.5 py-4 rounded-full shadow-2xl transition-all"
         style={{
           background: 'rgba(255,255,255,0.05)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid rgba(255,255,255,0.15)',
+          maxHeight: 'calc(100vh - 220px)',
+          overflowY: 'auto',
         }}>
         <input
           type="file"
@@ -941,6 +946,12 @@ export default function VoiceAssistantPage() {
           <Camera className="w-4 h-4 md:w-5 md:h-5" />
           <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Vision</span>
         </button>
+        <Link href="/agents" onClick={(e) => e.stopPropagation()}
+          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
+          style={{ color: '#a78bfa' }}>
+          <Zap className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Agent</span>
+        </Link>
         <div className="w-[60%] h-[1px] bg-white/10" />
         <Link href="/pricing" onClick={(e) => e.stopPropagation()}
           className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
@@ -1000,6 +1011,7 @@ export default function VoiceAssistantPage() {
           <IdCard className="w-4 h-4 md:w-5 md:h-5" />
           <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Profile Card</span>
         </Link>
+
       </div>
 
 

@@ -14,8 +14,8 @@ export function shouldUseTTS(text: string, voiceEnabled: boolean): boolean {
 }
 
 /**
- * Truncate text for TTS: extract the first 5 complete sentences,
- * max 1200 chars. Append "..." if truncated.
+ * Truncate text for TTS: extract the first 4 complete sentences,
+ * max 800 chars. Append "..." if truncated.
  */
 export function truncateForTTS(text: string): string {
   if (text.length <= 800) return text
@@ -29,8 +29,12 @@ export function truncateForTTS(text: string): string {
   }
 
   const truncated = sentences.slice(0, 4).join(" ")
+  // BUG-C2 fix: only append "..." when we actually truncated something.
+  // Previously this always appended "..." causing ElevenLabs to speak or pause
+  // awkwardly on short responses that happened to have 4+ sentences.
+  const wasTruncated = sentences.length > 4
   if (truncated.length > 800) {
     return truncated.slice(0, 800) + "..."
   }
-  return truncated + "..."
+  return wasTruncated ? truncated + "..." : truncated
 }

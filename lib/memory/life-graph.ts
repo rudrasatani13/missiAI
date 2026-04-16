@@ -62,50 +62,52 @@ export async function addOrUpdateNodes(
   >[],
   geminiApiKey: string,
 ): Promise<LifeNode[]> {
-  const graph = await getLifeGraph(kv, userId)
   const now = Date.now()
   const results: LifeNode[] = []
 
-  // We process nodes in parallel where possible, but safely update the graph
+  // We process embeddings in parallel where possible
   const processPromises = nodeInputs.map(async (nodeInput) => {
-    // 1. Check for existing node — title match first
-    const titleLower = nodeInput.title.toLowerCase()
-    let existingNode = graph.nodes.find(
-      (n) => n.title.toLowerCase() === titleLower,
-    )
-
-    // 2. If no title match, check cosine similarity via Vectorize
+    // We defer existingNode check to merging phase
+    // 1. Generate cosine similarity embedding via Vectorize
     let embedding: number[] | null = null
 
     if (geminiApiKey) {
       try {
         const inputText = buildEmbeddingText(nodeInput)
         embedding = await generateEmbedding(inputText, geminiApiKey)
-
-        if (!existingNode && vectorizeEnv) {
-          const similar = await searchSimilarNodes(
-            vectorizeEnv,
-            embedding,
-            userId,
-            { topK: 1, minScore: 0.9 },
-          )
-          if (similar.length > 0) {
-            existingNode = graph.nodes.find(
-              (n) => n.id === similar[0].node.id,
-            )
-          }
-        }
       } catch {
         // Embedding failed — continue without cosine check
       }
     }
 
-    return { nodeInput, existingNode, embedding }
+    return { nodeInput, embedding }
   })
 
   const processedNodes = await Promise.all(processPromises)
 
-  for (const { nodeInput, existingNode, embedding } of processedNodes) {
+  // Fetch the latest graph precisely BEFORE mutating and saving to prevent Race Conditions
+  const graph = await getLifeGraph(kv, userId)
+
+  for (const { nodeInput, embedding } of processedNodes) {
+    const titleLower = nodeInput.title.toLowerCase()
+    let existingNode = graph.nodes.find(
+      (n) => n.title.toLowerCase() === titleLower,
+    )
+    
+    if (!existingNode && vectorizeEnv && embedding) {
+      const similar = await searchSimilarNodes(
+        vectorizeEnv,
+        embedding,
+        userId,
+        { topK: 1, minScore: 0.9 },
+      )
+      if (similar.length > 0) {
+        existingNode = graph.nodes.find(
+          (n) => n.id === similar[0].node.id,
+        )
+      }
+    }
+
     let resultNode: LifeNode
     let finalEmbedding = embedding
 

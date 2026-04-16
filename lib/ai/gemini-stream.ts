@@ -28,8 +28,10 @@ export function buildGeminiRequest(
   maxOutputTokens: number = 600,
   toolDeclarations?: Record<string, unknown>[],
   customPrompt?: string,
+  /** Pre-built system prompt — skips buildSystemPrompt if provided */
+  systemPromptOverride?: string,
 ): Record<string, unknown> {
-  const systemPrompt = buildSystemPrompt(personality, memories, customPrompt)
+  const systemPrompt = systemPromptOverride || buildSystemPrompt(personality, memories, customPrompt)
 
   const contents = messages.map((m) => {
     const parts: any[] = [{ text: m.content }]

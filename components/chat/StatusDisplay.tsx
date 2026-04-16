@@ -226,7 +226,7 @@ function StatusDisplayInner({
             state === "idle"        ? `Hey${userName ? ` ${userName}` : ""}` :
             state === "recording"   ? "Listening..."   :
             state === "transcribing"? "Processing..."  :
-            state === "thinking"    ? (isLiveMode ? "Starting..." : "Thinking...")    :
+            state === "thinking"    ? (isLiveMode ? "Connecting..." : "Thinking...")    :
             state === "speaking"    ? "Speaking..."    : ""
           }
           color={
@@ -268,7 +268,7 @@ function StatusDisplayInner({
           data-testid="recording-hint"
           style={{ color: "rgba(255,80,60,0.3)", animation: "fadeIn 0.3s ease-out both" }}
         >
-          Speak naturally &middot; auto-detects when you&apos;re done
+          Speak naturally · auto-detects when you're done
         </p>
       )}
 
