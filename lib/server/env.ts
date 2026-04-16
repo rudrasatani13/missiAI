@@ -24,6 +24,8 @@ export interface AppEnv {
   ELEVENLABS_VOICE_BOLLYWOOD: string | undefined
   /** ElevenLabs voice ID for Desi Mom persona */
   ELEVENLABS_VOICE_DESI_MOM: string | undefined
+  /** Override for Wind-Down / Sleep experiences */
+  ELEVENLABS_SLEEP_VOICE_ID: string | undefined
   CLERK_SECRET_KEY: string
   DAILY_BUDGET_USD: number
   NODE_ENV: string
@@ -80,6 +82,7 @@ export function getEnv(): AppEnv {
     ELEVENLABS_VOICE_FRIEND: process.env.ELEVENLABS_VOICE_FRIEND || undefined,
     ELEVENLABS_VOICE_BOLLYWOOD: process.env.ELEVENLABS_VOICE_BOLLYWOOD || undefined,
     ELEVENLABS_VOICE_DESI_MOM: process.env.ELEVENLABS_VOICE_DESI_MOM || undefined,
+    ELEVENLABS_SLEEP_VOICE_ID: process.env.ELEVENLABS_SLEEP_VOICE_ID || undefined,
     CLERK_SECRET_KEY: requireEnv("CLERK_SECRET_KEY"),
     DAILY_BUDGET_USD: parseFloat(process.env.DAILY_BUDGET_USD ?? "5.0") || 5.0,
     NODE_ENV: process.env.NODE_ENV ?? "production",

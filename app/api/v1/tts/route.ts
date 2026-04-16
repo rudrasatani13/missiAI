@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     return validationErrorResponse(parsed.error)
   }
 
-  const { text } = parsed.data
+  const { text, useSleepVoice } = parsed.data
   const stability = parsed.data.stability ?? 0.82
   const similarityBoost = parsed.data.similarityBoost ?? 0.8
   const style = parsed.data.style ?? 0.05
@@ -130,17 +130,23 @@ export async function POST(req: NextRequest) {
   // Hardcoded fallback ensures TTS never 500s just because env var is unset.
   const DEFAULT_VOICE_FALLBACK = "21m00Tcm4TlvDq8ikWAM" // ElevenLabs Rachel
   let voiceId = appEnv.ELEVENLABS_VOICE_ID || DEFAULT_VOICE_FALLBACK
-  try {
-    let kvForPersona: KVStore | null = null
-    try { const { env } = getRequestContext(); kvForPersona = (env as any).MISSI_MEMORY ?? null } catch {}
-    if (kvForPersona) {
-      const personaId = await getUserPersona(kvForPersona, userId)
-      const personaVoice = getPersonaVoiceId(personaId, appEnv)
-      if (personaVoice) voiceId = personaVoice
+
+  if (useSleepVoice) {
+    // If the sleep voice flag is explicitly requested, override the main voice
+    voiceId = appEnv.ELEVENLABS_SLEEP_VOICE_ID || "8quEMRkSpwEaWBzHvTLv"
+  } else {
+    try {
+      let kvForPersona: KVStore | null = null
+      try { const { env } = getRequestContext(); kvForPersona = (env as any).MISSI_MEMORY ?? null } catch {}
+      if (kvForPersona) {
+        const personaId = await getUserPersona(kvForPersona, userId)
+        const personaVoice = getPersonaVoiceId(personaId, appEnv)
+        if (personaVoice) voiceId = personaVoice
+      }
+    } catch (e) {
+      logError("tts.persona_voice_error", e, userId)
+      // Fall back to default voice — don't break TTS
     }
-  } catch (e) {
-    logError("tts.persona_voice_error", e, userId)
-    // Fall back to default voice — don't break TTS
   }
 
   // ── 6. Call ElevenLabs with retry for transient errors ────────────────────
