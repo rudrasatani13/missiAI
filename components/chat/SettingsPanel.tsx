@@ -259,97 +259,73 @@ function OAuthPluginPanel() {
     flexShrink: 0,
   };
 
-  return (
-    <div>
-      {/* Google Calendar */}
-      <div style={rowStyle}>
+  const PLUGINS_CONFIG = [
+    {
+      id: "google" as const,
+      name: "Google Calendar",
+      icon: (
         <Calendar
           className="w-4 h-4 text-white opacity-60"
           style={{ flexShrink: 0 }}
         />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p
-            style={{
-              fontSize: "12px",
-              fontWeight: 500,
-              color: "#fff",
-              margin: 0,
-            }}
-          >
-            Google Calendar
-          </p>
-          <p
-            style={{
-              fontSize: "10px",
-              color: status?.google?.connected
-                ? "#4ade80"
-                : "rgba(255,255,255,0.3)",
-              margin: "2px 0 0",
-            }}
-          >
-            {status?.google?.connected
-              ? "✓ Connected — events synced"
-              : "Not connected"}
-          </p>
-        </div>
-        {status?.google?.connected ? (
-          <button
-            style={disconnectBtnStyle}
-            onClick={() => handleDisconnect("google")}
-          >
-            Disconnect
-          </button>
-        ) : (
-          <a href="/api/auth/connect/google" style={connectBtnStyle}>
-            Connect
-          </a>
-        )}
-      </div>
-
-      {/* Notion */}
-      <div style={rowStyle}>
+      ),
+      connectedText: "✓ Connected — events synced",
+    },
+    {
+      id: "notion" as const,
+      name: "Notion",
+      icon: (
         <BookOpen
           className="w-4 h-4 text-white opacity-60"
           style={{ flexShrink: 0 }}
         />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p
-            style={{
-              fontSize: "12px",
-              fontWeight: 500,
-              color: "#fff",
-              margin: 0,
-            }}
-          >
-            Notion
-          </p>
-          <p
-            style={{
-              fontSize: "10px",
-              color: status?.notion?.connected
-                ? "#4ade80"
-                : "rgba(255,255,255,0.3)",
-              margin: "2px 0 0",
-            }}
-          >
-            {status?.notion?.connected
-              ? `✓ ${status.notion.workspaceName ?? "Connected"}`
-              : "Not connected"}
-          </p>
+      ),
+      connectedText: `✓ ${status?.notion?.workspaceName ?? "Connected"}`,
+    },
+  ];
+
+  return (
+    <div>
+      {PLUGINS_CONFIG.map(({ id, name, icon, connectedText }) => (
+        <div key={id} style={rowStyle}>
+          {icon}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p
+              style={{
+                fontSize: "12px",
+                fontWeight: 500,
+                color: "#fff",
+                margin: 0,
+              }}
+            >
+              {name}
+            </p>
+            <p
+              style={{
+                fontSize: "10px",
+                color: status?.[id]?.connected
+                  ? "#4ade80"
+                  : "rgba(255,255,255,0.3)",
+                margin: "2px 0 0",
+              }}
+            >
+              {status?.[id]?.connected ? connectedText : "Not connected"}
+            </p>
+          </div>
+          {status?.[id]?.connected ? (
+            <button
+              style={disconnectBtnStyle}
+              onClick={() => handleDisconnect(id)}
+            >
+              Disconnect
+            </button>
+          ) : (
+            <a href={`/api/auth/connect/${id}`} style={connectBtnStyle}>
+              Connect
+            </a>
+          )}
         </div>
-        {status?.notion?.connected ? (
-          <button
-            style={disconnectBtnStyle}
-            onClick={() => handleDisconnect("notion")}
-          >
-            Disconnect
-          </button>
-        ) : (
-          <a href="/api/auth/connect/notion" style={connectBtnStyle}>
-            Connect
-          </a>
-        )}
-      </div>
+      ))}
 
       {/* ── Coming Soon ─────────────────────────────────────────────────────── */}
       <div
