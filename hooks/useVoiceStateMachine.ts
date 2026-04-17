@@ -999,14 +999,21 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const lastTapTimeRef = useRef(0)
 
   const handleTap = useCallback(() => {
+    // Check transition immediately to prevent duplicated continuousRef settings
+    if (isTransitioningRef.current) return
+
     const now = Date.now()
     if (now - lastTapTimeRef.current < 150) return
     lastTapTimeRef.current = now
 
-    if (state === "idle") {
+    // Use stateRef.current for immediate synchronous state checking,
+    // bypassing React's batched state updates to prevent stale closures.
+    const currentState = stateRef.current
+
+    if (currentState === "idle") {
       continuousRef.current = true
       fnRef.current.startRecording()
-    } else if (state === "speaking" || state === "thinking") {
+    } else if (currentState === "speaking" || currentState === "thinking") {
       // Interrupt current operation and start recording
       cancelAbort()
       if (audioPlayerRef.current) {
@@ -1021,7 +1028,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       // recording or transcribing → full stop
       cancelAll()
     }
-  }, [state, cancelAbort, stopTTSMonitor, cancelAll])
+  }, [cancelAbort, stopTTSMonitor, cancelAll])
 
   /* ── greet (initial greeting with auto-continue) ────────────────────────── */
 
