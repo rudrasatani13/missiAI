@@ -20,7 +20,7 @@ export interface UseVoiceStateMachineOptions {
   userId?: string
   personalityRef: React.MutableRefObject<PersonalityKey>
   customPromptRef?: React.MutableRefObject<string>
-  memoriesRef: React.MutableRefObject<string>
+  memoriesRef?: React.MutableRefObject<string>
   conversationRef: React.MutableRefObject<ConversationEntry[]>
   imagePayloadRef?: React.MutableRefObject<string | null>
   onImageConsumed?: () => void
@@ -589,7 +589,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
               messages: msgs,
               personality: personalityRef.current,
               customPrompt: customPromptRef?.current,
-              memories: memoriesRef.current + emotionSuffix,
+              memories: (memoriesRef?.current || "") + emotionSuffix,
               // BUG-H1 fix: only enable EDITH mode when the user has explicitly turned
               // it on. Previously hardcoded true, which always injected the full EDITH
               // system prompt (autonomous execution, Hinglish tone, tool chaining) even
