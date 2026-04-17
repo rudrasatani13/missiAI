@@ -103,6 +103,10 @@ export function useSleepSessions() {
         urlRef.current = url
 
         const audio = new Audio(url)
+        // MOBILE FIX: preload + playsinline attributes
+        audio.preload = 'auto'
+        audio.setAttribute('playsinline', 'true')
+        audio.setAttribute('webkit-playsinline', 'true')
         audioRef.current = audio
 
         audio.ontimeupdate = () => {
