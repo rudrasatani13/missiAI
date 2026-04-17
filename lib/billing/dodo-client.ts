@@ -4,6 +4,7 @@
 // Docs: https://docs.dodopayments.com
 // Webhook verification follows the Standard Webhooks spec.
 
+import { timingSafeEqual } from 'node:crypto'
 import type { PlanId } from '@/types/billing'
 
 const DODO_API_BASE = 'https://live.dodopayments.com'
@@ -160,12 +161,17 @@ export function determinePlanFromDodoProduct(productId: string): PlanId {
 
 // Constant-time comparison to prevent timing attacks
 function timingSafeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let result = 0
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  try {
+    const encoder = new TextEncoder()
+    const aBytes = encoder.encode(a)
+    const bBytes = encoder.encode(b)
+    if (aBytes.byteLength !== bBytes.byteLength) {
+      return false
+    }
+    return timingSafeEqual(aBytes, bBytes)
+  } catch {
+    return false
   }
-  return result === 0
 }
 
 // Decode base64 string to Uint8Array
