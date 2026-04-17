@@ -15,7 +15,31 @@ describe("triggerWebhook", () => {
     const result = await triggerWebhook("http://example.com/hook", "", "POST", payload)
 
     expect(result.success).toBe(false)
-    expect(result.output).toBe("Only HTTPS webhooks allowed")
+    expect(result.output).toBe("Invalid webhook URL: Only public HTTPS webhooks allowed")
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
+  it("rejects internal IPs (SSRF prevention) and returns error", async () => {
+    const result = await triggerWebhook("https://127.0.0.1/hook", "", "POST", payload)
+
+    expect(result.success).toBe(false)
+    expect(result.output).toBe("Invalid webhook URL: Only public HTTPS webhooks allowed")
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
+  it("rejects localhost and returns error", async () => {
+    const result = await triggerWebhook("https://localhost:8080/hook", "", "POST", payload)
+
+    expect(result.success).toBe(false)
+    expect(result.output).toBe("Invalid webhook URL: Only public HTTPS webhooks allowed")
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
+  it("rejects local domain names and returns error", async () => {
+    const result = await triggerWebhook("https://service.local/hook", "", "POST", payload)
+
+    expect(result.success).toBe(false)
+    expect(result.output).toBe("Invalid webhook URL: Only public HTTPS webhooks allowed")
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
