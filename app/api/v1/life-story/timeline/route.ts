@@ -61,17 +61,27 @@ export async function GET(req: Request) {
       }))
     }
 
+    // Create a map for O(1) chapter lookup by nodeId
+    const nodeToChapterIdMap = new Map<string, string>()
+    for (const chapter of chapters) {
+      if (chapter.nodeIds) {
+        for (const nodeId of chapter.nodeIds) {
+          nodeToChapterIdMap.set(nodeId, chapter.id)
+        }
+      }
+    }
+
     // Transform nodes into TimelineEvent[]
     let events: TimelineEvent[] = []
     for (const node of graph.nodes) {
-      const chapter = chapters.find((c: any) => c.nodeIds.includes(node.id))
+      const chapterId = nodeToChapterIdMap.get(node.id)
       events.push({
         nodeId: node.id,
         timestamp: node.createdAt,
         title: node.title,
         category: node.category as MemoryCategory,
         emotionalWeight: node.emotionalWeight || 0.5,
-        chapterId: chapter ? chapter.id : null
+        chapterId: chapterId || null
       })
     }
 
