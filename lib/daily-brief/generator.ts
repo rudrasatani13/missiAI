@@ -9,7 +9,6 @@
 // - All Gemini output is sanitized before storage (Rule 3: no raw AI content in KV).
 // - Gemini call is wrapped in Promise.race with a 5-second timeout.
 
-// @ts-ignore — nanoid v3 has no types in this project setup
 import { nanoid } from 'nanoid'
 import type { KVStore } from '@/types'
 import type {
