@@ -4,7 +4,6 @@
 // Docs: https://docs.dodopayments.com
 // Webhook verification follows the Standard Webhooks spec.
 
-import { timingSafeEqual } from 'node:crypto'
 import type { PlanId } from '@/types/billing'
 
 const DODO_API_BASE = 'https://live.dodopayments.com'
@@ -160,15 +159,26 @@ export function determinePlanFromDodoProduct(productId: string): PlanId {
 // The secret key is Base64-encoded (with optional "whsec_" prefix).
 
 // Constant-time comparison to prevent timing attacks
-function timingSafeCompare(a: string, b: string): boolean {
+// Ensure constant time byte comparison to prevent timing attacks
+async function timingSafeCompare(a: string, b: string): Promise<boolean> {
   try {
     const encoder = new TextEncoder()
     const aBytes = encoder.encode(a)
     const bBytes = encoder.encode(b)
+
     if (aBytes.byteLength !== bBytes.byteLength) {
       return false
     }
-    return timingSafeEqual(aBytes, bBytes)
+
+    const key = await crypto.subtle.generateKey(
+      { name: 'HMAC', hash: 'SHA-256' },
+      true,
+      ['sign', 'verify']
+    )
+
+    const aSig = await crypto.subtle.sign('HMAC', key, aBytes)
+    const isValid = await crypto.subtle.verify('HMAC', key, aSig, bBytes)
+    return isValid
   } catch {
     return false
   }
@@ -253,7 +263,7 @@ export async function verifyDodoWebhook(
       if (parts.length !== 2) continue
       const [version, sigValue] = parts
       if (version !== 'v1') continue
-      if (timingSafeCompare(computedSig, sigValue)) {
+      if (await timingSafeCompare(computedSig, sigValue)) {
         return true
       }
     }

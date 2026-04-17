@@ -88,7 +88,7 @@ export async function generateEveningReflection(
   }
 
   // No nodes or no API key → skip AI call
-  if (graph.nodes.length === 0 || !apiKey) return emptyReflection
+  if (graph.nodes.length === 0) return emptyReflection
 
   const context = buildContext(graph)
   const controller = new AbortController()
