@@ -181,7 +181,9 @@ function extractPersonName(title: string, userName: string): string | null {
   // If it contains the user's name, it's about the user's relationship — skip
   if (lower.includes(userLower) && lower !== userLower) {
     // Extract the other person's name
-    const cleaned = title.replace(new RegExp(userName, 'gi'), '').trim()
+    // Security: Escape userName to prevent regex injection
+    const escapedName = userName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const cleaned = title.replace(new RegExp(escapedName, 'gi'), '').trim()
     const relWords = cleaned.replace(/\b(is|and|with|the|a|an|best|close|friend|friends|rapport)\b/gi, '').trim()
     if (relWords.length > 0 && relWords.length < 30) return relWords
     return null

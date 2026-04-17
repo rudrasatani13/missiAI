@@ -32,11 +32,10 @@ export async function GET(req: NextRequest) {
 
   // ── Local dev fallback: read tokens from cookies ───────────────────────────
   if (!kv) {
-    const cookieHeader = req.headers.get("cookie") ?? ""
     const parseCookie = (name: string) => {
-      const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`))
-      if (!match) return null
-      try { return JSON.parse(decodeURIComponent(match[1])) } catch { return null }
+      const cookie = req.cookies.get(name)
+      if (!cookie) return null
+      try { return JSON.parse(decodeURIComponent(cookie.value)) } catch { return null }
     }
 
     const gTokens = parseCookie(`google_tokens_${userId}`)
