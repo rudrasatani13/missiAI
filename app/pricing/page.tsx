@@ -11,15 +11,15 @@ import { CelebrationOverlay } from '@/components/ui/CelebrationOverlay'
 import type { PlanId } from '@/types/billing'
 
 function PaymentBadges() {
-  const badges = ['UPI', 'Debit/Credit Card', 'Net Banking', 'Wallets']
+  const badges = ['UPI', 'Card', 'Net Banking', 'Wallets']
   return (
     <div
       data-testid="payment-badges"
       style={{
         display: 'flex',
         flexWrap: 'wrap',
-        gap: 6,
-        marginTop: 10,
+        gap: 4,
+        marginTop: 12,
       }}
     >
       {badges.map((badge) => (
@@ -27,8 +27,9 @@ function PaymentBadges() {
           key={badge}
           style={{
             fontSize: 10,
-            color: 'rgba(255,255,255,0.35)',
-            background: 'rgba(255,255,255,0.06)',
+            color: 'rgba(255,255,255,0.4)',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
             padding: '3px 8px',
             borderRadius: 20,
             whiteSpace: 'nowrap',
@@ -66,31 +67,36 @@ function CancelModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0,0,0,0.7)',
-        backdropFilter: 'blur(8px)',
+        background: 'rgba(0,0,0,0.55)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
       }}
       onClick={onCancel}
     >
       <div
         data-testid="cancel-modal-content"
         style={{
-          background: '#111',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 16,
+          background: 'rgba(20,20,26,0.85)',
+          backdropFilter: 'blur(24px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 20,
           padding: '32px 28px',
           maxWidth: 400,
           width: '90%',
           textAlign: 'center',
+          boxShadow:
+            '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-          <AlertTriangle style={{ width: 32, height: 32, color: '#f59e0b' }} />
+          <AlertTriangle style={{ width: 28, height: 28, color: 'rgba(245,158,11,0.85)' }} />
         </div>
-        <h3 style={{ fontSize: 18, fontWeight: 600, color: '#fff', marginBottom: 8 }}>
+        <h3 style={{ fontSize: 18, fontWeight: 500, color: '#fff', marginBottom: 8, letterSpacing: '-0.02em' }}>
           Cancel {planName} Subscription?
         </h3>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 24, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', marginBottom: 24, lineHeight: 1.6 }}>
           Your subscription will remain active until the end of the current billing period. After that, you&apos;ll be downgraded to the Free plan.
         </p>
         <div style={{ display: 'flex', gap: 12 }}>
@@ -102,10 +108,10 @@ function CancelModal({
               padding: '10px 0',
               borderRadius: 10,
               fontSize: 13,
-              fontWeight: 600,
-              border: '1px solid rgba(255,255,255,0.15)',
+              fontWeight: 500,
+              border: '1px solid rgba(255,255,255,0.12)',
               background: 'transparent',
-              color: '#fff',
+              color: 'rgba(255,255,255,0.85)',
               cursor: 'pointer',
             }}
           >
@@ -122,7 +128,7 @@ function CancelModal({
               fontSize: 13,
               fontWeight: 600,
               border: 'none',
-              background: 'rgba(239,68,68,0.8)',
+              background: 'rgba(239,68,68,0.72)',
               color: '#fff',
               cursor: isLoading ? 'not-allowed' : 'pointer',
               opacity: isLoading ? 0.6 : 1,
@@ -163,101 +169,165 @@ function PlanCard({
   showPaymentBadges?: boolean
   isCurrentPlan?: boolean
 }) {
+  // Only the recommended card gets full glass; others get plain fill.
+  // Hierarchy through contrast, not stickers.
+  const isGlass = Boolean(isMostPopular) && !isCurrentPlan
+
   return (
     <div
       data-testid={`plan-card-${planId}`}
-      className="group hover:scale-[1.03] hover:shadow-[0_8px_30px_rgb(0,0,0,0.4)] transition-all duration-300 ease-out"
       style={{
         position: 'relative',
-        background: isCurrentPlan
-          ? 'rgba(255,255,255,0.06)'
+        background: isGlass
+          ? 'rgba(20,20,26,0.55)'
           : 'rgba(255,255,255,0.02)',
-        backdropFilter: 'blur(20px)',
+        backdropFilter: isGlass ? 'blur(24px) saturate(140%)' : undefined,
+        WebkitBackdropFilter: isGlass ? 'blur(24px) saturate(140%)' : undefined,
         border: isCurrentPlan
-          ? '1px solid rgba(255,255,255,0.25)'
-          : '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 16,
-        padding: '32px 24px',
+          ? '1px solid rgba(255,255,255,0.18)'
+          : isGlass
+            ? '1px solid rgba(255,255,255,0.08)'
+            : '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 14,
+        padding: '28px 22px',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease',
-        boxShadow: isCurrentPlan
-          ? '0 0 0 1px rgba(255,255,255,0.1), inset 0 1px 0 rgba(255,255,255,0.05)'
+        boxShadow: isGlass
+          ? '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)'
           : 'none',
       }}
     >
-      {/* Current Plan Badge */}
+      {/* Current Plan — minimal eyebrow marker, no sticker */}
       {isCurrentPlan && (
         <div
           data-testid="current-plan-badge"
           style={{
-            position: 'absolute',
-            top: -12,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: '#fff',
-            color: '#000',
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            padding: '4px 14px',
-            borderRadius: 20,
-            whiteSpace: 'nowrap',
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
-            gap: 4,
+            gap: 5,
+            alignSelf: 'flex-start',
+            marginBottom: 14,
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'rgba(255,255,255,0.55)',
           }}
         >
           <Crown style={{ width: 10, height: 10 }} />
-          Current Plan
+          Current
         </div>
       )}
 
-      {/* Most Popular Badge — only show if not the current plan */}
+      {/* Most Popular — minimal eyebrow marker */}
       {isMostPopular && !isCurrentPlan && (
         <div
           data-testid="most-popular-badge"
           style={{
-            position: 'absolute',
-            top: -12,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: '#fff',
-            color: '#000',
+            alignSelf: 'flex-start',
+            marginBottom: 14,
             fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.08em',
+            fontWeight: 600,
+            letterSpacing: '0.18em',
             textTransform: 'uppercase',
-            padding: '4px 14px',
-            borderRadius: 20,
-            whiteSpace: 'nowrap',
+            color: 'rgba(255,255,255,0.75)',
           }}
         >
-          Most Popular
+          Recommended
         </div>
       )}
 
-      <div style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 18, fontWeight: 600, color: '#fff', marginBottom: 8 }}>{name}</h3>
+      <div style={{ marginBottom: 20 }}>
+        <h3
+          style={{
+            fontSize: 15,
+            fontWeight: 500,
+            color: 'rgba(255,255,255,0.75)',
+            letterSpacing: '0.02em',
+            marginBottom: 10,
+          }}
+        >
+          {name}
+        </h3>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-          <span style={{ fontSize: 36, fontWeight: 700, color: '#fff' }}>${price}</span>
-          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>/month</span>
+          <span
+            style={{
+              fontSize: 36,
+              fontWeight: 500,
+              color: '#fff',
+              letterSpacing: '-0.03em',
+              lineHeight: 1,
+            }}
+          >
+            ${price}
+          </span>
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
+            /month
+          </span>
         </div>
         {showPaymentBadges && <PaymentBadges />}
       </div>
 
       <div style={{ flex: 1, marginBottom: 24 }}>
         {features.map((f, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
-            <Check style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.6)', flexShrink: 0, marginTop: 2 }} />
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{f}</span>
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              marginBottom: 10,
+            }}
+          >
+            <Check
+              style={{
+                width: 14,
+                height: 14,
+                color: 'rgba(255,255,255,0.55)',
+                flexShrink: 0,
+                marginTop: 3,
+              }}
+            />
+            <span
+              style={{
+                fontSize: 13,
+                color: 'rgba(255,255,255,0.75)',
+                lineHeight: 1.55,
+              }}
+            >
+              {f}
+            </span>
           </div>
         ))}
         {disabledFeatures?.map((f, i) => (
-          <div key={`d-${i}`} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
-            <X style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.15)', flexShrink: 0, marginTop: 2 }} />
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)', lineHeight: 1.4 }}>{f}</span>
+          <div
+            key={`d-${i}`}
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              marginBottom: 10,
+              opacity: 0.4,
+            }}
+          >
+            <X
+              style={{
+                width: 14,
+                height: 14,
+                color: 'rgba(255,255,255,0.55)',
+                flexShrink: 0,
+                marginTop: 3,
+              }}
+            />
+            <span
+              style={{
+                fontSize: 13,
+                color: 'rgba(255,255,255,0.75)',
+                lineHeight: 1.55,
+              }}
+            >
+              {f}
+            </span>
           </div>
         ))}
       </div>
@@ -266,28 +336,32 @@ function PlanCard({
         data-testid={`plan-btn-${planId}`}
         onClick={onSelect}
         disabled={isLoading || (isCurrentPlan && planId === 'free')}
+        className="active:scale-[0.97] transition-transform"
         style={{
           width: '100%',
-          padding: '12px 0',
+          padding: '11px 0',
           borderRadius: 10,
           fontSize: 13,
           fontWeight: 600,
-          cursor: isLoading || (isCurrentPlan && planId === 'free') ? 'default' : 'pointer',
+          letterSpacing: '0.01em',
+          cursor:
+            isLoading || (isCurrentPlan && planId === 'free')
+              ? 'default'
+              : 'pointer',
           border: 'none',
-          transition: 'all 0.2s ease',
           background: isCurrentPlan
             ? planId === 'free'
-              ? 'rgba(255,255,255,0.04)'
-              : 'rgba(255,255,255,0.08)'
-            : isMostPopular
+              ? 'rgba(255,255,255,0.03)'
+              : 'rgba(255,255,255,0.06)'
+            : isGlass
               ? '#fff'
-              : 'rgba(255,255,255,0.08)',
+              : 'rgba(255,255,255,0.06)',
           color: isCurrentPlan
             ? planId === 'free'
-              ? 'rgba(255,255,255,0.3)'
-              : 'rgba(255,255,255,0.7)'
-            : isMostPopular
-              ? '#000'
+              ? 'rgba(255,255,255,0.35)'
+              : 'rgba(255,255,255,0.75)'
+            : isGlass
+              ? '#0c0c10'
               : '#fff',
           opacity: isLoading ? 0.6 : 1,
         }}
@@ -305,7 +379,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
     <div
       data-testid="faq-item"
       style={{
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
         padding: '16px 0',
       }}
     >
@@ -314,7 +388,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
         style={{
           background: 'none',
           border: 'none',
-          color: '#fff',
+          color: 'rgba(255,255,255,0.85)',
           width: '100%',
           display: 'flex',
           alignItems: 'center',
@@ -322,8 +396,9 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
           cursor: 'pointer',
           padding: 0,
           fontSize: 14,
-          fontWeight: 500,
+          fontWeight: 400,
           textAlign: 'left',
+          letterSpacing: '-0.01em',
         }}
       >
         {question}
@@ -331,7 +406,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
           style={{
             width: 16,
             height: 16,
-            color: 'rgba(255,255,255,0.3)',
+            color: 'rgba(255,255,255,0.4)',
             transition: 'transform 0.2s ease',
             transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
             flexShrink: 0,
@@ -339,7 +414,14 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
         />
       </button>
       {open && (
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 10, lineHeight: 1.6 }}>
+        <p
+          style={{
+            fontSize: 13,
+            color: 'rgba(255,255,255,0.5)',
+            marginTop: 10,
+            lineHeight: 1.65,
+          }}
+        >
           {answer}
         </p>
       )}
@@ -443,11 +525,51 @@ export default function PricingPage() {
       data-testid="pricing-page"
       style={{
         minHeight: '100vh',
-        background: '#000',
+        background: '#060608',
         color: '#fff',
         fontFamily: 'var(--font-body)',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
+      {/* Ambient field — fixed, very soft cool white-blue orbs */}
+      <div
+        aria-hidden
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: '-15%',
+            left: '-10%',
+            width: 520,
+            height: 520,
+            borderRadius: '50%',
+            background:
+              'radial-gradient(circle, rgba(190,210,240,0.08) 0%, transparent 70%)',
+            filter: 'blur(120px)',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '-20%',
+            right: '-10%',
+            width: 480,
+            height: 480,
+            borderRadius: '50%',
+            background:
+              'radial-gradient(circle, rgba(170,190,220,0.06) 0%, transparent 70%)',
+            filter: 'blur(120px)',
+          }}
+        />
+      </div>
+
       {/* Celebration Animation */}
       {showCelebration && (
         <CelebrationOverlay
@@ -467,10 +589,12 @@ export default function PricingPage() {
 
       <nav
         style={{
+          position: 'relative',
+          zIndex: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '16px 24px',
+          padding: '18px 24px',
         }}
       >
         <Link
@@ -478,8 +602,9 @@ export default function PricingPage() {
           data-testid="pricing-home-link"
           style={{
             fontSize: 11,
-            color: 'rgba(255,255,255,0.4)',
+            color: 'rgba(255,255,255,0.45)',
             textDecoration: 'none',
+            letterSpacing: '0.02em',
             transition: 'color 0.2s',
           }}
         >
@@ -490,12 +615,13 @@ export default function PricingPage() {
           data-testid="pricing-chat-link"
           style={{
             fontSize: 11,
-            color: 'rgba(255,255,255,0.4)',
+            color: 'rgba(255,255,255,0.45)',
             textDecoration: 'none',
+            letterSpacing: '0.02em',
             transition: 'color 0.2s',
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
+            gap: 5,
           }}
         >
           Back to Chat
@@ -503,20 +629,28 @@ export default function PricingPage() {
         </Link>
       </nav>
 
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 20px 80px' }}>
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          maxWidth: 880,
+          margin: '0 auto',
+          padding: '32px 24px 80px',
+        }}
+      >
         {/* Cancellation pending banner */}
         {cancelAtPeriodEnd && currentPlanId !== 'free' && (
           <div
             data-testid="cancel-pending-banner"
             style={{
               textAlign: 'center',
-              marginBottom: 32,
+              marginBottom: 24,
               padding: '12px 20px',
               borderRadius: 10,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.08)',
               fontSize: 13,
-              color: 'rgba(255,255,255,0.7)',
+              color: 'rgba(255,255,255,0.75)',
             }}
           >
             Your {plan?.name} subscription will cancel at the end of the current billing period.
@@ -529,13 +663,13 @@ export default function PricingPage() {
             data-testid="pricing-success-message"
             style={{
               textAlign: 'center',
-              marginBottom: 32,
+              marginBottom: 24,
               padding: '12px 20px',
               borderRadius: 10,
-              background: 'rgba(34,197,94,0.1)',
-              border: '1px solid rgba(34,197,94,0.2)',
+              background: 'rgba(34,197,94,0.08)',
+              border: '1px solid rgba(34,197,94,0.18)',
               fontSize: 13,
-              color: 'rgba(34,197,94,0.9)',
+              color: 'rgba(134,239,172,0.9)',
             }}
           >
             {successMessage}
@@ -548,13 +682,13 @@ export default function PricingPage() {
             data-testid="billing-error-message"
             style={{
               textAlign: 'center',
-              marginBottom: 32,
+              marginBottom: 24,
               padding: '12px 20px',
               borderRadius: 10,
-              background: 'rgba(239,68,68,0.1)',
-              border: '1px solid rgba(239,68,68,0.2)',
+              background: 'rgba(239,68,68,0.08)',
+              border: '1px solid rgba(239,68,68,0.18)',
               fontSize: 13,
-              color: 'rgba(239,68,68,0.9)',
+              color: 'rgba(252,165,165,0.9)',
             }}
           >
             {billingError}
@@ -562,31 +696,64 @@ export default function PricingPage() {
         )}
 
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+        <div
+          style={{
+            textAlign: 'center',
+            marginBottom: 48,
+            maxWidth: 480,
+            margin: '0 auto 48px',
+          }}
+        >
           <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              marginBottom: 16,
-              padding: '4px 12px',
+              marginBottom: 20,
+              padding: '4px 11px',
               borderRadius: 20,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
-            <Sparkles style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.5)' }} />
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
+            <Sparkles
+              style={{ width: 11, height: 11, color: 'rgba(255,255,255,0.5)' }}
+            />
+            <span
+              style={{
+                fontSize: 10,
+                color: 'rgba(255,255,255,0.45)',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                fontWeight: 600,
+              }}
+            >
               {currentPlanId === 'free' ? 'Plans & Pricing' : 'Manage Plan'}
             </span>
           </div>
           <h1
             data-testid="pricing-heading"
-            style={{ fontSize: 32, fontWeight: 700, marginBottom: 12, letterSpacing: '-0.03em', lineHeight: 1.1 }}
+            style={{
+              fontSize: 32,
+              fontWeight: 500,
+              marginBottom: 12,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.15,
+              color: '#fff',
+            }}
           >
-            {currentPlanId === 'free' ? 'One AI. Your entire life.' : `You're on ${plan?.name ?? 'Pro'}`}
+            {currentPlanId === 'free'
+              ? 'One AI. Your entire life.'
+              : `You're on ${plan?.name ?? 'Pro'}`}
           </h1>
-          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.4)', maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>
+          <p
+            style={{
+              fontSize: 14,
+              color: 'rgba(255,255,255,0.5)',
+              lineHeight: 1.65,
+              margin: 0,
+            }}
+          >
             {currentPlanId === 'free'
               ? 'Start free — no credit card needed. Upgrade when Missi becomes indispensable.'
               : 'Manage your subscription or explore other plans below.'}
@@ -598,9 +765,9 @@ export default function PricingPage() {
           data-testid="plan-cards-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
             gap: 16,
-            marginBottom: 64,
+            marginBottom: 48,
           }}
         >
           <PlanCard
@@ -681,9 +848,10 @@ export default function PricingPage() {
           data-testid="powered-by-dodo"
           style={{
             textAlign: 'center',
-            marginBottom: 48,
+            marginBottom: 32,
             fontSize: 11,
-            color: 'rgba(255,255,255,0.2)',
+            color: 'rgba(255,255,255,0.35)',
+            letterSpacing: '0.02em',
           }}
         >
           Powered by Dodo Payments
@@ -694,163 +862,177 @@ export default function PricingPage() {
           <div
             data-testid="referral-discount-banner"
             style={{
-              textAlign: 'center',
-              marginBottom: 48,
-              padding: '16px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              marginBottom: 32,
+              padding: '12px 20px',
               borderRadius: 12,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
-            <Gift style={{ width: 20, height: 20, color: '#fff', display: 'inline', marginBottom: 4 }} />
-            <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 4 }}>
-              You have a 20% referral discount!
-            </p>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-              Upgrade now and get 6 extra free days on your first month
+            <Gift style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.65)', flexShrink: 0 }} />
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', margin: 0, textAlign: 'center' }}>
+              <span style={{ fontWeight: 500, color: '#fff' }}>20% referral discount</span>
+              <span style={{ color: 'rgba(255,255,255,0.45)' }}>
+                {' '}· 6 extra free days on your first month
+              </span>
             </p>
           </div>
         )}
 
-        {/* Referral Section — Invite Friends */}
+        {/* Referral Section — thin glass strip */}
         {isSignedIn && (
           <div
             data-testid="referral-section"
             style={{
               marginBottom: 48,
-              padding: '28px 24px',
-              borderRadius: 16,
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              padding: '14px 18px',
+              borderRadius: 14,
+              background: 'rgba(20,20,26,0.55)',
+              backdropFilter: 'blur(24px) saturate(140%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow:
+                '0 20px 50px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <Gift style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.6)' }} />
-              <h3 style={{ fontSize: 16, fontWeight: 600, color: '#fff' }}>
-                Invite Friends, Earn Rewards
-              </h3>
-            </div>
-
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20, lineHeight: 1.6 }}>
-              Share your referral link. When a friend upgrades, you get <span style={{ color: '#fff', fontWeight: 600 }}>7 extra free days</span> and they get <span style={{ color: '#fff', fontWeight: 600 }}>20% off</span> their first month.
-            </p>
-
-            {/* Referral Link */}
-            {referral && (
-              <>
-                <div
-                  data-testid="referral-link-box"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    marginBottom: 20,
-                    padding: '10px 14px',
-                    borderRadius: 10,
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                  }}
-                >
-                  <input
-                    readOnly
-                    value={getReferralLink()}
-                    data-testid="referral-link-input"
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <Gift style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.6)', flexShrink: 0 }} />
+                <div style={{ minWidth: 0 }}>
+                  <p
                     style={{
-                      flex: 1,
-                      background: 'transparent',
-                      border: 'none',
-                      outline: 'none',
-                      color: 'rgba(255,255,255,0.6)',
-                      fontSize: 12,
-                      fontFamily: 'var(--font-mono)',
-                    }}
-                  />
-                  <button
-                    data-testid="copy-referral-btn"
-                    onClick={copyReferralLink}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: '6px 12px',
-                      borderRadius: 8,
-                      fontSize: 11,
-                      fontWeight: 600,
-                      border: 'none',
-                      cursor: 'pointer',
-                      background: copied ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.1)',
-                      color: copied ? '#22c55e' : '#fff',
-                      transition: 'all 0.2s ease',
-                      whiteSpace: 'nowrap',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: '#fff',
+                      margin: 0,
+                      lineHeight: 1.3,
                     }}
                   >
-                    <Copy style={{ width: 12, height: 12 }} />
-                    {copied ? 'Copied!' : 'Copy'}
-                  </button>
+                    Invite friends, earn rewards
+                  </p>
+                  <p
+                    style={{
+                      fontSize: 11,
+                      color: 'rgba(255,255,255,0.45)',
+                      margin: '2px 0 0',
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    You get 7 free days, they get 20% off
+                  </p>
                 </div>
+              </div>
 
-                {/* Referral Stats */}
+              {referral && (
                 <div
                   data-testid="referral-stats"
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    display: 'flex',
+                    alignItems: 'center',
                     gap: 12,
+                    fontSize: 11,
+                    color: 'rgba(255,255,255,0.5)',
+                    flexWrap: 'wrap',
                   }}
                 >
-                  <div
-                    style={{
-                      textAlign: 'center',
-                      padding: '12px 8px',
-                      borderRadius: 10,
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.05)',
-                    }}
-                  >
-                    <Users style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.3)', margin: '0 auto 6px' }} />
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <Users style={{ width: 11, height: 11, color: 'rgba(255,255,255,0.4)' }} />
+                    <strong style={{ color: '#fff', fontWeight: 600 }}>
                       {referral.successfulReferred}
-                    </div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-                      Friends Joined
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      textAlign: 'center',
-                      padding: '12px 8px',
-                      borderRadius: 10,
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.05)',
-                    }}
-                  >
-                    <Award style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.5)', margin: '0 auto 6px' }} />
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>
+                    </strong>{' '}
+                    joined
+                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <Award style={{ width: 11, height: 11, color: 'rgba(255,255,255,0.4)' }} />
+                    <strong style={{ color: '#fff', fontWeight: 600 }}>
                       {referral.rewardDaysEarned}
-                    </div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-                      Days Earned
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      textAlign: 'center',
-                      padding: '12px 8px',
-                      borderRadius: 10,
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.05)',
-                    }}
-                  >
-                    <Gift style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.3)', margin: '0 auto 6px' }} />
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>
+                    </strong>{' '}
+                    days
+                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <Gift style={{ width: 11, height: 11, color: 'rgba(255,255,255,0.4)' }} />
+                    <strong style={{ color: '#fff', fontWeight: 600 }}>
                       {referral.remainingSlots}
-                    </div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-                      Slots Left
-                    </div>
-                  </div>
+                    </strong>{' '}
+                    slots
+                  </span>
                 </div>
-              </>
+              )}
+            </div>
+
+            {/* Referral Link */}
+            {referral && (
+              <div
+                data-testid="referral-link-box"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 10px 8px 12px',
+                  borderRadius: 10,
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <input
+                  readOnly
+                  value={getReferralLink()}
+                  data-testid="referral-link-input"
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: 12,
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                />
+                <button
+                  data-testid="copy-referral-btn"
+                  onClick={copyReferralLink}
+                  className="active:scale-[0.97] transition-transform"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '5px 11px',
+                    borderRadius: 8,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: '0.02em',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    cursor: 'pointer',
+                    background: copied
+                      ? 'rgba(34,197,94,0.15)'
+                      : 'rgba(255,255,255,0.06)',
+                    color: copied ? 'rgba(134,239,172,0.95)' : '#fff',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Copy style={{ width: 11, height: 11 }} />
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -859,7 +1041,14 @@ export default function PricingPage() {
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
           <h2
             data-testid="faq-heading"
-            style={{ fontSize: 18, fontWeight: 600, marginBottom: 20, textAlign: 'center', letterSpacing: '-0.02em' }}
+            style={{
+              fontSize: 18,
+              fontWeight: 500,
+              marginBottom: 20,
+              textAlign: 'center',
+              letterSpacing: '-0.02em',
+              color: 'rgba(255,255,255,0.9)',
+            }}
           >
             Common questions
           </h2>

@@ -225,38 +225,77 @@ function OAuthPluginPanel() {
   const rowStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
+    gap: 10,
     padding: "10px 12px",
-    borderRadius: "10px",
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    marginBottom: "8px",
+    borderRadius: 10,
+    background: "rgba(255,255,255,0.02)",
+    border: "1px solid rgba(255,255,255,0.06)",
+    marginBottom: 6,
+  };
+
+  const dotStyle: React.CSSProperties = {
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    flexShrink: 0,
+  };
+
+  const nameStyle: React.CSSProperties = {
+    fontSize: 12,
+    fontWeight: 500,
+    color: "#fff",
+    margin: 0,
+    lineHeight: 1.3,
+  };
+
+  const metaStyle: React.CSSProperties = {
+    fontSize: 10,
+    color: "rgba(255,255,255,0.4)",
+    margin: "2px 0 0",
+    lineHeight: 1.3,
   };
 
   const connectBtnStyle: React.CSSProperties = {
-    fontSize: "11px",
+    fontSize: 11,
     fontWeight: 600,
-    color: "#000",
+    color: "#0c0c10",
     background: "#fff",
     border: "none",
-    borderRadius: "6px",
+    borderRadius: 6,
     padding: "5px 12px",
     cursor: "pointer",
     whiteSpace: "nowrap",
     flexShrink: 0,
+    textDecoration: "none",
   };
 
   const disconnectBtnStyle: React.CSSProperties = {
-    fontSize: "11px",
+    fontSize: 11,
     fontWeight: 500,
-    color: "rgba(255,255,255,0.6)",
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(255,255,255,0.15)",
-    borderRadius: "6px",
+    color: "rgba(255,255,255,0.7)",
+    background: "transparent",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: 6,
     padding: "4px 10px",
     cursor: "pointer",
     whiteSpace: "nowrap",
     flexShrink: 0,
+  };
+
+  const eyebrowStyle: React.CSSProperties = {
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: "0.18em",
+    textTransform: "uppercase",
+    color: "rgba(255,255,255,0.35)",
+    margin: "0 0 10px",
+  };
+
+  const dividerStyle: React.CSSProperties = {
+    height: 1,
+    background: "rgba(255,255,255,0.05)",
+    border: "none",
+    margin: "14px 0",
   };
 
   const PLUGINS_CONFIG = [
@@ -265,195 +304,159 @@ function OAuthPluginPanel() {
       name: "Google Calendar",
       icon: (
         <Calendar
-          className="w-4 h-4 text-white opacity-60"
-          style={{ flexShrink: 0 }}
+          className="w-4 h-4"
+          style={{ flexShrink: 0, color: "rgba(255,255,255,0.65)" }}
         />
       ),
-      connectedText: "✓ Connected — events synced",
+      connectedText: "Events synced",
     },
     {
       id: "notion" as const,
       name: "Notion",
       icon: (
         <BookOpen
-          className="w-4 h-4 text-white opacity-60"
-          style={{ flexShrink: 0 }}
+          className="w-4 h-4"
+          style={{ flexShrink: 0, color: "rgba(255,255,255,0.65)" }}
         />
       ),
-      connectedText: `✓ ${status?.notion?.workspaceName ?? "Connected"}`,
+      connectedText: status?.notion?.workspaceName ?? "Connected",
     },
   ];
 
+  const connected = PLUGINS_CONFIG.filter((p) => status?.[p.id]?.connected);
+  const available = PLUGINS_CONFIG.filter((p) => !status?.[p.id]?.connected);
+
   return (
     <div>
-      {PLUGINS_CONFIG.map(({ id, name, icon, connectedText }) => (
-        <div key={id} style={rowStyle}>
-          {icon}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p
-              style={{
-                fontSize: "12px",
-                fontWeight: 500,
-                color: "#fff",
-                margin: 0,
-              }}
-            >
-              {name}
-            </p>
-            <p
-              style={{
-                fontSize: "10px",
-                color: status?.[id]?.connected
-                  ? "#4ade80"
-                  : "rgba(255,255,255,0.3)",
-                margin: "2px 0 0",
-              }}
-            >
-              {status?.[id]?.connected ? connectedText : "Not connected"}
-            </p>
-          </div>
-          {status?.[id]?.connected ? (
-            <button
-              style={disconnectBtnStyle}
-              onClick={() => handleDisconnect(id)}
-            >
-              Disconnect
-            </button>
-          ) : (
-            <a href={`/api/auth/connect/${id}`} style={connectBtnStyle}>
-              Connect
-            </a>
-          )}
-        </div>
-      ))}
-
-      {/* ── Coming Soon ─────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          marginTop: "6px",
-          borderRadius: "12px",
-          padding: "14px 14px 12px",
-          background:
-            "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
-          border: "1px dashed rgba(255,255,255,0.1)",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        {/* Glow blob */}
-        <div
-          style={{
-            position: "absolute",
-            top: "-12px",
-            right: "-12px",
-            width: "60px",
-            height: "60px",
-            background:
-              "radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
-
-        <p
-          style={{
-            fontSize: "10px",
-            fontWeight: 600,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "rgba(255,255,255,0.25)",
-            margin: "0 0 10px",
-          }}
-        >
-          More plugins coming soon
-        </p>
-
-        {/* Plugin icons row */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            flexWrap: "wrap",
-          }}
-        >
-          {[
-            { icon: <Mail className="w-3 h-3" />, label: "Gmail" },
-            { icon: <Inbox className="w-3 h-3" />, label: "Outlook" },
-            { icon: <CheckSquare className="w-3 h-3" />, label: "Todoist" },
-            { icon: <LayoutGrid className="w-3 h-3" />, label: "Linear" },
-            { icon: <MessageSquare className="w-3 h-3" />, label: "Slack" },
-            { icon: <Github className="w-3 h-3" />, label: "GitHub" },
-          ].map(({ icon, label }) => (
-            <div
-              key={label}
-              title={label}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-                padding: "4px 8px",
-                borderRadius: "7px",
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.07)",
-                opacity: 0.5,
-                cursor: "default",
-                color: "rgba(255,255,255,0.5)",
-              }}
-            >
-              {icon}
+      {/* ── Connected ── */}
+      {connected.length > 0 && (
+        <>
+          <p style={eyebrowStyle}>Connected</p>
+          {connected.map(({ id, name, icon, connectedText }) => (
+            <div key={id} style={rowStyle}>
               <span
-                style={{
-                  fontSize: "10px",
-                  color: "rgba(255,255,255,0.4)",
-                  fontWeight: 500,
-                }}
+                style={{ ...dotStyle, background: "#4ade80" }}
+                aria-hidden
+              />
+              {icon}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={nameStyle}>{name}</p>
+                <p style={metaStyle}>{connectedText}</p>
+              </div>
+              <button
+                style={disconnectBtnStyle}
+                onClick={() => handleDisconnect(id)}
               >
-                {label}
-              </span>
+                Disconnect
+              </button>
             </div>
           ))}
-        </div>
+          <hr style={dividerStyle} />
+        </>
+      )}
 
-        <p
-          style={{
-            fontSize: "10px",
-            color: "rgba(255,255,255,0.2)",
-            margin: "10px 0 0",
-            lineHeight: 1.4,
-          }}
-        >
-          Missi will soon connect with your entire workflow — automatically.
-        </p>
+      {/* ── Available ── */}
+      {available.length > 0 && (
+        <>
+          <p style={eyebrowStyle}>Available</p>
+          {available.map(({ id, name, icon }) => (
+            <div key={id} style={rowStyle}>
+              <span
+                style={{
+                  ...dotStyle,
+                  background: "rgba(255,255,255,0.25)",
+                }}
+                aria-hidden
+              />
+              {icon}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={nameStyle}>{name}</p>
+                <p style={metaStyle}>Not connected</p>
+              </div>
+              <a href={`/api/auth/connect/${id}`} style={connectBtnStyle}>
+                Connect
+              </a>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* ── Coming soon ── */}
+      <hr style={dividerStyle} />
+      <p style={eyebrowStyle}>Coming soon</p>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          flexWrap: "wrap",
+        }}
+      >
+        {[
+          { icon: <Mail className="w-3 h-3" />, label: "Gmail" },
+          { icon: <Inbox className="w-3 h-3" />, label: "Outlook" },
+          { icon: <CheckSquare className="w-3 h-3" />, label: "Todoist" },
+          { icon: <LayoutGrid className="w-3 h-3" />, label: "Linear" },
+          { icon: <MessageSquare className="w-3 h-3" />, label: "Slack" },
+          { icon: <Github className="w-3 h-3" />, label: "GitHub" },
+        ].map(({ icon, label }) => (
+          <div
+            key={label}
+            title={label}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "4px 8px",
+              borderRadius: 6,
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              color: "rgba(255,255,255,0.45)",
+            }}
+          >
+            {icon}
+            <span
+              style={{
+                fontSize: 10,
+                color: "rgba(255,255,255,0.5)",
+                fontWeight: 500,
+              }}
+            >
+              {label}
+            </span>
+          </div>
+        ))}
       </div>
 
-      {/* Refresh button */}
+      {/* Refresh button — only when at least one connection is active */}
       {(status?.google?.connected || status?.notion?.connected) && (
         <button
           onClick={handleRefresh}
           disabled={refreshing}
+          className="active:scale-[0.97] transition-transform"
           style={{
-            marginTop: "8px",
+            marginTop: 14,
             width: "100%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "6px",
-            fontSize: "11px",
+            gap: 6,
+            fontSize: 11,
             fontWeight: 500,
             color: refreshing
-              ? "rgba(255,255,255,0.3)"
-              : "rgba(255,255,255,0.6)",
-            background: "rgba(255,255,255,0.04)",
+              ? "rgba(255,255,255,0.35)"
+              : "rgba(255,255,255,0.65)",
+            background: "transparent",
             border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: "8px",
-            padding: "7px",
+            borderRadius: 8,
+            padding: 8,
             cursor: refreshing ? "default" : "pointer",
           }}
         >
           <RefreshCw
             className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`}
           />
-          {refreshing ? "Refreshing…" : "Refresh context now"}
+          {refreshing ? "Refreshing…" : "Refresh context"}
         </button>
       )}
     </div>
@@ -461,13 +464,30 @@ function OAuthPluginPanel() {
 }
 
 const panelBox: React.CSSProperties = {
-  background: "linear-gradient(135deg, rgba(15,15,20,0.97), rgba(8,8,12,0.98))",
-  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(14, 14, 18, 0.88)",
+  backdropFilter: "blur(32px) saturate(160%)",
+  WebkitBackdropFilter: "blur(32px) saturate(160%)",
+  border: "1px solid rgba(255,255,255,0.08)",
   borderRadius: "20px",
   padding: "20px",
   boxShadow:
-    "0 25px 60px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03) inset, 0 1px 0 rgba(255,255,255,0.06) inset",
+    "0 20px 50px -20px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)",
   isolation: "isolate" as const,
+};
+
+const sectionDivider: React.CSSProperties = {
+  height: 1,
+  background: "rgba(255,255,255,0.05)",
+  margin: "16px 0",
+  border: "none",
+};
+
+const eyebrowStyle: React.CSSProperties = {
+  fontSize: "10px",
+  fontWeight: 600,
+  letterSpacing: "0.18em",
+  textTransform: "uppercase",
+  color: "rgba(255,255,255,0.35)",
 };
 
 const glassSection: React.CSSProperties = {
@@ -1003,15 +1023,14 @@ function SettingsPanelInner({
               onNameChange={onNameChange}
             />
 
-            {/* ── Personality Card ── */}
-            <div style={glassSection} className="mb-3">
-              <p
-                className="text-[10px] font-semibold tracking-[0.12em] uppercase mb-3"
-                style={{ color: "rgba(255,255,255,0.35)" }}
-              >
-                Personality Profile
+            <hr style={sectionDivider} />
+
+            {/* ── Personality Section ── */}
+            <div>
+              <p style={{ ...eyebrowStyle, margin: "0 0 12px" }}>
+                Personality
               </p>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-0.5">
                 {PERSONALITY_OPTIONS.map((p) => {
                   const IconComp = ICON_MAP[p.iconName as string];
                   const isPremium =
@@ -1033,216 +1052,223 @@ function SettingsPanelInner({
                         }
                       }}
                       data-testid={`personality-${p.key}-btn`}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all"
+                      className="relative w-full flex items-center justify-between text-left transition-colors hover:bg-white/[0.03]"
                       style={{
-                        background: isActive
-                          ? "rgba(255,255,255,0.08)"
-                          : "transparent",
-                        border: isActive
-                          ? "1px solid rgba(255,255,255,0.12)"
-                          : "1px solid transparent",
-                        boxShadow: isActive
-                          ? "0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)"
-                          : "none",
+                        paddingLeft: 14,
+                        paddingRight: 10,
+                        paddingTop: 9,
+                        paddingBottom: 9,
+                        borderRadius: 10,
+                        background: "transparent",
+                        border: "none",
                         cursor: "pointer",
-                        opacity: isLocked ? 0.5 : 1,
+                        opacity: isLocked ? 0.45 : 1,
                       }}
                     >
+                      {isActive && (
+                        <span
+                          aria-hidden
+                          style={{
+                            position: "absolute",
+                            left: 4,
+                            top: 10,
+                            bottom: 10,
+                            width: 2,
+                            borderRadius: 1,
+                            background: "rgba(255,255,255,0.6)",
+                          }}
+                        />
+                      )}
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div
                           style={{
-                            color: isActive ? "#fff" : "rgba(255,255,255,0.35)",
+                            color: isActive
+                              ? "#fff"
+                              : "rgba(255,255,255,0.5)",
+                            display: "flex",
+                            alignItems: "center",
                           }}
                         >
                           {IconComp}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p
-                            className="text-[11px] font-medium"
                             style={{
+                              fontSize: 12,
+                              fontWeight: 500,
                               color: isActive
                                 ? "#fff"
-                                : "rgba(255,255,255,0.5)",
+                                : "rgba(255,255,255,0.75)",
+                              margin: 0,
+                              lineHeight: 1.3,
                             }}
                           >
                             {p.label}
                           </p>
                           <p
-                            className="text-[9px] font-light"
                             style={{
-                              color: isActive
-                                ? "rgba(255,255,255,0.55)"
-                                : "rgba(255,255,255,0.25)",
+                              fontSize: 10,
+                              fontWeight: 400,
+                              color: "rgba(255,255,255,0.4)",
+                              margin: "2px 0 0",
+                              lineHeight: 1.4,
                             }}
                           >
                             {p.desc}
                           </p>
                         </div>
                       </div>
-                      {isLocked && (
-                        <div
-                          className="flex items-center justify-center p-1.5 rounded-full"
-                          style={{
-                            background: "rgba(255,255,255,0.04)",
-                            border: "1px solid rgba(255,255,255,0.06)",
-                          }}
-                        >
-                          <Lock className="w-3 h-3 text-white/30" />
-                        </div>
-                      )}
+                      {isLocked ? (
+                        <Lock
+                          className="w-3 h-3"
+                          style={{ color: "rgba(255,255,255,0.45)" }}
+                        />
+                      ) : isActive ? (
+                        <Check
+                          className="w-3 h-3"
+                          style={{ color: "rgba(255,255,255,0.55)" }}
+                        />
+                      ) : null}
                     </button>
                   );
                 })}
               </div>
 
               {personality === "custom" && onCustomPromptChange && (
-                <div
-                  className="mt-3 p-3 rounded-xl"
-                  style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                  }}
-                >
-                  <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-white/40 mb-2">
+                <div className="mt-4">
+                  <p style={{ ...eyebrowStyle, margin: "0 0 8px" }}>
                     System Instructions
                   </p>
                   <textarea
                     value={customPrompt}
                     onChange={(e) => onCustomPromptChange(e.target.value)}
                     placeholder="E.g. You are a sarcastic AI that answers in riddles..."
-                    className="w-full h-24 bg-transparent text-xs text-white/90 placeholder-white/20 resize-none outline-none"
-                    style={{ lineHeight: 1.5 }}
+                    className="w-full h-24 resize-none outline-none"
+                    style={{
+                      fontSize: 12,
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      color: "rgba(255,255,255,0.9)",
+                      lineHeight: 1.6,
+                    }}
                   />
                 </div>
               )}
             </div>
 
-            {/* ── Toggles Card ── */}
-            <div style={glassSection} className="mb-3">
-              <div className="flex items-center justify-between mb-3.5">
+            <hr style={sectionDivider} />
+
+            {/* ── Voice Engine ── */}
+            <div className="flex items-center justify-between">
+              <span style={eyebrowStyle}>Voice Engine</span>
+              <button
+                onClick={onVoiceToggle}
+                data-testid="voice-toggle-btn"
+                className="relative w-10 h-[22px] rounded-full transition-colors"
+                style={{
+                  background: voiceEnabled
+                    ? "rgba(255,255,255,0.9)"
+                    : "rgba(255,255,255,0.1)",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
                 <span
-                  className="text-[10px] font-semibold tracking-[0.1em] uppercase"
-                  style={{ color: "rgba(255,255,255,0.35)" }}
-                >
-                  Voice Engine
-                </span>
-                <button
-                  onClick={onVoiceToggle}
-                  data-testid="voice-toggle-btn"
-                  className="relative w-10 h-[22px] rounded-full transition-colors"
+                  className="absolute top-[3px] w-4 h-4 rounded-full shadow-sm"
                   style={{
                     background: voiceEnabled
-                      ? "rgba(255,255,255,0.9)"
-                      : "rgba(255,255,255,0.1)",
-                    border: "none",
-                    cursor: "pointer",
-                    boxShadow: voiceEnabled
-                      ? "0 0 10px rgba(255,255,255,0.15)"
-                      : "none",
+                      ? "#0c0c10"
+                      : "rgba(255,255,255,0.7)",
+                    left: voiceEnabled ? "20px" : "4px",
+                    transition: "left 0.2s ease, background 0.2s ease",
                   }}
-                >
-                  <span
-                    className="absolute top-[3px] w-4 h-4 rounded-full shadow-sm"
-                    style={{
-                      background: voiceEnabled
-                        ? "#0c0c10"
-                        : "rgba(255,255,255,0.7)",
-                      left: voiceEnabled ? "20px" : "4px",
-                      transition: "left 0.2s ease, background 0.2s ease",
-                    }}
-                  />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span
-                  className="text-[10px] font-semibold tracking-[0.1em] uppercase"
-                  style={{ color: "rgba(255,255,255,0.35)" }}
-                >
-                  Proactive Check-Ins
-                </span>
-                <button
-                  onClick={handleEnablePush}
-                  className="text-[9px] font-bold px-3 py-1 rounded-full transition-all hover:scale-105"
-                  style={{
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    color: "rgba(255,255,255,0.8)",
-                    cursor: "pointer",
-                  }}
-                >
-                  Enable
-                </button>
-              </div>
+                />
+              </button>
             </div>
 
-            {/* ── Plan Card ── */}
-            <div
-              style={{ ...glassSection, padding: 0, overflow: "hidden" }}
-              className="mb-3"
+            {/* ── Proactive Check-Ins ── */}
+            <div className="flex items-center justify-between mt-4">
+              <span style={eyebrowStyle}>Proactive Check-Ins</span>
+              <button
+                onClick={handleEnablePush}
+                className="px-3 py-1 rounded-full transition-colors hover:bg-white/[0.04]"
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.05em",
+                  background: "transparent",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  color: "rgba(255,255,255,0.75)",
+                  cursor: "pointer",
+                }}
+              >
+                Enable
+              </button>
+            </div>
+
+            <hr style={sectionDivider} />
+
+            {/* ── Plan Row ── */}
+            <Link
+              href="/pricing"
+              className="flex items-center justify-between w-full transition-opacity hover:opacity-90"
+              style={{
+                textDecoration: "none",
+                padding: "4px 0",
+              }}
             >
-              {!plan || plan === "free" ? (
-                <Link
-                  href="/pricing"
-                  className="w-full flex items-center justify-between px-4 py-3.5 text-xs font-semibold transition-all hover:scale-[1.01]"
+              <div className="flex items-center gap-2.5">
+                <Crown
+                  className="w-3.5 h-3.5"
+                  style={{ color: "#F59E0B" }}
+                />
+                <span
                   style={{
-                    background:
-                      "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(245,158,11,0.08))",
-                    color: "#F59E0B",
-                    textDecoration: "none",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "rgba(255,255,255,0.85)",
                   }}
                 >
-                  <div className="flex items-center gap-2">
-                    <Crown className="w-4 h-4" />
-                    <span>Upgrade to PRO</span>
-                  </div>
-                  <span
-                    className="text-[9px] opacity-70 px-2 py-0.5 rounded-full"
-                    style={{
-                      background: "rgba(245,158,11,0.1)",
-                      border: "1px solid rgba(245,158,11,0.2)",
-                    }}
-                  >
-                    View Plans
-                  </span>
-                </Link>
-              ) : (
-                <Link
-                  href="/pricing"
-                  className="w-full flex items-center justify-between px-4 py-3.5 text-xs font-medium transition-all"
-                  style={{
-                    background: "rgba(255,255,255,0.02)",
-                    color: "rgba(255,255,255,0.7)",
-                    textDecoration: "none",
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Crown className="w-3.5 h-3.5 text-[#F59E0B]" />
-                    <span>Manage Subscription</span>
-                  </div>
-                  <span
-                    className="text-[9px] text-[#F59E0B] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full"
-                    style={{ background: "rgba(245,158,11,0.1)" }}
-                  >
-                    {plan}
-                  </span>
-                </Link>
-              )}
-            </div>
+                  {!plan || plan === "free"
+                    ? "Upgrade to PRO"
+                    : "Manage Subscription"}
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color:
+                    !plan || plan === "free"
+                      ? "#F59E0B"
+                      : "rgba(255,255,255,0.45)",
+                }}
+              >
+                {!plan || plan === "free" ? "View Plans" : plan}
+              </span>
+            </Link>
+
+            <hr style={sectionDivider} />
 
             {/* ── Sign Out ── */}
             <button
               onClick={onLogout}
               data-testid="logout-btn"
-              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium transition-all hover:scale-[1.01]"
+              className="w-full flex items-center justify-center gap-2 py-2 transition-colors hover:text-white"
               style={{
-                color: "rgba(255,255,255,0.6)",
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.06)",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "rgba(255,255,255,0.5)",
+                background: "transparent",
+                border: "none",
                 cursor: "pointer",
               }}
             >
-              <LogOut className="w-3.5 h-3.5 opacity-60" /> Sign out
+              <LogOut className="w-3.5 h-3.5" /> Sign out
             </button>
           </div>
         )}
@@ -1257,31 +1283,32 @@ function SettingsPanelInner({
               overflowY: "auto",
             }}
           >
-            <div style={glassSection}>
-              <div
-                className="absolute -top-10 -left-10 w-24 h-24 rounded-full pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)",
-                  filter: "blur(12px)",
-                }}
+            <div className="flex items-center gap-2" style={{ marginBottom: 14 }}>
+              <Zap
+                className="w-3.5 h-3.5"
+                style={{ color: "rgba(255,255,255,0.55)" }}
               />
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-4">
-                  <Zap
-                    className="w-4 h-4"
-                    style={{ color: "rgba(255,255,255,0.6)" }}
-                  />
-                  <span
-                    className="text-[10px] font-semibold tracking-[0.12em] uppercase"
-                    style={{ color: "rgba(255,255,255,0.35)" }}
-                  >
-                    Connections
-                  </span>
-                </div>
-                <OAuthPluginPanel />
-              </div>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  color: "rgba(255,255,255,0.55)",
+                }}
+              >
+                Connections
+              </span>
             </div>
+            <hr
+              style={{
+                height: 1,
+                background: "rgba(255,255,255,0.05)",
+                border: "none",
+                margin: "0 0 14px",
+              }}
+            />
+            <OAuthPluginPanel />
           </div>
         )}
 

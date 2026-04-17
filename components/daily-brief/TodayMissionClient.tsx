@@ -2,18 +2,18 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Check, RefreshCw, Target, Flame, Heart, Zap, Calendar, MessageCircle, X } from 'lucide-react'
+import { ArrowLeft, Check, RefreshCw, Flame, Zap, MessageCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { DailyBrief, DailyTask } from '@/types/daily-brief'
 
 // ─── Source Badge Config ──────────────────────────────────────────────────────
 
-const SOURCE_BADGES: Record<DailyTask['source'], { icon: string; label: string; color: string }> = {
-  goal: { icon: '🎯', label: 'Goal', color: 'rgba(168, 130, 255, 0.7)' },
-  habit: { icon: '🔥', label: 'Habit', color: 'rgba(251, 146, 60, 0.7)' },
-  calendar: { icon: '📅', label: 'Calendar', color: 'rgba(96, 165, 250, 0.7)' },
-  challenge: { icon: '⚡', label: 'Challenge', color: 'rgba(250, 204, 21, 0.7)' },
-  missi: { icon: '✨', label: 'Missi', color: 'rgba(167, 243, 208, 0.7)' },
+const SOURCE_BADGES: Record<DailyTask['source'], { label: string }> = {
+  goal: { label: 'Goal' },
+  habit: { label: 'Habit' },
+  calendar: { label: 'Calendar' },
+  challenge: { label: 'Challenge' },
+  missi: { label: 'Missi' },
 }
 
 // ─── Date Formatter ───────────────────────────────────────────────────────────
@@ -52,19 +52,19 @@ function getLocalHour(): number {
 
 function BriefSkeleton() {
   return (
-    <div className="animate-pulse space-y-6">
+    <div className="animate-pulse space-y-8">
       <div className="text-center space-y-3">
-        <div className="h-5 w-48 bg-white/10 rounded-full mx-auto" />
-        <div className="h-4 w-72 bg-white/5 rounded-full mx-auto" />
+        <div className="h-4 w-64 bg-white/[0.04] rounded mx-auto" />
+        <div className="h-3 w-48 bg-white/[0.03] rounded mx-auto" />
       </div>
-      <div className="h-px bg-white/10" />
-      <div className="space-y-4">
+      <div className="space-y-5">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="flex items-center gap-4">
-            <div className="w-6 h-6 rounded-full bg-white/10 flex-shrink-0" />
+          <div key={i} className="flex items-start gap-4 py-2">
+            <div className="w-5 h-5 rounded-full bg-white/[0.05] flex-shrink-0 mt-1" />
             <div className="flex-1 space-y-2">
-              <div className="h-4 w-3/4 bg-white/10 rounded" />
-              <div className="h-3 w-1/2 bg-white/5 rounded" />
+              <div className="h-3 w-16 bg-white/[0.04] rounded" />
+              <div className="h-4 w-3/4 bg-white/[0.05] rounded" />
+              <div className="h-3 w-1/2 bg-white/[0.03] rounded" />
             </div>
           </div>
         ))}
@@ -93,48 +93,55 @@ function ConfirmModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
       className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(8px)' }}
+      style={{ background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
       onClick={onCancel}
     >
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-        className="w-full max-w-sm rounded-2xl p-6 text-center"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 4 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-sm rounded-2xl p-7 text-left"
         style={{
-          background: 'linear-gradient(135deg, rgba(20, 20, 30, 0.98), rgba(10, 10, 18, 0.99))',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5), 0 0 60px rgba(251, 191, 36, 0.05)',
+          background: 'rgba(20, 20, 26, 0.85)',
+          backdropFilter: 'blur(24px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <RefreshCw className="w-8 h-8 mx-auto mb-4" style={{ color: 'rgba(251, 191, 36, 0.7)' }} />
-        <h3
-          className="text-lg font-semibold mb-2"
-          style={{ color: 'rgba(255, 255, 255, 0.9)' }}
+        <p
+          className="mb-3 text-[10px] font-semibold uppercase"
+          style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
         >
-          Regenerate Mission?
+          Regenerate
+        </p>
+        <h3
+          className="mb-2 text-[22px] font-medium"
+          style={{ color: 'rgba(255,255,255,0.92)', letterSpacing: '-0.02em' }}
+        >
+          Regenerate mission?
         </h3>
         <p
-          className="text-sm mb-6 leading-relaxed"
-          style={{ color: 'rgba(255, 255, 255, 0.5)' }}
+          className="mb-6 text-sm leading-relaxed"
+          style={{ color: 'rgba(255,255,255,0.5)' }}
         >
-          This will create a fresh new mission for today.
-          <br />
-          <span style={{ color: 'rgba(251, 191, 36, 0.7)' }}>
-            {remaining} regeneration{remaining !== 1 ? 's' : ''} remaining today
+          This replaces today&apos;s focus with a new one.{' '}
+          <span style={{ color: 'rgba(255,255,255,0.65)' }}>
+            {remaining} left today.
           </span>
         </p>
-        <div className="flex gap-3">
+        <div className="flex gap-2.5">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-white/10"
+            className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors active:scale-[0.97]"
             style={{
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: 'rgba(255, 255, 255, 0.6)',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: 'rgba(255,255,255,0.55)',
               cursor: 'pointer',
             }}
           >
@@ -142,11 +149,11 @@ function ConfirmModal({
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-90"
+            className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors active:scale-[0.97]"
             style={{
-              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.15))',
-              border: '1px solid rgba(251, 191, 36, 0.3)',
-              color: 'rgba(251, 191, 36, 0.95)',
+              background: 'rgba(255,255,255,0.9)',
+              border: '1px solid rgba(255,255,255,0.9)',
+              color: '#0a0a0f',
               cursor: 'pointer',
             }}
           >
@@ -349,254 +356,314 @@ export default function TodayMissionClient() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  const greeting = getTimeGreeting()
+
   return (
     <div
-      className="min-h-screen text-white flex flex-col items-center px-4 py-8 md:py-12"
+      className="relative min-h-screen text-white flex flex-col items-center px-4 py-10 md:py-16"
       style={{
-        background: 'linear-gradient(180deg, #0a0a0f 0%, #0d0d17 40%, #0a0a0f 100%)',
+        background: '#060608',
         fontFamily: 'var(--font-body)',
       }}
     >
+      {/* Ambient field — warm amber */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          background:
+            'radial-gradient(520px circle at 15% 10%, rgba(251,191,36,0.06), transparent 60%), radial-gradient(480px circle at 85% 90%, rgba(245,158,11,0.05), transparent 65%)',
+          filter: 'blur(120px)',
+        }}
+      />
+
       {/* Back nav */}
-      <div className="w-full max-w-lg mb-8">
+      <div className="relative z-10 w-full max-w-lg mb-10">
         <Link
           href="/chat"
-          className="inline-flex items-center gap-2 text-sm opacity-50 hover:opacity-100 transition-opacity"
+          className="inline-flex items-center gap-2 text-xs transition-colors"
+          style={{ color: 'rgba(255,255,255,0.4)' }}
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3.5 h-3.5" />
           Back to Missi
         </Link>
       </div>
 
-      {/* Date label */}
-      <p
-        className="text-xs font-medium tracking-widest uppercase mb-3"
-        style={{ color: 'rgba(255,255,255,0.35)' }}
+      {/* Hero — eyebrow + greeting */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 w-full max-w-lg flex flex-col items-center text-center mb-12"
       >
-        {formatDate()}
-      </p>
+        <p
+          className="mb-4 text-[10px] font-semibold uppercase"
+          style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+        >
+          {formatDate()}
+        </p>
+        <h1
+          className="text-[32px] md:text-[40px]"
+          style={{
+            fontWeight: 300,
+            letterSpacing: '-0.03em',
+            color: 'rgba(255,255,255,0.92)',
+            lineHeight: 1.1,
+          }}
+        >
+          {greeting.text}
+        </h1>
 
-      {/* Time-aware heading */}
-      <h1 className="text-3xl md:text-4xl font-semibold mb-8 text-center">
-        {getTimeGreeting().text} {getTimeGreeting().emoji}
-      </h1>
+        {/* Regenerations-remaining meter */}
+        {brief && !loading && maxGenerations > 0 && (
+          <div className="mt-7 w-32">
+            <div
+              className="h-[2px] rounded-full overflow-hidden"
+              style={{ background: 'rgba(255,255,255,0.06)' }}
+            >
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: 'rgba(255,255,255,0.35)' }}
+                initial={{ width: 0 }}
+                animate={{
+                  width: `${(regenerationsRemaining / Math.max(maxGenerations, 1)) * 100}%`,
+                }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+              />
+            </div>
+            <p
+              className="mt-2 text-[10px] font-semibold uppercase"
+              style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+            >
+              {regenerationsRemaining} of {maxGenerations} left
+            </p>
+          </div>
+        )}
+      </motion.div>
 
       {/* Error state */}
       {error && (
-        <div
-          className="w-full max-w-lg mb-6 px-5 py-4 rounded-2xl text-sm text-center"
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="relative z-10 w-full max-w-lg mb-8 px-5 py-4 rounded-xl text-sm"
           style={{
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            color: 'rgba(255, 180, 180, 0.9)',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(239,68,68,0.18)',
+            color: 'rgba(255,180,180,0.85)',
           }}
         >
           {error}
-        </div>
+        </motion.div>
       )}
 
-      {/* Mission Card */}
-      <div
-        className="w-full max-w-lg rounded-3xl overflow-hidden"
-        style={{
-          background: 'rgba(255,255,255,0.04)',
-          backdropFilter: 'blur(40px)',
-          WebkitBackdropFilter: 'blur(40px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderTop: '2px solid rgba(251, 191, 36, 0.4)',
-          boxShadow: '0 0 60px rgba(251, 191, 36, 0.03), 0 25px 50px rgba(0,0,0,0.4)',
-        }}
-      >
-        {/* Progress bar */}
-        {brief && !loading && (
-          <div className="px-6 pt-5 pb-0">
-            <div className="flex items-center justify-between mb-2">
-              <span
-                className="text-[11px] font-medium"
-                style={{ color: allComplete ? 'rgba(167, 243, 208, 0.9)' : 'rgba(255,255,255,0.4)' }}
+      {/* Mission body — flat, no card */}
+      <div className="relative z-10 w-full max-w-lg">
+        {loading || generating ? (
+          <>
+            {generating && (
+              <p
+                className="mb-6 text-center text-[10px] font-semibold uppercase"
+                style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.18em' }}
               >
-                {allComplete
-                  ? 'All done! 🎉 Missi is proud of you.'
-                  : `${completedCount} of ${totalCount} complete`}
-              </span>
-            </div>
-            <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-              <motion.div
-                className="h-full rounded-full"
-                style={{
-                  background: allComplete
-                    ? 'linear-gradient(90deg, #34d399, #6ee7b7)'
-                    : 'linear-gradient(90deg, #fbbf24, #f59e0b)',
-                }}
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPercent}%` }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-              />
-            </div>
-          </div>
-        )}
+                Generating your mission
+              </p>
+            )}
+            <BriefSkeleton />
+          </>
+        ) : brief ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="space-y-10"
+          >
+            {/* Greeting line */}
+            <p
+              className="text-center text-[17px] md:text-[18px] leading-relaxed"
+              style={{
+                color: 'rgba(255,255,255,0.7)',
+                letterSpacing: '-0.01em',
+                fontWeight: 400,
+              }}
+            >
+              {brief.greeting}
+            </p>
 
-        <div className="p-6 space-y-6">
-          {loading || generating ? (
-            <>
-              {generating && (
+            {/* Focus section */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between mb-5">
                 <p
-                  className="text-center text-xs font-medium"
-                  style={{ color: 'rgba(251, 191, 36, 0.7)' }}
+                  className="text-[10px] font-semibold uppercase"
+                  style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
                 >
-                  ✨ Generating your daily mission...
+                  Focus today
                 </p>
-              )}
-              <BriefSkeleton />
-            </>
-          ) : brief ? (
-            <>
-              {/* Greeting */}
-              <p
-                className="text-center text-lg md:text-xl font-medium leading-relaxed"
-                style={{ color: 'rgba(255,255,255,0.95)', letterSpacing: '-0.01em' }}
+                <p
+                  className="text-[10px] font-semibold uppercase"
+                  style={{
+                    color: allComplete ? 'rgba(167,243,208,0.75)' : 'rgba(255,255,255,0.35)',
+                    letterSpacing: '0.18em',
+                  }}
+                >
+                  {allComplete ? 'All done' : `${completedCount} / ${totalCount}`}
+                </p>
+              </div>
+
+              {/* Thin progress rail */}
+              <div
+                className="h-[2px] rounded-full overflow-hidden mb-6"
+                style={{ background: 'rgba(255,255,255,0.05)' }}
               >
-                {brief.greeting}
-              </p>
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{
+                    background: allComplete
+                      ? 'rgba(167,243,208,0.55)'
+                      : 'rgba(255,255,255,0.4)',
+                  }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPercent}%` }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                />
+              </div>
 
-              {/* Separator */}
-              <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
-
-              {/* Section label */}
-              <p
-                className="text-[10px] font-semibold tracking-[0.2em] uppercase"
-                style={{ color: 'rgba(255,255,255,0.3)' }}
-              >
-                YOUR FOCUS TODAY
-              </p>
-
-              {/* Task list */}
-              <div className="space-y-3">
+              {/* Task list — flat rows with hairline dividers */}
+              <div>
                 <AnimatePresence mode="popLayout">
-                  {brief.tasks.map((task) => (
+                  {brief.tasks.map((task, idx) => (
                     <motion.div
                       key={task.id}
                       layout
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.3 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3, delay: idx * 0.06 }}
                     >
-                      <TaskRow task={task} onToggle={handleTaskToggle} />
+                      <TaskRow
+                        task={task}
+                        onToggle={handleTaskToggle}
+                        isLast={idx === brief.tasks.length - 1}
+                      />
                     </motion.div>
                   ))}
                 </AnimatePresence>
               </div>
-            </>
-          ) : null}
-        </div>
-      </div>
+            </div>
 
-      {/* Streak Nudge */}
-      {brief?.streakNudge && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mt-5 w-full max-w-lg"
-        >
-          <div
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm"
-            style={{
-              background: 'rgba(251, 146, 60, 0.1)',
-              border: '1px solid rgba(251, 146, 60, 0.15)',
-              color: 'rgba(251, 191, 36, 0.9)',
-            }}
-          >
-            <Flame className="w-4 h-4 flex-shrink-0" style={{ color: '#fb923c' }} />
-            <span>{brief.streakNudge}</span>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Mood Prompt */}
-      {brief?.moodPrompt && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mt-4 w-full max-w-lg"
-        >
-          <div
-            className="flex items-start gap-3 px-5 py-4 rounded-2xl"
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <MessageCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgba(167, 139, 250, 0.7)' }} />
-            <div className="flex-1">
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                {brief.moodPrompt}
-              </p>
-              <Link
-                href="/chat?prefill=mood-checkin"
-                className="inline-block mt-2 text-xs font-medium px-3 py-1.5 rounded-full transition-all hover:opacity-80"
+            {/* Streak Nudge */}
+            {brief.streakNudge && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+                className="flex items-start gap-3 px-5 py-4 rounded-xl"
                 style={{
-                  background: 'rgba(167, 139, 250, 0.1)',
-                  border: '1px solid rgba(167, 139, 250, 0.2)',
-                  color: 'rgba(167, 139, 250, 0.9)',
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.06)',
                 }}
               >
-                Tell Missi
-              </Link>
-            </div>
-          </div>
-        </motion.div>
-      )}
+                <Flame
+                  className="w-3.5 h-3.5 mt-[3px] flex-shrink-0"
+                  style={{ color: 'rgba(255,255,255,0.45)' }}
+                />
+                <div className="flex-1">
+                  <p
+                    className="mb-1 text-[10px] font-semibold uppercase"
+                    style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+                  >
+                    Streak
+                  </p>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                    {brief.streakNudge}
+                  </p>
+                </div>
+              </motion.div>
+            )}
 
-      {/* Challenge */}
-      {brief?.challenge && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mt-4 w-full max-w-lg"
-        >
-          <div
-            className="flex items-start gap-3 px-5 py-4 rounded-2xl"
-            style={{
-              background: 'rgba(250, 204, 21, 0.04)',
-              border: '1px solid rgba(250, 204, 21, 0.12)',
-            }}
-          >
-            <Zap className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgba(250, 204, 21, 0.8)' }} />
-            <div>
-              <p
-                className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-1"
-                style={{ color: 'rgba(250, 204, 21, 0.5)' }}
+            {/* Mood Prompt */}
+            {brief.moodPrompt && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.25 }}
+                className="flex items-start gap-3 px-5 py-4 rounded-xl"
+                style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
               >
-                TODAY&apos;S CHALLENGE
-              </p>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                {brief.challenge}
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      )}
+                <MessageCircle
+                  className="w-3.5 h-3.5 mt-[3px] flex-shrink-0"
+                  style={{ color: 'rgba(255,255,255,0.45)' }}
+                />
+                <div className="flex-1">
+                  <p
+                    className="mb-1 text-[10px] font-semibold uppercase"
+                    style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+                  >
+                    Mood
+                  </p>
+                  <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                    {brief.moodPrompt}
+                  </p>
+                  <Link
+                    href="/chat?prefill=mood-checkin"
+                    className="inline-flex items-center text-[11px] font-medium transition-colors"
+                    style={{
+                      color: 'rgba(255,255,255,0.55)',
+                      borderBottom: '1px solid rgba(255,255,255,0.15)',
+                      paddingBottom: '1px',
+                    }}
+                  >
+                    Tell Missi →
+                  </Link>
+                </div>
+              </motion.div>
+            )}
 
-      {/* Regenerate button */}
+            {/* Challenge */}
+            {brief.challenge && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
+                className="flex items-start gap-3 px-5 py-4 rounded-xl"
+                style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <Zap
+                  className="w-3.5 h-3.5 mt-[3px] flex-shrink-0"
+                  style={{ color: 'rgba(255,255,255,0.45)' }}
+                />
+                <div className="flex-1">
+                  <p
+                    className="mb-1 text-[10px] font-semibold uppercase"
+                    style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+                  >
+                    Challenge
+                  </p>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                    {brief.challenge}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        ) : null}
+      </div>
+
+      {/* Ghost regenerate button */}
       {brief && !generating && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-8 w-full max-w-lg flex justify-end items-center gap-3"
+          transition={{ duration: 0.3, delay: 0.4 }}
+          className="relative z-10 mt-10 w-full max-w-lg flex justify-end items-center"
         >
-          {regenerationsRemaining > 0 && (
-            <span
-              className="text-[10px] font-medium"
-              style={{ color: 'rgba(255, 255, 255, 0.2)' }}
-            >
-              {regenerationsRemaining} left today
-            </span>
-          )}
           <button
             onClick={() => {
               if (regenerationsRemaining <= 0) {
@@ -610,8 +677,12 @@ export default function TodayMissionClient() {
               setShowConfirm(true)
             }}
             disabled={regenerationsRemaining <= 0}
-            className="flex items-center gap-1.5 text-xs font-medium transition-all hover:opacity-80 disabled:opacity-20 disabled:cursor-not-allowed"
-            style={{ color: 'rgba(255,255,255,0.25)' }}
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium transition-colors disabled:opacity-20 disabled:cursor-not-allowed active:scale-[0.97]"
+            style={{
+              color: 'rgba(255,255,255,0.4)',
+              background: 'transparent',
+              padding: '6px 2px',
+            }}
           >
             <RefreshCw className="w-3 h-3" />
             Regenerate
@@ -639,36 +710,42 @@ export default function TodayMissionClient() {
 function TaskRow({
   task,
   onToggle,
+  isLast,
 }: {
   task: DailyTask
   onToggle: (id: string) => void
+  isLast?: boolean
 }) {
   const badge = SOURCE_BADGES[task.source]
 
   return (
     <div
-      className="flex items-start gap-3 group"
-      style={{ opacity: task.completed ? 0.45 : 1 }}
+      className="flex items-start gap-4 py-4 transition-opacity"
+      style={{
+        opacity: task.completed ? 0.5 : 1,
+        borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)',
+      }}
     >
-      {/* Checkbox */}
+      {/* Check circle */}
       <button
         onClick={() => !task.completed && onToggle(task.id)}
-        className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all"
+        className="mt-[2px] flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-colors active:scale-[0.97]"
         style={{
-          borderColor: task.completed ? 'rgba(52, 211, 153, 0.6)' : 'rgba(255,255,255,0.15)',
-          background: task.completed ? 'rgba(52, 211, 153, 0.15)' : 'transparent',
+          border: `1px solid ${task.completed ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.18)'}`,
+          background: task.completed ? 'rgba(255,255,255,0.08)' : 'transparent',
           cursor: task.completed ? 'default' : 'pointer',
         }}
         disabled={task.completed}
+        aria-label={task.completed ? 'Task complete' : 'Mark task complete'}
       >
         <AnimatePresence>
           {task.completed && (
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             >
-              <Check className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+              <Check className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.85)' }} strokeWidth={2.5} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -677,33 +754,28 @@ function TaskRow({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <p
-          className="text-[15px] font-medium leading-snug"
+          className="mb-1.5 text-[10px] font-semibold uppercase"
+          style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+        >
+          {badge.label}
+        </p>
+        <p
+          className="text-[15px] leading-snug mb-1"
           style={{
-            color: 'rgba(255,255,255,0.9)',
-            textDecoration: task.completed ? 'line-through' : 'none',
+            color: 'rgba(255,255,255,0.88)',
+            fontWeight: 500,
+            letterSpacing: '-0.01em',
           }}
         >
           {task.title}
         </p>
         <p
-          className="text-xs mt-0.5 leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.35)' }}
+          className="text-[13px] leading-relaxed"
+          style={{ color: 'rgba(255,255,255,0.45)' }}
         >
           {task.context}
         </p>
       </div>
-
-      {/* Source badge */}
-      <span
-        className="flex-shrink-0 text-[10px] font-medium px-2 py-1 rounded-full mt-1"
-        style={{
-          color: badge.color,
-          background: `${badge.color}15`,
-          border: `1px solid ${badge.color}20`,
-        }}
-      >
-        {badge.icon} {badge.label}
-      </span>
     </div>
   )
 }
