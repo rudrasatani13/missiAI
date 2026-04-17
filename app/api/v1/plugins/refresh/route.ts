@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getRequestContext } from "@cloudflare/next-on-pages"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { getEnv } from "@/lib/server/env"
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     const gTokens = parseCookie(`google_tokens_${userId}`)
     const nTokens = parseCookie(`notion_tokens_${userId}`)
 
-    return Response.json({
+    return NextResponse.json({
       kvAvailable: false,
       localDev: true,
       google: gTokens ? { connected: true, expiresAt: gTokens.expiresAt } : null,
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     getNotionTokens(kv, userId),
   ])
 
-  return Response.json({
+  return NextResponse.json({
     kvAvailable: true,
     google: googleTokens
       ? { connected: true, expiresAt: googleTokens.expiresAt }
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
 
   const kv = getKV()
   if (!kv) {
-    return Response.json({ success: false, error: "KV not available" }, { status: 503 })
+    return NextResponse.json({ success: false, error: "KV not available" }, { status: 503 })
   }
 
   try {
@@ -93,10 +93,10 @@ export async function POST(req: NextRequest) {
     const notionCtx = await fetchNotionContext(kv, userId, true)
     results.notion = notionCtx ? "refreshed" : "no_token"
 
-    return Response.json({ success: true, results })
+    return NextResponse.json({ success: true, results })
   } catch (err) {
     logError("plugins.refresh_error", err, userId)
-    return Response.json({ success: false, error: "Refresh failed" }, { status: 500 })
+    return NextResponse.json({ success: false, error: "Refresh failed" }, { status: 500 })
   }
 }
 
@@ -114,7 +114,7 @@ export async function DELETE(req: NextRequest) {
 
   const kv = getKV()
   if (!kv) {
-    return Response.json({ success: false, error: "KV not available" }, { status: 503 })
+    return NextResponse.json({ success: false, error: "KV not available" }, { status: 503 })
   }
 
   if (plugin === "google") {
@@ -122,8 +122,8 @@ export async function DELETE(req: NextRequest) {
   } else if (plugin === "notion") {
     await deleteNotionTokens(kv, userId)
   } else {
-    return Response.json({ success: false, error: "Invalid plugin" }, { status: 400 })
+    return NextResponse.json({ success: false, error: "Invalid plugin" }, { status: 400 })
   }
 
-  return Response.json({ success: true })
+  return NextResponse.json({ success: true })
 }
