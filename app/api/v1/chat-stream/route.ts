@@ -321,7 +321,13 @@ export async function POST(req: NextRequest) {
             break
           }
           // BUG-007 fix: Prevent agentContents from growing unbounded within a single request
-          if (JSON.stringify(agentContents).length > 200_000) {
+          // Exclude inlineData (images) from the length calculation
+          const sizeWithoutImages = JSON.stringify(agentContents, (key, value) => {
+            if (key === "inlineData") return undefined
+            return value
+          }).length
+
+          if (sizeWithoutImages > 200_000) {
             sendSSE({ text: "\n\n[Context too large — wrapping up.]" })
             break
           }
