@@ -35,60 +35,66 @@ export function checkForNudges(
   const isDismissed = (type: string, nodeId?: string) =>
     dismissedSet.has(`${type}:${nodeId ?? ''}`)
 
-  // ── GOAL NUDGE: goal node not accessed in > 3 days ───────────────────────
-  for (const node of graph.nodes) {
-    if (node.category !== 'goal') continue
-    if (now - node.lastAccessedAt <= 3 * DAY_MS) continue
-    if (isDismissed('goal_nudge', node.id)) continue
-    nudges.push({
-      type: 'goal_nudge',
-      priority: 'high',
-      actionable: true,
-      message: `Still working on ${node.title}? Let's check in.`,
-      nodeId: node.id,
-    })
-  }
+  const checkHabits = now - lastInteractionAt > 20 * HOUR_MS
+  const checkInsights = graph.nodes.length >= 10 && !isDismissed('memory_insight', undefined)
+  const tagCounts = checkInsights ? new Map<string, number>() : null
 
-  // ── RELATIONSHIP REMINDER: person/relationship not accessed in > 7 days ──
   for (const node of graph.nodes) {
-    if (node.category !== 'person' && node.category !== 'relationship') continue
-    if (now - node.lastAccessedAt <= 7 * DAY_MS) continue
-    if (node.emotionalWeight <= 0.5) continue
-    if (isDismissed('relationship_reminder', node.id)) continue
-    nudges.push({
-      type: 'relationship_reminder',
-      priority: 'medium',
-      actionable: true,
-      message: `You haven't talked about ${node.title} in a while.`,
-      nodeId: node.id,
-    })
-  }
+    const { category, lastAccessedAt, id, title, emotionalWeight, tags } = node
 
-  // ── HABIT CHECK: any habit node, if last interaction was > 20 hours ago ──
-  if (now - lastInteractionAt > 20 * HOUR_MS) {
-    for (const node of graph.nodes) {
-      if (node.category !== 'habit') continue
-      if (isDismissed('habit_check', node.id)) continue
-      nudges.push({
-        type: 'habit_check',
-        priority: 'low',
-        actionable: true,
-        message: `How's your ${node.title} habit going today?`,
-        nodeId: node.id,
-      })
+    // ── GOAL NUDGE: goal node not accessed in > 3 days ───────────────────────
+    if (category === 'goal') {
+      if (now - lastAccessedAt > 3 * DAY_MS && !isDismissed('goal_nudge', id)) {
+        nudges.push({
+          type: 'goal_nudge',
+          priority: 'high',
+          actionable: true,
+          message: `Still working on ${title}? Let's check in.`,
+          nodeId: id,
+        })
+      }
+    }
+    // ── RELATIONSHIP REMINDER: person/relationship not accessed in > 7 days ──
+    else if (category === 'person' || category === 'relationship') {
+      if (
+        now - lastAccessedAt > 7 * DAY_MS &&
+        emotionalWeight > 0.5 &&
+        !isDismissed('relationship_reminder', id)
+      ) {
+        nudges.push({
+          type: 'relationship_reminder',
+          priority: 'medium',
+          actionable: true,
+          message: `You haven't talked about ${title} in a while.`,
+          nodeId: id,
+        })
+      }
+    }
+    // ── HABIT CHECK: any habit node, if last interaction was > 20 hours ago ──
+    else if (category === 'habit' && checkHabits) {
+      if (!isDismissed('habit_check', id)) {
+        nudges.push({
+          type: 'habit_check',
+          priority: 'low',
+          actionable: true,
+          message: `How's your ${title} habit going today?`,
+          nodeId: id,
+        })
+      }
+    }
+
+    // ── ACCUMULATE TAGS FOR MEMORY INSIGHT ──────────────────────────────────
+    if (tagCounts) {
+      for (const tag of tags) {
+        tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1)
+      }
     }
   }
 
   // ── MEMORY INSIGHT: cluster of 3+ nodes sharing the same tag ────────────
-  if (graph.nodes.length >= 10) {
-    const tagCounts = new Map<string, number>()
-    for (const node of graph.nodes) {
-      for (const tag of node.tags) {
-        tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1)
-      }
-    }
+  if (tagCounts) {
     for (const [tag, count] of tagCounts.entries()) {
-      if (count >= 3 && !isDismissed('memory_insight', undefined)) {
+      if (count >= 3) {
         nudges.push({
           type: 'memory_insight',
           priority: 'low',
