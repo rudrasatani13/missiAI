@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAvatar } from '@/hooks/useAvatar'
 import { useStreak } from '@/hooks/useStreak'
-import { AVATAR_TIERS, type AvatarTier } from '@/types/gamification'
+import { AVATAR_TIERS, getAvatarTierInfo, type AvatarTier } from '@/types/gamification'
 import type { HabitStreak, Achievement } from '@/types/gamification'
 
 // ─── Glass Card wrapper ──────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ function GlassCard({
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function AvatarOrb({ tier, tierName, level }: { tier: AvatarTier; tierName: string; level: number }) {
-  const tierInfo = AVATAR_TIERS.find(t => t.tier === tier) ?? AVATAR_TIERS[0]
+  const tierInfo = getAvatarTierInfo(tier)
   const orbSize = 130
 
   return (

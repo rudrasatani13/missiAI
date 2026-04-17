@@ -30,6 +30,11 @@ export const AVATAR_TIERS: AvatarTierInfo[] = [
   { tier: 6, name: "Cosmic",  xpRequired: 15000, colorStart: "hsl(280, 80%, 55%)", colorEnd: "hsl(180, 70%, 60%)" },
 ]
 
+// Array index optimization for O(1) lookup since tier corresponds to index + 1
+export const getAvatarTierInfo = (tier: AvatarTier): AvatarTierInfo => {
+  return AVATAR_TIERS[tier - 1] ?? AVATAR_TIERS[0];
+}
+
 // ─── Achievements ─────────────────────────────────────────────────────────────
 
 export interface Achievement {

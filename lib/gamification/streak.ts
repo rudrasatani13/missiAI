@@ -63,9 +63,9 @@ export function calculateLevel(totalXP: number): number {
  * Get the XP required for the next tier, or null if already max tier.
  */
 export function getNextTierXP(currentTier: AvatarTier): number | null {
-  const idx = AVATAR_TIERS.findIndex(t => t.tier === currentTier)
-  if (idx < 0 || idx >= AVATAR_TIERS.length - 1) return null
-  return AVATAR_TIERS[idx + 1].xpRequired
+  const currentIdx = currentTier - 1;
+  if (currentIdx < 0 || currentIdx >= AVATAR_TIERS.length - 1) return null
+  return AVATAR_TIERS[currentIdx + 1].xpRequired
 }
 
 export async function getGamificationData(

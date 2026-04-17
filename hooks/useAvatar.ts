@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { GamificationData, AvatarTier, Achievement, XPLogEntry } from '@/types/gamification'
-import { AVATAR_TIERS } from '@/types/gamification'
+import { getAvatarTierInfo } from '@/types/gamification'
 
 export interface AvatarState {
   tier: AvatarTier
@@ -45,8 +45,8 @@ export function useAvatar(): AvatarState {
   const totalXP = data?.totalXP ?? 0
 
   // Compute tier info
-  const tierInfo = AVATAR_TIERS.find(t => t.tier === tier)!
-  const nextTierInfo = AVATAR_TIERS.find(t => t.tier === (tier + 1) as AvatarTier)
+  const tierInfo = getAvatarTierInfo(tier)
+  const nextTierInfo = tier < 6 ? getAvatarTierInfo((tier + 1) as AvatarTier) : undefined
 
   let tierProgress = 100
   if (nextTierInfo) {

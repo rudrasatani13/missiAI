@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { AVATAR_TIERS, type AvatarTier } from '@/types/gamification'
+import { getAvatarTierInfo, type AvatarTier } from '@/types/gamification'
 
 interface AvatarRingProps {
   tier: AvatarTier
@@ -18,7 +18,7 @@ interface AvatarRingProps {
  * No emojis, no icons.
  */
 export function AvatarRing({ tier, level, size = 32 }: AvatarRingProps) {
-  const tierInfo = AVATAR_TIERS.find(t => t.tier === tier) ?? AVATAR_TIERS[0]
+  const tierInfo = getAvatarTierInfo(tier)
   const orbitSpeed = Math.max(2, 6 - tier * 0.6) // higher tier = faster orbit
 
   const ringId = `avatar-ring-${tier}`

@@ -10,7 +10,7 @@ import { getLifeGraph } from '@/lib/memory/life-graph'
 import { getGamificationData } from '@/lib/gamification/streak'
 import { awardXP } from '@/lib/gamification/xp-engine'
 import { geminiGenerate } from '@/lib/ai/vertex-client'
-import { AVATAR_TIERS } from '@/types/gamification'
+import { AVATAR_TIERS, getAvatarTierInfo } from '@/types/gamification'
 import { logRequest, logError } from '@/lib/server/logger'
 import type { KVStore } from '@/types'
 import type { LifeNode } from '@/types/memory'
@@ -424,7 +424,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ── Avatar Info ────────────────────────────────────────────────────────
-    const tierInfo = AVATAR_TIERS.find(t => t.tier === gamification.avatarTier) ?? AVATAR_TIERS[0]
+    const tierInfo = getAvatarTierInfo(gamification.avatarTier)
 
     // ── Unlocked Achievements ──────────────────────────────────────────────
     const unlockedAchievements = gamification.achievements.filter(a => a.unlockedAt !== null).length
