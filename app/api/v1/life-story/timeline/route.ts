@@ -53,8 +53,7 @@ export async function GET(req: Request) {
     }
 
     if (needsRefresh) {
-      const geminiApiKey = process.env.GEMINI_API_KEY || ''
-      chapters = await detectChapters(graph, geminiApiKey)
+      chapters = await detectChapters(graph)
       await kv.put(cacheKey, JSON.stringify({
         chapters,
         graphVersion: graph.version,

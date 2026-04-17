@@ -296,7 +296,6 @@ async function handleSummarize(intent: ActionIntent): Promise<ActionResult> {
 
 export async function executeAction(
   intent: ActionIntent,
-  _apiKey: string,
 ): Promise<ActionResult> {
   try {
     switch (intent.type) {

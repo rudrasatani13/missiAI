@@ -74,9 +74,8 @@ export async function GET(req: Request) {
     }
 
     const graph = await getLifeGraph(kv, userId)
-    const geminiApiKey = process.env.GEMINI_API_KEY || ''
 
-    const review = await generateYearInReview(graph, year, geminiApiKey)
+    const review = await generateYearInReview(graph, year)
 
     // Cache the review with 7-day TTL
     await kv.put(cacheKey, JSON.stringify(review), { expirationTtl: 604800 })

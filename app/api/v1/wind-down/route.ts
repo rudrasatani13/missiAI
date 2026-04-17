@@ -82,14 +82,8 @@ export async function GET(_req: NextRequest) {
     const graph = await getLifeGraph(kv, userId)
     const config = await getProactiveConfig(kv, userId)
 
-    let apiKey = ''
-    try {
-      apiKey = getEnv().GEMINI_API_KEY
-    } catch {
-      apiKey = ''
-    }
-
-    const reflection = await generateEveningReflection(graph, config, apiKey)
+    
+    const reflection = await generateEveningReflection(graph, config)
     reflection.userId = userId
 
     await kv.put(key, JSON.stringify(reflection), { expirationTtl: 28800 })

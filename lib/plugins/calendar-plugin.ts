@@ -19,7 +19,6 @@ interface EventDetails {
  */
 export async function parseEventFromCommand(
   userMessage: string,
-  _apiKey: string,
 ): Promise<EventDetails> {
   const system = `Extract calendar event details from the user message.
 Return ONLY valid JSON:

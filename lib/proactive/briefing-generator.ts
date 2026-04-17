@@ -82,7 +82,6 @@ function assignNodeIds(items: BriefingItem[], graph: LifeGraph): BriefingItem[] 
 export async function generateDailyBriefing(
   graph: LifeGraph,
   config: ProactiveConfig,
-  apiKey: string,
 ): Promise<DailyBriefing> {
   const date = new Date().toISOString().slice(0, 10)
   const tone = determineTone(graph)

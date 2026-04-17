@@ -32,7 +32,7 @@ function getBucketKey(ts: number) {
   return `${d.getFullYear()}-Q${getQuarter(d)}`
 }
 
-export async function detectChapters(graph: LifeGraph, geminiApiKey: string): Promise<LifeChapter[]> {
+export async function detectChapters(graph: LifeGraph): Promise<LifeChapter[]> {
   if (!graph || graph.nodes.length < 5) {
     return []
   }

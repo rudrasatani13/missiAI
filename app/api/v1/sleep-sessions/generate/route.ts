@@ -101,13 +101,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Setup AI variables
-    let apiKey = ''
-    try {
-      apiKey = getEnv().GEMINI_API_KEY
-    } catch {
-      apiKey = ''
-    }
-
+    
     let story
 
     // 3. Handle Personalized Mode
@@ -135,11 +129,11 @@ export async function POST(req: NextRequest) {
         stressfulDay
       }
 
-      story = await generatePersonalizedStory(context, apiKey)
+      story = await generatePersonalizedStory(context)
     } 
     // 4. Handle Custom Mode
     else if (reqData.mode === 'custom') {
-      story = await generateCustomStory(reqData.prompt, apiKey)
+      story = await generateCustomStory(reqData.prompt)
     }
 
     if (!story) {

@@ -55,10 +55,9 @@ export async function GET(req: Request) {
     }
 
     // Process
-    const geminiApiKey = process.env.GEMINI_API_KEY || ''
     
     // In Edge, Promise.race + generate generates an async chunk. Wait for it fully.
-    const chapters = await detectChapters(graph, geminiApiKey)
+    const chapters = await detectChapters(graph)
     const generatedAt = Date.now()
 
     // Cache

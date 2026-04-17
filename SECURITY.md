@@ -84,7 +84,7 @@ All secrets belong **only** in:
 
 ```bash
 # AI & Voice
-wrangler secret put GEMINI_API_KEY
+wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON
 wrangler secret put ELEVENLABS_API_KEY
 wrangler secret put ELEVENLABS_VOICE_ID
 
@@ -260,10 +260,10 @@ curl -sI https://missi.space | grep -iE \
 
 If a secret is suspected to be compromised, follow the steps below.
 
-### Gemini API Key
-1. Revoke at https://aistudio.google.com/apikey
-2. Generate a new key
-3. `wrangler secret put GEMINI_API_KEY`
+### Vertex AI Service Account
+1. Rotate key in Google Cloud Console > IAM & Admin > Service Accounts
+2. Download new JSON key
+3. `wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON`
 4. Update in Cloudflare Pages dashboard (Production + Preview)
 
 ### ElevenLabs API Key

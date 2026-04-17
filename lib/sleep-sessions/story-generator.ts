@@ -58,8 +58,7 @@ export function sanitizeStoryText(raw: string): string {
 }
 
 export async function generatePersonalizedStory(
-  userContext: UserContext,
-  geminiApiKey: string
+  userContext: UserContext
 ): Promise<SleepStory> {
   const systemPrompt = `You are Missi's sleep story narrator. Generate a warm, slow-paced bedtime story that helps the user drift into sleep.
 REQUIREMENTS:
@@ -79,12 +78,11 @@ Recent life focus: ${userContext.recentFocus.join(', ').slice(0, 150)}
 First name: ${userContext.firstName || 'friend'}
 // END USER CONTEXT`
 
-  return callGeminiAndParse(systemPrompt, geminiApiKey, 'personalized_story', 'Tonight\'s Story')
+  return callGeminiAndParse(systemPrompt, 'personalized_story', 'Tonight\'s Story')
 }
 
 export async function generateCustomStory(
-  userPrompt: string,
-  geminiApiKey: string
+  userPrompt: string
 ): Promise<SleepStory> {
   if (typeof userPrompt !== 'string' || userPrompt.length < 3 || userPrompt.length > 200) {
     throw new Error("Invalid prompt length")
@@ -104,18 +102,14 @@ REQUIREMENTS:
 * Close with a gentle sleep-inducing ending like "...and slowly, you drift into peaceful sleep."
 Respond with ONLY the story text. No title, no introduction, no formatting. Just the story.`
 
-  return callGeminiAndParse(systemPrompt, geminiApiKey, 'custom_story', `A story about ${safePrompt.slice(0, 30)}...`)
+  return callGeminiAndParse(systemPrompt, 'custom_story', `A story about ${safePrompt.slice(0, 30)}...`)
 }
 
 async function callGeminiAndParse(
   systemPrompt: string,
-  geminiApiKey: string,
   mode: SleepStory['mode'],
   defaultTitle: string
 ): Promise<SleepStory> {
-  if (!geminiApiKey) {
-    return getRandomFallbackStory()
-  }
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)

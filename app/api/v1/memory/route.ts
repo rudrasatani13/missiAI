@@ -121,20 +121,9 @@ export async function GET(req: NextRequest) {
     const category = rawCategory as MemoryCategory | null
 
     if (query) {
-      let apiKey = ""
-      try {
-        apiKey = getEnv().GEMINI_API_KEY
-      } catch {
-        apiKey = ""
-      }
-
+      
       const vectorizeEnv = getVectorizeEnv()
-      const results = await searchLifeGraph(
-        kv,
-        vectorizeEnv,
-        userId,
-        query,
-        apiKey,
+      const results = await searchLifeGraph(kv, vectorizeEnv, userId, query,
         { topK: 10, category: category ?? undefined },
       )
 
@@ -240,13 +229,7 @@ export async function POST(req: NextRequest) {
 
     // Extract new life nodes when there are at least 2 user interactions
     if (interactionCount >= 2) {
-      let apiKey = ""
-      try {
-        apiKey = getEnv().GEMINI_API_KEY
-      } catch {
-        apiKey = ""
-      }
-
+      
       if (apiKey) {
         const extractedNodes = await extractLifeNodes(
           conversation,

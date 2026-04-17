@@ -2,7 +2,6 @@ import { vi } from "vitest"
 
 // ─── Mock Environment Variables ───────────────────────────────────────────────
 
-process.env.GEMINI_API_KEY = "test-gemini-key"
 process.env.ELEVENLABS_API_KEY = "test-elevenlabs-key"
 process.env.CLERK_SECRET_KEY = "test-clerk-secret"
 process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "test-clerk-pub"

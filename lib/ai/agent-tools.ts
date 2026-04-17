@@ -33,7 +33,6 @@ export interface ToolContext {
   kv: KVStore | null
   vectorizeEnv: VectorizeEnv | null
   userId: string
-  apiKey: string
   googleClientId?: string      // for token refresh in readCalendar
   googleClientSecret?: string  // for token refresh in readCalendar
   resendApiKey?: string        // for sendEmail tool
@@ -573,7 +572,6 @@ export async function executeAgentTool(
           ctx.vectorizeEnv,
           ctx.userId,
           query,
-          ctx.apiKey,
           { topK: 5 },
         )
 
@@ -827,8 +825,7 @@ export async function executeAgentTool(
               people: [],
               emotionalWeight: 0.3,
               confidence: 0.8,
-            },
-            ctx.apiKey,
+            }
           )
         }
 
@@ -962,8 +959,7 @@ export async function executeAgentTool(
             emotionalWeight: 0.2,
             confidence: 0.9,
             source: "explicit",
-          },
-          ctx.apiKey,
+          }
         )
 
         // Update monthly KV total
@@ -1053,7 +1049,6 @@ export async function executeAgentTool(
           ctx.vectorizeEnv,
           ctx.userId,
           goalTitle,
-          ctx.apiKey,
           { topK: 3, category: "goal" },
         )
 
@@ -1075,8 +1070,7 @@ export async function executeAgentTool(
               emotionalWeight: node.emotionalWeight,
               confidence: Math.min((node.confidence || 0) + 0.05, 1.0),
               source: "explicit",
-            },
-            ctx.apiKey,
+            }
           )
           return {
             toolName: name,
@@ -1101,8 +1095,7 @@ export async function executeAgentTool(
             emotionalWeight: 0.6,
             confidence: 0.7,
             source: "explicit",
-          },
-          ctx.apiKey,
+          }
         )
 
         return {

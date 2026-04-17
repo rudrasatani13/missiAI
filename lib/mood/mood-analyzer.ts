@@ -37,14 +37,10 @@ function isValidLabel(val: unknown): val is MoodLabel {
 /**
  * Analyzes the emotional tone of a conversation transcript via Gemini.
  * Always returns a valid MoodEntry — never throws.
- *
- * Note: geminiApiKey is kept in the signature for interface consistency but
- * auth is handled internally by geminiGenerate via vertex-client.
  */
 export async function analyzeMoodFromConversation(
   transcript: string,
   date: string,
-  _geminiApiKey: string,
   sessionId?: string,
 ): Promise<MoodEntry> {
   // Trim to last 800 chars to avoid token waste
@@ -116,7 +112,6 @@ const DAY_NAMES = [
  */
 export async function generateWeeklyInsight(
   entries: MoodEntry[],
-  _geminiApiKey: string,
 ): Promise<string> {
   const moodSummary = entries
     .map((e) => {

@@ -147,20 +147,9 @@ export async function POST(req: NextRequest) {
       const lastUserMessage = messages.filter((m) => m.role === "user").pop()
       const currentMessage = lastUserMessage?.content ?? ""
 
-      let apiKey = ""
-      try {
-        apiKey = getEnv().GEMINI_API_KEY
-      } catch {
-        apiKey = ""
-      }
-
+      
       const vectorizeEnv = getVectorizeEnv()
-      const memoryPromise = searchLifeGraph(
-        kv,
-        vectorizeEnv,
-        userId,
-        currentMessage,
-        apiKey,
+      const memoryPromise = searchLifeGraph(kv, vectorizeEnv, userId, currentMessage,
         { topK: 5 },
       )
       const MEMORY_TIMEOUT_MS = 6000
@@ -271,12 +260,11 @@ export async function POST(req: NextRequest) {
   // ── 9. Build Gemini request & stream ──────────────────────────────────────
   try {
     const appEnv = getEnv()
-    const apiKey = appEnv.GEMINI_API_KEY
 
     let requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens, undefined, customPrompt)
     let textStream: ReadableStream<import("@/lib/ai/gemini-stream").GeminiStreamEvent>
     try {
-      textStream = await streamGeminiResponse(apiKey, model, requestBody)
+      textStream = await streamGeminiResponse(model, requestBody)
     } catch (primaryErr) {
       // If primary model is overloaded (503), try fallback
       const fallback = getFallbackModel(model)
@@ -284,7 +272,7 @@ export async function POST(req: NextRequest) {
         logError('chat.primary_model_503', primaryErr, userId)
         model = fallback
         requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens, undefined, customPrompt)
-        textStream = await streamGeminiResponse(apiKey, model, requestBody)
+        textStream = await streamGeminiResponse(model, requestBody)
       } else {
         throw primaryErr
       }
@@ -351,10 +339,7 @@ export async function POST(req: NextRequest) {
                   .join("\n")
                 const today = new Date().toISOString().slice(0, 10)
                 const sessionId = crypto.randomUUID().slice(0, 8)
-                let geminiKey = ""
-                try { geminiKey = getEnv().GEMINI_API_KEY } catch { /* no-op */ }
-
-                analyzeMoodFromConversation(moodTranscript, today, geminiKey, sessionId)
+                analyzeMoodFromConversation(moodTranscript, today, sessionId)
                   .then((entry) => addMoodEntry(kv, userId, entry))
                   .catch(() => {})
               }

@@ -31,7 +31,6 @@ type ExtractedNode = Omit<
 export async function extractLifeNodes(
   conversation: ConversationEntry[],
   existingGraph: LifeGraph,
-  apiKey: string,
 ): Promise<ExtractedNode[]> {
   const recent = conversation.slice(-6)
 

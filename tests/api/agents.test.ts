@@ -23,8 +23,7 @@ vi.mock("@/lib/billing/usage-tracker", () => ({
 
 vi.mock("@/lib/server/env", () => ({
   getEnv: vi.fn().mockReturnValue({
-    GEMINI_API_KEY: "test-gemini-key",
-    GOOGLE_CLIENT_ID: "test-client-id",
+        GOOGLE_CLIENT_ID: "test-client-id",
     GOOGLE_CLIENT_SECRET: "test-client-secret",
   }),
 }))

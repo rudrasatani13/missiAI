@@ -545,15 +545,7 @@ function UserProfileCard({
 
   return (
     <div style={glassSection} className="mb-3">
-      <div
-        className="absolute -top-10 -right-10 w-24 h-24 rounded-full pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%)",
-          filter: "blur(12px)",
-        }}
-      />
-      <div className="relative z-10 flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <div className="relative">
           {userImageUrl ? (
             <img
@@ -561,17 +553,15 @@ function UserProfileCard({
               alt=""
               className="w-11 h-11 rounded-full"
               style={{
-                border: "2px solid rgba(255,255,255,0.1)",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                border: "1px solid rgba(255,255,255,0.1)",
               }}
             />
           ) : (
             <div
               className="w-11 h-11 rounded-full flex items-center justify-center"
               style={{
-                background:
-                  "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))",
-                border: "2px solid rgba(255,255,255,0.08)",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.08)",
               }}
             >
               <User className="w-5 h-5 text-white/50" />
@@ -579,10 +569,9 @@ function UserProfileCard({
           )}
           {(plan === "plus" || plan === "pro") && (
             <div
-              className="absolute -bottom-1 -right-1 p-[3px] rounded-full border-[1.5px] border-[#0c0c10] shadow-lg flex items-center justify-center"
+              className="absolute -bottom-1 -right-1 p-[3px] rounded-full border-[1.5px] border-[#0c0c10] flex items-center justify-center"
               style={{
-                background: "linear-gradient(135deg, #F59E0B, #D97706)",
-                boxShadow: "0 2px 8px rgba(245,158,11,0.3)",
+                background: "rgba(245,158,11,0.85)",
               }}
               title="PRO Member"
             >
@@ -623,7 +612,7 @@ function UserProfileCard({
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  color: "#4ade80",
+                  color: "rgba(255,255,255,0.7)",
                   padding: "2px",
                 }}
                 title="Save"
@@ -789,60 +778,94 @@ function InlinePersonaPicker({
   const isDefault = isLiveMode || !activePersona;
 
   return (
-    <div style={gs} className="mb-3">
+    <div>
+      {/* Eyebrow */}
       <p
-        className="text-[10px] font-semibold tracking-[0.12em] uppercase mb-3"
-        style={{ color: "rgba(255,255,255,0.35)" }}
+        style={{
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          color: "rgba(255,255,255,0.35)",
+          margin: "0 0 10px",
+        }}
       >
-        Voice & Persona
+        Voice &amp; Persona
       </p>
 
-      {/* Default Voice */}
+      {/* Default Voice row */}
       <button
         onClick={handleSwitchToDefault}
         data-testid="switch-to-default-voice-btn"
-        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all hover:bg-white/[0.06] mb-2"
+        className="w-full flex items-center gap-3 text-left transition-colors active:scale-[0.97]"
         style={{
-          background: isDefault ? "rgba(255,255,255,0.06)" : "transparent",
+          padding: "9px 10px 9px 12px",
+          borderRadius: 10,
+          background: isDefault ? "rgba(255,255,255,0.04)" : "transparent",
           border: isDefault
-            ? "1px solid rgba(255,255,255,0.12)"
+            ? "1px solid rgba(255,255,255,0.07)"
             : "1px solid transparent",
+          borderLeft: isDefault
+            ? "2px solid rgba(94,234,212,0.5)"
+            : "2px solid transparent",
           cursor: "pointer",
           color: "white",
+          marginBottom: 2,
         }}
       >
         <div
           style={{
-            width: 8,
-            height: 8,
+            width: 6,
+            height: 6,
             borderRadius: "50%",
-            background: "#4ADE80",
-            boxShadow: isDefault ? "0 0 6px #4ADE8030" : "none",
+            background: isDefault ? "rgba(94,234,212,0.8)" : "rgba(255,255,255,0.25)",
             flexShrink: 0,
           }}
         />
         <div className="flex-1 min-w-0">
           <p
-            className="text-[11px] font-medium"
             style={{
-              color: isDefault ? "#fff" : "rgba(255,255,255,0.5)",
+              fontSize: 12,
+              fontWeight: 500,
+              color: isDefault ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.5)",
               margin: 0,
+              lineHeight: 1.3,
+              letterSpacing: "-0.01em",
             }}
           >
             Missi Voice
           </p>
           <p
-            className="text-[8px] font-light"
-            style={{ color: "rgba(255,255,255,0.25)", margin: "1px 0 0" }}
+            style={{
+              fontSize: 11,
+              color: "rgba(255,255,255,0.35)",
+              margin: "2px 0 0",
+              lineHeight: 1.3,
+            }}
           >
             Real-time conversation
           </p>
         </div>
-        {isDefault && <Check className="w-3 h-3 text-emerald-400 opacity-70" />}
+        {isDefault && (
+          <Check
+            className="w-3 h-3 flex-shrink-0"
+            style={{ color: "rgba(255,255,255,0.6)" }}
+            strokeWidth={2.5}
+          />
+        )}
       </button>
 
-      {/* Persona list */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      {/* Hairline divider */}
+      <div
+        style={{
+          height: 1,
+          background: "rgba(255,255,255,0.05)",
+          margin: "8px 0",
+        }}
+      />
+
+      {/* Persona rows */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {ALL_PERSONAS.map((p) => {
           const isActive =
             !isDefault && activePersona?.displayName === p.displayName;
@@ -852,53 +875,79 @@ function InlinePersonaPicker({
               onClick={() => handleSelect(p)}
               disabled={saving}
               data-testid={`persona-inline-${p.id}-btn`}
-              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all hover:bg-white/[0.06]"
+              className="w-full flex items-center gap-3 text-left transition-colors active:scale-[0.97]"
               style={{
-                background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+                padding: "9px 10px 9px 12px",
+                borderRadius: 10,
+                background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
                 border: isActive
-                  ? "1px solid rgba(255,255,255,0.12)"
+                  ? "1px solid rgba(255,255,255,0.07)"
                   : "1px solid transparent",
+                borderLeft: isActive
+                  ? `2px solid ${p.accentColor}70`
+                  : "2px solid transparent",
                 cursor: saving ? "default" : "pointer",
-                opacity: isFreePlan ? 0.45 : saving ? 0.5 : 1,
+                opacity: isFreePlan ? 0.5 : saving ? 0.5 : 1,
                 color: "white",
               }}
             >
               <div
                 style={{
-                  width: 8,
-                  height: 8,
+                  width: 6,
+                  height: 6,
                   borderRadius: "50%",
                   background: p.accentColor,
-                  boxShadow: isActive ? `0 0 6px ${p.accentColor}40` : "none",
+                  opacity: isActive ? 1 : 0.5,
                   flexShrink: 0,
                 }}
               />
               <div className="flex-1 min-w-0">
                 <p
-                  className="text-[11px] font-medium"
                   style={{
-                    color: isActive ? "#fff" : "rgba(255,255,255,0.5)",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: isActive ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.55)",
                     margin: 0,
+                    lineHeight: 1.3,
+                    letterSpacing: "-0.01em",
                   }}
                 >
                   {p.displayName}
                 </p>
                 <p
-                  className="text-[8px] font-light"
-                  style={{ color: "rgba(255,255,255,0.25)", margin: "1px 0 0" }}
+                  style={{
+                    fontSize: 11,
+                    color: "rgba(255,255,255,0.35)",
+                    margin: "2px 0 0",
+                    lineHeight: 1.3,
+                  }}
                 >
                   {p.tagline}
                 </p>
               </div>
               {isFreePlan ? (
-                <div className="flex items-center gap-1">
-                  <Lock className="w-3 h-3 text-white/30" />
-                  <span className="text-[8px] font-semibold text-amber-400/60">
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Lock
+                    className="w-3 h-3"
+                    style={{ color: "rgba(255,255,255,0.25)" }}
+                  />
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: "0.08em",
+                      color: "rgba(255,255,255,0.3)",
+                    }}
+                  >
                     PLUS
                   </span>
                 </div>
               ) : isActive ? (
-                <Check className="w-3 h-3 opacity-50" />
+                <Check
+                  className="w-3 h-3 flex-shrink-0"
+                  style={{ color: "rgba(255,255,255,0.6)" }}
+                  strokeWidth={2.5}
+                />
               ) : null}
             </button>
           );

@@ -27,7 +27,6 @@ function errorResult(
 export async function executePluginCommand(
   command: PluginCommand,
   config: PluginConfig,
-  apiKey: string,
 ): Promise<PluginResult> {
   const { pluginId, action } = command
 
@@ -74,7 +73,7 @@ export async function executePluginCommand(
 
   // ── Google Calendar ───────────────────────────────────────────────────────
   if (pluginId === "google_calendar" && action === "create_event") {
-    const eventDetails = await parseEventFromCommand(command.rawUserMessage, apiKey)
+    const eventDetails = await parseEventFromCommand(command.rawUserMessage)
     const calendarId = config.settings.calendarId || "primary"
     return createCalendarEvent(config.credentials.accessToken, calendarId, eventDetails)
   }
@@ -112,7 +111,6 @@ export async function executePluginCommand(
 export async function buildPluginCommand(
   userMessage: string,
   pluginId: PluginId,
-  _apiKey: string,
 ): Promise<PluginCommand> {
   if (pluginId === "notion") {
     let title = "New Note"

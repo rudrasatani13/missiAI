@@ -88,7 +88,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 | Variable | Description |
 |--------------------------------------|------------------------------------------------|
-| `GEMINI_API_KEY` | Google AI Studio API key for Gemini models |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Vertex AI service account JSON |
 | `ELEVENLABS_API_KEY` | ElevenLabs API key for STT and TTS |
 | `ELEVENLABS_VOICE_ID` | ElevenLabs voice character ID |
 | `CLERK_SECRET_KEY` | Clerk secret key (server-side auth) |

@@ -11,7 +11,6 @@ const EMBEDDING_TIMEOUT_MS = 10_000
  */
 export async function generateEmbedding(
   text: string,
-  _apiKey: string,
 ): Promise<number[]> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), EMBEDDING_TIMEOUT_MS)

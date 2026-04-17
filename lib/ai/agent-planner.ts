@@ -62,8 +62,7 @@ function fallbackPlan(): AgentPlan {
 export async function buildAgentPlan(
   userMessage: string,
   availableTools: string[],
-  memoryContext: string,
-  _geminiApiKey?: string,
+  memoryContext: string
 ): Promise<AgentPlan> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), PLAN_TIMEOUT_MS)

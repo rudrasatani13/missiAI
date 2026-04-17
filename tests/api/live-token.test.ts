@@ -67,8 +67,8 @@ beforeEach(() => {
   // Setup default successful state
   mockGetVerifiedUserId.mockResolvedValue("user_123")
   mockGetUserPlan.mockResolvedValue("free")
-  mockCheckRateLimit.mockResolvedValue({ allowed: true, limit: 10, remaining: 9, reset: 0 })
-  mockCheckVoiceLimit.mockResolvedValue({ allowed: true, current: 0, max: 100 })
+  mockCheckRateLimit.mockResolvedValue({ allowed: true, limit: 10, remaining: 9, resetAt: 0, retryAfter: 0 })
+  mockCheckVoiceLimit.mockResolvedValue({ allowed: true, usedSeconds: 0, limitSeconds: 100, remainingSeconds: 100 })
   mockIsVertexAI.mockReturnValue(false)
   mockGetGeminiLiveWsUrl.mockResolvedValue("wss://gemini.test.com/ws")
 
@@ -96,7 +96,7 @@ describe("POST /api/v1/live-token", () => {
   })
 
   it("returns 429 if rate limit is exceeded", async () => {
-    mockCheckRateLimit.mockResolvedValue({ allowed: false, limit: 10, remaining: 0, reset: 0 })
+    mockCheckRateLimit.mockResolvedValue({ allowed: false, limit: 10, remaining: 0, resetAt: 0, retryAfter: 60 })
 
     const response = await POST()
     const body = await response.json()
@@ -106,7 +106,7 @@ describe("POST /api/v1/live-token", () => {
   })
 
   it("returns 429 if voice time limit is reached", async () => {
-    mockCheckVoiceLimit.mockResolvedValue({ allowed: false, current: 100, max: 100 })
+    mockCheckVoiceLimit.mockResolvedValue({ allowed: false, usedSeconds: 100, limitSeconds: 100, remainingSeconds: 0 })
 
     const response = await POST()
     const body = await response.json()

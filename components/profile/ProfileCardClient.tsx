@@ -374,7 +374,7 @@ function ThemeSelector({
             key={t.id}
             onClick={() => onChange(t.id)}
             title={t.name}
-            className="relative transition-all hover:scale-110"
+            className="relative transition-opacity active:scale-[0.97]"
             style={{
               width: 28,
               height: 28,
@@ -382,7 +382,6 @@ function ThemeSelector({
               background: t.preview,
               border: current === t.id ? '2px solid rgba(255,255,255,0.6)' : '2px solid rgba(255,255,255,0.1)',
               cursor: 'pointer',
-              boxShadow: current === t.id ? '0 0 12px rgba(255,255,255,0.15)' : 'none',
             }}
           >
             {current === t.id && (
@@ -522,16 +521,16 @@ function ShareSheet({
                     style={{
                       width: 50,
                       height: 50,
-                      background: copied ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.06)',
+                      background: copied ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.06)',
                     }}
                   >
                     {copied ? (
-                      <Check className="w-6 h-6" style={{ color: '#4ade80' }} />
+                      <Check className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.7)' }} />
                     ) : (
                       <Copy className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.45)' }} />
                     )}
                   </div>
-                  <span className="text-[10px] font-medium" style={{ color: copied ? '#4ade80' : 'rgba(255,255,255,0.4)' }}>
+                  <span className="text-[10px] font-medium" style={{ color: copied ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.4)' }}>
                     {copied ? 'Copied!' : 'Copy'}
                   </span>
                 </button>
@@ -676,12 +675,12 @@ export function ProfileCardClient() {
     return (
       <div
         className="min-h-screen flex flex-col items-center justify-start px-4 py-8 md:py-12"
-        style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(20,20,30,1) 0%, #000000 60%)' }}
+        style={{ background: '#060608' }}
       >
         <div className="w-full max-w-[640px]">
           <div className="mb-10">
-            <Link href="/chat" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full opacity-50 hover:opacity-90 transition-all hover:bg-white/5 no-underline" style={{ color: 'white' }}>
-              <ArrowLeft className="w-4 h-4" />
+            <Link href="/chat" className="inline-flex items-center gap-2 transition-colors no-underline" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <ArrowLeft className="w-3.5 h-3.5" />
               <span className="text-xs font-light tracking-wide">Back</span>
             </Link>
           </div>
@@ -696,9 +695,9 @@ export function ProfileCardClient() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(20,20,30,1) 0%, #000000 60%)' }}>
+      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#060608' }}>
         <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>Could not load your profile card.</p>
-        <button onClick={() => fetchCard()} className="px-5 py-2 rounded-full text-xs font-medium transition-all hover:scale-105" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
+        <button onClick={() => fetchCard()} className="px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
           Try again
         </button>
       </div>
@@ -711,30 +710,38 @@ export function ProfileCardClient() {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-start px-4 py-8 md:py-12"
-      style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(20,20,30,1) 0%, #000000 60%)' }}
+      style={{ background: '#060608' }}
     >
-      {/* Ambient background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[20%] w-[500px] h-[500px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.06) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-[-10%] right-[10%] w-[400px] h-[400px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.04) 0%, transparent 70%)' }} />
-      </div>
+      {/* Fixed ambient field — violet */}
+      <div
+        aria-hidden
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          background: 'radial-gradient(500px circle at 30% 20%, rgba(139,92,246,0.06), transparent 60%), radial-gradient(380px circle at 70% 80%, rgba(99,102,241,0.04), transparent 65%)',
+          filter: 'blur(100px)',
+        }}
+      />
 
       <div className="w-full max-w-[640px] relative z-10">
         {/* Header: Back + Refresh */}
-        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="flex items-center justify-between mb-6">
-          <Link href="/chat" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full opacity-50 hover:opacity-90 transition-all hover:bg-white/5 no-underline" style={{ color: 'white' }}>
-            <ArrowLeft className="w-4 h-4" />
+        <div className="flex items-center justify-between mb-6">
+          <Link
+            href="/chat"
+            className="inline-flex items-center gap-2 transition-colors no-underline"
+            style={{ color: 'rgba(255,255,255,0.4)' }}
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
             <span className="text-xs font-light tracking-wide">Back</span>
           </Link>
           <button
             onClick={() => fetchCard(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-light transition-all hover:scale-105 hover:bg-white/5"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-light transition-colors active:scale-[0.97]"
             style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
           >
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>
-        </motion.div>
+        </div>
 
         {/* Theme Selector */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="flex justify-center mb-5">
@@ -747,9 +754,9 @@ export function ProfileCardClient() {
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTheme}
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           >
             <div
@@ -774,22 +781,12 @@ export function ProfileCardClient() {
               <div className="relative flex flex-col items-center mb-6">
                 <div className="relative mb-4">
                   <div
-                    className="absolute inset-0 rounded-full"
-                    style={{
-                      background: `radial-gradient(circle, ${tierColors.colorStart}40, transparent 70%)`,
-                      filter: 'blur(16px)',
-                      transform: 'scale(1.6)',
-                      animation: 'orbPulse 3s ease-in-out infinite',
-                    }}
-                  />
-                  <div
                     className="relative flex items-center justify-center"
                     style={{
                       width: 80,
                       height: 80,
                       borderRadius: '50%',
                       background: `linear-gradient(135deg, ${tierColors.colorStart}, ${tierColors.colorEnd})`,
-                      boxShadow: `0 0 30px ${tierColors.colorStart}40, 0 0 60px ${tierColors.colorStart}15`,
                     }}
                   >
                     <span className="text-white font-medium" style={{ fontSize: 32, lineHeight: 1 }}>
@@ -922,13 +919,12 @@ export function ProfileCardClient() {
           <button
             onClick={() => captureAndShare({ id: 'download', name: 'Download', icon: Download as never, color: '#fff', bgColor: '', borderColor: '', action: 'download' })}
             disabled={capturing !== null}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-medium transition-all hover:scale-105 active:scale-95"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
             style={{
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.1)',
               color: 'rgba(255,255,255,0.6)',
               cursor: capturing !== null ? 'default' : 'pointer',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
             }}
           >
             <Download className="w-3.5 h-3.5" />
@@ -937,13 +933,12 @@ export function ProfileCardClient() {
 
           <button
             onClick={() => setShareSheetOpen(true)}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-medium transition-all hover:scale-105 active:scale-95"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
             style={{
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06))',
-              border: '1px solid rgba(255,255,255,0.18)',
-              color: 'rgba(255,255,255,0.9)',
+              background: 'rgba(255,255,255,0.9)',
+              border: '1px solid transparent',
+              color: '#0a0a0f',
               cursor: 'pointer',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
             }}
           >
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -967,12 +962,6 @@ export function ProfileCardClient() {
         capturing={capturing}
       />
 
-      <style>{`
-        @keyframes orbPulse {
-          0%, 100% { opacity: 0.6; transform: scale(1.5); }
-          50% { opacity: 0.9; transform: scale(1.7); }
-        }
-      `}</style>
     </div>
   )
 }

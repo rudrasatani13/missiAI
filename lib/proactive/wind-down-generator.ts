@@ -75,7 +75,6 @@ function assignNodeIds(items: BriefingItem[], graph: LifeGraph): BriefingItem[] 
 export async function generateEveningReflection(
   graph: LifeGraph,
   config: ProactiveConfig,
-  apiKey: string,
 ): Promise<EveningReflection> {
   const date = new Date().toISOString().slice(0, 10)
   const tone = determineTone(graph)

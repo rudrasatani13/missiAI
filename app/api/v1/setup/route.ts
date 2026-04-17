@@ -98,13 +98,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Add memories to LifeGraph (if KV is available)
     if (kv) {
-      let apiKey = ''
-      try {
-        apiKey = getEnv().GEMINI_API_KEY
-      } catch {
-        apiKey = ''
-      }
-
+      
       const vectorizeEnv = getVectorizeEnv()
 
       // Add Name Memory

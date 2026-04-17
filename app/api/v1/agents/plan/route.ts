@@ -154,7 +154,7 @@ export async function POST(req: Request): Promise<Response> {
   let memoryContext = ""
   try {
     const results = await Promise.race([
-      searchLifeGraph(kv, vectorizeEnv, userId, message, appEnv.GEMINI_API_KEY, { topK: 3 }),
+      searchLifeGraph(kv, vectorizeEnv, userId, message, { topK: 3 }),
       new Promise<[]>(res => setTimeout(() => res([]), 3_000)),
     ])
     if (results.length > 0) {
@@ -176,7 +176,7 @@ export async function POST(req: Request): Promise<Response> {
   availableTools = availableTools.filter(t => declaredNames.has(t))
 
   // Build plan
-  const agentPlan = await buildAgentPlan(message, availableTools, memoryContext, appEnv.GEMINI_API_KEY)
+  const agentPlan = await buildAgentPlan(message, availableTools, memoryContext)
 
   // Issue confirmation token for ALL plans with steps (not just destructive ones)
   // This ensures the confirm route always receives a valid token string,

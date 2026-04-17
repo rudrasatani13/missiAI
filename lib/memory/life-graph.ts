@@ -60,7 +60,6 @@ export async function addOrUpdateNodes(
     LifeNode,
     'id' | 'createdAt' | 'updatedAt' | 'accessCount' | 'lastAccessedAt'
   >[],
-  geminiApiKey: string,
 ): Promise<LifeNode[]> {
   const now = Date.now()
   const results: LifeNode[] = []
@@ -71,13 +70,11 @@ export async function addOrUpdateNodes(
     // 1. Generate cosine similarity embedding via Vectorize
     let embedding: number[] | null = null
 
-    if (geminiApiKey) {
-      try {
-        const inputText = buildEmbeddingText(nodeInput)
-        embedding = await generateEmbedding(inputText, geminiApiKey)
-      } catch {
-        // Embedding failed — continue without cosine check
-      }
+    try {
+      const inputText = buildEmbeddingText(nodeInput)
+      embedding = await generateEmbedding(inputText)
+    } catch {
+      // Embedding failed — continue without cosine check
     }
 
     return { nodeInput, embedding }
@@ -136,13 +133,11 @@ export async function addOrUpdateNodes(
       resultNode = existingNode
 
       // Re-generate embedding for the updated node
-      if (geminiApiKey) {
-        try {
-          const updatedText = buildEmbeddingText(resultNode)
-          finalEmbedding = await generateEmbedding(updatedText, geminiApiKey)
-        } catch {
-          // Keep the original embedding
-        }
+      try {
+        const updatedText = buildEmbeddingText(resultNode)
+        finalEmbedding = await generateEmbedding(updatedText)
+      } catch {
+        // Keep the original embedding
       }
     } else {
       // ── Create new node ───────────────────────────────────────────────────
@@ -189,9 +184,8 @@ export async function addOrUpdateNode(
     LifeNode,
     'id' | 'createdAt' | 'updatedAt' | 'accessCount' | 'lastAccessedAt'
   >,
-  geminiApiKey: string,
 ): Promise<LifeNode> {
-  const results = await addOrUpdateNodes(kv, vectorizeEnv, userId, [nodeInput], geminiApiKey)
+  const results = await addOrUpdateNodes(kv, vectorizeEnv, userId, [nodeInput])
   return results[0]
 }
 
@@ -202,16 +196,15 @@ export async function searchLifeGraph(
   vectorizeEnv: VectorizeEnv | null,
   userId: string,
   query: string,
-  geminiApiKey: string,
   options?: { topK?: number; category?: MemoryCategory },
 ): Promise<MemorySearchResult[]> {
   const graph = await getLifeGraph(kv, userId)
   let results: MemorySearchResult[] = []
 
   // Try Vectorize first
-  if (vectorizeEnv && geminiApiKey) {
+  if (vectorizeEnv) {
     try {
-      const queryEmbedding = await generateEmbedding(query, geminiApiKey)
+      const queryEmbedding = await generateEmbedding(query)
       results = await searchSimilarNodes(vectorizeEnv, queryEmbedding, userId, {
         topK: options?.topK ?? 10,
         category: options?.category,

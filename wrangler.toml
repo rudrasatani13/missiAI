@@ -8,7 +8,6 @@ compatibility_flags = ["nodejs_compat"]
 # values in this file or any .env.*.local file that could be committed.
 #
 # AI providers
-# - GEMINI_API_KEY
 # - ELEVENLABS_API_KEY
 # - ELEVENLABS_VOICE_ID
 #

@@ -78,16 +78,15 @@ export async function POST(req: Request) {
 
   try {
     const appEnv = getEnv()
-    const apiKey = appEnv.GEMINI_API_KEY
 
-    const intent = await detectIntent(userMessage, conversationContext ?? "", apiKey)
+    const intent = await detectIntent(userMessage, conversationContext ?? "")
 
     if (!isActionable(intent)) {
       logRequest("action.not_actionable", userId, startTime, { type: intent.type, confidence: intent.confidence })
       return successResponse({ actionable: false, intent }, 200, rateLimitHeaders(rateResult))
     }
 
-    const result = await executeAction(intent, apiKey)
+    const result = await executeAction(intent)
 
     // Save reminders and notes to KV
     const kv = getKV()

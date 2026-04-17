@@ -1,9 +1,8 @@
 /**
- * Unified Gemini API Client — Dual Backend Support
+ * Vertex AI API Client
  *
- * Abstracts the difference between Google AI Studio (API key) and
- * Vertex AI (OAuth2 access token) so callers don't need to know
- * which backend is configured.
+ * Provides a streamlined interface to Google Cloud Vertex AI
+ * for generating content, streaming, and embeddings.
  *
  * Usage:
  *   const res = await geminiGenerate(model, requestBody)
@@ -18,55 +17,7 @@ import {
   isVertexAI,
 } from "./vertex-auth"
 
-// ─── Model Availability ─────────────────────────────────────────────────────────
-
-/**
- * Models that are NOT yet available on Vertex AI and must always use
- * Google AI Studio regardless of the AI_BACKEND setting.
- * Update this list as Google rolls out models to Vertex AI.
- *
- * As of April 2026, gemini-3-flash-preview and related models are
- * available on Vertex AI, so this list is empty — all traffic goes
- * through Vertex to use the $300 free credits.
- */
-const GOOGLE_AI_ONLY_MODELS = new Set<string>([
-  // All models are now available on Vertex AI
-])
-
-/**
- * Map of model names to their Vertex AI equivalents.
- * If a model is not in this map, it's used as-is.
- */
-const VERTEX_MODEL_MAP: Record<string, string> = {
-  // Preview → stable equivalents on Vertex AI
-  // Add mappings here as needed
-}
-
-/**
- * Check if a specific model should use Google AI Studio
- * (because it's not available on Vertex AI yet).
- */
-function shouldUseGoogleAI(model: string): boolean {
-  return GOOGLE_AI_ONLY_MODELS.has(model)
-}
-
-/** Resolve model name for the chosen backend. */
-function resolveVertexModel(model: string): string {
-  return VERTEX_MODEL_MAP[model] || model
-}
-
 // ─── URL Builders ───────────────────────────────────────────────────────────────
-
-/**
- * Build the REST API URL for a Gemini model endpoint.
- * @param model - Model name (e.g. "gemini-3-flash-preview")
- * @param method - API method (e.g. "generateContent", "streamGenerateContent", "embedContent")
- * @param queryParams - Optional query parameters (e.g. "alt=sse")
- */
-function buildGoogleAIUrl(model: string, method: string, queryParams?: string): string {
-  const base = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${method}`
-  return queryParams ? `${base}?${queryParams}` : base
-}
 
 function buildVertexAIUrl(model: string, method: string, queryParams?: string): string {
   const project = getVertexProjectId()
@@ -99,19 +50,16 @@ const GLOBAL_ENDPOINT_MODELS = new Set<string>([
 // ─── Auth Headers ───────────────────────────────────────────────────────────────
 
 /**
- * Get the appropriate auth headers for the configured backend.
- * If forceGoogleAI is true, always use the API key (for models not on Vertex).
+ * Get the appropriate auth headers for Vertex AI frontend.
  */
-async function getAuthHeaders(forceGoogleAI: boolean = false): Promise<Record<string, string>> {
-  if (isVertexAI() && !forceGoogleAI) {
-    const token = await getVertexAccessToken()
-    if (!token) throw new Error("Failed to obtain Vertex AI access token")
-    return { Authorization: `Bearer ${token}` }
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  if (!isVertexAI()) {
+    throw new Error("Only Vertex AI backend is supported. Please ensure AI_BACKEND is set to 'vertex'.")
   }
 
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured")
-  return { "x-goog-api-key": apiKey }
+  const token = await getVertexAccessToken()
+  if (!token) throw new Error("Failed to obtain Vertex AI access token")
+  return { Authorization: `Bearer ${token}` }
 }
 
 // ─── Public API ─────────────────────────────────────────────────────────────────
@@ -125,18 +73,12 @@ export async function geminiGenerate(
   body: Record<string, unknown>,
   options?: { signal?: AbortSignal }
 ): Promise<Response> {
-  // Some preview models aren't on Vertex AI yet — fall back to Google AI Studio
-  const forceGoogleAI = shouldUseGoogleAI(model)
-  const useVertex = isVertexAI() && !forceGoogleAI
-  const resolvedModel = useVertex ? resolveVertexModel(model) : model
-  const useGlobalEndpoint = useVertex && GLOBAL_ENDPOINT_MODELS.has(resolvedModel)
-  const url = useVertex
-    ? (useGlobalEndpoint
-        ? buildVertexAIGlobalUrl(resolvedModel, "generateContent")
-        : buildVertexAIUrl(resolvedModel, "generateContent"))
-    : buildGoogleAIUrl(resolvedModel, "generateContent")
+  const useGlobalEndpoint = GLOBAL_ENDPOINT_MODELS.has(model)
+  const url = useGlobalEndpoint
+    ? buildVertexAIGlobalUrl(model, "generateContent")
+    : buildVertexAIUrl(model, "generateContent")
 
-  const authHeaders = await getAuthHeaders(forceGoogleAI)
+  const authHeaders = await getAuthHeaders()
 
   return fetch(url, {
     method: "POST",
@@ -158,14 +100,9 @@ export async function geminiGenerateStream(
   body: Record<string, unknown>,
   options?: { signal?: AbortSignal }
 ): Promise<Response> {
-  const forceGoogleAI = shouldUseGoogleAI(model)
-  const useVertex = isVertexAI() && !forceGoogleAI
-  const resolvedModel = useVertex ? resolveVertexModel(model) : model
-  const url = useVertex
-    ? buildVertexAIUrl(resolvedModel, "streamGenerateContent", "alt=sse")
-    : buildGoogleAIUrl(resolvedModel, "streamGenerateContent", "alt=sse")
+  const url = buildVertexAIUrl(model, "streamGenerateContent", "alt=sse")
 
-  const authHeaders = await getAuthHeaders(forceGoogleAI)
+  const authHeaders = await getAuthHeaders()
 
   return fetch(url, {
     method: "POST",
@@ -187,17 +124,11 @@ export async function geminiEmbed(
   options?: { signal?: AbortSignal }
 ): Promise<Response> {
   const embeddingModel = "text-embedding-004"
-  const useVertex = isVertexAI()
-  const url = useVertex
-    ? buildVertexAIUrl(embeddingModel, "embedContent")
-    : buildGoogleAIUrl(embeddingModel, "embedContent")
+  const url = buildVertexAIUrl(embeddingModel, "embedContent")
 
   const authHeaders = await getAuthHeaders()
 
-  // Vertex AI uses different body format for model reference
-  const body = useVertex
-    ? { content: { parts: [{ text }] } }
-    : { model: `models/${embeddingModel}`, content: { parts: [{ text }] } }
+  const body = { content: { parts: [{ text }] } }
 
   return fetch(url, {
     method: "POST",
@@ -211,23 +142,16 @@ export async function geminiEmbed(
 }
 
 /**
- * Get the WebSocket URL for Gemini Live API.
- * For Google AI Studio: includes API key as query param.
- * For Vertex AI: includes OAuth access token as query param.
- *
- * Pass forceGoogleAI=true to always use the Google AI Studio endpoint,
- * regardless of the configured backend (needed for preview-only models
- * like gemini-3.1-flash-live-preview that aren't on Vertex AI yet).
+ * Get the WebSocket URL for Gemini Live API via Vertex AI.
  */
-export async function getGeminiLiveWsUrl(forceGoogleAI: boolean = false): Promise<string> {
-  if (isVertexAI() && !forceGoogleAI) {
-    const token = await getVertexAccessToken()
-    if (!token) throw new Error("Failed to obtain Vertex AI access token for Live API")
-    const location = getVertexLocation()
-    return `wss://${location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent?access_token=${token}`
+export async function getGeminiLiveWsUrl(): Promise<string> {
+  if (!isVertexAI()) {
+    throw new Error("Only Vertex AI backend is supported for Live API")
   }
 
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured")
-  return `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`
+  const token = await getVertexAccessToken()
+  if (!token) throw new Error("Failed to obtain Vertex AI access token for Live API")
+  
+  const location = getVertexLocation()
+  return `wss://${location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent?access_token=${token}`
 }

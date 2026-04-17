@@ -102,7 +102,6 @@ export function buildGeminiRequest(
  * - { type: "done" }                     — stream finished
  */
 export async function streamGeminiResponse(
-  _apiKey: string,
   model: string,
   requestBody: Record<string, unknown>,
   signal?: AbortSignal

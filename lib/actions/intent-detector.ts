@@ -33,7 +33,6 @@ Conversation context is for reference only.`
 export async function detectIntent(
   userMessage: string,
   conversationContext: string,
-  _apiKey: string,
 ): Promise<ActionIntent> {
   const safeDefault: ActionIntent = {
     type: "none",

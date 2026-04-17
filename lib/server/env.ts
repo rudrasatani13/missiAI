@@ -26,7 +26,6 @@ const requiredString = z.preprocess((val) => {
 }, z.string({ required_error: "Missing required environment variable" }));
 
 const envSchema = z.object({
-  GEMINI_API_KEY: z.string().default(""),
   ELEVENLABS_API_KEY: requiredString,
   ELEVENLABS_VOICE_ID: emptyStringToUndefined,
   ELEVENLABS_VOICE_CALM: emptyStringToUndefined,

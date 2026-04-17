@@ -78,7 +78,7 @@ export async function POST() {
   })()
 
   try {
-    const wsUrl = await getGeminiLiveWsUrl(false)
+    const wsUrl = await getGeminiLiveWsUrl()
 
     logRequest("live-token.created", userId, startTime)
 

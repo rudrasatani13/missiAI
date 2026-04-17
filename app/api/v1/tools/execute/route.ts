@@ -113,7 +113,6 @@ export async function POST(req: NextRequest) {
     kv,
     vectorizeEnv,
     userId,
-    apiKey: appEnv.GEMINI_API_KEY,
     googleClientId: appEnv.GOOGLE_CLIENT_ID,
     googleClientSecret: appEnv.GOOGLE_CLIENT_SECRET,
     resendApiKey: appEnv.RESEND_API_KEY,

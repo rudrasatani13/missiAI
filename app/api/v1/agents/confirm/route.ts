@@ -127,7 +127,6 @@ export async function POST(req: Request): Promise<Response> {
     kv,
     vectorizeEnv,
     userId,
-    apiKey: appEnv.GEMINI_API_KEY,
     googleClientId: appEnv.GOOGLE_CLIENT_ID,
     googleClientSecret: appEnv.GOOGLE_CLIENT_SECRET,
   }

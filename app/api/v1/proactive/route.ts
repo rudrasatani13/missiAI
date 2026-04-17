@@ -94,14 +94,8 @@ export async function GET(_req: NextRequest) {
     const graph = await getLifeGraph(kv, userId)
     const config = await getProactiveConfig(kv, userId)
 
-    let apiKey = ''
-    try {
-      apiKey = getEnv().GEMINI_API_KEY
-    } catch {
-      apiKey = ''
-    }
-
-    const briefing = await generateDailyBriefing(graph, config, apiKey)
+    
+    const briefing = await generateDailyBriefing(graph, config)
     briefing.userId = userId
 
     await kv.put(key, JSON.stringify(briefing), { expirationTtl: 6 * 60 * 60 })

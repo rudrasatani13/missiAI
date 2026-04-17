@@ -71,7 +71,7 @@ function GlassCard({
   children,
   className = '',
   delay = 0,
-  glow,
+  glow: _glow,
 }: {
   children: React.ReactNode
   className?: string
@@ -80,30 +80,19 @@ function GlassCard({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay, ease: [0.16, 1, 0.3, 1] }}
-      className={`relative rounded-2xl overflow-hidden ${className}`}
+      transition={{ duration: 0.35, delay, ease: [0.16, 1, 0.3, 1] }}
+      className={`rounded-2xl ${className}`}
       style={{
-        background: glow
-          ? 'linear-gradient(135deg, rgba(15,15,20,0.95), rgba(8,8,12,0.98))'
-          : 'rgba(12,12,16,0.95)',
+        background: 'rgba(20,20,26,0.55)',
+        backdropFilter: 'blur(24px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(140%)',
         border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
-        isolation: 'isolate',
+        boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
       }}
     >
-      {glow && (
-        <div
-          className="absolute -top-20 -right-20 w-44 h-44 rounded-full pointer-events-none"
-          style={{
-            background: `radial-gradient(circle, ${glow} 0%, transparent 70%)`,
-            opacity: 0.12,
-            filter: 'blur(20px)',
-          }}
-        />
-      )}
-      <div className="relative z-10">{children}</div>
+      {children}
     </motion.div>
   )
 }
@@ -136,8 +125,8 @@ function StatsRow({
   averageScore: number
 }) {
   const pills = [
-    { label: 'days tracked', value: totalDaysTracked.toString(), color: 'rgba(99,102,241,0.8)' },
-    { label: 'day streak', value: currentStreak.toString(), color: 'rgba(34,197,94,0.8)' },
+    { label: 'days tracked', value: totalDaysTracked.toString(), color: 'rgba(255,255,255,0.85)' },
+    { label: 'day streak', value: currentStreak.toString(), color: 'rgba(255,255,255,0.85)' },
     { label: 'avg mood', value: `${averageScore.toFixed(1)} / 10`, color: moodColorSolid(averageScore) },
   ]
 
@@ -148,12 +137,12 @@ function StatsRow({
           key={label}
           className="flex items-center gap-2 px-4 py-2 rounded-full"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.07)',
           }}
         >
           <span className="text-sm font-semibold" style={{ color }}>{value}</span>
-          <span className="text-xs font-light" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</span>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</span>
         </div>
       ))}
     </div>
@@ -342,12 +331,13 @@ function MoodHeatmap({
                   width: 160,
                   zIndex: 50,
                   pointerEvents: 'none',
-                  background: 'rgba(10,10,14,0.92)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(20,20,26,0.85)',
+                  border: '1px solid rgba(255,255,255,0.08)',
                   borderRadius: 10,
                   padding: '8px 10px',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                  backdropFilter: 'blur(24px) saturate(140%)',
+                  WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
                 }}
               >
                 <p
@@ -422,8 +412,8 @@ function MoodLineChartTooltip({
         width={100}
         height={40}
         rx={6}
-        fill="rgba(10,10,14,0.92)"
-        stroke="rgba(255,255,255,0.1)"
+        fill="rgba(20,20,26,0.88)"
+        stroke="rgba(255,255,255,0.08)"
       />
       <text
         x={Math.max(PAD_L + 50, Math.min(p.x, W - PAD_R - 50))}
@@ -529,8 +519,8 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
       >
         <defs>
           <linearGradient id="moodAreaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(99,102,241,0.35)" />
-            <stop offset="100%" stopColor="rgba(99,102,241,0)" />
+            <stop offset="0%" stopColor="rgba(255,255,255,0.08)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
           </linearGradient>
         </defs>
 
@@ -574,8 +564,8 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
         <path
           d={linePath}
           fill="none"
-          stroke="rgba(99,102,241,0.9)"
-          strokeWidth={2}
+          stroke="rgba(255,255,255,0.45)"
+          strokeWidth={1.5}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -586,10 +576,10 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
             <circle
               cx={p.x}
               cy={p.y}
-              r={hovered === i ? 6 : 4}
-              fill={hovered === i ? moodColorSolid(p.entry.score) : 'rgba(99,102,241,0.9)'}
+              r={hovered === i ? 5 : 3}
+              fill={hovered === i ? moodColorSolid(p.entry.score) : 'rgba(255,255,255,0.55)'}
               stroke="rgba(0,0,0,0.4)"
-              strokeWidth={1.5}
+              strokeWidth={1}
               style={{ cursor: 'pointer', transition: 'all 0.12s' }}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
@@ -632,84 +622,87 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
 function WeeklyInsightCard({ insight }: { insight: WeeklyMoodInsight }) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.97 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="relative rounded-2xl p-5 overflow-hidden"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-2xl p-5"
       style={{
-        background: 'linear-gradient(135deg, rgba(20,18,40,0.97), rgba(10,10,20,0.98))',
-        border: '1px solid rgba(99,102,241,0.2)',
-        backdropFilter: 'blur(16px)',
-        boxShadow: '0 8px 32px rgba(99,102,241,0.08)',
+        background: 'rgba(20,20,26,0.55)',
+        backdropFilter: 'blur(24px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
       }}
     >
-      {/* Ambient glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse at top left, rgba(99,102,241,0.06) 0%, transparent 60%)',
-        }}
-      />
+      {/* Eyebrow */}
+      <p style={{
+        fontSize: 10,
+        fontWeight: 600,
+        letterSpacing: '0.18em',
+        textTransform: 'uppercase',
+        color: 'rgba(255,255,255,0.35)',
+        margin: '0 0 10px',
+      }}>
+        Weekly insight
+      </p>
 
-      {/* Sparkle icon */}
-      <Sparkles
-        className="absolute top-4 right-4 w-4 h-4"
-        style={{ color: 'rgba(99,102,241,0.6)' }}
-      />
-
-      <div className="relative z-10">
+      <div className="flex items-start justify-between gap-3">
         {/* Insight text */}
         <p
-          className="text-sm leading-relaxed font-light"
+          className="text-sm leading-relaxed flex-1"
           style={{
-            color: 'rgba(255,255,255,0.85)',
+            color: 'rgba(255,255,255,0.75)',
             fontStyle: 'italic',
-            maxWidth: '90%',
           }}
         >
           {insight.insight}
         </p>
+        <Sparkles
+          className="w-3.5 h-3.5 flex-shrink-0 mt-0.5"
+          style={{ color: 'rgba(255,255,255,0.25)' }}
+        />
+      </div>
 
-        {/* Meta row */}
-        <div className="flex items-center gap-3 mt-4 flex-wrap">
+      {/* Meta row */}
+      <div className="flex items-center gap-3 mt-4 flex-wrap">
+        <span
+          className="text-[10px]"
+          style={{ color: 'rgba(255,255,255,0.3)' }}
+        >
+          {insight.weekLabel}
+        </span>
+
+        <div
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+          style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.07)',
+          }}
+        >
           <span
-            className="text-[10px] font-light"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
+            className="text-sm font-semibold"
+            style={{ color: moodColorSolid(insight.averageScore) }}
           >
-            {insight.weekLabel}
+            {insight.averageScore.toFixed(1)}
           </span>
-
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-            style={{
-              background: `${moodColorSolid(insight.averageScore)}18`,
-              border: `1px solid ${moodColorSolid(insight.averageScore)}30`,
-            }}
-          >
-            <span
-              className="text-sm font-bold"
-              style={{ color: moodColorSolid(insight.averageScore) }}
-            >
-              {insight.averageScore.toFixed(1)}
-            </span>
-            <span
-              className="text-[10px] font-light"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
-            >
-              avg
-            </span>
-          </div>
-
           <span
-            className="text-[10px] font-medium capitalize px-2 py-0.5 rounded-full"
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              color: 'rgba(255,255,255,0.5)',
-            }}
+            className="text-[10px]"
+            style={{ color: 'rgba(255,255,255,0.35)' }}
           >
-            {insight.dominantLabel}
+            avg
           </span>
         </div>
+
+        <span
+          className="text-[10px] font-medium capitalize px-2 py-0.5 rounded-full"
+          style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            color: 'rgba(255,255,255,0.5)',
+          }}
+        >
+          {insight.dominantLabel}
+        </span>
       </div>
     </motion.div>
   )
@@ -758,10 +751,10 @@ function ManualMoodForm({ onSaved }: { onSaved: () => void }) {
       {!show ? (
         <button
           onClick={() => setShow(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all hover:scale-105"
+          className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
           style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
             color: 'rgba(255,255,255,0.6)',
             cursor: 'pointer',
           }}
@@ -777,7 +770,9 @@ function ManualMoodForm({ onSaved }: { onSaved: () => void }) {
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           className="rounded-2xl p-5 flex flex-col gap-4"
           style={{
-            background: 'rgba(12,12,18,0.98)',
+            background: 'rgba(20,20,26,0.55)',
+            backdropFilter: 'blur(24px) saturate(140%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(140%)',
             border: '1px solid rgba(255,255,255,0.08)',
           }}
         >
@@ -848,13 +843,11 @@ function ManualMoodForm({ onSaved }: { onSaved: () => void }) {
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 rounded-full text-xs font-medium transition-all hover:scale-105 active:scale-95"
+              className="px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
               style={{
-                background: saving
-                  ? 'rgba(255,255,255,0.06)'
-                  : 'linear-gradient(135deg, rgba(99,102,241,0.6), rgba(99,102,241,0.3))',
-                border: '1px solid rgba(99,102,241,0.4)',
-                color: 'rgba(255,255,255,0.85)',
+                background: saving ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.9)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: saving ? 'rgba(255,255,255,0.35)' : '#0a0a0f',
                 cursor: saving ? 'default' : 'pointer',
               }}
             >
@@ -863,11 +856,11 @@ function ManualMoodForm({ onSaved }: { onSaved: () => void }) {
             <button
               type="button"
               onClick={() => setShow(false)}
-              className="px-4 py-2 rounded-full text-xs font-light"
+              className="px-4 py-2 rounded-full text-xs transition-colors"
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'rgba(255,255,255,0.3)',
+                color: 'rgba(255,255,255,0.35)',
                 cursor: 'pointer',
               }}
             >
@@ -888,8 +881,8 @@ const labelStyle: React.CSSProperties = {
   color: 'rgba(255,255,255,0.35)',
   marginBottom: 6,
   textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  fontWeight: 500,
+  letterSpacing: '0.18em',
+  fontWeight: 600,
 }
 
 const dimText: React.CSSProperties = {
@@ -944,27 +937,15 @@ export default function MoodTimelineClient() {
     <div
       className="min-h-screen"
       style={{
-        background: 'radial-gradient(ellipse at 50% 0%, rgba(20,18,35,1) 0%, #000000 65%)',
+        background: '#060608',
         color: 'rgba(255,255,255,0.85)',
       }}
     >
-      {/* Ambient glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div
-          className="absolute top-[-10%] left-[25%] w-[500px] h-[500px] rounded-full"
-          style={{
-            background:
-              'radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%)',
-          }}
-        />
-        <div
-          className="absolute bottom-[-5%] right-[10%] w-[350px] h-[350px] rounded-full"
-          style={{
-            background:
-              'radial-gradient(circle, rgba(168,85,247,0.04) 0%, transparent 70%)',
-          }}
-        />
-      </div>
+      {/* Ambient field — soft rose (mood palette) */}
+      <div aria-hidden className="fixed inset-0 pointer-events-none z-0" style={{
+        background: 'radial-gradient(520px circle at 15% 10%, rgba(251,113,133,0.06), transparent 60%), radial-gradient(400px circle at 85% 88%, rgba(244,63,94,0.04), transparent 65%)',
+        filter: 'blur(100px)',
+      }} />
 
       <div className="relative z-10 max-w-[880px] mx-auto px-4 md:px-6 py-6 md:py-8">
 
@@ -977,16 +958,17 @@ export default function MoodTimelineClient() {
         >
           <Link
             href="/chat"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/5 transition-all text-white/50 hover:text-white/80 no-underline text-xs"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors no-underline text-xs"
+            style={{ color: 'rgba(255,255,255,0.4)' }}
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Back</span>
           </Link>
 
           <div className="flex items-center gap-2.5">
             <Heart
               className="w-4 h-4"
-              style={{ color: 'rgba(99,102,241,0.7)' }}
+              style={{ color: 'rgba(255,255,255,0.4)' }}
             />
             <h1
               className="text-base md:text-lg font-medium m-0"
@@ -1019,11 +1001,11 @@ export default function MoodTimelineClient() {
             </p>
             <button
               onClick={fetchData}
-              className="px-5 py-2 rounded-full text-xs font-medium"
+              className="px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
               style={{
-                border: '1px solid rgba(255,255,255,0.12)',
-                background: 'rgba(255,255,255,0.06)',
-                color: 'rgba(255,255,255,0.7)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(255,255,255,0.04)',
+                color: 'rgba(255,255,255,0.6)',
                 cursor: 'pointer',
               }}
             >
@@ -1037,7 +1019,7 @@ export default function MoodTimelineClient() {
           <GlassCard className="p-10 text-center" delay={0.1}>
             <Heart
               className="w-8 h-8 mx-auto mb-4"
-              style={{ color: 'rgba(99,102,241,0.4)' }}
+              style={{ color: 'rgba(255,255,255,0.2)' }}
             />
             <p
               className="text-sm font-light mb-2"
@@ -1075,7 +1057,7 @@ export default function MoodTimelineClient() {
             {/* Heatmap */}
             <GlassCard className="px-5 py-5" delay={0.15}>
               <p
-                className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4"
+                className="text-[10px] font-semibold tracking-[0.18em] uppercase mb-4"
                 style={{ color: 'rgba(255,255,255,0.3)' }}
               >
                 Last 90 Days
@@ -1084,9 +1066,9 @@ export default function MoodTimelineClient() {
             </GlassCard>
 
             {/* Line chart */}
-            <GlassCard className="px-5 py-5" delay={0.25} glow="rgba(99,102,241,0.15)">
+            <GlassCard className="px-5 py-5" delay={0.25}>
               <p
-                className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-4"
+                className="text-[10px] font-semibold tracking-[0.18em] uppercase mb-4"
                 style={{ color: 'rgba(255,255,255,0.3)' }}
               >
                 30-Day Mood Curve

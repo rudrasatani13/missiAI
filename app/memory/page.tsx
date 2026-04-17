@@ -24,7 +24,7 @@ function GlassCard({
   children,
   className = '',
   delay = 0,
-  glow,
+  glow: _glow,
   style,
 }: {
   children: React.ReactNode
@@ -35,31 +35,20 @@ function GlassCard({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay, ease: [0.16, 1, 0.3, 1] }}
-      className={`relative rounded-2xl overflow-hidden ${className}`}
+      transition={{ duration: 0.35, delay, ease: [0.16, 1, 0.3, 1] }}
+      className={`rounded-2xl ${className}`}
       style={{
-        background: glow
-          ? `linear-gradient(135deg, rgba(15,15,20,0.95), rgba(8,8,12,0.98))`
-          : 'rgba(12,12,16,0.95)',
+        background: 'rgba(20,20,26,0.55)',
+        backdropFilter: 'blur(24px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(140%)',
         border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
-        isolation: 'isolate',
+        boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
         ...style,
       }}
     >
-      {glow && (
-        <div
-          className="absolute -top-20 -right-20 w-44 h-44 rounded-full pointer-events-none"
-          style={{
-            background: `radial-gradient(circle, ${glow} 0%, transparent 70%)`,
-            opacity: 0.1,
-            filter: 'blur(20px)',
-          }}
-        />
-      )}
-      <div className="relative z-10">{children}</div>
+      {children}
     </motion.div>
   )
 }
@@ -146,16 +135,16 @@ export default function MemoryPage() {
     <div
       className="min-h-screen"
       style={{
-        background: 'radial-gradient(ellipse at 50% 0%, rgba(20,20,30,1) 0%, #000000 60%)',
+        background: '#060608',
         color: 'rgba(255,255,255,0.85)',
         fontFamily: 'inherit',
       }}
     >
-      {/* Ambient background glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-15%] left-[30%] w-[500px] h-[500px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-[-10%] right-[15%] w-[400px] h-[400px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.04) 0%, transparent 70%)' }} />
-      </div>
+      {/* Ambient field — soft violet (memory palette) */}
+      <div aria-hidden className="fixed inset-0 pointer-events-none z-0" style={{
+        background: 'radial-gradient(500px circle at 20% 15%, rgba(139,92,246,0.07), transparent 60%), radial-gradient(420px circle at 82% 88%, rgba(109,40,217,0.05), transparent 65%)',
+        filter: 'blur(100px)',
+      }} />
 
       <div className="relative z-10 max-w-[900px] mx-auto px-4 md:px-6 py-6 md:py-8">
 
@@ -169,9 +158,10 @@ export default function MemoryPage() {
           <Magnetic>
             <Link
               href="/chat"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/5 transition-all text-white/50 hover:text-white/80 no-underline text-xs"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors no-underline text-xs"
+              style={{ color: 'rgba(255,255,255,0.4)' }}
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Back</span>
             </Link>
           </Magnetic>
@@ -183,47 +173,32 @@ export default function MemoryPage() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Link
-              href="/memory/visual"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all hover:scale-105 no-underline"
-              style={{
-                background: 'rgba(0,255,140,0.06)',
-                border: '1px solid rgba(0,255,140,0.12)',
-                color: 'rgba(0,255,140,0.7)',
-              }}
-            >
-              <Camera className="w-3 h-3" /> Visual
-            </Link>
-            <Link
-              href="/memory/graph"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all hover:scale-105 no-underline"
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.7)',
-              }}
-            >
-              <Network className="w-3 h-3" /> 3D
-            </Link>
-            <Link
-              href="/memory/story"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all hover:scale-105 no-underline"
-              style={{
-                background: 'rgba(59,130,246,0.06)',
-                border: '1px solid rgba(59,130,246,0.12)',
-                color: 'rgba(59,130,246,0.7)',
-              }}
-            >
-              <BookOpen className="w-3 h-3" /> Story
-            </Link>
+          <div className="flex items-center gap-1.5">
+            {[
+              { href: '/memory/visual', icon: <Camera className="w-3 h-3" />, label: 'Visual' },
+              { href: '/memory/graph', icon: <Network className="w-3 h-3" />, label: '3D' },
+              { href: '/memory/story', icon: <BookOpen className="w-3 h-3" />, label: 'Story' },
+            ].map(({ href, icon, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors no-underline hover:bg-white/[0.04] active:scale-[0.97]"
+                style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  color: 'rgba(255,255,255,0.55)',
+                }}
+              >
+                {icon} {label}
+              </Link>
+            ))}
             <button
               onClick={() => setShowAddForm((v) => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all hover:scale-105"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors active:scale-[0.97]"
               style={{
-                background: showAddForm ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                color: 'rgba(255,255,255,0.8)',
+                background: showAddForm ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                color: 'rgba(255,255,255,0.65)',
                 cursor: 'pointer',
               }}
             >
@@ -234,7 +209,7 @@ export default function MemoryPage() {
               onClick={handleRefresh}
               disabled={isRefreshing}
               title="Refresh"
-              className="p-1.5 rounded-full transition-all hover:bg-white/5"
+              className="p-1.5 rounded-full transition-colors hover:bg-white/[0.04] active:scale-[0.97]"
               style={{
                 background: 'none',
                 border: 'none',
@@ -243,7 +218,7 @@ export default function MemoryPage() {
               }}
             >
               <RefreshCw
-                className="w-4 h-4"
+                className="w-3.5 h-3.5"
                 style={{ animation: isRefreshing ? 'spin 0.8s linear infinite' : 'none' }}
               />
             </button>
@@ -259,7 +234,7 @@ export default function MemoryPage() {
             marginBottom: showAddForm ? '16px' : '0px',
           }}
         >
-          <GlassCard className="mb-0" glow="rgba(139,92,246,0.25)">
+          <GlassCard className="mb-0">
             <form
               onSubmit={handleAddMemory}
               className="p-5 flex flex-col gap-3.5"
@@ -331,22 +306,24 @@ export default function MemoryPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting || !addTitle.trim() || !addDetail.trim()}
-                  className="px-5 py-2 rounded-full text-xs font-medium transition-all hover:scale-105 active:scale-95"
+                  className="px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
                   style={{
-                    border: 'none',
+                    border: '1px solid rgba(255,255,255,0.1)',
                     background:
                       isSubmitting || !addTitle.trim() || !addDetail.trim()
-                        ? 'rgba(255,255,255,0.06)'
-                        : 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08))',
-                    color: 'rgba(255,255,255,0.85)',
+                        ? 'rgba(255,255,255,0.04)'
+                        : 'rgba(255,255,255,0.9)',
+                    color:
+                      isSubmitting || !addTitle.trim() || !addDetail.trim()
+                        ? 'rgba(255,255,255,0.35)'
+                        : '#0a0a0f',
                     cursor:
                       isSubmitting || !addTitle.trim() || !addDetail.trim()
                         ? 'default'
                         : 'pointer',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                   }}
                 >
-                  {isSubmitting ? 'Adding...' : 'Add Memory'}
+                  {isSubmitting ? 'Adding…' : 'Add Memory'}
                 </button>
               </div>
             </form>
@@ -354,7 +331,7 @@ export default function MemoryPage() {
         </div>
 
         {/* ── Stats ─────────────────────────────────────────────────── */}
-        <GlassCard className="px-5 py-4 mb-4" delay={0.1} glow="rgba(59,130,246,0.2)">
+        <GlassCard className="px-5 py-4 mb-4" delay={0.1}>
           <StatsBar stats={stats} />
         </GlassCard>
 
@@ -396,11 +373,11 @@ export default function MemoryPage() {
               <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>{error}</p>
               <button
                 onClick={handleRefresh}
-                className="px-5 py-2 rounded-full text-xs font-medium transition-all hover:scale-105"
+                className="px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
                 style={{
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  background: 'rgba(255,255,255,0.06)',
-                  color: 'rgba(255,255,255,0.7)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'rgba(255,255,255,0.04)',
+                  color: 'rgba(255,255,255,0.6)',
                   cursor: 'pointer',
                 }}
               >
@@ -423,12 +400,11 @@ export default function MemoryPage() {
               </p>
               <Link
                 href="/chat"
-                className="inline-flex px-5 py-2 rounded-full text-xs font-medium no-underline transition-all hover:scale-105"
+                className="inline-flex px-5 py-2 rounded-full text-xs font-medium no-underline transition-colors active:scale-[0.97]"
                 style={{
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))',
-                  color: 'rgba(255,255,255,0.8)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'rgba(255,255,255,0.9)',
+                  color: '#0a0a0f',
                 }}
               >
                 Start a conversation
@@ -471,8 +447,8 @@ const labelStyle: React.CSSProperties = {
   color: 'rgba(255,255,255,0.35)',
   marginBottom: '6px',
   textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  fontWeight: 500,
+  letterSpacing: '0.18em',
+  fontWeight: 600,
 }
 
 const inputStyle: React.CSSProperties = {

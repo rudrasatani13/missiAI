@@ -13,8 +13,7 @@ import type { AppEnv } from "@/lib/server/env"
 
 function mockEnv(overrides: Partial<AppEnv> = {}): AppEnv {
   return {
-    GEMINI_API_KEY: "",
-    ELEVENLABS_API_KEY: "test-key",
+        ELEVENLABS_API_KEY: "test-key",
     ELEVENLABS_VOICE_ID: "default-voice",
     ELEVENLABS_VOICE_CALM: undefined,
     ELEVENLABS_VOICE_COACH: undefined,

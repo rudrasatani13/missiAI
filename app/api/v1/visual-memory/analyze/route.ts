@@ -266,20 +266,10 @@ export async function POST(req: NextRequest) {
   // ── Security Rule 3 & 4: Analyze image — bytes stay in memory only ──────────
   // imageBytes are passed to Gemini as inline base64.
   // They are NEVER written to KV, R2, or any persistent store.
-  let geminiApiKey = ''
-  try {
-    // getEnv() is not called here to avoid requiring all env vars — we only
-    // need the Gemini key, and vertex-client.ts handles auth internally.
-    geminiApiKey = process.env.GEMINI_API_KEY ?? ''
-  } catch {
-    geminiApiKey = ''
-  }
-
   const extraction = await analyzeImageWithGemini(
     imageBytes,
     mimeType,
     sanitizedNote,
-    geminiApiKey,
   )
 
   // imageBytes are no longer referenced after this point — GC eligible
@@ -294,7 +284,6 @@ export async function POST(req: NextRequest) {
     vectorizeEnv,
     userId,
     nodeInput,
-    geminiApiKey,
   )
 
   // ── Add record to visual memory gallery index ────────────────────────────────

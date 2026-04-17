@@ -229,7 +229,6 @@ export async function PATCH(req: Request) {
     }
 
     const appEnv = getEnv()
-    const apiKey = appEnv.GEMINI_API_KEY
 
     const command = await buildPluginCommand(userMessage, pluginId as PluginId, apiKey)
     const result = await executePluginCommand(command, pluginConfig, apiKey)

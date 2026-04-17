@@ -237,13 +237,11 @@ function validateExtraction(raw: unknown): VisualExtraction | null {
  * @param imageBytes - Raw image bytes (in memory only — never persisted)
  * @param mimeType   - Validated MIME type of the image
  * @param userNote   - Optional sanitized user note (max 200 chars, HTML-stripped)
- * @param _geminiApiKey - Kept for backward compat; auth is via vertex-client
  */
 export async function analyzeImageWithGemini(
   imageBytes: Uint8Array,
   mimeType: string,
   userNote: string | null,
-  _geminiApiKey: string,
 ): Promise<VisualExtraction> {
   try {
     // Convert bytes to base64 completely safely for Edge JS

@@ -172,10 +172,9 @@ export async function POST(req: NextRequest) {
     try {
       const lastUserMessage = messages.filter((m) => m.role === "user").pop()
       const currentMessage = lastUserMessage?.content ?? ""
-      const apiKey = getEnv().GEMINI_API_KEY
       const vectorizeEnv = getVectorizeEnv()
       
-      const memoryPromise = searchLifeGraph(kv, vectorizeEnv, userId, currentMessage, apiKey, { topK: 5 })
+      const memoryPromise = searchLifeGraph(kv, vectorizeEnv, userId, currentMessage, { topK: 5 })
       let timeoutId: ReturnType<typeof setTimeout>
       const timeoutPromise = new Promise<never>((_, r) => {
         timeoutId = setTimeout(() => r(new Error("Timeout")), 3000)
@@ -329,7 +328,7 @@ export async function POST(req: NextRequest) {
 
           let eventStream: ReadableStream<GeminiStreamEvent>
           try {
-            eventStream = await streamGeminiResponse(appEnv.GEMINI_API_KEY, model, currentRequestBody)
+            eventStream = await streamGeminiResponse(model, currentRequestBody)
           } catch (primaryErr) {
             const fallback = getFallbackModel(model)
             if (fallback && primaryErr instanceof Error && primaryErr.message.includes('503')) {
@@ -346,7 +345,7 @@ export async function POST(req: NextRequest) {
               )
               // Update contents reference
               agentContents = [...(currentRequestBody.contents as any[])]
-              eventStream = await streamGeminiResponse(appEnv.GEMINI_API_KEY, model, currentRequestBody)
+              eventStream = await streamGeminiResponse(model, currentRequestBody)
             } else {
               throw primaryErr
             }
@@ -402,7 +401,6 @@ export async function POST(req: NextRequest) {
             kv,
             vectorizeEnv,
             userId,
-            apiKey: appEnv.GEMINI_API_KEY,
             googleClientId: appEnv.GOOGLE_CLIENT_ID,
             googleClientSecret: appEnv.GOOGLE_CLIENT_SECRET,
             resendApiKey: appEnv.RESEND_API_KEY,

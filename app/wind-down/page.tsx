@@ -29,19 +29,15 @@ function ReflectionCard({ item }: { item: BriefingItem }) {
   return (
     <div
       className={[
-        'rounded-2xl px-5 py-4 transition-opacity',
-        isGratitude ? 'text-center py-6' : '',
-        isSleepNudge ? 'opacity-70' : 'opacity-90',
+        'rounded-xl px-5 py-4',
+        isGratitude ? 'text-center py-5' : '',
       ]
         .filter(Boolean)
         .join(' ')}
       style={{
-        background: isSleepNudge
-          ? 'rgba(255,255,255,0.04)'
-          : 'rgba(255,255,255,0.08)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        opacity: isSleepNudge ? 0.6 : 1,
       }}
     >
       <div className={`flex items-start gap-3 ${isGratitude ? 'justify-center' : ''}`}>
@@ -49,8 +45,8 @@ function ReflectionCard({ item }: { item: BriefingItem }) {
           <ItemIcon type={item.type} />
         </div>
         <p
-          className={`text-white leading-relaxed ${isGratitude ? 'text-base font-light' : 'text-sm font-light'}`}
-          style={{ letterSpacing: '0.01em' }}
+          className={`leading-relaxed ${isGratitude ? 'text-[15px] font-light' : 'text-sm font-light'}`}
+          style={{ color: 'rgba(255,255,255,0.8)' }}
         >
           {item.message}
         </p>
@@ -145,35 +141,46 @@ export default function WindDownPage() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-start px-4 py-12 relative overflow-hidden"
+      className="min-h-screen flex flex-col items-center justify-start px-4 py-12 relative"
       style={{
-        background: '#000000',
+        background: '#060608',
         fontFamily: 'var(--font-body)',
       }}
     >
-      {/* Vibrant Ambient Background Mesh for Glass Effect */}
-      <div className="absolute top-[10%] left-[10%] w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] bg-indigo-600/15 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute top-[20%] right-[10%] w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] bg-fuchsia-600/10 blur-[130px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[0%] left-1/2 -translate-x-1/2 w-[60vw] h-[40vw] max-w-[1000px] bg-blue-500/10 blur-[150px] rounded-full pointer-events-none" />
+      {/* Ambient field — soft rose (wind-down palette) */}
+      <div
+        aria-hidden
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          background: 'radial-gradient(500px circle at 20% 15%, rgba(251,113,133,0.06), transparent 60%), radial-gradient(380px circle at 80% 85%, rgba(244,63,94,0.04), transparent 65%)',
+          filter: 'blur(100px)',
+        }}
+      />
       
       <div className="w-full max-w-6xl relative z-10 flex flex-col h-full">
         {/* Back button */}
         <Link
           href="/chat"
-          className="flex items-center gap-2 mb-8 opacity-40 hover:opacity-70 transition-opacity"
-          style={{ color: 'white', textDecoration: 'none' }}
+          className="flex items-center gap-2 mb-8 transition-colors text-xs"
+          style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-xs font-light tracking-wide">Back</span>
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back</span>
         </Link>
 
         {/* Header */}
         <div className="flex flex-col items-center mb-10">
-          <Moon className="w-8 h-8 text-white opacity-60 mb-5" />
-          <h1 className="text-3xl md:text-4xl font-light text-white tracking-wide mb-2">
+          <Moon className="w-7 h-7 mb-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          <h1
+            className="text-3xl md:text-[40px] font-light text-white mb-3"
+            style={{ letterSpacing: '-0.02em', lineHeight: 1.1 }}
+          >
             Good night
           </h1>
-          <p className="text-sm font-light text-white/40 tracking-widest uppercase">
+          <p
+            className="text-[10px] font-semibold uppercase"
+            style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+          >
             {currentTime}
           </p>
         </div>
@@ -182,15 +189,26 @@ export default function WindDownPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch w-full mb-16">
           
           {/* LEFT COLUMN: Evaluation & Reflection */}
-          <div className="flex flex-col w-full bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[32px] p-8 lg:p-10 relative overflow-hidden transform-gpu">
-             {/* Inner Card Glow */}
-             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-
-             <div className="flex flex-col items-start mb-8">
-                 <h2 className="text-2xl font-light text-white tracking-wide mb-2">Evening Reflection</h2>
-                 <p className="text-sm font-light leading-relaxed text-white/40">
-                   Review the highlights of your day.
-                 </p>
+          <div
+            className="flex flex-col w-full rounded-2xl p-7 lg:p-9"
+            style={{
+              background: 'rgba(20,20,26,0.55)',
+              backdropFilter: 'blur(24px) saturate(140%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+            }}
+          >
+             <div className="flex flex-col items-start mb-7">
+               <p
+                 className="mb-2 text-[10px] font-semibold uppercase"
+                 style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+               >
+                 Evening Reflection
+               </p>
+               <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                 Review the highlights of your day.
+               </p>
              </div>
 
         {/* Content */}
@@ -223,15 +241,12 @@ export default function WindDownPage() {
               <button
                 onClick={handlePlayReflection}
                 disabled={isPlayingTTS}
-                className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-light transition-opacity"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
                 style={{
-                  background: 'rgba(255,255,255,0.08)',
-                  backdropFilter: 'blur(24px)',
-                  WebkitBackdropFilter: 'blur(24px)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  color: isPlayingTTS ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.7)',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: isPlayingTTS ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.6)',
                   cursor: isPlayingTTS ? 'default' : 'pointer',
-                  letterSpacing: '0.03em',
                 }}
               >
                 <Moon className="w-3.5 h-3.5" />
@@ -243,10 +258,17 @@ export default function WindDownPage() {
           </div>
 
           {/* RIGHT COLUMN: Sleep Sessions */}
-          <div className="flex flex-col w-full bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[32px] p-8 lg:p-10 relative overflow-hidden transform-gpu">
-             {/* Inner Card Glow */}
-             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-             <SleepSessions />
+          <div
+            className="flex flex-col w-full rounded-2xl p-7 lg:p-9"
+            style={{
+              background: 'rgba(20,20,26,0.55)',
+              backdropFilter: 'blur(24px) saturate(140%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+            }}
+          >
+            <SleepSessions />
           </div>
 
         </div>

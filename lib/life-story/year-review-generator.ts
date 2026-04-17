@@ -4,7 +4,7 @@ import { geminiGenerate } from '@/lib/ai/vertex-client'
 import { sanitizeNarrativeText } from './chapter-detector'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 
-export async function generateYearInReview(graph: LifeGraph, year: number, geminiApiKey: string): Promise<YearInReview> {
+export async function generateYearInReview(graph: LifeGraph, year: number): Promise<YearInReview> {
   // 1. Mechanical analysis
   const startOfYear = new Date(year, 0, 1).getTime()
   const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999).getTime()

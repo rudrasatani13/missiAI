@@ -28,8 +28,7 @@ vi.mock('@/lib/server/logger', () => ({
 
 vi.mock('@/lib/server/env', () => ({
   getEnv: vi.fn(() => ({
-    GEMINI_API_KEY: 'test-key',
-    GOOGLE_CLIENT_ID: undefined,
+        GOOGLE_CLIENT_ID: undefined,
     GOOGLE_CLIENT_SECRET: undefined,
   })),
 }))

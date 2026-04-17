@@ -112,6 +112,16 @@ export function PersonaPicker({ isOpen, onClose, isLiveMode, onPersonaChange, on
 
   if (!isOpen) return null
 
+  // Shared eyebrow style
+  const eyebrow: React.CSSProperties = {
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: "0.18em",
+    textTransform: "uppercase",
+    color: "rgba(255,255,255,0.35)",
+    marginBottom: 8,
+  }
+
   return (
     <>
       {/* Backdrop */}
@@ -120,14 +130,14 @@ export function PersonaPicker({ isOpen, onClose, isLiveMode, onPersonaChange, on
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0,0,0,0.6)",
-          backdropFilter: "blur(4px)",
-          WebkitBackdropFilter: "blur(4px)",
+          background: "rgba(0,0,0,0.55)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
           zIndex: 200,
         }}
       />
 
-      {/* Bottom Sheet */}
+      {/* Bottom Sheet — glass tokens + soft teal tint */}
       <div
         style={{
           position: "fixed",
@@ -138,41 +148,32 @@ export function PersonaPicker({ isOpen, onClose, isLiveMode, onPersonaChange, on
           maxWidth: 480,
           margin: "0 auto",
           borderRadius: "20px 20px 0 0",
-          background: "linear-gradient(180deg, rgba(18,18,24,0.98), rgba(10,10,14,0.99))",
-          border: "1px solid rgba(255,255,255,0.1)",
+          background: "rgba(16, 18, 24, 0.92)",
+          backdropFilter: "blur(24px) saturate(140%)",
+          WebkitBackdropFilter: "blur(24px) saturate(140%)",
+          border: "1px solid rgba(255,255,255,0.08)",
           borderBottom: "none",
-          boxShadow: "0 -20px 60px rgba(0,0,0,0.5)",
-          padding: "20px 20px 28px",
+          boxShadow: "0 -20px 50px -10px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)",
+          padding: "20px 20px 32px",
           transform: isOpen ? "translateY(0)" : "translateY(100%)",
           transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag Handle */}
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
           <div
             style={{
-              width: 36,
-              height: 4,
+              width: 32,
+              height: 3,
               borderRadius: 2,
-              background: "rgba(255,255,255,0.15)",
+              background: "rgba(255,255,255,0.12)",
             }}
           />
         </div>
 
         {/* ── Default Voice ── */}
-        <p
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "rgba(255,255,255,0.35)",
-            marginBottom: 8,
-          }}
-        >
-          Default
-        </p>
+        <p style={eyebrow}>Default</p>
 
         <button
           onClick={handleSwitchToLive}
@@ -181,58 +182,81 @@ export function PersonaPicker({ isOpen, onClose, isLiveMode, onPersonaChange, on
             display: "flex",
             alignItems: "center",
             gap: 12,
-            padding: "12px 14px",
-            borderRadius: 14,
-            background: isLiveMode
-              ? "rgba(255,255,255,0.08)"
-              : "rgba(255,255,255,0.02)",
+            padding: "11px 14px",
+            borderRadius: 12,
+            background: isLiveMode ? "rgba(255,255,255,0.05)" : "transparent",
             border: isLiveMode
-              ? "1px solid rgba(255,255,255,0.15)"
-              : "1px solid rgba(255,255,255,0.06)",
-            boxShadow: isLiveMode ? "0 2px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)" : "none",
+              ? "1px solid rgba(255,255,255,0.08)"
+              : "1px solid rgba(255,255,255,0.05)",
+            borderLeft: isLiveMode ? "2px solid rgba(94,234,212,0.55)" : "1px solid rgba(255,255,255,0.05)",
             cursor: "pointer",
-            transition: "all 0.2s ease",
+            transition: "background 0.15s ease, border-color 0.15s ease",
             textAlign: "left" as const,
             width: "100%",
             color: "white",
             marginBottom: 16,
           }}
         >
-          <Zap style={{ width: 14, height: 14, color: isLiveMode ? "#4ADE80" : "rgba(255,255,255,0.3)" }} />
+          <Zap
+            style={{
+              width: 13,
+              height: 13,
+              color: isLiveMode ? "rgba(94,234,212,0.75)" : "rgba(255,255,255,0.3)",
+              flexShrink: 0,
+            }}
+          />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 12, fontWeight: 500, color: isLiveMode ? "#fff" : "rgba(255,255,255,0.6)", margin: 0, lineHeight: 1.3 }}>
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: isLiveMode ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.55)",
+                margin: 0,
+                lineHeight: 1.3,
+                letterSpacing: "-0.01em",
+              }}
+            >
               Missi Voice
             </p>
-            <p style={{ fontSize: 10, fontWeight: 400, color: isLiveMode ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.25)", margin: "2px 0 0", lineHeight: 1.3 }}>
+            <p
+              style={{
+                fontSize: 11,
+                color: "rgba(255,255,255,0.35)",
+                margin: "3px 0 0",
+                lineHeight: 1.3,
+              }}
+            >
               Instant, real-time conversation
             </p>
           </div>
           {isLiveMode && (
-            <div style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(74,222,128,0.15)", border: "1px solid rgba(74,222,128,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Check style={{ width: 11, height: 11, color: "#4ADE80" }} />
+            <div
+              style={{
+                width: 18,
+                height: 18,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.14)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Check style={{ width: 10, height: 10, color: "rgba(255,255,255,0.85)" }} strokeWidth={2.5} />
             </div>
           )}
         </button>
 
         {/* ── AI Personas ── */}
-        <p
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "rgba(255,255,255,0.35)",
-            marginBottom: 8,
-          }}
-        >
-          AI Personas
-        </p>
+        <p style={eyebrow}>AI Personas</p>
 
-        {/* Persona Cards */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {ALL_PERSONAS.map((persona) => {
+        {/* Persona rows — flat, hairline-divided */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          {ALL_PERSONAS.map((persona, idx) => {
             const isActive = !isLiveMode && activeId === persona.id
             const isDisabled = loading
+            const isLastRow = idx === ALL_PERSONAS.length - 1
 
             return (
               <button
@@ -244,33 +268,32 @@ export function PersonaPicker({ isOpen, onClose, isLiveMode, onPersonaChange, on
                   display: "flex",
                   alignItems: "center",
                   gap: 12,
-                  padding: "12px 14px",
-                  borderRadius: 14,
-                  background: isActive
-                    ? "rgba(255,255,255,0.08)"
-                    : "rgba(255,255,255,0.02)",
+                  padding: "11px 14px",
+                  borderRadius: 12,
+                  background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
                   border: isActive
-                    ? "1px solid rgba(255,255,255,0.15)"
-                    : "1px solid rgba(255,255,255,0.06)",
-                  boxShadow: isActive
-                    ? "0 2px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)"
-                    : "none",
+                    ? "1px solid rgba(255,255,255,0.08)"
+                    : "1px solid transparent",
+                  borderLeft: isActive
+                    ? `2px solid ${persona.accentColor}80`
+                    : "2px solid transparent",
+                  marginBottom: isLastRow ? 0 : 2,
                   cursor: isDisabled ? "default" : "pointer",
-                  opacity: isDisabled ? 0.4 : 1,
-                  transition: "all 0.2s ease",
+                  opacity: isDisabled ? 0.35 : 1,
+                  transition: "background 0.15s ease, border-color 0.15s ease",
                   textAlign: "left" as const,
                   width: "100%",
                   color: "white",
                 }}
               >
-                {/* Accent Dot */}
+                {/* Accent dot — colored, no glow */}
                 <div
                   style={{
-                    width: 10,
-                    height: 10,
+                    width: 6,
+                    height: 6,
                     borderRadius: "50%",
                     background: persona.accentColor,
-                    boxShadow: isActive ? `0 0 8px ${persona.accentColor}40` : "none",
+                    opacity: isActive ? 1 : 0.5,
                     flexShrink: 0,
                   }}
                 />
@@ -279,23 +302,21 @@ export function PersonaPicker({ isOpen, onClose, isLiveMode, onPersonaChange, on
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p
                     style={{
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: 500,
-                      color: isActive ? "#fff" : "rgba(255,255,255,0.6)",
+                      color: isActive ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.55)",
                       margin: 0,
                       lineHeight: 1.3,
+                      letterSpacing: "-0.01em",
                     }}
                   >
                     {persona.displayName}
                   </p>
                   <p
                     style={{
-                      fontSize: 10,
-                      fontWeight: 400,
-                      color: isActive
-                        ? "rgba(255,255,255,0.45)"
-                        : "rgba(255,255,255,0.25)",
-                      margin: "2px 0 0",
+                      fontSize: 11,
+                      color: "rgba(255,255,255,0.35)",
+                      margin: "3px 0 0",
                       lineHeight: 1.3,
                     }}
                   >
@@ -303,22 +324,22 @@ export function PersonaPicker({ isOpen, onClose, isLiveMode, onPersonaChange, on
                   </p>
                 </div>
 
-                {/* Checkmark */}
+                {/* Checkmark — flat monochrome */}
                 {isActive && (
                   <div
                     style={{
-                      width: 20,
-                      height: 20,
+                      width: 18,
+                      height: 18,
                       borderRadius: "50%",
-                      background: "rgba(255,255,255,0.1)",
-                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.14)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
                     }}
                   >
-                    <Check style={{ width: 11, height: 11, color: "#fff" }} />
+                    <Check style={{ width: 10, height: 10, color: "rgba(255,255,255,0.85)" }} strokeWidth={2.5} />
                   </div>
                 )}
               </button>
@@ -329,9 +350,9 @@ export function PersonaPicker({ isOpen, onClose, isLiveMode, onPersonaChange, on
         {/* Disclaimer */}
         <p
           style={{
-            fontSize: 10,
+            fontSize: 11,
             color: "rgba(255,255,255,0.2)",
-            marginTop: 14,
+            marginTop: 16,
             textAlign: "center",
             lineHeight: 1.4,
           }}
