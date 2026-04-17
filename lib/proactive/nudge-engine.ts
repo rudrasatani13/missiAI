@@ -37,55 +37,53 @@ export function checkForNudges(
 
   const checkHabits = now - lastInteractionAt > 20 * HOUR_MS
   const checkInsights = graph.nodes.length >= 10 && !isDismissed('memory_insight', undefined)
-  const tagCounts = checkInsights ? new Map<string, number>() : null
+  const tagCounts = checkInsights ? new Map<string, number>() : undefined
 
   for (const node of graph.nodes) {
-    const { category, lastAccessedAt, id, title, emotionalWeight, tags } = node
-
     // ── GOAL NUDGE: goal node not accessed in > 3 days ───────────────────────
-    if (category === 'goal') {
-      if (now - lastAccessedAt > 3 * DAY_MS && !isDismissed('goal_nudge', id)) {
+    if (node.category === 'goal') {
+      if (now - node.lastAccessedAt > 3 * DAY_MS && !isDismissed('goal_nudge', node.id)) {
         nudges.push({
           type: 'goal_nudge',
           priority: 'high',
           actionable: true,
-          message: `Still working on ${title}? Let's check in.`,
-          nodeId: id,
+          message: `Still working on ${node.title}? Let's check in.`,
+          nodeId: node.id,
         })
       }
     }
     // ── RELATIONSHIP REMINDER: person/relationship not accessed in > 7 days ──
-    else if (category === 'person' || category === 'relationship') {
+    else if (node.category === 'person' || node.category === 'relationship') {
       if (
-        now - lastAccessedAt > 7 * DAY_MS &&
-        emotionalWeight > 0.5 &&
-        !isDismissed('relationship_reminder', id)
+        now - node.lastAccessedAt > 7 * DAY_MS &&
+        node.emotionalWeight > 0.5 &&
+        !isDismissed('relationship_reminder', node.id)
       ) {
         nudges.push({
           type: 'relationship_reminder',
           priority: 'medium',
           actionable: true,
-          message: `You haven't talked about ${title} in a while.`,
-          nodeId: id,
+          message: `You haven't talked about ${node.title} in a while.`,
+          nodeId: node.id,
         })
       }
     }
     // ── HABIT CHECK: any habit node, if last interaction was > 20 hours ago ──
-    else if (category === 'habit' && checkHabits) {
-      if (!isDismissed('habit_check', id)) {
+    else if (node.category === 'habit' && checkHabits) {
+      if (!isDismissed('habit_check', node.id)) {
         nudges.push({
           type: 'habit_check',
           priority: 'low',
           actionable: true,
-          message: `How's your ${title} habit going today?`,
-          nodeId: id,
+          message: `How's your ${node.title} habit going today?`,
+          nodeId: node.id,
         })
       }
     }
 
     // ── ACCUMULATE TAGS FOR MEMORY INSIGHT ──────────────────────────────────
     if (tagCounts) {
-      for (const tag of tags) {
+      for (const tag of node.tags) {
         tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1)
       }
     }
