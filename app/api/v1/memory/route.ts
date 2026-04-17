@@ -229,30 +229,25 @@ export async function POST(req: NextRequest) {
 
     // Extract new life nodes when there are at least 2 user interactions
     if (interactionCount >= 2) {
-      
-      if (apiKey) {
-        const extractedNodes = await extractLifeNodes(
-          conversation,
-          graph,
-          apiKey,
-        )
+      const extractedNodes = await extractLifeNodes(
+        conversation,
+        graph,
+      )
 
-        const beforeCount = graph.nodes.length
+      const beforeCount = graph.nodes.length
 
-        // Batch update to fix N+1 query issue
-        await addOrUpdateNodes(
-          kv,
-          vectorizeEnv,
-          userId,
-          extractedNodes.map((nodeInput) => ({ ...nodeInput, userId })),
-          apiKey,
-        )
+      // Batch update to fix N+1 query issue
+      await addOrUpdateNodes(
+        kv,
+        vectorizeEnv,
+        userId,
+        extractedNodes.map((nodeInput) => ({ ...nodeInput, userId })),
+      )
 
-        // Reload to count changes
-        graph = await getLifeGraph(kv, userId)
-        added = Math.max(0, graph.nodes.length - beforeCount)
-        updated = Math.max(0, extractedNodes.length - added)
-      }
+      // Reload to count changes
+      graph = await getLifeGraph(kv, userId)
+      added = Math.max(0, graph.nodes.length - beforeCount)
+      updated = Math.max(0, extractedNodes.length - added)
     }
 
     logRequest("memory.write", userId, startTime, {
