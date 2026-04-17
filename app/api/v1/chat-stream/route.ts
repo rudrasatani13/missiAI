@@ -227,7 +227,6 @@ export async function POST(req: NextRequest) {
   // as a query parameter for authentication. This URL is constructed server-side
   // only and MUST NEVER be logged, included in error messages, or sent to clients.
   const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream-input?model_id=eleven_turbo_v2_5&output_format=pcm_24000&optimize_streaming_latency=3&xi-api-key=${appEnv.ELEVENLABS_API_KEY}`
-  // BUG-005 fix: Sanitized URL for safe use in error/log contexts
   const sanitizedWsUrl = wsUrl.replace(/xi-api-key=[^&]+/, 'xi-api-key=***')
 
   // Filter tool declarations based on connected credentials.
@@ -294,7 +293,6 @@ export async function POST(req: NextRequest) {
           ws.onerror = () => {
             // SECURITY (H2): Do NOT pass the WebSocket error event to logError —
             // it may contain the wsUrl which includes the ElevenLabs API key.
-            // BUG-005: Use sanitized URL in log context instead.
             logError("chat_stream.ws_error", `WebSocket connection failed: ${sanitizedWsUrl}`, userId)
           }
           ws.onclose = () => { wsOpen = false }
