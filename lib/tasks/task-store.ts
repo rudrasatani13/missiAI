@@ -106,14 +106,10 @@ export async function getUserTasks(
   userId: string,
 ): Promise<BackgroundTask[]> {
   const queue = await getTaskQueue(kv, userId)
-  const tasks: BackgroundTask[] = []
+  const taskPromises = queue.map(taskId => getTask(kv, taskId))
+  const results = await Promise.all(taskPromises)
 
-  for (const taskId of queue) {
-    const task = await getTask(kv, taskId)
-    if (task) tasks.push(task)
-  }
-
-  return tasks
+  return results.filter((task): task is BackgroundTask => task !== null)
 }
 
 export async function getActiveTasks(
