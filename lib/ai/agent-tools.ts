@@ -1023,6 +1023,26 @@ export async function executeAgentTool(
         }
         parts.push(`🧠 Total memories: ${graph.nodes.length}`)
 
+        // Quest stats (non-critical, fail silently)
+        try {
+          const questsRaw = await ctx.kv.get(`quests:${ctx.userId}`)
+          if (questsRaw) {
+            const quests = JSON.parse(questsRaw) as Array<{ status: string; title: string; completedMissions: number; totalMissions: number }>
+            const activeQuests = quests.filter(q => q.status === 'active')
+            if (activeQuests.length > 0) {
+              parts.push(`\n🗺️ Active quests: ${activeQuests.length}`)
+              for (const q of activeQuests.slice(0, 3)) {
+                const pct = q.totalMissions > 0 ? Math.round((q.completedMissions / q.totalMissions) * 100) : 0
+                parts.push(`  • ${q.title} — ${pct}% done`)
+              }
+            }
+            const completedQuests = quests.filter(q => q.status === 'completed').length
+            if (completedQuests > 0) {
+              parts.push(`🏆 Quests completed: ${completedQuests}`)
+            }
+          }
+        } catch { /* non-critical */ }
+
         return {
           toolName: name,
           status: "done",

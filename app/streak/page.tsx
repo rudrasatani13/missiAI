@@ -414,6 +414,81 @@ function HabitCard({
   )
 }
 
+// ─── Active Quests Card ───────────────────────────────────────────────────────
+
+function ActiveQuestsCard() {
+  const [quests, setQuests] = useState<Array<{
+    id: string; title: string; coverEmoji: string; completedMissions: number;
+    totalMissions: number; category: string; status: string;
+  }>>([])
+
+  useEffect(() => {
+    fetch('/api/v1/quests?status=active')
+      .then(r => r.json())
+      .then(d => {
+        if (d?.success && d.quests?.length > 0) {
+          setQuests(d.quests.slice(0, 3))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  if (quests.length === 0) return null
+
+  const CATEGORY_COLORS: Record<string, string> = {
+    health: '#34D399', learning: '#60A5FA', creativity: '#F472B6',
+    relationships: '#FBBF24', career: '#A78BFA', mindfulness: '#2DD4BF', other: '#94A3B8',
+  }
+
+  return (
+    <GlassCard className="px-5 py-5" delay={0.3}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <p className="text-[10px] font-semibold tracking-[0.18em] uppercase" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            Active Quests
+          </p>
+        </div>
+        <Link
+          href="/quests"
+          className="text-[10px] font-medium px-2.5 py-0.5 rounded-full transition-all hover:bg-white/10"
+          style={{ color: 'rgba(251,191,36,0.8)', textDecoration: 'none' }}
+        >
+          View all →
+        </Link>
+      </div>
+      <div className="flex flex-col gap-3">
+        {quests.map(q => {
+          const pct = q.totalMissions > 0 ? Math.round((q.completedMissions / q.totalMissions) * 100) : 0
+          const color = CATEGORY_COLORS[q.category] ?? '#94A3B8'
+          return (
+            <Link key={q.id} href="/quests" style={{ textDecoration: 'none' }}>
+              <div className="flex items-center gap-3 group cursor-pointer">
+                <span className="text-lg transition-transform group-hover:scale-110">{q.coverEmoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                    {q.title}
+                  </p>
+                  <div className="w-full h-1 rounded-full mt-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${pct}%`,
+                        background: `linear-gradient(90deg, ${color}60, ${color})`,
+                      }}
+                    />
+                  </div>
+                </div>
+                <span className="text-[10px] font-medium" style={{ color }}>{pct}%</span>
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+    </GlassCard>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function StreakAvatarPage() {
@@ -595,6 +670,9 @@ export default function StreakAvatarPage() {
                 </div>
               )}
             </GlassCard>
+
+            {/* Active Quests */}
+            <ActiveQuestsCard />
 
             {/* Achievements */}
             <GlassCard className="px-5 py-5" delay={0.35}>

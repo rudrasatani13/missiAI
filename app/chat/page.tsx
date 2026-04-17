@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import nextDynamic from "next/dynamic"
-import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera, Puzzle, IdCard, Heart, Target, Mic2, Check, Zap } from "lucide-react"
+import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera, Puzzle, IdCard, Heart, Target, Mic2, Check, Zap, Sword } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useGeminiLive, type LiveState } from "@/hooks/useGeminiLive"
@@ -998,6 +998,12 @@ export default function VoiceAssistantPage() {
           style={{ color: 'white' }}>
           <Moon className="w-4 h-4 md:w-5 md:h-5" />
           <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Wind Down</span>
+        </Link>
+        <Link href="/quests" onClick={(e) => e.stopPropagation()}
+          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
+          style={{ color: '#FBBF24' }}>
+          <Sword className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Quests</span>
         </Link>
         <Link href="/streak" onClick={(e) => e.stopPropagation()}
           className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
