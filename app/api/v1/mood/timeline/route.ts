@@ -167,7 +167,7 @@ export async function GET(req: NextRequest) {
       const last7 = await getRecentEntries(kv, userId, 7)
       if (last7.length >= 3) {
         try {
-          const insightText = await generateWeeklyInsight(last7, '')
+          const insightText = await generateWeeklyInsight(last7)
           weeklyInsight = buildWeeklyInsightObject(last7, insightText)
           await saveWeeklyInsight(kv, userId, weeklyInsight)
         } catch (e) {

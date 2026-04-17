@@ -1,14 +1,15 @@
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest'
 import { generatePersonalizedStory, generateCustomStory, sanitizeStoryText } from '@/lib/sleep-sessions/story-generator'
 import { geminiGenerate } from '@/lib/ai/vertex-client'
 import { getRandomFallbackStory } from '@/lib/sleep-sessions/library-stories'
 
-jest.mock('@/lib/ai/vertex-client', () => ({
-  geminiGenerate: jest.fn()
+vi.mock('@/lib/ai/vertex-client', () => ({
+  geminiGenerate: vi.fn()
 }))
 
 describe('Story Generator', () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     describe('sanitizeStoryText', () => {
@@ -43,7 +44,7 @@ describe('Story Generator', () => {
         }
 
         it('returns valid SleepStory on well-formed Gemini response', async () => {
-            (geminiGenerate as jest.Mock).mockResolvedValue({
+            (geminiGenerate as Mock).mockResolvedValue({
                 ok: true,
                 json: async () => ({
                     candidates: [{
@@ -52,20 +53,20 @@ describe('Story Generator', () => {
                 })
             })
 
-            const result = await generatePersonalizedStory(mockContext, 'fake-key')
+            const result = await generatePersonalizedStory(mockContext)
             expect(result.mode).toBe('personalized_story')
             expect(result.title).toBe('The first sentence is a nice title')
             expect(result.text).toContain('The rest of the story is peaceful')
         })
 
         it('returns fallback library story when Gemini times out / returns error', async () => {
-            (geminiGenerate as jest.Mock).mockRejectedValue(new Error("Timeout"))
-            const result = await generatePersonalizedStory(mockContext, 'fake-key')
+            (geminiGenerate as Mock).mockRejectedValue(new Error("Timeout"))
+            const result = await generatePersonalizedStory(mockContext)
             expect(result.mode).toBe('library')
         })
 
         it('returns fallback when sanitization strips more than 30% of content', async () => {
-             (geminiGenerate as jest.Mock).mockResolvedValue({
+             (geminiGenerate as Mock).mockResolvedValue({
                 ok: true,
                 json: async () => ({
                     candidates: [{
@@ -74,14 +75,14 @@ describe('Story Generator', () => {
                 })
             })
             // Since most of the length is the SSML, it will get stripped, falling below 70% threshold
-            const result = await generatePersonalizedStory(mockContext, 'fake-key')
+            const result = await generatePersonalizedStory(mockContext)
             expect(result.mode).toBe('library')
         })
     })
 
     describe('generateCustomStory', () => {
         it('respects user prompt theme', async () => {
-             (geminiGenerate as jest.Mock).mockResolvedValue({
+             (geminiGenerate as Mock).mockResolvedValue({
                 ok: true,
                 json: async () => ({
                     candidates: [{
@@ -90,7 +91,7 @@ describe('Story Generator', () => {
                 })
             })
             
-            const result = await generateCustomStory("a peaceful forest", "fake-key")
+            const result = await generateCustomStory("a peaceful forest")
             expect(result.mode).toBe('custom_story')
             expect(geminiGenerate).toHaveBeenCalledWith(
                 expect.any(String),
