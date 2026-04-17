@@ -114,10 +114,20 @@ export async function POST(req: NextRequest) {
   }
 
   let { messages } = parsed.data
-  const { personality, customPrompt } = parsed.data
-  const maxOutputTokens = parsed.data.maxOutputTokens ?? 600
+  const { personality, voiceMode, customPrompt } = parsed.data
+  const maxOutputTokens = voiceMode ? 800 : (parsed.data.maxOutputTokens ?? 600)
   const clientMemories = parsed.data.memories ?? ""
-  const voiceDurationMs = parsed.data.voiceDurationMs
+
+  // SEC-004 fix: client-reported voiceDurationMs is untrusted — a user could
+  // send 0 on every request to avoid incrementing their daily voice quota.
+  // When voiceMode is active, enforce a server-side minimum of 3 s so that
+  // each agentic voice turn is always billed at least that amount, regardless
+  // of what the client reports. For non-voice (voiceMode=false) calls we
+  // preserve the existing 0-passthrough so typed chat isn't affected.
+  const rawVoiceDurationMs = parsed.data.voiceDurationMs
+  const voiceDurationMs = voiceMode && rawVoiceDurationMs !== undefined
+    ? Math.max(3000, rawVoiceDurationMs)
+    : rawVoiceDurationMs
 
   // ── 5b. Voice usage gating (time-based, pessimistic) ──────────────────────
   // Check-and-increment BEFORE serving the response using actual duration
