@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach } from "vitest"
 import { generatePersonalizedStory, generateCustomStory, sanitizeStoryText } from '@/lib/sleep-sessions/story-generator'
 import { geminiGenerate } from '@/lib/ai/vertex-client'
 import { getRandomFallbackStory } from '@/lib/sleep-sessions/library-stories'

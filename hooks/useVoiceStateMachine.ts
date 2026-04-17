@@ -20,7 +20,7 @@ export interface UseVoiceStateMachineOptions {
   userId?: string
   personalityRef: React.MutableRefObject<PersonalityKey>
   customPromptRef?: React.MutableRefObject<string>
-  memoriesRef?: React.MutableRefObject<string>
+  memoriesRef: React.MutableRefObject<string>
   conversationRef: React.MutableRefObject<ConversationEntry[]>
   imagePayloadRef?: React.MutableRefObject<string | null>
   onImageConsumed?: () => void
