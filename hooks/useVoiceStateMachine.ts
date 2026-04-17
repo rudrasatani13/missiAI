@@ -26,6 +26,9 @@ export interface UseVoiceStateMachineOptions {
   onImageConsumed?: () => void
 }
 
+// Cache for MediaElementAudioSourceNodes to avoid BUG-009 (InvalidStateError)
+const mediaElementSourceCache = new WeakMap<HTMLMediaElement, MediaElementAudioSourceNode>()
+
 /* ── Hook ─────────────────────────────────────────────────────────────────── */
 
 export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
@@ -352,12 +355,18 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       ttsAnalyserRef.current = analyser
 
       // BUG-009: createMediaElementSource can only be called once per HTML element.
-      // We create a new Audio() for each playback, so this is safe. The disconnect
-      // below cleans up the previous source's routing to avoid orphaned connections.
+      // We check our WeakMap cache to see if we've already created a source for this audio element.
+      // The disconnect below cleans up the previous source's routing to avoid orphaned connections.
       if (ttsSourceRef.current) {
         try { ttsSourceRef.current.disconnect() } catch {}
       }
-      const source = ctx.createMediaElementSource(audio)
+
+      let source = mediaElementSourceCache.get(audio)
+      if (!source) {
+        source = ctx.createMediaElementSource(audio)
+        mediaElementSourceCache.set(audio, source)
+      }
+
       ttsSourceRef.current = source
       source.connect(analyser)
       analyser.connect(ctx.destination)
