@@ -45,7 +45,7 @@ describe('Sleep Sessions API', () => {
 
     describe('POST /generate', () => {
         it('returns 401 without Clerk session', async () => {
-            (getVerifiedUserId as jest.Mock).mockRejectedValue(new AuthenticationError('no auth'))
+            (getVerifiedUserId as jest.Mock).mockRejectedValue(new AuthenticationError())
             const res = await generatePost(createRequest())
             expect(res.status).toBe(401)
         })

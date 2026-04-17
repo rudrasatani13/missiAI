@@ -1,0 +1,32 @@
+const { performance } = require('perf_hooks');
+
+const arr = new Uint8Array(16000);
+for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 256);
+
+function test3() {
+  const start = performance.now();
+  for (let i = 0; i < 1000; i++) {
+    const chunk = 8192;
+    let str = "";
+    for (let j = 0; j < arr.length; j += chunk) {
+      str += String.fromCharCode.apply(null, Array.from(arr.subarray(j, j + chunk)));
+    }
+    btoa(str);
+  }
+  return performance.now() - start;
+}
+
+function test4() {
+  const start = performance.now();
+  for (let i = 0; i < 1000; i++) {
+    const chars = new Array(arr.length);
+    for (let j = 0; j < arr.length; j++) {
+      chars[j] = String.fromCharCode(arr[j]);
+    }
+    btoa(chars.join(""));
+  }
+  return performance.now() - start;
+}
+
+console.log("String.fromCharCode.apply(Array.from) + chunk:", test3(), "ms");
+console.log("Array + loop:", test4(), "ms");
