@@ -109,6 +109,7 @@ export default function WindDownPage() {
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const audio = new Audio(url)
+      audio.volume = 1.0
       // MOBILE FIX: preload + playsinline attributes
       audio.preload = 'auto'
       audio.setAttribute('playsinline', 'true')
@@ -121,7 +122,10 @@ export default function WindDownPage() {
         setIsPlayingTTS(false)
         URL.revokeObjectURL(url)
       }
-      audio.play().catch(() => setIsPlayingTTS(false))
+      audio.play().catch(() => {
+        setIsPlayingTTS(false)
+        URL.revokeObjectURL(url)
+      })
     } catch {
       setIsPlayingTTS(false)
     }

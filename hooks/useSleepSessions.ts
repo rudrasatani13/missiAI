@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { SleepStory, SleepSessionHistoryEntry, BreathingTechnique } from '@/types/sleep-sessions'
 
@@ -103,6 +105,7 @@ export function useSleepSessions() {
         urlRef.current = url
 
         const audio = new Audio(url)
+        audio.volume = 1.0
         // MOBILE FIX: preload + playsinline attributes
         audio.preload = 'auto'
         audio.setAttribute('playsinline', 'true')
@@ -129,8 +132,8 @@ export function useSleepSessions() {
         await audio.play()
         setCurrentStory(story)
         setIsPlaying(true)
-    } catch (err: any) {
-        setError(err.message || 'Playback failed')
+    } catch (err) {
+        setError(err instanceof Error ? err.message : 'Playback failed')
     } finally {
         setIsGenerating(false)
     }
@@ -151,8 +154,8 @@ export function useSleepSessions() {
 
         if (!res.ok) throw new Error(data.error || 'Failed to generate')
         return data.data as SleepStory
-    } catch (err: any) {
-        setError(err.message || 'Failed')
+    } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed')
         throw err
     } finally {
         setIsGenerating(false)
@@ -174,8 +177,8 @@ export function useSleepSessions() {
 
         if (!res.ok) throw new Error(data.error || 'Failed to generate')
         return data.data as SleepStory
-    } catch (err: any) {
-        setError(err.message || 'Failed')
+    } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed')
         throw err
     } finally {
         setIsGenerating(false)
@@ -207,8 +210,8 @@ export function useSleepSessions() {
         }
 
         await playStoryAudio(breathingStory, 'breathing', data.data.script)
-    } catch (err: any) {
-        setError(err.message || 'Failed')
+    } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed')
     } finally {
         setIsGenerating(false)
     }
