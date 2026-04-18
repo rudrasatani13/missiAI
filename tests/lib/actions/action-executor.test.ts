@@ -37,7 +37,6 @@ describe("action-executor", () => {
           type: "web_search",
           parameters: { query: "flights to Goa" },
         }),
-        "test-key",
       )
 
       expect(result.success).toBe(true)
@@ -55,7 +54,6 @@ describe("action-executor", () => {
           type: "web_search",
           parameters: { query: "test query" },
         }),
-        "test-key",
       )
 
       expect(mockedCallAIDirect).toHaveBeenCalledWith(
@@ -73,7 +71,6 @@ describe("action-executor", () => {
           type: "calculate",
           parameters: { expression: "2 + 2" },
         }),
-        "test-key",
       )
 
       expect(result.success).toBe(true)
@@ -87,7 +84,6 @@ describe("action-executor", () => {
           type: "calculate",
           parameters: { expression: "15% of 2400" },
         }),
-        "test-key",
       )
 
       expect(result.success).toBe(true)
@@ -100,7 +96,6 @@ describe("action-executor", () => {
           type: "calculate",
           parameters: { expression: "12 * 5" },
         }),
-        "test-key",
       )
 
       expect(result.success).toBe(true)
@@ -115,7 +110,6 @@ describe("action-executor", () => {
           type: "calculate",
           parameters: { expression: "the integral of 2x from 0 to 3" },
         }),
-        "test-key",
       )
 
       expect(result.success).toBe(true)
@@ -139,7 +133,6 @@ describe("action-executor", () => {
             keyPoints: "need leave next week",
           },
         }),
-        "test-key",
       )
 
       expect(result.success).toBe(true)
@@ -157,7 +150,6 @@ describe("action-executor", () => {
           type: "set_reminder",
           parameters: { task: "call dentist", time: "tomorrow 10am" },
         }),
-        "test-key",
       )
 
       expect(result.success).toBe(true)
@@ -176,7 +168,6 @@ describe("action-executor", () => {
           type: "take_note",
           parameters: { title: "Meeting notes", content: "Discussed Q4 targets" },
         }),
-        "test-key",
       )
 
       expect(result.success).toBe(true)
@@ -196,7 +187,6 @@ describe("action-executor", () => {
           type: "web_search",
           parameters: { query: "test" },
         }),
-        "test-key",
       )
 
       expect(result.success).toBe(false)
@@ -212,7 +202,6 @@ describe("action-executor", () => {
           type: "set_reminder",
           parameters: { task: "test", time: "now" },
         }),
-        "test-key",
       )
       const after = Date.now()
 
@@ -229,7 +218,6 @@ describe("action-executor", () => {
           type: "translate",
           parameters: { text: "hi", targetLanguage: "Spanish" },
         }),
-        "test-key",
       )
       const after = Date.now()
 
@@ -246,7 +234,6 @@ describe("action-executor", () => {
           type: "web_search",
           parameters: { query: "test" },
         }),
-        "test-key",
       )
 
       expect(result.output.length).toBeLessThanOrEqual(300)

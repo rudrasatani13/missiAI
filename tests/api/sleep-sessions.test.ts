@@ -99,7 +99,7 @@ describe('Sleep Sessions API', () => {
 
     describe('POST /generate', () => {
         it('returns 401 without Clerk session', async () => {
-            vi.mocked(getVerifiedUserId).mockRejectedValue(new AuthenticationError('no auth'))
+            vi.mocked(getVerifiedUserId).mockRejectedValue(new AuthenticationError())
             const res = await generatePost(createRequest())
             expect(res.status).toBe(401)
         })

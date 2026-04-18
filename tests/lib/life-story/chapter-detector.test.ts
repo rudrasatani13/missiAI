@@ -22,7 +22,7 @@ describe('chapter-detector', () => {
 
   it('returns empty array when graph has fewer than 5 nodes', async () => {
     const graph: LifeGraph = { nodes: [{ id: '1' } as any, { id: '2' } as any], totalInteractions: 0, lastUpdatedAt: 0, version: 1 }
-    const res = await detectChapters(graph, 'mock-key')
+    const res = await detectChapters(graph)
     expect(res).toEqual([])
   })
 
@@ -43,7 +43,7 @@ describe('chapter-detector', () => {
       json: vi.fn().mockResolvedValue({})
     } as any)
 
-    const res = await detectChapters(graph, 'mock-key')
+    const res = await detectChapters(graph)
     
     // Expect 1 cluster (n1, n2, n3, plus n4, n5 which are merged as "misc" because <3 size)
     // Wait, since all are in same time bucket (createdAt near 1000-5000 is same year/quarter)
@@ -70,7 +70,7 @@ describe('chapter-detector', () => {
       json: vi.fn()
     } as any)
 
-    const res = await detectChapters(graph, 'mock-key')
+    const res = await detectChapters(graph)
     expect(res.length).toBe(1)
     expect(res[0].title).toContain('Goal:')
     expect(res[0].emotionalTone).toBe('neutral')
@@ -95,7 +95,7 @@ describe('chapter-detector', () => {
       })
     } as any)
 
-    const res = await detectChapters(graph, 'mock-key')
+    const res = await detectChapters(graph)
     expect(res[0].title).not.toContain('<script>')
     expect(res[0].emotionalTone).toBe('joyful')
   })

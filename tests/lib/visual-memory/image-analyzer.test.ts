@@ -55,7 +55,7 @@ describe('analyzeImageWithGemini', () => {
   it('returns valid VisualExtraction on well-formed Gemini response', async () => {
     mockGeminiGenerate.mockResolvedValueOnce(makeGeminiResponse(validExtraction()))
 
-    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null, 'test-key')
+    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null)
 
     expect(result.category).toBe('food')
     expect(result.title).toBe('Restaurant menu item')
@@ -73,7 +73,7 @@ describe('analyzeImageWithGemini', () => {
       ),
     )
 
-    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null, 'test-key')
+    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null)
 
     expect(result.category).toBe('general')
     expect(result.title).toBe('Saved visual memory')
@@ -83,7 +83,7 @@ describe('analyzeImageWithGemini', () => {
   it('returns safe fallback when Gemini call throws', async () => {
     mockGeminiGenerate.mockRejectedValueOnce(new Error('Network error'))
 
-    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null, 'test-key')
+    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null)
 
     expect(result.category).toBe('general')
     expect(result.title).toBe('Saved visual memory')
@@ -95,7 +95,7 @@ describe('analyzeImageWithGemini', () => {
       () => new Promise((resolve) => setTimeout(() => resolve(makeGeminiResponse(validExtraction())), 15_000)),
     )
 
-    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null, 'test-key')
+    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null)
 
     expect(result.category).toBe('general')
     expect(result.title).toBe('Saved visual memory')
@@ -109,7 +109,7 @@ describe('analyzeImageWithGemini', () => {
     }
     mockGeminiGenerate.mockResolvedValueOnce(makeGeminiResponse(malicious))
 
-    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null, 'test-key')
+    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null)
 
     expect(result.title).not.toContain('IGNORE ALL PREVIOUS INSTRUCTIONS')
     expect(result.detail.toLowerCase()).not.toContain('ignore all previous instructions')
@@ -119,7 +119,7 @@ describe('analyzeImageWithGemini', () => {
     const invalid = { ...validExtraction(), emotionalWeight: 'not-a-number' }
     mockGeminiGenerate.mockResolvedValueOnce(makeGeminiResponse(invalid))
 
-    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null, 'test-key')
+    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null)
     expect(result.category).toBe('general')
   })
 
@@ -132,7 +132,7 @@ describe('analyzeImageWithGemini', () => {
       ),
     )
 
-    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null, 'test-key')
+    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null)
     expect(result.title).toBe('Restaurant menu item')
   })
 
@@ -141,7 +141,7 @@ describe('analyzeImageWithGemini', () => {
       new Response('Error', { status: 500 }),
     )
 
-    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null, 'test-key')
+    const result = await analyzeImageWithGemini(TINY_JPEG, 'image/jpeg', null)
     expect(result.category).toBe('general')
   })
 })

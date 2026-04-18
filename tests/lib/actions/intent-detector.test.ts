@@ -25,7 +25,7 @@ describe("intent-detector", () => {
         }),
       )
 
-      const result = await detectIntent("search for flights to Goa", "", "test-key")
+      const result = await detectIntent("search for flights to Goa", "")
       expect(result.type).toBe("web_search")
       expect(result.confidence).toBeGreaterThanOrEqual(0.75)
       expect(result.parameters.query).toBe("flights to Goa")
@@ -41,14 +41,14 @@ describe("intent-detector", () => {
         }),
       )
 
-      const result = await detectIntent("hi how are you", "", "test-key")
+      const result = await detectIntent("hi how are you", "")
       expect(result.type).toBe("none")
     })
 
     it("should return safe default when AI returns invalid JSON", async () => {
       mockedCallAIDirect.mockResolvedValueOnce("this is not valid json at all")
 
-      const result = await detectIntent("some message", "", "test-key")
+      const result = await detectIntent("some message", "")
       expect(result.type).toBe("none")
       expect(result.confidence).toBe(0)
       expect(result.parameters).toEqual({})
@@ -58,7 +58,7 @@ describe("intent-detector", () => {
     it("should return safe default when callAIDirect throws", async () => {
       mockedCallAIDirect.mockRejectedValueOnce(new Error("API failed"))
 
-      const result = await detectIntent("some message", "", "test-key")
+      const result = await detectIntent("some message", "")
       expect(result.type).toBe("none")
       expect(result.confidence).toBe(0)
     })
@@ -68,7 +68,7 @@ describe("intent-detector", () => {
         '```json\n{"type": "translate", "confidence": 0.88, "parameters": {"text": "hello", "targetLanguage": "Hindi"}}\n```',
       )
 
-      const result = await detectIntent("translate hello to Hindi", "", "test-key")
+      const result = await detectIntent("translate hello to Hindi", "")
       expect(result.type).toBe("translate")
       expect(result.confidence).toBe(0.88)
     })
@@ -78,7 +78,7 @@ describe("intent-detector", () => {
         JSON.stringify({ type: "none", confidence: 0, parameters: {} }),
       )
 
-      const result = await detectIntent("my test message", "some context", "key")
+      const result = await detectIntent("my test message", "some context")
       expect(result.rawUserMessage).toBe("my test message")
     })
 
@@ -87,7 +87,7 @@ describe("intent-detector", () => {
         JSON.stringify({ type: "none", confidence: 0, parameters: {} }),
       )
 
-      await detectIntent("test", "user: hello\nassistant: hi", "key")
+      await detectIntent("test", "user: hello\nassistant: hi")
 
       expect(mockedCallAIDirect).toHaveBeenCalledTimes(1)
       const userPrompt = mockedCallAIDirect.mock.calls[0][1]

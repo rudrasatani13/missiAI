@@ -194,7 +194,7 @@ describe('generateWeeklyInsight', () => {
   it('returns Gemini insight text on success', async () => {
     mockGeminiOk('You balanced stress and joy beautifully this week.')
 
-    const result = await generateWeeklyInsight(sampleEntries, 'fake-key')
+    const result = await generateWeeklyInsight(sampleEntries)
 
     expect(result).toBe('You balanced stress and joy beautifully this week.')
   })
@@ -202,7 +202,7 @@ describe('generateWeeklyInsight', () => {
   it('returns fallback when Gemini throws', async () => {
     mockGeminiError()
 
-    const result = await generateWeeklyInsight(sampleEntries, 'fake-key')
+    const result = await generateWeeklyInsight(sampleEntries)
 
     expect(result).toContain("week of ups and downs")
   })
@@ -210,7 +210,7 @@ describe('generateWeeklyInsight', () => {
   it('returns fallback on non-ok status', async () => {
     mockGeminiBadStatus()
 
-    const result = await generateWeeklyInsight(sampleEntries, 'fake-key')
+    const result = await generateWeeklyInsight(sampleEntries)
 
     expect(result).toContain("week of ups and downs")
   })
@@ -221,7 +221,7 @@ describe('generateWeeklyInsight', () => {
       json: async () => ({ candidates: [{ content: { parts: [{ text: '' }] } }] }),
     } as unknown as Response)
 
-    const result = await generateWeeklyInsight(sampleEntries, 'fake-key')
+    const result = await generateWeeklyInsight(sampleEntries)
 
     expect(result).toContain("week of ups and downs")
   })

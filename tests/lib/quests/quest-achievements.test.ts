@@ -5,13 +5,17 @@ import type { Quest, QuestAchievementContext } from '@/types/quests'
 
 function createBaseGamificationData(): GamificationData {
   return {
+    userId: 'user-123',
     totalXP: 100,
     level: 1,
     avatarTier: 1,
-    loginStreak: { current: 1, longest: 1, lastLoginDate: '' },
+    loginStreak: 1,
     habits: [],
     achievements: [],
     xpLog: [],
+    xpLogDate: '',
+    lastLoginDate: '',
+    lastUpdatedAt: Date.now(),
   }
 }
 

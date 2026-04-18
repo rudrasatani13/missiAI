@@ -137,7 +137,7 @@ const VALID_PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A
 const PNG_AS_JPEG_BYTES = VALID_PNG_BYTES
 
 function makeFormData(bytes: Uint8Array, mimeType: string, note?: string): FormData {
-  const file = new File([bytes], 'test.jpg', { type: mimeType })
+  const file = new File([bytes as any], 'test.jpg', { type: mimeType })
   const fd = new FormData()
   fd.append('file', file)
   if (note) fd.append('note', note)
@@ -158,7 +158,7 @@ beforeEach(() => {
 
   const kv = makeKV()
   mockGetRequestContext.mockReturnValue({
-    env: { MISSI_MEMORY: kv, LIFE_GRAPH: null },
+    env: { MISSI_MEMORY: kv, LIFE_GRAPH: null } as any,
     ctx: {} as any,
     cf: {} as any,
   })
@@ -275,7 +275,7 @@ describe('POST /api/v1/visual-memory/analyze', () => {
 
   it('returns 500 when KV is unavailable', async () => {
     mockGetRequestContext.mockReturnValueOnce({
-      env: { MISSI_MEMORY: null, LIFE_GRAPH: null },
+      env: { MISSI_MEMORY: null, LIFE_GRAPH: null } as any,
       ctx: {} as any,
       cf: {} as any,
     })
