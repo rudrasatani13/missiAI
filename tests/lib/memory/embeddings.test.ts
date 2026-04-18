@@ -2,6 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { generateEmbedding, cosineSimilarity, buildEmbeddingText } from "@/lib/memory/embeddings"
 import type { LifeNode } from "@/types/memory"
 
+// Mock vertex-client so we can control geminiEmbed without real Vertex AI auth
+vi.mock("@/lib/ai/vertex-client", () => ({
+  geminiEmbed: vi.fn(),
+}))
+
+import { geminiEmbed } from "@/lib/ai/vertex-client"
+const mockGeminiEmbed = vi.mocked(geminiEmbed)
+
 describe("embeddings", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -15,55 +23,45 @@ describe("embeddings", () => {
         }
       }
 
-      const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      mockGeminiEmbed.mockResolvedValueOnce(
         new Response(JSON.stringify(mockResponse), { status: 200 })
       )
 
-      const result = await generateEmbedding("test text", "test-api-key")
+      const result = await generateEmbedding("test text")
 
       expect(result).toEqual([0.1, 0.2, 0.3, 0.4, 0.5])
-      expect(fetchSpy).toHaveBeenCalledWith(
-        "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent",
-        expect.objectContaining({
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": "test-api-key"
-          },
-          body: JSON.stringify({
-            model: "models/text-embedding-004",
-            content: { parts: [{ text: "test text" }] }
-          })
-        })
+      expect(mockGeminiEmbed).toHaveBeenCalledWith(
+        "test text",
+        expect.any(Object)
       )
     })
 
     it("should throw error on API failure", async () => {
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      mockGeminiEmbed.mockResolvedValueOnce(
         new Response("Error", { status: 500 })
       )
 
-      await expect(generateEmbedding("test", "key")).rejects.toThrow(
+      await expect(generateEmbedding("test")).rejects.toThrow(
         "Embedding failed with status 500"
       )
     })
 
     it("should throw error on invalid response", async () => {
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      mockGeminiEmbed.mockResolvedValueOnce(
         new Response(JSON.stringify({ invalid: "response" }), { status: 200 })
       )
 
-      await expect(generateEmbedding("test", "key")).rejects.toThrow(
+      await expect(generateEmbedding("test")).rejects.toThrow(
         "Embedding failed: no values in response"
       )
     })
 
     it("should handle timeout", async () => {
-      vi.spyOn(global, "fetch").mockImplementationOnce(
+      mockGeminiEmbed.mockImplementationOnce(
         () => new Promise((resolve) => setTimeout(resolve, 12000))
       )
 
-      await expect(generateEmbedding("test", "key")).rejects.toThrow()
+      await expect(generateEmbedding("test")).rejects.toThrow()
     }, 15000)
   })
 

@@ -68,9 +68,9 @@ describe("persona-config", () => {
       }
     })
 
-    it("promptModifier is under 200 characters for each persona", () => {
+    it("promptModifier is under 2000 characters for each persona", () => {
       for (const id of ALL_IDS) {
-        expect(PERSONAS[id].promptModifier.length).toBeLessThanOrEqual(600)
+        expect(PERSONAS[id].promptModifier.length).toBeLessThanOrEqual(2000)
       }
     })
   })

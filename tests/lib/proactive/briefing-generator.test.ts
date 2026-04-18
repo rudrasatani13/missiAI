@@ -3,6 +3,14 @@ import { generateDailyBriefing } from "@/lib/proactive/briefing-generator"
 import type { LifeGraph, LifeNode } from "@/types/memory"
 import type { ProactiveConfig } from "@/types/proactive"
 
+// Mock vertex-client to avoid real Vertex AI auth in tests
+vi.mock("@/lib/ai/vertex-client", () => ({
+  geminiGenerate: vi.fn(),
+}))
+
+import { geminiGenerate } from "@/lib/ai/vertex-client"
+const mockGeminiGenerate = vi.mocked(geminiGenerate)
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 const DEFAULT_CONFIG: ProactiveConfig = {
@@ -81,10 +89,10 @@ describe("briefing-generator", () => {
         },
       ]
 
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(mockGeminiResponse(mockItems))
+      mockGeminiGenerate.mockResolvedValueOnce(mockGeminiResponse(mockItems))
 
       const graph = makeGraph([makeNode()])
-      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG, "test-api-key")
+      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG)
 
       expect(briefing.items).toHaveLength(2)
       expect(briefing.items[0].type).toBe("goal_nudge")
@@ -99,68 +107,55 @@ describe("briefing-generator", () => {
     })
 
     it("should return briefing with [] items when Gemini returns invalid JSON", async () => {
-      const badResponse = new Response(
-        JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: "this is not json at all {{{" }],
-              },
-            },
-          ],
-        }),
-        { status: 200 },
+      mockGeminiGenerate.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [{ content: { parts: [{ text: "this is not json at all {{{{" }] } }],
+          }),
+          { status: 200 },
+        ),
       )
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(badResponse)
 
       const graph = makeGraph([makeNode()])
-      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG, "test-api-key")
+      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG)
 
       expect(briefing.items).toEqual([])
     })
 
     it("should return briefing with [] items when Gemini returns a non-array", async () => {
-      const nonArrayResponse = new Response(
-        JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: JSON.stringify({ not: "an array" }) }],
-              },
-            },
-          ],
-        }),
-        { status: 200 },
+      mockGeminiGenerate.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [{ content: { parts: [{ text: JSON.stringify({ not: "an array" }) }] } }],
+          }),
+          { status: 200 },
+        ),
       )
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(nonArrayResponse)
 
       const graph = makeGraph([makeNode()])
-      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG, "test-api-key")
+      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG)
 
       expect(briefing.items).toEqual([])
     })
 
     it("should return briefing with [] items for an empty graph (no Gemini call)", async () => {
-      const fetchSpy = vi.spyOn(global, "fetch")
-
       const briefing = await generateDailyBriefing(
         makeGraph([]),
         DEFAULT_CONFIG,
-        "test-api-key",
       )
 
       expect(briefing.items).toEqual([])
       // Gemini should NOT be called for an empty graph
-      expect(fetchSpy).not.toHaveBeenCalled()
+      expect(mockGeminiGenerate).not.toHaveBeenCalled()
     })
 
     it("should return briefing with [] items when Gemini API returns an error", async () => {
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      mockGeminiGenerate.mockResolvedValueOnce(
         new Response("Internal Server Error", { status: 500 }),
       )
 
       const graph = makeGraph([makeNode()])
-      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG, "test-api-key")
+      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG)
 
       expect(briefing.items).toEqual([])
     })
@@ -174,26 +169,23 @@ describe("briefing-generator", () => {
           actionable: true,
         },
       ]
-      const wrappedResponse = new Response(
-        JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [
-                  {
-                    text: "```json\n" + JSON.stringify(items) + "\n```",
-                  },
-                ],
+      mockGeminiGenerate.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: "```json\n" + JSON.stringify(items) + "\n```" }],
+                },
               },
-            },
-          ],
-        }),
-        { status: 200 },
+            ],
+          }),
+          { status: 200 },
+        ),
       )
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(wrappedResponse)
 
       const graph = makeGraph([makeNode()])
-      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG, "test-api-key")
+      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG)
 
       expect(briefing.items).toHaveLength(1)
       expect(briefing.items[0].type).toBe("goal_nudge")
@@ -206,18 +198,18 @@ describe("briefing-generator", () => {
         message: `Goal nudge number ${i}`,
         actionable: true,
       }))
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(mockGeminiResponse(tenItems))
+      mockGeminiGenerate.mockResolvedValueOnce(mockGeminiResponse(tenItems))
 
       const config = { ...DEFAULT_CONFIG, maxItemsPerBriefing: 3 }
       const graph = makeGraph([makeNode()])
-      const briefing = await generateDailyBriefing(graph, config, "test-api-key")
+      const briefing = await generateDailyBriefing(graph, config)
 
       expect(briefing.items.length).toBeLessThanOrEqual(3)
     })
 
     it("should truncate messages longer than 120 chars", async () => {
       const longMessage = "A".repeat(200)
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      mockGeminiGenerate.mockResolvedValueOnce(
         mockGeminiResponse([
           {
             type: "goal_nudge",
@@ -229,13 +221,13 @@ describe("briefing-generator", () => {
       )
 
       const graph = makeGraph([makeNode()])
-      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG, "test-api-key")
+      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG)
 
       expect(briefing.items[0].message.length).toBeLessThanOrEqual(120)
     })
 
     it("should filter out items with invalid types", async () => {
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      mockGeminiGenerate.mockResolvedValueOnce(
         mockGeminiResponse([
           { type: "unknown_type", priority: "high", message: "Hello", actionable: true },
           { type: "goal_nudge", priority: "high", message: "Valid item", actionable: true },
@@ -243,7 +235,7 @@ describe("briefing-generator", () => {
       )
 
       const graph = makeGraph([makeNode()])
-      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG, "test-api-key")
+      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG)
 
       expect(briefing.items).toHaveLength(1)
       expect(briefing.items[0].type).toBe("goal_nudge")
@@ -251,7 +243,7 @@ describe("briefing-generator", () => {
 
     it("should assign nodeId by keyword matching message to node title", async () => {
       const node = makeNode({ id: "spanish-goal", title: "Spanish" })
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      mockGeminiGenerate.mockResolvedValueOnce(
         mockGeminiResponse([
           {
             type: "goal_nudge",
@@ -263,7 +255,7 @@ describe("briefing-generator", () => {
       )
 
       const graph = makeGraph([node])
-      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG, "test-api-key")
+      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG)
 
       expect(briefing.items[0].nodeId).toBe("spanish-goal")
     })
@@ -271,7 +263,7 @@ describe("briefing-generator", () => {
 
   describe("tone calculation", () => {
     it("should return 'energetic' tone when avg emotionalWeight > 0.7", async () => {
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(mockGeminiResponse([]))
+      mockGeminiGenerate.mockResolvedValueOnce(mockGeminiResponse([]))
 
       const nodes = [
         makeNode({ id: "n1", emotionalWeight: 0.8 }),
@@ -279,13 +271,13 @@ describe("briefing-generator", () => {
         makeNode({ id: "n3", emotionalWeight: 0.75 }),
       ]
       const graph = makeGraph(nodes)
-      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG, "test-api-key")
+      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG)
 
       expect(briefing.tone).toBe("energetic")
     })
 
     it("should return 'focused' tone when majority of nodes are goals", async () => {
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(mockGeminiResponse([]))
+      mockGeminiGenerate.mockResolvedValueOnce(mockGeminiResponse([]))
 
       const nodes = [
         makeNode({ id: "g1", category: "goal", emotionalWeight: 0.4 }),
@@ -294,13 +286,13 @@ describe("briefing-generator", () => {
         makeNode({ id: "p1", category: "person", emotionalWeight: 0.3 }),
       ]
       const graph = makeGraph(nodes)
-      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG, "test-api-key")
+      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG)
 
       expect(briefing.tone).toBe("focused")
     })
 
     it("should return 'calm' tone by default (mixed nodes, low emotional weight)", async () => {
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(mockGeminiResponse([]))
+      mockGeminiGenerate.mockResolvedValueOnce(mockGeminiResponse([]))
 
       const nodes = [
         makeNode({ id: "g1", category: "goal", emotionalWeight: 0.3 }),
@@ -308,7 +300,7 @@ describe("briefing-generator", () => {
         makeNode({ id: "h1", category: "habit", emotionalWeight: 0.3 }),
       ]
       const graph = makeGraph(nodes)
-      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG, "test-api-key")
+      const briefing = await generateDailyBriefing(graph, DEFAULT_CONFIG)
 
       expect(briefing.tone).toBe("calm")
     })
@@ -317,7 +309,6 @@ describe("briefing-generator", () => {
       const briefing = await generateDailyBriefing(
         makeGraph([]),
         DEFAULT_CONFIG,
-        "test-api-key",
       )
       expect(briefing.tone).toBe("calm")
     })

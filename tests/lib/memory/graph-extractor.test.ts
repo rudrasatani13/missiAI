@@ -3,6 +3,23 @@ import { extractLifeNodes } from "@/lib/memory/graph-extractor"
 import type { ConversationEntry } from "@/types/chat"
 import type { LifeGraph } from "@/types/memory"
 
+// Mock vertex-client to avoid real Vertex AI auth in tests
+vi.mock("@/lib/ai/vertex-client", () => ({
+  geminiGenerate: vi.fn(),
+}))
+
+import { geminiGenerate } from "@/lib/ai/vertex-client"
+const mockGeminiGenerate = vi.mocked(geminiGenerate)
+
+function makeGeminiResponse(text: string, status = 200) {
+  return new Response(
+    JSON.stringify({
+      candidates: [{ content: { parts: [{ text }] } }],
+    }),
+    { status },
+  )
+}
+
 describe("graph-extractor", () => {
   let mockConversation: ConversationEntry[]
   let mockExistingGraph: LifeGraph
@@ -46,70 +63,46 @@ describe("graph-extractor", () => {
 
   describe("extractLifeNodes", () => {
     it("should extract valid life nodes from conversation", async () => {
-      const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: JSON.stringify([
-                    {
-                      category: "skill",
-                      title: "Playing guitar",
-                      detail: "User enjoys playing guitar as a hobby",
-                      tags: ["music", "hobby", "guitar"],
-                      people: [],
-                      emotionalWeight: 0.8,
-                      confidence: 0.9,
-                      source: "conversation"
-                    },
-                    {
-                      category: "goal",
-                      title: "Learn Spanish",
-                      detail: "User wants to learn Spanish this year",
-                      tags: ["language", "learning", "spanish"],
-                      people: [],
-                      emotionalWeight: 0.7,
-                      confidence: 0.8,
-                      source: "conversation"
-                    },
-                    {
-                      category: "person",
-                      title: "Sarah",
-                      detail: "Friend who helps with Spanish practice",
-                      tags: ["friend", "spanish", "practice"],
-                      people: ["Sarah"],
-                      emotionalWeight: 0.6,
-                      confidence: 0.8,
-                      source: "conversation"
-                    }
-                  ])
-                }
-              ]
-            }
-          }
-        ]
-      }
+      const nodes = [
+        {
+          category: "skill",
+          title: "Playing guitar",
+          detail: "User enjoys playing guitar as a hobby",
+          tags: ["music", "hobby", "guitar"],
+          people: [],
+          emotionalWeight: 0.8,
+          confidence: 0.9,
+          source: "conversation"
+        },
+        {
+          category: "goal",
+          title: "Learn Spanish",
+          detail: "User wants to learn Spanish this year",
+          tags: ["language", "learning", "spanish"],
+          people: [],
+          emotionalWeight: 0.7,
+          confidence: 0.8,
+          source: "conversation"
+        },
+        {
+          category: "person",
+          title: "Sarah",
+          detail: "Friend who helps with Spanish practice",
+          tags: ["friend", "spanish", "practice"],
+          people: ["Sarah"],
+          emotionalWeight: 0.6,
+          confidence: 0.8,
+          source: "conversation"
+        }
+      ]
 
-      const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
+      mockGeminiGenerate.mockResolvedValueOnce(
+        makeGeminiResponse(JSON.stringify(nodes))
       )
 
       const results = await extractLifeNodes(
         mockConversation,
         mockExistingGraph,
-        "test-api-key"
-      )
-
-      expect(fetchSpy).toHaveBeenCalledWith(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
-        expect.objectContaining({
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": "test-api-key"
-          }
-        })
       )
 
       expect(results).toHaveLength(3)
@@ -122,49 +115,36 @@ describe("graph-extractor", () => {
     })
 
     it("should filter out low confidence nodes", async () => {
-      const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: JSON.stringify([
-                    {
-                      category: "skill",
-                      title: "High confidence",
-                      detail: "This is confident",
-                      tags: ["test"],
-                      people: [],
-                      emotionalWeight: 0.8,
-                      confidence: 0.8,
-                      source: "conversation"
-                    },
-                    {
-                      category: "goal",
-                      title: "Low confidence",
-                      detail: "This is uncertain",
-                      tags: ["test"],
-                      people: [],
-                      emotionalWeight: 0.5,
-                      confidence: 0.4,
-                      source: "conversation"
-                    }
-                  ])
-                }
-              ]
-            }
-          }
-        ]
-      }
+      const nodes = [
+        {
+          category: "skill",
+          title: "High confidence",
+          detail: "This is confident",
+          tags: ["test"],
+          people: [],
+          emotionalWeight: 0.8,
+          confidence: 0.8,
+          source: "conversation"
+        },
+        {
+          category: "goal",
+          title: "Low confidence",
+          detail: "This is uncertain",
+          tags: ["test"],
+          people: [],
+          emotionalWeight: 0.5,
+          confidence: 0.4,
+          source: "conversation"
+        }
+      ]
 
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
+      mockGeminiGenerate.mockResolvedValueOnce(
+        makeGeminiResponse(JSON.stringify(nodes))
       )
 
       const results = await extractLifeNodes(
         mockConversation,
         mockExistingGraph,
-        "test-api-key"
       )
 
       expect(results).toHaveLength(1)
@@ -172,49 +152,36 @@ describe("graph-extractor", () => {
     })
 
     it("should filter out invalid categories", async () => {
-      const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: JSON.stringify([
-                    {
-                      category: "person",
-                      title: "Valid category",
-                      detail: "This is valid",
-                      tags: ["test"],
-                      people: [],
-                      emotionalWeight: 0.8,
-                      confidence: 0.8,
-                      source: "conversation"
-                    },
-                    {
-                      category: "invalid_category",
-                      title: "Invalid category",
-                      detail: "This should be filtered",
-                      tags: ["test"],
-                      people: [],
-                      emotionalWeight: 0.8,
-                      confidence: 0.8,
-                      source: "conversation"
-                    }
-                  ])
-                }
-              ]
-            }
-          }
-        ]
-      }
+      const nodes = [
+        {
+          category: "person",
+          title: "Valid category",
+          detail: "This is valid",
+          tags: ["test"],
+          people: [],
+          emotionalWeight: 0.8,
+          confidence: 0.8,
+          source: "conversation"
+        },
+        {
+          category: "invalid_category",
+          title: "Invalid category",
+          detail: "This should be filtered",
+          tags: ["test"],
+          people: [],
+          emotionalWeight: 0.8,
+          confidence: 0.8,
+          source: "conversation"
+        }
+      ]
 
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
+      mockGeminiGenerate.mockResolvedValueOnce(
+        makeGeminiResponse(JSON.stringify(nodes))
       )
 
       const results = await extractLifeNodes(
         mockConversation,
         mockExistingGraph,
-        "test-api-key"
       )
 
       expect(results).toHaveLength(1)
@@ -222,49 +189,36 @@ describe("graph-extractor", () => {
     })
 
     it("should deduplicate against existing nodes", async () => {
-      const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: JSON.stringify([
-                    {
-                      category: "person",
-                      title: "John", // Exact match with existing
-                      detail: "User's name",
-                      tags: ["self"],
-                      people: [],
-                      emotionalWeight: 0.8,
-                      confidence: 0.8,
-                      source: "conversation"
-                    },
-                    {
-                      category: "person",
-                      title: "Sarah", // New node
-                      detail: "Friend who helps with practice",
-                      tags: ["friend"],
-                      people: ["Sarah"],
-                      emotionalWeight: 0.7,
-                      confidence: 0.8,
-                      source: "conversation"
-                    }
-                  ])
-                }
-              ]
-            }
-          }
-        ]
-      }
+      const nodes = [
+        {
+          category: "person",
+          title: "John", // Exact match with existing
+          detail: "User's name",
+          tags: ["self"],
+          people: [],
+          emotionalWeight: 0.8,
+          confidence: 0.8,
+          source: "conversation"
+        },
+        {
+          category: "person",
+          title: "Sarah", // New node
+          detail: "Friend who helps with practice",
+          tags: ["friend"],
+          people: ["Sarah"],
+          emotionalWeight: 0.7,
+          confidence: 0.8,
+          source: "conversation"
+        }
+      ]
 
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
+      mockGeminiGenerate.mockResolvedValueOnce(
+        makeGeminiResponse(JSON.stringify(nodes))
       )
 
       const results = await extractLifeNodes(
         mockConversation,
         mockExistingGraph,
-        "test-api-key"
       )
 
       expect(results).toHaveLength(1)
@@ -272,80 +226,52 @@ describe("graph-extractor", () => {
     })
 
     it("should handle partial title matches in deduplication", async () => {
-      const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: JSON.stringify([
-                    {
-                      category: "person",
-                      title: "John Smith", // Contains existing "John"
-                      detail: "Full name",
-                      tags: ["self"],
-                      people: [],
-                      emotionalWeight: 0.8,
-                      confidence: 0.8,
-                      source: "conversation"
-                    }
-                  ])
-                }
-              ]
-            }
-          }
-        ]
-      }
+      const nodes = [
+        {
+          category: "person",
+          title: "John Smith", // Contains existing "John"
+          detail: "Full name",
+          tags: ["self"],
+          people: [],
+          emotionalWeight: 0.8,
+          confidence: 0.8,
+          source: "conversation"
+        }
+      ]
 
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
+      mockGeminiGenerate.mockResolvedValueOnce(
+        makeGeminiResponse(JSON.stringify(nodes))
       )
 
       const results = await extractLifeNodes(
         mockConversation,
         mockExistingGraph,
-        "test-api-key"
       )
 
       expect(results).toHaveLength(0) // Should be filtered out due to partial match
     })
 
     it("should handle markdown-wrapped JSON response", async () => {
-      const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: `\`\`\`json
-${JSON.stringify([
-  {
-    category: "skill",
-    title: "Guitar playing",
-    detail: "User plays guitar",
-    tags: ["music"],
-    people: [],
-    emotionalWeight: 0.8,
-    confidence: 0.8,
-    source: "conversation"
-  }
-])}
-\`\`\``
-                }
-              ]
-            }
-          }
-        ]
-      }
+      const nodes = [
+        {
+          category: "skill",
+          title: "Guitar playing",
+          detail: "User plays guitar",
+          tags: ["music"],
+          people: [],
+          emotionalWeight: 0.8,
+          confidence: 0.8,
+          source: "conversation"
+        }
+      ]
 
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
+      mockGeminiGenerate.mockResolvedValueOnce(
+        makeGeminiResponse("```json\n" + JSON.stringify(nodes) + "\n```")
       )
 
       const results = await extractLifeNodes(
         mockConversation,
         mockExistingGraph,
-        "test-api-key"
       )
 
       expect(results).toHaveLength(1)
@@ -353,39 +279,26 @@ ${JSON.stringify([
     })
 
     it("should truncate long fields", async () => {
-      const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: JSON.stringify([
-                    {
-                      category: "skill",
-                      title: "a".repeat(100), // Too long
-                      detail: "b".repeat(600), // Too long
-                      tags: Array(10).fill("tag"), // Too many
-                      people: ["Person1", "Person2"],
-                      emotionalWeight: 1.5, // Out of range
-                      confidence: 0.8,
-                      source: "conversation"
-                    }
-                  ])
-                }
-              ]
-            }
-          }
-        ]
-      }
+      const nodes = [
+        {
+          category: "skill",
+          title: "a".repeat(100), // Too long
+          detail: "b".repeat(600), // Too long
+          tags: Array(10).fill("tag"), // Too many
+          people: ["Person1", "Person2"],
+          emotionalWeight: 1.5, // Out of range
+          confidence: 0.8,
+          source: "conversation"
+        }
+      ]
 
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
+      mockGeminiGenerate.mockResolvedValueOnce(
+        makeGeminiResponse(JSON.stringify(nodes))
       )
 
       const results = await extractLifeNodes(
         mockConversation,
         mockExistingGraph,
-        "test-api-key"
       )
 
       expect(results).toHaveLength(1)
@@ -396,84 +309,52 @@ ${JSON.stringify([
     })
 
     it("should handle API errors gracefully", async () => {
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      mockGeminiGenerate.mockResolvedValueOnce(
         new Response("Error", { status: 500 })
       )
 
       const results = await extractLifeNodes(
         mockConversation,
         mockExistingGraph,
-        "test-api-key"
       )
 
       expect(results).toEqual([])
     })
 
     it("should handle invalid JSON response", async () => {
-      const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: "invalid json response"
-                }
-              ]
-            }
-          }
-        ]
-      }
-
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
+      mockGeminiGenerate.mockResolvedValueOnce(
+        makeGeminiResponse("invalid json response")
       )
 
       const results = await extractLifeNodes(
         mockConversation,
         mockExistingGraph,
-        "test-api-key"
       )
 
       expect(results).toEqual([])
     })
 
     it("should handle non-array JSON response", async () => {
-      const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: JSON.stringify({ not: "an array" })
-                }
-              ]
-            }
-          }
-        ]
-      }
-
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
+      mockGeminiGenerate.mockResolvedValueOnce(
+        makeGeminiResponse(JSON.stringify({ not: "an array" }))
       )
 
       const results = await extractLifeNodes(
         mockConversation,
         mockExistingGraph,
-        "test-api-key"
       )
 
       expect(results).toEqual([])
     })
 
     it("should handle timeout", async () => {
-      vi.spyOn(global, "fetch").mockImplementationOnce(
+      mockGeminiGenerate.mockImplementationOnce(
         () => new Promise((resolve) => setTimeout(resolve, 20000))
       )
 
       const results = await extractLifeNodes(
         mockConversation,
         mockExistingGraph,
-        "test-api-key"
       )
 
       expect(results).toEqual([])
@@ -485,33 +366,20 @@ ${JSON.stringify([
         content: `Message ${i}`
       })) as ConversationEntry[]
 
-      const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: JSON.stringify([])
-                }
-              ]
-            }
-          }
-        ]
-      }
-
-      const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
+      mockGeminiGenerate.mockResolvedValueOnce(
+        makeGeminiResponse(JSON.stringify([]))
       )
 
       await extractLifeNodes(
         longConversation,
         mockExistingGraph,
-        "test-api-key"
       )
 
-      const requestBody = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string)
+      // geminiGenerate is called with a request body containing the conversation text
+      const callArgs = mockGeminiGenerate.mock.calls[0]
+      const requestBody = callArgs[1] as any
       const conversationText = requestBody.contents[0].parts[0].text
-      
+
       // Should only contain the last 6 messages
       expect(conversationText).toContain("Message 14")
       expect(conversationText).toContain("Message 19")
@@ -519,49 +387,36 @@ ${JSON.stringify([
     })
 
     it("should handle missing required fields", async () => {
-      const mockResponse = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: JSON.stringify([
-                    {
-                      category: "person",
-                      // Missing title
-                      detail: "Missing title",
-                      tags: ["test"],
-                      people: [],
-                      emotionalWeight: 0.8,
-                      confidence: 0.8,
-                      source: "conversation"
-                    },
-                    {
-                      category: "goal",
-                      title: "Valid node",
-                      detail: "Has all required fields",
-                      tags: ["test"],
-                      people: [],
-                      emotionalWeight: 0.8,
-                      confidence: 0.8,
-                      source: "conversation"
-                    }
-                  ])
-                }
-              ]
-            }
-          }
-        ]
-      }
+      const nodes = [
+        {
+          category: "person",
+          // Missing title
+          detail: "Missing title",
+          tags: ["test"],
+          people: [],
+          emotionalWeight: 0.8,
+          confidence: 0.8,
+          source: "conversation"
+        },
+        {
+          category: "goal",
+          title: "Valid node",
+          detail: "Has all required fields",
+          tags: ["test"],
+          people: [],
+          emotionalWeight: 0.8,
+          confidence: 0.8,
+          source: "conversation"
+        }
+      ]
 
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
+      mockGeminiGenerate.mockResolvedValueOnce(
+        makeGeminiResponse(JSON.stringify(nodes))
       )
 
       const results = await extractLifeNodes(
         mockConversation,
         mockExistingGraph,
-        "test-api-key"
       )
 
       expect(results).toHaveLength(1)

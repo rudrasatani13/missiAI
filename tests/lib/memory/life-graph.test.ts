@@ -180,7 +180,6 @@ describe("life-graph", () => {
         mockVectorizeEnv,
         "user-123",
         nodeInput,
-        "test-api-key"
       )
 
       expect(result.id).toBe("test-node-123")
@@ -189,7 +188,6 @@ describe("life-graph", () => {
       expect(result.userId).toBe("user-123")
       expect(generateEmbedding).toHaveBeenCalledWith(
         "person: Jane Smith. New colleague.",
-        "test-api-key"
       )
       expect(upsertLifeNode).toHaveBeenCalledWith(
         mockVectorizeEnv,
@@ -218,7 +216,6 @@ describe("life-graph", () => {
         mockVectorizeEnv,
         "user-123",
         { ...nodeInput, title: "Jane Smith" },
-        "test-api-key"
       )
 
       expect(result.id).toBe(testNode.id) // Should use existing node ID
@@ -247,7 +244,6 @@ describe("life-graph", () => {
         mockVectorizeEnv,
         "user-123",
         nodeInput,
-        "test-api-key"
       )
 
       expect(result.id).toBe("similar-node")
@@ -267,7 +263,6 @@ describe("life-graph", () => {
         mockVectorizeEnv,
         "user-123",
         nodeInput,
-        "test-api-key"
       )
 
       expect(result.title).toBe("Jane Smith")
@@ -282,7 +277,6 @@ describe("life-graph", () => {
         mockVectorizeEnv,
         "user-123",
         nodeInput,
-        "test-api-key"
       )
 
       expect(result.title).toBe("Jane Smith")
@@ -295,7 +289,6 @@ describe("life-graph", () => {
         null,
         "user-123",
         nodeInput,
-        "test-api-key"
       )
 
       expect(result.title).toBe("Jane Smith")
@@ -315,7 +308,6 @@ describe("life-graph", () => {
         mockVectorizeEnv,
         "user-123",
         longInput,
-        "test-api-key"
       )
 
       expect(result.title.length).toBe(80)
@@ -346,10 +338,9 @@ describe("life-graph", () => {
         mockVectorizeEnv,
         "user-123",
         "test query",
-        "test-api-key"
       )
 
-      expect(generateEmbedding).toHaveBeenCalledWith("test query", "test-api-key")
+      expect(generateEmbedding).toHaveBeenCalledWith("test query")
       expect(searchSimilarNodes).toHaveBeenCalledWith(
         mockVectorizeEnv,
         [0.1, 0.2, 0.3],
@@ -367,7 +358,6 @@ describe("life-graph", () => {
         mockVectorizeEnv,
         "user-123",
         "John",
-        "test-api-key"
       )
 
       expect(results.length).toBeGreaterThan(0)
@@ -380,7 +370,6 @@ describe("life-graph", () => {
         null,
         "user-123",
         "John",
-        "test-api-key"
       )
 
       expect(results.length).toBeGreaterThan(0)
@@ -396,7 +385,6 @@ describe("life-graph", () => {
         null,
         "user-123",
         "John",
-        "test-api-key"
       )
 
       expect(mockKV.put).toHaveBeenCalled()
@@ -420,7 +408,6 @@ describe("life-graph", () => {
         null,
         "user-123",
         "test query",
-        "test-api-key"
       )
 
       expect(results).toEqual([])
@@ -432,7 +419,6 @@ describe("life-graph", () => {
         null,
         "user-123",
         "John",
-        "test-api-key",
         { category: "person" }
       )
 
@@ -457,7 +443,6 @@ describe("life-graph", () => {
         null,
         "user-123",
         "zzzunmatchablequeryxyz",
-        "test-api-key"
       )
 
       // Should NOT inject irrelevant memories — return empty instead

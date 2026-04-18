@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
-// Mock @cloudflare/next-on-pages before importing the route
-vi.mock("@cloudflare/next-on-pages", () => ({
+// Mock @opennextjs/cloudflare before importing the route
+vi.mock("@opennextjs/cloudflare", () => ({
   getCloudflareContext: vi.fn(),
 }))
 

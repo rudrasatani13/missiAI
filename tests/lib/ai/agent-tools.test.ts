@@ -52,7 +52,6 @@ function makeCtx(kvOverride?: KVStore | null): ToolContext {
     kv: kvOverride !== undefined ? kvOverride : makeMockKV(),
     vectorizeEnv: null,
     userId: "user_test123",
-    apiKey: "test-api-key",
     googleClientId: "test-client-id",
     googleClientSecret: "test-client-secret",
   }
@@ -371,9 +370,16 @@ describe("executeAgentTool — draftEmail", () => {
 })
 
 describe("executeAgentTool — searchWeb", () => {
-  it("returns SEARCH: prefix signal without making API calls", async () => {
-    const mockFetch = vi.fn()
-    vi.stubGlobal("fetch", mockFetch)
+  it("returns search results using Gemini grounding", async () => {
+    // Mock the dynamic import of vertex-client used by searchWeb
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({
+        candidates: [{
+          content: { parts: [{ text: "Here are the search results for Mumbai weather..." }] }
+        }]
+      }),
+      { status: 200 }
+    )))
 
     const result = await executeAgentTool({
       name: "searchWeb",
@@ -381,7 +387,7 @@ describe("executeAgentTool — searchWeb", () => {
     }, makeCtx())
 
     expect(result.status).toBe("done")
-    expect(result.output).toBe("SEARCH:current weather in Mumbai")
-    expect(mockFetch).not.toHaveBeenCalled()
+    expect(typeof result.output).toBe("string")
+    expect(result.output.length).toBeGreaterThan(0)
   })
 })

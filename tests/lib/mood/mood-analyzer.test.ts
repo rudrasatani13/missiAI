@@ -52,7 +52,6 @@ describe('analyzeMoodFromConversation', () => {
     const result = await analyzeMoodFromConversation(
       'User: I am excited about the weekend!\nMissi: That sounds great!',
       TODAY,
-      'fake-key',
     )
 
     expect(result.score).toBe(8)
@@ -68,7 +67,6 @@ describe('analyzeMoodFromConversation', () => {
     const result = await analyzeMoodFromConversation(
       'some transcript',
       TODAY,
-      'fake-key',
     )
 
     expect(result.score).toBe(5)
@@ -83,7 +81,6 @@ describe('analyzeMoodFromConversation', () => {
     const result = await analyzeMoodFromConversation(
       'some transcript',
       TODAY,
-      'fake-key',
     )
 
     expect(result.score).toBe(5)
@@ -98,7 +95,6 @@ describe('analyzeMoodFromConversation', () => {
     const result = await analyzeMoodFromConversation(
       'some transcript',
       TODAY,
-      'fake-key',
     )
 
     expect(result.score).toBe(5)
@@ -111,7 +107,6 @@ describe('analyzeMoodFromConversation', () => {
     const result = await analyzeMoodFromConversation(
       'some transcript',
       TODAY,
-      'fake-key',
     )
 
     expect(result.score).toBe(5)
@@ -124,7 +119,6 @@ describe('analyzeMoodFromConversation', () => {
     const result = await analyzeMoodFromConversation(
       'some transcript',
       TODAY,
-      'fake-key',
     )
 
     expect(result.score).toBe(5)
@@ -139,7 +133,7 @@ describe('analyzeMoodFromConversation', () => {
     const longTranscript = prefix + tail  // 1304 chars total
     mockGeminiOk(JSON.stringify({ score: 6, label: 'neutral', trigger: 'long chat' }))
 
-    await analyzeMoodFromConversation(longTranscript, TODAY, 'fake-key')
+    await analyzeMoodFromConversation(longTranscript, TODAY)
 
     // Verify the request body sent to Gemini used the trimmed text
     const callArgs = vi.mocked(geminiGenerate).mock.calls[0]
@@ -161,7 +155,6 @@ describe('analyzeMoodFromConversation', () => {
     const result = await analyzeMoodFromConversation(
       'We celebrated my birthday!',
       TODAY,
-      'fake-key',
     )
 
     expect(result.score).toBe(9)
@@ -176,7 +169,6 @@ describe('analyzeMoodFromConversation', () => {
     const result = await analyzeMoodFromConversation(
       'some transcript',
       TODAY,
-      'fake-key',
       'session-abc',
     )
 

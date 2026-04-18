@@ -3,28 +3,28 @@ import { selectGeminiModel, estimateRequestCost, getFallbackModel } from "@/lib/
 import type { Message } from "@/types"
 
 describe("selectGeminiModel", () => {
-  it("always returns gemini-3-flash-preview for short messages", () => {
+  it("always returns gemini-2.5-pro for short messages", () => {
     const messages: Message[] = [
       { role: "user", content: "Hi" },
     ]
     const result = selectGeminiModel(messages, "")
-    expect(result).toBe("gemini-3-flash-preview")
+    expect(result).toBe("gemini-2.5-pro")
   })
 
-  it("returns gemini-3-flash-preview for long messages", () => {
+  it("returns gemini-2.5-pro for long messages", () => {
     const messages: Message[] = [
       { role: "user", content: "x".repeat(100) },
     ]
     const result = selectGeminiModel(messages, "")
-    expect(result).toBe("gemini-3-flash-preview")
+    expect(result).toBe("gemini-2.5-pro")
   })
 
-  it("returns gemini-3-flash-preview when memories are present", () => {
+  it("returns gemini-2.5-pro when memories are present", () => {
     const messages: Message[] = [
       { role: "user", content: "Hi" },
     ]
     const result = selectGeminiModel(messages, "User likes coffee.")
-    expect(result).toBe("gemini-3-flash-preview")
+    expect(result).toBe("gemini-2.5-pro")
   })
 })
 

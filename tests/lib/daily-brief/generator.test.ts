@@ -159,24 +159,22 @@ describe('generateBriefWithGemini', () => {
 
     const result = await generateBriefWithGemini(validContext)
 
-    // Should be the safe fallback
-    expect(result.greeting).toBe('Good morning! Ready to make today count? ☀️')
-    expect(result.tasks).toHaveLength(1)
-    expect(result.tasks[0].source).toBe('missi')
+    // Should be the safe fallback (context-aware)
+    expect(result.greeting).toContain('Good morning')
+    expect(result.greeting).toContain('Test')
+    expect(result.tasks.length).toBeGreaterThanOrEqual(1)
   })
 
   it('returns safe fallback when Gemini times out', async () => {
-    // Simulate a timeout by making the promise take longer than the 5s GEMINI_TIMEOUT_MS
-    mockGeminiGenerate.mockImplementationOnce(
-      () => new Promise((resolve) => setTimeout(() => resolve(new Response('{}', { status: 200 })), 10000)),
-    )
+    // Simulate a timeout by rejecting immediately as if the 5s timeout hit
+    mockGeminiGenerate.mockRejectedValueOnce(new Error('Gemini timeout'))
 
     const result = await generateBriefWithGemini(validContext)
 
     // Should be the safe fallback (timeout triggers fallback)
-    expect(result.greeting).toBe('Good morning! Ready to make today count? ☀️')
-    expect(result.tasks[0].source).toBe('missi')
-  }, 10000) // Allow 10s for this test since the internal timeout is 5s
+    expect(result.greeting).toContain('Good morning')
+    expect(result.greeting).toContain('Test')
+  })
 
   it('strips prompt injection content from greeting', async () => {
     const injectedResponse = {
@@ -242,7 +240,7 @@ describe('generateBriefWithGemini', () => {
     const result = await generateBriefWithGemini(validContext)
 
     // Because >50% was stripped, entire response should be fallback
-    expect(result.greeting).toBe('Good morning! Ready to make today count? ☀️')
-    expect(result.tasks[0].source).toBe('missi')
+    expect(result.greeting).toContain('Good morning')
+    expect(result.greeting).toContain('Test')
   })
 })

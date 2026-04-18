@@ -32,9 +32,9 @@ describe("persona-store", () => {
   })
 
   describe("getUserPersona", () => {
-    it("returns 'calm' when KV is empty (no preference stored)", async () => {
+    it("returns 'default' when KV is empty (no preference stored)", async () => {
       const result = await getUserPersona(kv, "user-123")
-      expect(result).toBe("calm")
+      expect(result).toBe("default")
       expect(kv.get).toHaveBeenCalledWith("persona:preference:user-123")
     })
 
@@ -53,24 +53,24 @@ describe("persona-store", () => {
       }
     })
 
-    it("returns 'calm' and logs warning if stored value is corrupted", async () => {
+    it("returns 'default' and logs warning if stored value is corrupted", async () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
       kv.store.set("persona:preference:user-corrupted", "INVALID_VALUE")
 
       const result = await getUserPersona(kv, "user-corrupted")
-      expect(result).toBe("calm")
+      expect(result).toBe("default")
       expect(warnSpy).toHaveBeenCalledOnce()
       expect(warnSpy.mock.calls[0][0]).toContain("Invalid persona value")
 
       warnSpy.mockRestore()
     })
 
-    it("returns 'calm' when stored value is an empty string", async () => {
+    it("returns 'default' when stored value is an empty string", async () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
       kv.store.set("persona:preference:user-empty", "")
 
       const result = await getUserPersona(kv, "user-empty")
-      expect(result).toBe("calm")
+      expect(result).toBe("default")
 
       warnSpy.mockRestore()
     })

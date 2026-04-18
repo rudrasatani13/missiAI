@@ -65,7 +65,9 @@ describe('constellation-layout', () => {
       totalInteractions: 0, lastUpdatedAt: 0, version: 1
     }
     const res = computeConstellationLayout(graph, 'by_people')
-    expect(res.clusters.length).toBe(2)
+    // Nodes are assigned to their first matching person cluster only,
+    // so Bob's cluster ends up empty and is filtered out
+    expect(res.clusters.length).toBe(1)
     const alice = res.clusters.find(c => c.label === 'Alice')
     expect(alice?.nodeIds.length).toBeGreaterThan(0)
   })

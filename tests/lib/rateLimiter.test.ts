@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { checkRateLimit, rateLimitHeaders, rateLimitExceededResponse } from "@/lib/rateLimiter"
 
 // The module has dynamic import, so we can mock the import module directly
-vi.mock("@cloudflare/next-on-pages", () => ({
+vi.mock("@opennextjs/cloudflare", () => ({
   getCloudflareContext: vi.fn(() => ({
     env: {
       MISSI_MEMORY: {
@@ -97,7 +97,7 @@ describe("rateLimiter", () => {
 
     it("should fail open if KV is unavailable", async () => {
       // Override the mock to throw/simulate no env for this test
-      vi.doMock("@cloudflare/next-on-pages", () => ({
+      vi.doMock("@opennextjs/cloudflare", () => ({
         getCloudflareContext: vi.fn(() => ({ env: {} }))
       }))
 

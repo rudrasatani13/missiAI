@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { GET as getChapters } from '@/app/api/v1/life-story/chapters/route'
-import { GET as getTimeline } from '@/app/api/v1/life-story/timeline/route'
-import { GET as getYearReview } from '@/app/api/v1/life-story/year-review/route'
-import { GET as getConstellation } from '@/app/api/v1/life-story/constellation/route'
-import { GET as getExport } from '@/app/api/v1/life-story/export/route'
+import { GET } from '@/app/api/v1/life-story/[...path]/route'
+
+// Wrappers for sub-route dispatching via catch-all path params
+const getChapters = (req: Request) => GET(req, { params: Promise.resolve({ path: ['chapters'] }) })
+const getTimeline = (req: Request) => GET(req, { params: Promise.resolve({ path: ['timeline'] }) })
+const getYearReview = (req: Request) => GET(req, { params: Promise.resolve({ path: ['year-review'] }) })
+const getConstellation = (req: Request) => GET(req, { params: Promise.resolve({ path: ['constellation'] }) })
+const getExport = (req: Request) => GET(req, { params: Promise.resolve({ path: ['export'] }) })
 
 import * as clerkNextjs from '@clerk/nextjs/server'
 import * as nextOnPages from '@opennextjs/cloudflare'
@@ -15,7 +18,7 @@ vi.mock('@clerk/nextjs/server', () => ({
   auth: vi.fn()
 }))
 
-vi.mock('@cloudflare/next-on-pages', () => ({
+vi.mock('@opennextjs/cloudflare', () => ({
   getCloudflareContext: vi.fn()
 }))
 

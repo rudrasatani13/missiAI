@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 
 // ─── Mocks (must be declared before imports) ──────────────────────────────────
 
-vi.mock('@cloudflare/next-on-pages', () => ({
+vi.mock('@opennextjs/cloudflare', () => ({
   getCloudflareContext: vi.fn(),
 }))
 
@@ -90,9 +90,14 @@ vi.mock('@/lib/gamification/xp-engine', () => ({
 
 // ─── Imports ──────────────────────────────────────────────────────────────────
 
-import { POST as analyzePost } from '@/app/api/v1/visual-memory/analyze/route'
-import { GET, DELETE } from '@/app/api/v1/visual-memory/route'
+import { GET as _GET, DELETE as _DELETE, POST as _POST } from '@/app/api/v1/visual-memory/[[...path]]/route'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
+
+// Wrappers for catch-all path dispatch
+const basePath = { params: Promise.resolve({ path: undefined as string[] | undefined }) }
+const analyzePost = (req: NextRequest) => _POST(req, { params: Promise.resolve({ path: ['analyze'] }) } as any)
+const GET = (req: NextRequest) => _GET(req, basePath as any)
+const DELETE = (req: NextRequest) => _DELETE(req, basePath as any)
 import {
   getVerifiedUserId,
   AuthenticationError,

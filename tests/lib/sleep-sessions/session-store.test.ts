@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { 
     cacheGeneratedStory, 
     getLastGeneratedStory, 
@@ -15,12 +16,11 @@ describe('Session Store', () => {
     beforeEach(() => {
         mockKv = {}
         kv = {
-            get: jest.fn(async (key: string) => mockKv[key] || null),
-            put: jest.fn(async (key: string, value: string) => {
+            get: vi.fn(async (key: string) => mockKv[key] || null),
+            put: vi.fn(async (key: string, value: string) => {
                 mockKv[key] = value
             }),
-            delete: jest.fn(),
-            list: jest.fn()
+            delete: vi.fn(),
         } as any as KVStore
     })
 
@@ -51,7 +51,8 @@ describe('Session Store', () => {
             await addToHistory(kv, 'user1', { ...entry, id: `e${i+2}`})
         }
 
-        hist = await getHistory(kv, 'user1')
+        // getHistory defaults to limit=20, pass 30 to see all stored entries
+        hist = await getHistory(kv, 'user1', 30)
         expect(hist.length).toBe(30)
         expect(hist[0].id).toBe('e32') // the very last one added
     })

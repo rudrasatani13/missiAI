@@ -60,7 +60,7 @@ describe('gamification streak', () => {
     const result = await checkInHabit(kv, 'u1', 'node-1', 'Morning run')
     expect(result.habit.currentStreak).toBe(1)
     expect(result.habit.totalCheckIns).toBe(1)
-    expect(result.xpEarned).toBe(10)
+    expect(result.xpEarned).toBe(5)
     expect(result.alreadyCheckedIn).toBe(false)
   })
 
@@ -71,6 +71,7 @@ describe('gamification streak', () => {
     expect(second.xpEarned).toBe(0)
 
     const data = await getGamificationData(kv, 'u1')
+    // 5 XP from check-in + 5 XP from 'first_words' achievement = 10
     expect(data.totalXP).toBe(10)
   })
 
@@ -115,7 +116,7 @@ describe('gamification streak', () => {
     const result = await checkInHabit(kv, 'u1', 'node-1', 'Morning run')
     expect(result.habit.currentStreak).toBe(7)
     expect(result.milestone).toBe(7)
-    expect(result.xpEarned).toBe(10 + 50) // base + milestone
+    expect(result.xpEarned).toBe(5 + 25) // base + milestone
   })
 
   it('checkInHabit fires 30-day milestone', async () => {
@@ -137,7 +138,7 @@ describe('gamification streak', () => {
     })
     const result = await checkInHabit(kv, 'u1', 'node-1', 'Meditation')
     expect(result.milestone).toBe(30)
-    expect(result.xpEarned).toBe(10 + 200)
+    expect(result.xpEarned).toBe(5 + 100) // base + 30-day milestone
   })
 
   it('checkInHabit fires 100-day milestone', async () => {
@@ -159,7 +160,7 @@ describe('gamification streak', () => {
     })
     const result = await checkInHabit(kv, 'u1', 'node-1', 'Cold shower')
     expect(result.milestone).toBe(100)
-    expect(result.xpEarned).toBe(10 + 500)
+    expect(result.xpEarned).toBe(5 + 250) // base + 100-day milestone
   })
 
   it('calculateLevel returns 1 for 0 XP', () => {

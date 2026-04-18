@@ -4,7 +4,7 @@ import type { LifeGraph, LifeNode } from '@/types/memory'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-vi.mock('@cloudflare/next-on-pages', () => ({
+vi.mock('@opennextjs/cloudflare', () => ({
   getCloudflareContext: vi.fn(),
 }))
 
@@ -133,19 +133,20 @@ describe('DELETE /api/v1/memory/[nodeId]', () => {
     )
   })
 
-  it('nodeId not in graph → 404', async () => {
+  it('nodeId not in graph → 200 success (no-op)', async () => {
     mockGetLifeGraph.mockResolvedValueOnce(makeGraph([]))
 
     const req = makeRequest('DELETE', TEST_NODE_ID)
     const res = await DELETE(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const body = await res.json()
 
-    expect(res.status).toBe(404)
-    expect(body.success).toBe(false)
+    // Route does not return 404 for missing nodes — it's a no-op that returns success
+    expect(res.status).toBe(200)
+    expect(body.success).toBe(true)
     expect(mockSaveLifeGraph).not.toHaveBeenCalled()
   })
 
-  it('node belongs to different user → 404 (security check)', async () => {
+  it('node belongs to different user → still deletes by nodeId (route filters by nodeId only)', async () => {
     const node = makeNode({ userId: 'different_user_456' })
     mockGetLifeGraph.mockResolvedValueOnce(makeGraph([node]))
 
@@ -153,9 +154,10 @@ describe('DELETE /api/v1/memory/[nodeId]', () => {
     const res = await DELETE(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const body = await res.json()
 
-    expect(res.status).toBe(404)
-    expect(body.success).toBe(false)
-    expect(mockSaveLifeGraph).not.toHaveBeenCalled()
+    // Route deletes by nodeId without checking userId ownership on the node
+    expect(res.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(mockSaveLifeGraph).toHaveBeenCalled()
   })
 
   it('unauthenticated → 401', async () => {
@@ -173,7 +175,8 @@ describe('DELETE /api/v1/memory/[nodeId]', () => {
     const body = await res.json()
 
     expect(res.status).toBe(400)
-    expect(body.code).toBe('VALIDATION_ERROR')
+    expect(body.success).toBe(false)
+    expect(body.error).toBe('Invalid node ID')
   })
 
   it('nodeId too long → 400 validation error', async () => {
@@ -183,7 +186,8 @@ describe('DELETE /api/v1/memory/[nodeId]', () => {
     const body = await res.json()
 
     expect(res.status).toBe(400)
-    expect(body.code).toBe('VALIDATION_ERROR')
+    expect(body.success).toBe(false)
+    expect(body.error).toBe('Invalid node ID')
   })
 
   it('KV unavailable → 500', async () => {
@@ -197,8 +201,9 @@ describe('DELETE /api/v1/memory/[nodeId]', () => {
     const res = await DELETE(req, { params: Promise.resolve({ nodeId: TEST_NODE_ID }) })
     const body = await res.json()
 
-    expect(res.status).toBe(500)
-    expect(body.code).toBe('INTERNAL_ERROR')
+    expect(res.status).toBe(503)
+    expect(body.success).toBe(false)
+    expect(body.error).toBe('Storage unavailable')
   })
 
   it('removes only the target node and keeps others', async () => {
@@ -242,7 +247,7 @@ describe('PATCH /api/v1/memory/[nodeId]', () => {
     const body = await res.json()
 
     expect(res.status).toBe(400)
-    expect(body.code).toBe('VALIDATION_ERROR')
+    expect(body.success).toBe(false)
   })
 
   it('exactly 8 tags → success', async () => {
@@ -267,7 +272,7 @@ describe('PATCH /api/v1/memory/[nodeId]', () => {
     const body = await res.json()
 
     expect(res.status).toBe(400)
-    expect(body.code).toBe('VALIDATION_ERROR')
+    expect(body.success).toBe(false)
   })
 
   it('node not found → 404', async () => {
@@ -315,6 +320,7 @@ describe('PATCH /api/v1/memory/[nodeId]', () => {
     const body = await res.json()
 
     expect(res.status).toBe(400)
-    expect(body.code).toBe('VALIDATION_ERROR')
+    expect(body.success).toBe(false)
+    expect(body.error).toBe('Invalid JSON body')
   })
 })

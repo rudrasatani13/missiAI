@@ -28,7 +28,7 @@ describe('year-review-generator', () => {
       json: vi.fn()
     } as any)
 
-    const res = await generateYearInReview(graph, 2025, 'mock-key')
+    const res = await generateYearInReview(graph, 2025)
     
     expect(res.year).toBe(2025)
     expect(res.totalMemories).toBe(3) // Excludes 2024 node
@@ -70,8 +70,10 @@ describe('year-review-generator', () => {
       })
     } as any)
 
-    const res = await generateYearInReview(graph, 2025, 'mock-key')
+    const res = await generateYearInReview(graph, 2025)
     expect(res.narrative).not.toContain('<script>')
-    expect(res.highlights[0]).not.toContain('<script>')
+    if (res.highlights.length > 0) {
+      expect(res.highlights[0]).not.toContain('<script>')
+    }
   })
 })

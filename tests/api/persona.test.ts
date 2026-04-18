@@ -9,9 +9,9 @@ vi.mock("@clerk/nextjs/server", () => ({
   auth: () => mockAuth(),
 }))
 
-// Mock @cloudflare/next-on-pages
+// Mock @opennextjs/cloudflare
 const mockKVStore = new Map<string, string>()
-vi.mock("@cloudflare/next-on-pages", () => ({
+vi.mock("@opennextjs/cloudflare", () => ({
   getCloudflareContext: vi.fn(() => ({
     env: {
       MISSI_MEMORY: {
@@ -70,15 +70,15 @@ describe("GET /api/v1/persona", () => {
     expect(body.displayName).toBe("Energetic Coach")
   })
 
-  it("returns 'calm' as default when no preference stored", async () => {
+  it("returns 'default' as default when no preference stored", async () => {
     mockAuth.mockResolvedValue({ userId: "user-get-new" })
     // No KV entry set
 
     const res = await GET()
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.personaId).toBe("calm")
-    expect(body.displayName).toBe("Calm Therapist")
+    expect(body.personaId).toBe("default")
+    expect(body.displayName).toBe("Missi")
   })
 })
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────────
 
-vi.mock("@cloudflare/next-on-pages", () => ({
+vi.mock("@opennextjs/cloudflare", () => ({
   getCloudflareContext: vi.fn(),
 }))
 
@@ -76,10 +76,13 @@ import { verifyAndConsumeToken } from "@/lib/ai/agent-confirm"
 import { getAgentHistory } from "@/lib/ai/agent-history"
 import { executeAgentTool } from "@/lib/ai/agent-tools"
 
-import { POST as planPost } from "@/app/api/v1/agents/plan/route"
-import { POST as confirmPost } from "@/app/api/v1/agents/confirm/route"
-import { GET as historyGet } from "@/app/api/v1/agents/history/route"
-import { GET as expensesGet } from "@/app/api/v1/agents/expenses/route"
+import { GET, POST } from "@/app/api/v1/agents/[...path]/route"
+
+// Wrappers for sub-route dispatching via catch-all path params
+const planPost = (req: Request) => POST(req, { params: Promise.resolve({ path: ['plan'] }) })
+const confirmPost = (req: Request) => POST(req, { params: Promise.resolve({ path: ['confirm'] }) })
+const historyGet = () => GET(new Request('http://localhost/api/v1/agents/history'), { params: Promise.resolve({ path: ['history'] }) })
+const expensesGet = () => GET(new Request('http://localhost/api/v1/agents/expenses'), { params: Promise.resolve({ path: ['expenses'] }) })
 
 const mockGetRequestContext = vi.mocked(getCloudflareContext)
 const mockGetVerifiedUserId = vi.mocked(getVerifiedUserId)
@@ -155,8 +158,8 @@ describe("POST /api/v1/agents/plan", () => {
     expect(res.status).toBe(400)
   })
 
-  it("returns 429 if rate limit exceeded (free=10/day)", async () => {
-    const kv = makeMockKV(new Map([["ratelimit:agent-exec:user_test:2026-04-15", "10"]]))
+  it("returns 429 if rate limit exceeded (free=100/day)", async () => {
+    const kv = makeMockKV(new Map([["ratelimit:agent-exec:user_test:2026-04-15", "100"]]))
     setupMockContext(kv)
 
     const res = await planPost(makeRequest({ message: "do something" }))

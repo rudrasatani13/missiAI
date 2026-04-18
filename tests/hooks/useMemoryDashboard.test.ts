@@ -288,7 +288,7 @@ describe('deleteNode', () => {
     const { deleteNode } = useMemoryDashboard()
     await deleteNode('target-node')
 
-    expect(fetch).toHaveBeenCalledWith('/api/v1/memory/target-node', {
+    expect(fetch).toHaveBeenCalledWith('/api/v1/memory?nodeId=target-node', {
       method: 'DELETE',
     })
   })

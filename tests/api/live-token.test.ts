@@ -17,7 +17,7 @@ vi.mock("@/lib/rateLimiter", () => ({
   rateLimitExceededResponse: vi.fn(() => new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 })),
 }))
 
-vi.mock("@cloudflare/next-on-pages", () => ({
+vi.mock("@opennextjs/cloudflare", () => ({
   getCloudflareContext: vi.fn(),
 }))
 

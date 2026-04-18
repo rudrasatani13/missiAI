@@ -4,7 +4,7 @@ import type { DailyBrief, DailyTask } from '@/types/daily-brief'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-vi.mock('@cloudflare/next-on-pages', () => ({
+vi.mock('@opennextjs/cloudflare', () => ({
   getCloudflareContext: vi.fn(),
 }))
 
@@ -61,9 +61,15 @@ vi.mock('@/lib/billing/tier-checker', () => ({
 
 // ─── Imports ──────────────────────────────────────────────────────────────────
 
-import { GET, POST } from '@/app/api/v1/daily-brief/route'
-import { PATCH } from '@/app/api/v1/daily-brief/tasks/[taskId]/route'
+import { GET as _GET, POST as _POST, PATCH as _PATCH } from '@/app/api/v1/daily-brief/[[...path]]/route'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
+
+// Wrappers for catch-all path dispatch
+const basePath = { params: Promise.resolve({ path: undefined as string[] | undefined }) }
+const GET = (req: NextRequest) => _GET(req, basePath as any)
+const POST = (req: NextRequest) => _POST(req, basePath as any)
+const PATCH = (req: Request, opts: { params: Promise<{ taskId: string }> }) =>
+  opts.params.then(p => _PATCH(req, { params: Promise.resolve({ path: ['tasks', p.taskId] }) } as any))
 import {
   getVerifiedUserId,
   AuthenticationError,

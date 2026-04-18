@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import { generateBreathingScript } from '@/lib/sleep-sessions/breathing-generator'
 
 describe('Breathing Generator', () => {

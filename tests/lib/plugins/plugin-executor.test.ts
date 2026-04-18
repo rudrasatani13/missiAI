@@ -74,7 +74,7 @@ describe("executePluginCommand", () => {
       const config = makeNotionConfig({ settings: {} })
       const command = makeCommand()
 
-      const result = await executePluginCommand(command, config, "api-key")
+      const result = await executePluginCommand(command, config)
 
       expect(result.success).toBe(false)
       expect(result.output).toContain("No Notion page ID")
@@ -95,7 +95,7 @@ describe("executePluginCommand", () => {
         parameters: { title: "Test", content: "Content here" },
       })
 
-      const result = await executePluginCommand(command, config, "api-key")
+      const result = await executePluginCommand(command, config)
 
       expect(mockedCreateNotionPage).toHaveBeenCalledWith(
         "secret_test",
@@ -118,7 +118,7 @@ describe("executePluginCommand", () => {
       const config = makeNotionConfig()
       const command = makeCommand({ parameters: { parentId: "page-override" } })
 
-      await executePluginCommand(command, config, "api-key")
+      await executePluginCommand(command, config)
 
       expect(mockedCreateNotionPage).toHaveBeenCalledWith(
         "secret_test",
@@ -134,7 +134,7 @@ describe("executePluginCommand", () => {
       const config = makeNotionConfig({ settings: {} })
       const command = makeCommand({ action: "add_to_database" })
 
-      const result = await executePluginCommand(command, config, "api-key")
+      const result = await executePluginCommand(command, config)
 
       expect(result.success).toBe(false)
       expect(result.output).toContain("No Notion database ID")
@@ -153,7 +153,7 @@ describe("executePluginCommand", () => {
       const config = makeNotionConfig({ settings: { defaultDatabaseId: "db-456" } })
       const command = makeCommand({ action: "add_to_database" })
 
-      await executePluginCommand(command, config, "api-key")
+      await executePluginCommand(command, config)
 
       expect(mockedAddToNotionDatabase).toHaveBeenCalledWith(
         "secret_test",
@@ -177,7 +177,7 @@ describe("executePluginCommand", () => {
       const config = makeNotionConfig()
       const command = makeCommand({ action: "append_to_page" })
 
-      await executePluginCommand(command, config, "api-key")
+      await executePluginCommand(command, config)
 
       expect(mockedAppendToNotionPage).toHaveBeenCalled()
     })
@@ -217,11 +217,10 @@ describe("executePluginCommand", () => {
         rawUserMessage: "schedule doctor appointment tomorrow at 3pm",
       }
 
-      const result = await executePluginCommand(command, config, "api-key")
+      const result = await executePluginCommand(command, config)
 
       expect(mockedParseEventFromCommand).toHaveBeenCalledWith(
         "schedule doctor appointment tomorrow at 3pm",
-        "api-key",
       )
       expect(mockedCreateCalendarEvent).toHaveBeenCalledWith(
         "token-xyz",
@@ -259,7 +258,7 @@ describe("executePluginCommand", () => {
         rawUserMessage: "fire webhook",
       }
 
-      const result = await executePluginCommand(command, config, "api-key")
+      const result = await executePluginCommand(command, config)
 
       expect(mockedTriggerWebhook).toHaveBeenCalledWith(
         "https://example.com/hook",
@@ -281,7 +280,7 @@ describe("executePluginCommand", () => {
       const config = makeNotionConfig()
       const command = makeCommand({ action: "create_event" as any })
 
-      const result = await executePluginCommand(command, config, "api-key")
+      const result = await executePluginCommand(command, config)
 
       expect(result.success).toBe(false)
       expect(result.output).toContain("Unknown")
@@ -320,7 +319,7 @@ describe("executePluginCommand", () => {
         settings: {},
         connectedAt: Date.now(),
       }
-      const result = await executePluginCommand(command, webhookConfig, "api-key")
+      const result = await executePluginCommand(command, webhookConfig)
       expect(result.pluginId).toBe("webhook")
     })
   })
@@ -336,7 +335,7 @@ describe("buildPluginCommand", () => {
       JSON.stringify({ title: "Meeting notes", content: "Discussed Q4 targets" }),
     )
 
-    const command = await buildPluginCommand("note about Q4 meeting", "notion", "api-key")
+    const command = await buildPluginCommand("note about Q4 meeting", "notion")
 
     expect(command.pluginId).toBe("notion")
     expect(command.action).toBe("create_page")
@@ -347,7 +346,6 @@ describe("buildPluginCommand", () => {
     const command = await buildPluginCommand(
       "schedule dentist tomorrow at 2pm",
       "google_calendar",
-      "api-key",
     )
 
     expect(command.pluginId).toBe("google_calendar")
@@ -357,7 +355,7 @@ describe("buildPluginCommand", () => {
   })
 
   it("returns trigger_webhook action for webhook without calling AI", async () => {
-    const command = await buildPluginCommand("trigger webhook", "webhook", "api-key")
+    const command = await buildPluginCommand("trigger webhook", "webhook")
 
     expect(command.pluginId).toBe("webhook")
     expect(command.action).toBe("trigger_webhook")
@@ -368,7 +366,7 @@ describe("buildPluginCommand", () => {
   it("uses default title/content when AI returns invalid JSON for notion", async () => {
     mockedCallAIDirect.mockResolvedValueOnce("not valid json at all")
 
-    const command = await buildPluginCommand("save my notes", "notion", "api-key")
+    const command = await buildPluginCommand("save my notes", "notion")
 
     expect(command.pluginId).toBe("notion")
     expect(command.parameters.title).toBe("New Note")

@@ -3,6 +3,14 @@ import { generateEveningReflection } from "@/lib/proactive/wind-down-generator"
 import type { LifeGraph, LifeNode } from "@/types/memory"
 import type { ProactiveConfig } from "@/types/proactive"
 
+// Mock vertex-client to avoid real Vertex AI auth in tests
+vi.mock("@/lib/ai/vertex-client", () => ({
+  geminiGenerate: vi.fn(),
+}))
+
+import { geminiGenerate } from "@/lib/ai/vertex-client"
+const mockGeminiGenerate = vi.mocked(geminiGenerate)
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 const DEFAULT_CONFIG: ProactiveConfig = {
@@ -81,10 +89,10 @@ describe("wind-down-generator", () => {
         },
       ]
 
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(mockGeminiResponse(mockItems))
+      mockGeminiGenerate.mockResolvedValueOnce(mockGeminiResponse(mockItems))
 
       const graph = makeGraph([makeNode()])
-      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG, "test-api-key")
+      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG)
 
       expect(reflection.items).toHaveLength(2)
       expect(reflection.items[0].type).toBe("daily_win")
@@ -95,30 +103,27 @@ describe("wind-down-generator", () => {
     })
 
     it("should return empty reflection when graph has no nodes", async () => {
-      const fetchSpy = vi.spyOn(global, "fetch")
-
       const reflection = await generateEveningReflection(
         makeGraph([]),
         DEFAULT_CONFIG,
-        "test-api-key",
       )
 
       expect(reflection.items).toHaveLength(0)
-      expect(fetchSpy).not.toHaveBeenCalled()
+      expect(mockGeminiGenerate).not.toHaveBeenCalled()
     })
 
     it("should return empty reflection on Gemini API error", async () => {
-      vi.spyOn(global, "fetch").mockRejectedValueOnce(new Error("Network error"))
+      mockGeminiGenerate.mockRejectedValueOnce(new Error("Network error"))
 
       const graph = makeGraph([makeNode()])
-      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG, "test-api-key")
+      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG)
 
       expect(reflection.items).toEqual([])
     })
 
     it("should cap messages at 120 chars", async () => {
       const longMessage = "A".repeat(200)
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      mockGeminiGenerate.mockResolvedValueOnce(
         mockGeminiResponse([
           {
             type: "sleep_nudge",
@@ -130,13 +135,13 @@ describe("wind-down-generator", () => {
       )
 
       const graph = makeGraph([makeNode()])
-      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG, "test-api-key")
+      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG)
 
       expect(reflection.items[0].message.length).toBeLessThanOrEqual(120)
     })
 
     it("should filter out invalid item types", async () => {
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      mockGeminiGenerate.mockResolvedValueOnce(
         mockGeminiResponse([
           { type: "unknown_type", priority: "high", message: "Invalid", actionable: false },
           { type: "daily_win", priority: "medium", message: "You did great today!", actionable: false },
@@ -144,14 +149,14 @@ describe("wind-down-generator", () => {
       )
 
       const graph = makeGraph([makeNode()])
-      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG, "test-api-key")
+      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG)
 
       expect(reflection.items).toHaveLength(1)
       expect(reflection.items[0].type).toBe("daily_win")
     })
 
     it("should set tone to 'calm' for low emotional weight graph", async () => {
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(mockGeminiResponse([]))
+      mockGeminiGenerate.mockResolvedValueOnce(mockGeminiResponse([]))
 
       const nodes = [
         makeNode({ id: "n1", emotionalWeight: 0.2 }),
@@ -159,13 +164,13 @@ describe("wind-down-generator", () => {
         makeNode({ id: "n3", emotionalWeight: 0.4 }),
       ]
       const graph = makeGraph(nodes)
-      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG, "test-api-key")
+      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG)
 
       expect(reflection.tone).toBe("calm")
     })
 
     it("should set tone to 'reflective' for high emotional weight graph", async () => {
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(mockGeminiResponse([]))
+      mockGeminiGenerate.mockResolvedValueOnce(mockGeminiResponse([]))
 
       const nodes = [
         makeNode({ id: "n1", emotionalWeight: 0.8 }),
@@ -173,18 +178,18 @@ describe("wind-down-generator", () => {
         makeNode({ id: "n3", emotionalWeight: 0.85 }),
       ]
       const graph = makeGraph(nodes)
-      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG, "test-api-key")
+      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG)
 
       expect(reflection.tone).toBe("reflective")
     })
 
     it("should return empty reflection when Gemini returns non-200 status", async () => {
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      mockGeminiGenerate.mockResolvedValueOnce(
         new Response("Internal Server Error", { status: 500 }),
       )
 
       const graph = makeGraph([makeNode()])
-      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG, "test-api-key")
+      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG)
 
       expect(reflection.items).toEqual([])
     })
@@ -198,22 +203,23 @@ describe("wind-down-generator", () => {
           actionable: false,
         },
       ]
-      const wrappedResponse = new Response(
-        JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: "```json\n" + JSON.stringify(items) + "\n```" }],
+      mockGeminiGenerate.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: "```json\n" + JSON.stringify(items) + "\n```" }],
+                },
               },
-            },
-          ],
-        }),
-        { status: 200 },
+            ],
+          }),
+          { status: 200 },
+        ),
       )
-      vi.spyOn(global, "fetch").mockResolvedValueOnce(wrappedResponse)
 
       const graph = makeGraph([makeNode()])
-      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG, "test-api-key")
+      const reflection = await generateEveningReflection(graph, DEFAULT_CONFIG)
 
       expect(reflection.items).toHaveLength(1)
       expect(reflection.items[0].type).toBe("gratitude_prompt")

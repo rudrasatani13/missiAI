@@ -4,6 +4,10 @@ vi.mock("nanoid", () => ({
   nanoid: vi.fn(() => "test-plan-id-abc"),
 }))
 
+vi.mock("@/lib/ai/vertex-client", () => ({
+  geminiGenerate: vi.fn(),
+}))
+
 import { buildAgentPlan } from "@/lib/ai/agent-planner"
 
 const AVAILABLE_TOOLS = [
@@ -33,9 +37,13 @@ describe("buildAgentPlan", () => {
   })
 
   it("returns a valid plan on a well-formed Gemini response", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(VALID_GEMINI_RESPONSE), { status: 200 })))
+    const { geminiGenerate } = await import("@/lib/ai/vertex-client")
+    vi.mocked(geminiGenerate).mockResolvedValueOnce({
+      ok: true,
+      json: async () => VALID_GEMINI_RESPONSE,
+    } as any)
 
-    const plan = await buildAgentPlan("schedule a meeting tomorrow", AVAILABLE_TOOLS, "", "test-key")
+    const plan = await buildAgentPlan("schedule a meeting tomorrow", AVAILABLE_TOOLS, "")
 
     expect(plan.steps).toHaveLength(2)
     expect(plan.steps[0].toolName).toBe("readCalendar")
@@ -46,11 +54,15 @@ describe("buildAgentPlan", () => {
   })
 
   it("returns zero-step fallback plan when Gemini response is malformed JSON", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      candidates: [{ content: { parts: [{ text: "not valid json {{{{" }] } }],
-    }), { status: 200 })))
+    const { geminiGenerate } = await import("@/lib/ai/vertex-client")
+    vi.mocked(geminiGenerate).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: "not valid json {{{{" }] } }],
+      }),
+    } as any)
 
-    const plan = await buildAgentPlan("do something", AVAILABLE_TOOLS, "", "test-key")
+    const plan = await buildAgentPlan("do something", AVAILABLE_TOOLS, "")
 
     expect(plan.steps).toHaveLength(0)
     expect(plan.requiresConfirmation).toBe(false)
@@ -58,26 +70,26 @@ describe("buildAgentPlan", () => {
   })
 
   it("returns zero-step fallback plan when Gemini times out", async () => {
-    vi.stubGlobal("fetch", vi.fn(async (_url: string, opts?: { signal?: AbortSignal }) => {
-      // Simulate a timeout by returning a promise that only resolves after abort
-      return new Promise<Response>((_resolve, reject) => {
-        opts?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")))
-      })
-    }))
+    const { geminiGenerate } = await import("@/lib/ai/vertex-client")
+    vi.mocked(geminiGenerate).mockRejectedValueOnce(new DOMException("Aborted", "AbortError"))
 
-    const plan = await buildAgentPlan("do something", AVAILABLE_TOOLS, "", "test-key")
+    const plan = await buildAgentPlan("do something", AVAILABLE_TOOLS, "")
 
     expect(plan.steps).toHaveLength(0)
     expect(plan.summary).toBe("I'll take care of that right away")
   }, 6000) // allow 6s for timeout test
 
   it("sets requiresConfirmation true when any step isDestructive", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(VALID_GEMINI_RESPONSE), { status: 200 })))
+    const { geminiGenerate } = await import("@/lib/ai/vertex-client")
+    vi.mocked(geminiGenerate).mockResolvedValueOnce({
+      ok: true,
+      json: async () => VALID_GEMINI_RESPONSE,
+    } as any)
 
-    const plan = await buildAgentPlan("schedule a meeting", AVAILABLE_TOOLS, "", "test-key")
+    const plan = await buildAgentPlan("schedule a meeting", AVAILABLE_TOOLS, "")
 
-    // createCalendarEvent is destructive
-    expect(plan.requiresConfirmation).toBe(true)
+    // requiresConfirmation is now always false (direct execution mode)
+    expect(plan.requiresConfirmation).toBe(false)
   })
 
   it("sets requiresConfirmation false for read-only plans", async () => {
@@ -97,9 +109,13 @@ describe("buildAgentPlan", () => {
       }],
     }
 
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(readOnlyResponse), { status: 200 })))
+    const { geminiGenerate } = await import("@/lib/ai/vertex-client")
+    vi.mocked(geminiGenerate).mockResolvedValueOnce({
+      ok: true,
+      json: async () => readOnlyResponse,
+    } as any)
 
-    const plan = await buildAgentPlan("what's on my calendar?", AVAILABLE_TOOLS, "", "test-key")
+    const plan = await buildAgentPlan("what's on my calendar?", AVAILABLE_TOOLS, "")
 
     expect(plan.requiresConfirmation).toBe(false)
     expect(plan.steps.every(s => !s.isDestructive)).toBe(true)
@@ -124,9 +140,13 @@ describe("buildAgentPlan", () => {
       }],
     }
 
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(manyStepsResponse), { status: 200 })))
+    const { geminiGenerate } = await import("@/lib/ai/vertex-client")
+    vi.mocked(geminiGenerate).mockResolvedValueOnce({
+      ok: true,
+      json: async () => manyStepsResponse,
+    } as any)
 
-    const plan = await buildAgentPlan("complex task", AVAILABLE_TOOLS, "", "test-key")
+    const plan = await buildAgentPlan("complex task", AVAILABLE_TOOLS, "")
 
     expect(plan.steps.length).toBeLessThanOrEqual(5)
   })
@@ -148,9 +168,13 @@ describe("buildAgentPlan", () => {
       }],
     }
 
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(responseWithUnknownTool), { status: 200 })))
+    const { geminiGenerate } = await import("@/lib/ai/vertex-client")
+    vi.mocked(geminiGenerate).mockResolvedValueOnce({
+      ok: true,
+      json: async () => responseWithUnknownTool,
+    } as any)
 
-    const plan = await buildAgentPlan("do stuff", AVAILABLE_TOOLS, "", "test-key")
+    const plan = await buildAgentPlan("do stuff", AVAILABLE_TOOLS, "")
 
     expect(plan.steps.every(s => AVAILABLE_TOOLS.includes(s.toolName))).toBe(true)
     expect(plan.steps).toHaveLength(1)
