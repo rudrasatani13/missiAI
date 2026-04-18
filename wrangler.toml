@@ -3,6 +3,10 @@ main = ".open-next/worker.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
 # Required secrets — set via `wrangler secret put <NAME>` or Cloudflare Pages
 # dashboard (Settings → Environment variables → Encrypted). NEVER put real
 # values in this file or any .env.*.local file that could be committed.
