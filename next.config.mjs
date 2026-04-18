@@ -77,6 +77,8 @@ const nextConfig = {
       'vaul',
       'cmdk',
       'embla-carousel-react',
+      '@clerk/nextjs',
+      'zod',
     ],
   },
   serverExternalPackages: ['three'],
