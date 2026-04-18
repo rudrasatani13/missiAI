@@ -88,7 +88,14 @@
       "undici": ">=7.24.0",
       "yaml": ">=2.8.3",
       "esbuild": ">=0.25.0"
-    }
+    },
+    "ignoredBuiltDependencies": [
+      "@clerk/shared",
+      "esbuild",
+      "protobufjs",
+      "sharp",
+      "workerd"
+    ]
   },
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.19.1",
