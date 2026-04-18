@@ -1,3 +1,4 @@
+// Build: 2026-04-18T14:55 — force Cloudflare Pages cache bust
 import { setupDevPlatform } from '@cloudflare/next-on-pages/next-dev'
 
 if (process.env.NODE_ENV === 'development') {
