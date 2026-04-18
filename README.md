@@ -113,6 +113,20 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 | `DAILY_BUDGET_USD` | Max daily API spend in USD (default: 5.0) |
 | `DODO_PAYMENTS_MODE` | `"test_mode"` or `"live_mode"` |
 
+### WhatsApp & Telegram Bot (Feature 10)
+
+Set via `wrangler secret put <NAME>` or Cloudflare Pages → Settings → Environment variables. **Never commit values.**
+
+| Variable | Description |
+|--------------------------------------|------------------------------------------------|
+| `WHATSAPP_PHONE_NUMBER_ID` | Meta Cloud API phone number ID |
+| `WHATSAPP_ACCESS_TOKEN` | Meta permanent access token |
+| `WHATSAPP_APP_SECRET` | HMAC-SHA256 signature key for incoming webhooks |
+| `WHATSAPP_VERIFY_TOKEN` | Token for Meta webhook GET verification challenge |
+| `TELEGRAM_BOT_TOKEN` | Telegram Bot API token (format: `123456:ABC-…`) |
+| `TELEGRAM_WEBHOOK_SECRET` | Secret token set when registering the Telegram webhook |
+| `TELEGRAM_BOT_USERNAME` | Telegram bot username (without @), used for deep-link URLs |
+
 ---
 
 ## API Endpoints
@@ -158,6 +172,18 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 | POST | `/api/v1/billing` | Create checkout session (Dodo) |
 | GET | `/api/v1/billing` | Get subscription status |
 | POST | `/api/webhooks/dodo` | Dodo payment webhook |
+| GET/POST | `/api/webhooks/whatsapp` | WhatsApp Cloud API webhook (Meta) |
+| POST | `/api/webhooks/telegram` | Telegram Bot API webhook |
+
+### Bot Integrations (Pro plan required)
+
+| Method | Route | Description |
+|--------|------------------------------------------------|-------------------------------------------|
+| GET | `/api/v1/bot/link/whatsapp` | Get WhatsApp link status |
+| POST | `/api/v1/bot/link/whatsapp` | Initiate or verify WhatsApp OTP linking |
+| GET | `/api/v1/bot/link/telegram` | Get Telegram link status |
+| POST | `/api/v1/bot/link/telegram` | Generate Telegram deep-link code |
+| POST | `/api/v1/bot/unlink` | Unlink WhatsApp or Telegram account |
 
 ### Other
 
@@ -171,6 +197,35 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 | GET | `/api/health` | Service health check (public) |
 
 All `/api/v1/*` routes require Clerk authentication unless noted otherwise.
+
+---
+
+## KV Key Schema (MISSI_MEMORY namespace)
+
+### Existing
+
+| Key pattern | Value | TTL |
+|---|---|---|
+| `lifegraph:{userId}` | JSON `LifeGraph` | none |
+| `dodo:sub:{subscriptionId}` | userId string | none |
+| `webhook:event:{type}:{webhookId}` | `"1"` | 86400 s (24 h) |
+| `usage:{userId}:{date}` | JSON `DailyUsage` | ~48 h |
+
+### Bot integrations (Feature 10)
+
+| Key pattern | Value | TTL |
+|---|---|---|
+| `bot:wa:{e164Phone}` | Clerk userId | none |
+| `bot:wa:user:{clerkUserId}` | e164Phone | none |
+| `bot:tg:{telegramUserId}` | Clerk userId | none |
+| `bot:tg:user:{clerkUserId}` | telegramUserId | none |
+| `bot:otp:{clerkUserId}` | JSON `{ otp, expiresAt }` | 600 s (10 min) |
+| `bot:otp:attempts:{userId}:{date}` | attempt count | 86400 s (24 h) |
+| `bot:tglink:{code}` | JSON `{ clerkUserId, expiresAt }` | 900 s (15 min) |
+| `bot:dedup:wa:{messageId}` | `"1"` | 604800 s (7 days) |
+| `bot:dedup:tg:{updateId}` | `"1"` | 604800 s (7 days) |
+| `bot:daily:wa:{clerkUserId}:{date}` | message count | 172800 s (48 h) |
+| `bot:daily:tg:{clerkUserId}:{date}` | message count | 172800 s (48 h) |
 
 ---
 

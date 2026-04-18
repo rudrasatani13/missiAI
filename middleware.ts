@@ -11,6 +11,11 @@ const isPublicRoute = createRouteMatcher([
   "/privacy(.*)",
   "/terms(.*)",
   "/api/webhooks/dodo",
+  // Bot platform webhooks — platform-to-server calls have no Clerk session.
+  // Signature/secret-token validation is enforced inside each route handler.
+  // IP-based rate limiting still applies via the middleware logic below.
+  "/api/webhooks/whatsapp",
+  "/api/webhooks/telegram",
   "/pricing(.*)",
 ])
 

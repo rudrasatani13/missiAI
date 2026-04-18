@@ -19,6 +19,8 @@ All non-public routes are protected by Clerk middleware (`middleware.ts`).
 - `/pricing`, `/privacy`, `/terms`, `/manifesto`
 - `/api/health`
 - `/api/webhooks/dodo` (verified via webhook signature)
+- `/api/webhooks/whatsapp` (verified via HMAC-SHA256 signature; see §13)
+- `/api/webhooks/telegram` (verified via secret-token header; see §13)
 
 **Protected routes** (Clerk session required):
 - `/chat`, `/memory`, `/streak`, `/wind-down`, `/setup`
@@ -307,6 +309,82 @@ on every push to scan for accidentally committed secrets. If a secret pattern is
 detected, the build fails and alerts the team before the commit reaches `main`.
 
 See `.github/workflows/ci.yml` for the scanning step configuration.
+
+---
+
+## 13. Bot Webhook Security
+
+### WhatsApp (Meta Cloud API) — `app/api/webhooks/whatsapp/route.ts`
+
+Validation is enforced in strict order before any KV, memory, or AI operation:
+
+1. **Signature verification (HMAC-SHA256)**
+   - Header: `X-Hub-Signature-256: sha256=<hex-digest>`
+   - Key: `WHATSAPP_APP_SECRET` (raw UTF-8 bytes, from env)
+   - Message: raw request body (read once before anything else)
+   - Comparison: `timingSafeCompare(computedHex, providedHex)` — constant-time, no string equality
+   - Failure: HTTP 401 immediately, no further processing
+
+2. **Replay attack protection (timestamp validation)**
+   - `message.timestamp` is checked against `Date.now()` — reject if `|now - ts| > 300s`
+   - Failures are logged as `security.bot.wa.replay_attempt` and the message is silently skipped
+
+3. **Message deduplication**
+   - `bot:dedup:wa:{messageId}` → `"1"` with 7-day TTL in KV
+   - Checked before any processing; duplicate messages are silently dropped
+
+4. **userId resolution from KV (never from payload)**
+   - Sender phone → `bot:wa:{phone}` → Clerk userId
+   - Unknown senders get an onboarding reply; no AI or memory operations run
+
+5. **Plan gate**
+   - Requires Pro plan (`getUserPlan(userId) === 'pro'`)
+   - Blocked users receive an upgrade prompt; logged as `security.bot.wa.plan_gate_blocked`
+
+6. **Daily message limit**
+   - Counter: `bot:daily:wa:{userId}:{date}` — capped at 200 messages/day
+   - KV-backed, TTL 48 h
+
+7. **HTTP 200 always returned to Meta**
+   - All processing is fire-and-forget after immediate 200 response
+   - This prevents Meta from retrying on transient failures and triggering duplicate processing
+
+### Telegram Bot API — `app/api/webhooks/telegram/route.ts`
+
+1. **Secret token verification**
+   - Header: `X-Telegram-Bot-Api-Secret-Token: <token>`
+   - Compared with `TELEGRAM_WEBHOOK_SECRET` using `timingSafeCompare` — constant-time
+   - Failure: HTTP 401 immediately
+
+2. **Message deduplication**
+   - `bot:dedup:tg:{updateId}` → `"1"` with 7-day TTL in KV
+
+3. **userId resolution (never from payload)**
+   - Telegram user ID → `bot:tg:{telegramId}` → Clerk userId
+
+4. **Plan gate and daily limit** — identical to WhatsApp
+
+### WhatsApp OTP Linking — `app/api/v1/bot/link/whatsapp/route.ts`
+
+- OTP generated with `crypto.getRandomValues` (cryptographically random 6-digit code)
+- Stored in KV: `bot:otp:{userId}` with 10-minute TTL
+- **Single-use**: deleted immediately on first successful verification
+- **Rate limited**: max 5 OTP requests per user per day (`bot:otp:attempts:{userId}:{date}`)
+- OTP mismatch and expiry logged as `security.bot.wa.otp_verification_failed`
+
+### Telegram Deep-Link — `app/api/v1/bot/link/telegram/route.ts`
+
+- Code generated with `crypto.getRandomValues(32 bytes)` → 64 hex chars
+- Stored in KV: `bot:tglink:{code}` with 15-minute TTL
+- **Single-use**: deleted immediately when the `/start {code}` command is received
+
+### General Security Properties
+
+- All new API endpoints follow the same auth pattern: `getVerifiedUserId()` for user-facing routes (userId always from Clerk, never from request body)
+- All user message text is passed through `sanitizeInput` from `lib/validation/sanitizer.ts` before being sent to Gemini, preventing prompt injection via WhatsApp/Telegram
+- No raw message content stored in KV deduplication keys — dedup keys store only `"1"`
+- All security events (failed signatures, replay attempts, unknown senders, plan blocks) are logged with `logSecurityEvent` from `lib/server/logger.ts`
+- Webhook endpoints are public (no Clerk auth) but still subject to IP-based rate limiting via `middleware.ts`
 
 ---
 
