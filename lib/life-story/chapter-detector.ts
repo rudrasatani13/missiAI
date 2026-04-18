@@ -55,11 +55,19 @@ export async function detectChapters(graph: LifeGraph): Promise<LifeChapter[]> {
     }
 
     for (let i = 0; i < nodes.length; i++) {
+        const n1 = nodes[i]
+        const n1Tags = new Set(n1.tags)
+        const n1People = new Set(n1.people)
         for (let j = i + 1; j < nodes.length; j++) {
-            const n1 = nodes[i]
             const n2 = nodes[j]
-            const sharedTags = n1.tags.filter(t => n2.tags.includes(t)).length
-            const sharedPeople = n1.people.filter(p => n2.people.includes(p)).length
+            let sharedTags = 0
+            for (const t of n2.tags) {
+                if (n1Tags.has(t)) sharedTags++
+            }
+            let sharedPeople = 0
+            for (const p of n2.people) {
+                if (n1People.has(p)) sharedPeople++
+            }
             
             if (sharedTags >= 2 || sharedPeople >= 1) {
                 adj.get(n1.id)!.push(n2.id)
