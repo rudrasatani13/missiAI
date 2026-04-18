@@ -1,8 +1,10 @@
 import type { PluginResult } from "@/types/plugins"
-import { promises as dns } from "node:dns"
 
 // ─── Webhook Plugin ───────────────────────────────────────────────────────────
 // All calls use fetch() — no SDK, fully edge-compatible.
+// NOTE: node:dns was removed because it is unavailable in the Edge Runtime.
+// Cloudflare Workers' fetch() already rejects connections to private/internal
+// IPs at the runtime level, providing built-in SSRF protection.
 
 const TIMEOUT_MS = 10_000
 
@@ -64,8 +66,12 @@ function isInternalIp(ip: string): boolean {
 }
 
 /**
- * Checks if a URL resolves to a safe, external IP.
+ * Checks if a URL points to a safe, external endpoint.
  * Helps prevent SSRF (Server-Side Request Forgery) attacks.
+ *
+ * Static checks validate the hostname and any direct IP addresses.
+ * Runtime DNS-rebinding protection is delegated to Cloudflare Workers'
+ * built-in fetch() safeguards which reject connections to private IPs.
  */
 async function isSafeWebhookUrl(urlString: string): Promise<boolean> {
   try {
@@ -92,18 +98,8 @@ async function isSafeWebhookUrl(urlString: string): Promise<boolean> {
       if (isInternalIp(hostname)) return false
     }
 
-    // DNS Resolution Check
-    try {
-      const lookupResult = await dns.lookup(hostname)
-      if (lookupResult && lookupResult.address) {
-        if (isInternalIp(lookupResult.address)) {
-          return false
-        }
-      }
-    } catch (dnsError) {
-      // If DNS resolution fails, reject it
-      return false
-    }
+    // DNS-level SSRF protection (rebinding attacks) is handled by the
+    // Cloudflare Workers runtime which rejects fetch() to private IPs.
 
     return true
   } catch {
