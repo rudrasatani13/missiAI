@@ -50,6 +50,7 @@ export default function SignInPage() {
               routing="hash"
               signUpUrl="/sign-up"
               forceRedirectUrl="/chat"
+              fallbackRedirectUrl="/chat"
               appearance={{
                 baseTheme: dark,
                 layout: {
