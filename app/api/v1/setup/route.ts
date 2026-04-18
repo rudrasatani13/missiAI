@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
         emotionalWeight: 1.0,
         confidence: 1.0,
         source: 'explicit'
-      }, apiKey)
+      })
 
       // Add DOB Memory if provided
       if (dob && dob.trim().length > 0) {
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
           emotionalWeight: 0.8,
           confidence: 1.0,
           source: 'explicit'
-        }, apiKey)
+        })
       }
 
       // Add Occupation Memory if provided
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
           emotionalWeight: 0.8,
           confidence: 1.0,
           source: 'explicit'
-        }, apiKey)
+        })
       }
     }
 

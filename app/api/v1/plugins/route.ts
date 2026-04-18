@@ -230,8 +230,8 @@ export async function PATCH(req: Request) {
 
     const appEnv = getEnv()
 
-    const command = await buildPluginCommand(userMessage, pluginId as PluginId, apiKey)
-    const result = await executePluginCommand(command, pluginConfig, apiKey)
+    const command = await buildPluginCommand(userMessage, pluginId as PluginId)
+    const result = await executePluginCommand(command, pluginConfig)
 
     // Update lastUsedAt
     const updated: PluginConfig = { ...pluginConfig, lastUsedAt: Date.now() }

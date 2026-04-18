@@ -95,7 +95,7 @@ export async function generateDailyBriefing(
   }
 
   // No nodes → skip AI call
-  if (graph.nodes.length === 0 || !apiKey) return emptyBriefing
+  if (graph.nodes.length === 0) return emptyBriefing
 
   const context = buildContext(graph)
   const controller = new AbortController()
