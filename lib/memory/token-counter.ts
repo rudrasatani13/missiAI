@@ -1,11 +1,14 @@
 import type { ConversationEntry } from "@/types/chat"
 
+const CHARS_PER_TOKEN = 4
+
 /**
  * Approximate token count: ~4 chars per token, rounded up.
  * Good enough for budget guards without a tiktoken dependency.
  */
 export function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4)
+  if (!text) return 0
+  return Math.ceil(text.length / CHARS_PER_TOKEN)
 }
 
 /**

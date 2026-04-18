@@ -11,6 +11,32 @@ describe("estimateTokens", () => {
     expect(estimateTokens("")).toBe(0)
   })
 
+  it("returns 0 for null or undefined at runtime", () => {
+    // @ts-expect-error - testing runtime behavior
+    expect(estimateTokens(null)).toBe(0)
+    // @ts-expect-error - testing runtime behavior
+    expect(estimateTokens(undefined)).toBe(0)
+  })
+
+  it("calculates exact boundaries correctly", () => {
+    expect(estimateTokens("a")).toBe(1) // length 1 -> 1
+    expect(estimateTokens("abc")).toBe(1) // length 3 -> 1
+    expect(estimateTokens("abcd")).toBe(1) // length 4 -> 1
+    expect(estimateTokens("abcde")).toBe(2) // length 5 -> 2
+  })
+
+  it("handles strings with whitespace and newlines", () => {
+    expect(estimateTokens(" \n \t ")).toBe(2) // length 5 -> 2
+  })
+
+  it("handles strings with special characters and emojis correctly by length", () => {
+    // Note: emojis might be multiple chars long depending on encoding,
+    // but the function just uses .length. Testing standard length behavior.
+    expect(estimateTokens("🚀")).toBe(1) // length 2 -> 1
+    expect(estimateTokens("👍👍")).toBe(1) // length 4 -> 1
+    expect(estimateTokens("👍👍👍")).toBe(2) // length 6 -> 2
+  })
+
   it("returns ~100 for a 400-char string", () => {
     const text = "a".repeat(400)
     const tokens = estimateTokens(text)
