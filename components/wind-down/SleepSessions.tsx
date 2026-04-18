@@ -229,13 +229,13 @@ export default function SleepSessions() {
                  
                  {/* Left controls */}
                  <div className="flex items-center gap-3 w-1/3">
-                    <button onClick={() => skipBackward(30)} className="text-white/40 hover:text-white transition-colors">
+                    <button onClick={() => skipBackward(30)} aria-label="Skip backward 30 seconds" className="text-white/40 hover:text-white transition-colors">
                         <SkipBack className="w-4 h-4" />
                     </button>
-                    <button onClick={isPlaying ? pausePlayback : resumePlayback} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all">
+                    <button onClick={isPlaying ? pausePlayback : resumePlayback} aria-label={isPlaying ? "Pause playback" : "Resume playback"} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all">
                         {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current translate-x-0.5" />}
                     </button>
-                    <button onClick={() => skipForward(30)} className="text-white/40 hover:text-white transition-colors">
+                    <button onClick={() => skipForward(30)} aria-label="Skip forward 30 seconds" className="text-white/40 hover:text-white transition-colors">
                         <SkipForward className="w-4 h-4" />
                     </button>
                  </div>
@@ -255,7 +255,7 @@ export default function SleepSessions() {
 
                  {/* Right controls */}
                  <div className="w-1/3 flex justify-end">
-                    <button onClick={stopPlayback} className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-colors">
+                    <button onClick={stopPlayback} aria-label="Stop playback" className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-colors">
                         <X className="w-4 h-4" />
                     </button>
                  </div>

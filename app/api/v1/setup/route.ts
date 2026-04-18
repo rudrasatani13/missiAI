@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
           emotionalWeight: 0.8,
           confidence: 1.0,
           source: 'explicit'
-      })
+        })
       }
 
       // Add Occupation Memory if provided
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
           emotionalWeight: 0.8,
           confidence: 1.0,
           source: 'explicit'
-      })
+        })
       }
     }
 
