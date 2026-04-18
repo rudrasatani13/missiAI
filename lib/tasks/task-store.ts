@@ -25,19 +25,25 @@ function queueKey(userId: string): string {
 
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
 
-export async function createTask(
+export async function enqueueTask(
   kv: KVStore,
-  task: BackgroundTask,
-): Promise<void> {
-  // Store the task
-  await kv.put(taskKey(task.id), JSON.stringify(task), { expirationTtl: TASK_TTL })
+  task: BackgroundTask
+): Promise<string> {
+  try {
+    // Store the task
+    await kv.put(taskKey(task.id), JSON.stringify(task), { expirationTtl: TASK_TTL })
 
-  // Add to user's queue
-  const queue = await getTaskQueue(kv, task.userId)
-  queue.push(task.id)
-  // Trim old tasks
-  const trimmed = queue.slice(-MAX_TASKS_PER_USER)
-  await kv.put(queueKey(task.userId), JSON.stringify(trimmed), { expirationTtl: TASK_TTL })
+    // Add to user's queue
+    const queue = await getTaskQueue(kv, task.userId)
+    queue.push(task.id)
+    // Trim old tasks
+    const trimmed = queue.slice(-MAX_TASKS_PER_USER)
+    await kv.put(queueKey(task.userId), JSON.stringify(trimmed), { expirationTtl: TASK_TTL })
+
+    return task.id
+  } catch (error) {
+    throw error
+  }
 }
 
 export async function getTask(
