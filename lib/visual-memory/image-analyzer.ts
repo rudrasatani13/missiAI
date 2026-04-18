@@ -16,7 +16,7 @@ import { geminiGenerate } from '@/lib/ai/vertex-client'
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const GEMINI_MODEL = 'gemini-2.5-pro'
-const ANALYSIS_TIMEOUT_MS = 60_000
+const ANALYSIS_TIMEOUT_MS = 10_000
 
 // Valid visual categories for validation
 const VALID_CATEGORIES = new Set<VisualMemoryCategory>([
@@ -170,12 +170,16 @@ function validateExtraction(raw: unknown): VisualExtraction | null {
   const rawTags = Array.isArray(obj.tags) ? obj.tags : []
   const rawPeople = Array.isArray(obj.people) ? obj.people : []
 
-  // Default emotional weight if not a number
+  // Strict emotional weight validation — invalid type triggers safe fallback
   let ew = 0.5
-  if (typeof obj.emotionalWeight === 'number') {
-    ew = obj.emotionalWeight
-  } else if (typeof obj.emotionalWeight === 'string' && !isNaN(Number(obj.emotionalWeight))) {
-    ew = Number(obj.emotionalWeight)
+  if (obj.emotionalWeight !== undefined && obj.emotionalWeight !== null) {
+    if (typeof obj.emotionalWeight === 'number' && !isNaN(obj.emotionalWeight)) {
+      ew = obj.emotionalWeight
+    } else if (typeof obj.emotionalWeight === 'string' && !isNaN(Number(obj.emotionalWeight))) {
+      ew = Number(obj.emotionalWeight)
+    } else {
+      return null
+    }
   }
 
   // Provide defaults for strings if they are missing
