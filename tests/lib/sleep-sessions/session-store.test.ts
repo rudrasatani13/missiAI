@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { 
+    getActiveSleepSession,
     cacheGeneratedStory, 
     getLastGeneratedStory, 
     addToHistory, 
@@ -55,6 +56,41 @@ describe('Session Store', () => {
         hist = await getHistory(kv, 'user1', 30)
         expect(hist.length).toBe(30)
         expect(hist[0].id).toBe('e32') // the very last one added
+    })
+
+    it('getActiveSleepSession returns session on success', async () => {
+        const mockSession = { id: 'session1', data: 'something' }
+
+        const originalGet = kv.get
+        kv.get = vi.fn(async (key: string, options?: any) => {
+            if (key === `sleep-session:user1` && options?.type === 'json') return mockSession
+            return null
+        }) as any
+
+        const result = await getActiveSleepSession(kv, 'user1')
+        expect(result).toEqual(mockSession)
+
+        kv.get = originalGet
+    })
+
+    it('getActiveSleepSession returns null when session is not found', async () => {
+        const originalGet = kv.get
+        kv.get = vi.fn(async () => null)
+
+        const result = await getActiveSleepSession(kv, 'user2')
+        expect(result).toBeNull()
+
+        kv.get = originalGet
+    })
+
+    it('getActiveSleepSession returns null on KV error', async () => {
+        const originalGet = kv.get
+        kv.get = vi.fn().mockRejectedValue(new Error('KV store failure'))
+
+        const result = await getActiveSleepSession(kv, 'user1')
+        expect(result).toBeNull()
+
+        kv.get = originalGet
     })
 
     it('Rate limit functions work correctly', async () => {

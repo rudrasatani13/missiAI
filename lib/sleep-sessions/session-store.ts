@@ -1,5 +1,14 @@
 import type { KVStore } from '@/types'
-import type { SleepStory, SleepSessionHistoryEntry } from '@/types/sleep-sessions'
+import type { SleepStory, SleepSessionHistoryEntry, SleepSession } from '@/types/sleep-sessions'
+
+export async function getActiveSleepSession(kv: KVStore, userId: string): Promise<SleepSession | null> {
+  try {
+    const session = await kv.get<SleepSession>(`sleep-session:${userId}`, { type: 'json' })
+    return session || null
+  } catch {
+    return null
+  }
+}
 
 export async function cacheGeneratedStory(kv: KVStore, userId: string, story: SleepStory): Promise<void> {
   const key = `sleep-story:last:${userId}`

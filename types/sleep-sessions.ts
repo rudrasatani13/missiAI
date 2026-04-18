@@ -41,3 +41,8 @@ export interface SleepSessionHistoryEntry {
   completed: boolean
   durationSec: number
 }
+
+export interface SleepSession {
+  id: string
+  [key: string]: any
+}
