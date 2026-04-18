@@ -6,12 +6,11 @@ import { NextRequest } from "next/server"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { z } from "zod"
 import { logError } from "@/lib/server/logger"
 import type { KVStore } from "@/types"
 
-export const runtime = "edge"
 
 const MAX_SUBSCRIPTION_BYTES = 16_384
 
@@ -26,7 +25,7 @@ const pushSubscriptionSchema = z.object({
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

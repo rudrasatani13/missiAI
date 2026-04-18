@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
 import { z } from "zod"
@@ -13,7 +13,6 @@ import {
 } from "@/lib/personas/persona-store"
 import type { KVStore } from "@/types"
 
-export const runtime = "edge"
 
 // ─── Zod Schema — strict allowlist validation ─────────────────────────────────
 
@@ -25,7 +24,7 @@ const personaSaveSchema = z.object({
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as Record<string, unknown>).MISSI_MEMORY as KVStore ?? null
   } catch {
     return null

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import {
   getVerifiedUserId,
   AuthenticationError,
@@ -15,11 +15,10 @@ import { getUserPlan } from '@/lib/billing/tier-checker'
 import type { KVStore } from '@/types'
 import type { EveningReflection } from '@/types/proactive'
 
-export const runtime = 'edge'
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

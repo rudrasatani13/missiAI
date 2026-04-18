@@ -1,4 +1,4 @@
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { createTimer, logRequest, logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
@@ -12,11 +12,10 @@ import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { getTodayDate } from "@/lib/billing/usage-tracker"
 import type { KVStore } from "@/types"
 
-export const runtime = "edge"
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

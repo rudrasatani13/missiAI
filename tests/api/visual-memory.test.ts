@@ -4,7 +4,7 @@ import { NextRequest } from 'next/server'
 // ─── Mocks (must be declared before imports) ──────────────────────────────────
 
 vi.mock('@cloudflare/next-on-pages', () => ({
-  getRequestContext: vi.fn(),
+  getCloudflareContext: vi.fn(),
 }))
 
 vi.mock('@/lib/server/auth', () => ({
@@ -92,7 +92,7 @@ vi.mock('@/lib/gamification/xp-engine', () => ({
 
 import { POST as analyzePost } from '@/app/api/v1/visual-memory/analyze/route'
 import { GET, DELETE } from '@/app/api/v1/visual-memory/route'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import {
   getVerifiedUserId,
   AuthenticationError,
@@ -106,7 +106,7 @@ import {
 import { getUserPlan } from '@/lib/billing/tier-checker'
 
 const mockGetVerifiedUserId = vi.mocked(getVerifiedUserId)
-const mockGetRequestContext = vi.mocked(getRequestContext)
+const mockGetRequestContext = vi.mocked(getCloudflareContext)
 const mockGetVisualRateLimit = vi.mocked(getVisualRateLimit)
 const mockGetVisualRecords = vi.mocked(getVisualRecords)
 const mockGetUserPlan = vi.mocked(getUserPlan)

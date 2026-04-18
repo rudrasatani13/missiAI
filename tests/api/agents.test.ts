@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 // ─── Mocks ─────────────────────────────────────────────────────────────────────
 
 vi.mock("@cloudflare/next-on-pages", () => ({
-  getRequestContext: vi.fn(),
+  getCloudflareContext: vi.fn(),
 }))
 
 vi.mock("@/lib/server/auth", () => ({
@@ -69,7 +69,7 @@ vi.mock("nanoid", () => ({
   nanoid: vi.fn().mockReturnValue("mock-nanoid-id"),
 }))
 
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { buildAgentPlan } from "@/lib/ai/agent-planner"
 import { verifyAndConsumeToken } from "@/lib/ai/agent-confirm"
@@ -81,7 +81,7 @@ import { POST as confirmPost } from "@/app/api/v1/agents/confirm/route"
 import { GET as historyGet } from "@/app/api/v1/agents/history/route"
 import { GET as expensesGet } from "@/app/api/v1/agents/expenses/route"
 
-const mockGetRequestContext = vi.mocked(getRequestContext)
+const mockGetRequestContext = vi.mocked(getCloudflareContext)
 const mockGetVerifiedUserId = vi.mocked(getVerifiedUserId)
 const mockBuildAgentPlan = vi.mocked(buildAgentPlan)
 const mockVerifyAndConsumeToken = vi.mocked(verifyAndConsumeToken)
@@ -101,7 +101,7 @@ function setupMockContext(kv = makeMockKV()) {
     env: { MISSI_MEMORY: kv },
     ctx: {} as unknown,
     cf: {} as unknown,
-  } as ReturnType<typeof getRequestContext>)
+  } as ReturnType<typeof getCloudflareContext>)
   return kv
 }
 

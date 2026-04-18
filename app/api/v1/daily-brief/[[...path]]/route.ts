@@ -5,7 +5,7 @@
 //   path=["tasks", taskId]   → PATCH (mark task complete)
 
 import { type NextRequest } from 'next/server'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { z } from 'zod'
 import {
   getVerifiedUserId,
@@ -33,12 +33,11 @@ import { PLANS } from '@/types/billing'
 import type { KVStore } from '@/types'
 import type { DailyBrief } from '@/types/daily-brief'
 
-export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as Record<string, unknown>).MISSI_MEMORY as KVStore ?? null
   } catch { return null }
 }

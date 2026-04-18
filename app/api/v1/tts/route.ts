@@ -6,7 +6,7 @@ import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/l
 import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { checkVoiceLimit, getTodayDate } from "@/lib/billing/usage-tracker"
 import { COST_CONSTANTS } from "@/lib/server/cost-tracker"
@@ -14,7 +14,6 @@ import { getUserPersona } from "@/lib/personas/persona-store"
 import { getVoiceId as getPersonaVoiceId } from "@/lib/personas/persona-config"
 import type { KVStore } from "@/types"
 
-export const runtime = "edge"
 
 const MAX_BODY_BYTES = 1_000_000 // 1 MB
 const TTS_TIMEOUT_MS = 15_000
@@ -59,7 +58,7 @@ export async function POST(req: NextRequest) {
   {
     let kvCheck: KVStore | null = null
     try {
-      const { env } = getRequestContext()
+      const { env } = getCloudflareContext()
       kvCheck = (env as any).MISSI_MEMORY ?? null
     } catch {}
 
@@ -137,7 +136,7 @@ export async function POST(req: NextRequest) {
   } else {
     try {
       let kvForPersona: KVStore | null = null
-      try { const { env } = getRequestContext(); kvForPersona = (env as any).MISSI_MEMORY ?? null } catch {}
+      try { const { env } = getCloudflareContext(); kvForPersona = (env as any).MISSI_MEMORY ?? null } catch {}
       if (kvForPersona) {
         const personaId = await getUserPersona(kvForPersona, userId)
         const personaVoice = getPersonaVoiceId(personaId, appEnv)
@@ -164,7 +163,7 @@ export async function POST(req: NextRequest) {
 
       // Analytics: fire-and-forget
       try {
-        const { env } = getRequestContext()
+        const { env } = getCloudflareContext()
         const kv = (env as any).MISSI_MEMORY as KVStore | null
         if (kv) {
           recordEvent(kv, {

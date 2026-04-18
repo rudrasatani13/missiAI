@@ -4,7 +4,7 @@
  *
  * The setup-completion check was moved client-side into the chat page
  * (via Clerk's useUser().publicMetadata) so that this layout doesn't
- * need auth() / getRequestContext(), which would force `runtime = 'edge'`
+ * need auth() / getCloudflareContext(), which would force `runtime = 'edge'`
  * and bundle ~2 MB of client-side deps into the edge function.
  */
 export default function ChatLayout({ children }: { children: React.ReactNode }) {

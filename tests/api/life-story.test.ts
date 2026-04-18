@@ -6,7 +6,7 @@ import { GET as getConstellation } from '@/app/api/v1/life-story/constellation/r
 import { GET as getExport } from '@/app/api/v1/life-story/export/route'
 
 import * as clerkNextjs from '@clerk/nextjs/server'
-import * as nextOnPages from '@cloudflare/next-on-pages'
+import * as nextOnPages from '@opennextjs/cloudflare'
 import * as lifeGraph from '@/lib/memory/life-graph'
 import * as chapterDetector from '@/lib/life-story/chapter-detector'
 import * as yearReviewGenerator from '@/lib/life-story/year-review-generator'
@@ -16,7 +16,7 @@ vi.mock('@clerk/nextjs/server', () => ({
 }))
 
 vi.mock('@cloudflare/next-on-pages', () => ({
-  getRequestContext: vi.fn()
+  getCloudflareContext: vi.fn()
 }))
 
 vi.mock('@/lib/memory/life-graph', () => ({
@@ -44,7 +44,7 @@ describe('Life Story API Routes', () => {
       get: vi.fn().mockResolvedValue(null),
       put: vi.fn().mockResolvedValue(true)
     }
-    vi.mocked(nextOnPages.getRequestContext).mockReturnValue({
+    vi.mocked(nextOnPages.getCloudflareContext).mockReturnValue({
       env: { MISSI_MEMORY: mockKV }
     } as any)
     vi.mocked(lifeGraph.getLifeGraph).mockResolvedValue({ nodes: [], totalInteractions: 0, lastUpdatedAt: 0, version: 10 })

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { sttSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { speechToText } from "@/services/voice.service"
@@ -11,11 +11,10 @@ import { checkVoiceLimit } from "@/lib/billing/usage-tracker"
 import type { KVStore } from "@/types"
 
 
-export const runtime = "edge"
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

@@ -12,7 +12,7 @@ vi.mock("@clerk/nextjs/server", () => ({
 // Mock @cloudflare/next-on-pages
 const mockKVStore = new Map<string, string>()
 vi.mock("@cloudflare/next-on-pages", () => ({
-  getRequestContext: vi.fn(() => ({
+  getCloudflareContext: vi.fn(() => ({
     env: {
       MISSI_MEMORY: {
         get: async (key: string) => mockKVStore.get(key) ?? null,

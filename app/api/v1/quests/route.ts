@@ -1,7 +1,7 @@
 // ─── Quest API Routes — List & Generate ───────────────────────────────────────
 
 import { NextRequest } from 'next/server'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { z } from 'zod'
 import {
   getVerifiedUserId,
@@ -27,13 +27,12 @@ import type { KVStore } from '@/types'
 import type { QuestGenerationInput, QuestCategory, QuestDifficulty } from '@/types/quests'
 import type { VectorizeEnv } from '@/lib/memory/vectorize'
 
-export const runtime = 'edge'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as Record<string, unknown>).MISSI_MEMORY as KVStore ?? null
   } catch {
     return null
@@ -42,7 +41,7 @@ function getKV(): KVStore | null {
 
 function getVectorizeEnv(): VectorizeEnv | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     const e = env as Record<string, unknown>
     if (e.VECTORIZE_INDEX) {
       return env as unknown as VectorizeEnv

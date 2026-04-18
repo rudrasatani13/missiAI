@@ -5,7 +5,7 @@ import type { DailyBrief, DailyTask } from '@/types/daily-brief'
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 vi.mock('@cloudflare/next-on-pages', () => ({
-  getRequestContext: vi.fn(),
+  getCloudflareContext: vi.fn(),
 }))
 
 vi.mock('@/lib/server/auth', () => ({
@@ -63,7 +63,7 @@ vi.mock('@/lib/billing/tier-checker', () => ({
 
 import { GET, POST } from '@/app/api/v1/daily-brief/route'
 import { PATCH } from '@/app/api/v1/daily-brief/tasks/[taskId]/route'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import {
   getVerifiedUserId,
   AuthenticationError,
@@ -84,7 +84,7 @@ import {
 import { awardXP } from '@/lib/gamification/xp-engine'
 import { getUserPlan } from '@/lib/billing/tier-checker'
 
-const mockGetRequestContext = vi.mocked(getRequestContext)
+const mockGetRequestContext = vi.mocked(getCloudflareContext)
 const mockGetVerifiedUserId = vi.mocked(getVerifiedUserId)
 const mockGetTodaysBrief = vi.mocked(getTodaysBrief)
 const mockSaveBrief = vi.mocked(saveBrief)

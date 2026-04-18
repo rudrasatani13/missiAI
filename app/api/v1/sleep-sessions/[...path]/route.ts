@@ -4,7 +4,7 @@
 // Consolidation reduces 4 separate edge function bundles into 1.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { z } from 'zod'
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
 import { getLifeGraph } from '@/lib/memory/life-graph'
@@ -39,11 +39,10 @@ import { clerkClient } from '@clerk/nextjs/server'
 import type { LibraryStoryCategory } from '@/types/sleep-sessions'
 import type { KVStore } from '@/types'
 
-export const runtime = 'edge'
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null
@@ -290,7 +289,7 @@ async function handleTts(req: NextRequest) {
 
   let kv: KVStore | null = null
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     kv = (env as any).MISSI_MEMORY ?? null
   } catch {}
 

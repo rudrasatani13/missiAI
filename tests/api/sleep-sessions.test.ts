@@ -23,7 +23,7 @@ jest.mock('@/lib/sleep-sessions/session-store', () => ({
 }))
 
 jest.mock('@cloudflare/next-on-pages', () => ({
-  getRequestContext: () => ({ env: { MISSI_MEMORY: {} } })
+  getCloudflareContext: () => ({ env: { MISSI_MEMORY: {} } })
 }))
 
 jest.mock('@/lib/server/env', () => ({

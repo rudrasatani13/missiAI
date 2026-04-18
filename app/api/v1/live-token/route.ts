@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, unauthorizedResponse } from "@/lib/server/auth"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import { logRequest, logError } from "@/lib/server/logger"
@@ -9,7 +9,6 @@ import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkVoiceLimit } from "@/lib/billing/usage-tracker"
 import type { KVStore } from "@/types"
 
-export const runtime = "edge"
 
 // Live model — all plans use the same low-latency native-audio model.
 // The preview model (gemini-3.1-flash-live-preview) had significantly higher
@@ -19,7 +18,7 @@ const LIVE_MODEL = "gemini-live-2.5-flash-native-audio"
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

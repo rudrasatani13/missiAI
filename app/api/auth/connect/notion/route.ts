@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { getEnv } from "@/lib/server/env"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import type { KVStore } from "@/types"
 
-export const runtime = "edge"
 
 // ─── Notion OAuth Connect ─────────────────────────────────────────────────────
 // Redirects the user to Notion's OAuth consent screen.
@@ -15,7 +14,7 @@ const STATE_TTL_SECONDS = 600
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

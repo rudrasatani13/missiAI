@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { analyzeMoodFromConversation } from "@/lib/mood/mood-analyzer"
 import { addMoodEntry } from "@/lib/mood/mood-store"
@@ -22,13 +22,12 @@ import { getUserPersona } from "@/lib/personas/persona-store"
 import { getPersonaConfig } from "@/lib/personas/persona-config"
 import type { KVStore } from "@/types"
 
-export const runtime = "edge"
 
 const MAX_BODY_BYTES = 5_000_000 // 5 MB
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null
@@ -37,7 +36,7 @@ function getKV(): KVStore | null {
 
 function getVectorizeEnv(): VectorizeEnv | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     const lifeGraph = (env as any).LIFE_GRAPH
     if (!lifeGraph) return null
     return { LIFE_GRAPH: lifeGraph }

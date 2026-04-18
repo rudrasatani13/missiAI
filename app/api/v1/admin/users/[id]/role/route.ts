@@ -3,7 +3,6 @@ import { auth, clerkClient } from "@clerk/nextjs/server"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { z } from "zod"
 
-export const runtime = "edge"
 
 // Rate limiting is handled by the middleware's IP-based limiter (100 req/min).
 // Structured logging via @/lib/server/logger is avoided here because it pulls in

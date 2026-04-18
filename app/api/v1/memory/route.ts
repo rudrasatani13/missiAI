@@ -5,7 +5,7 @@ import {
   unauthorizedResponse,
 } from "@/lib/server/auth"
 import { memorySchema, validationErrorResponse } from "@/lib/validation/schemas"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import {
   getLifeGraph,
   saveLifeGraph,
@@ -25,7 +25,6 @@ import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { MemoryCategory } from "@/types/memory"
 import { z } from "zod"
 
-export const runtime = "edge"
 
 function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -36,7 +35,7 @@ function jsonResponse(body: unknown, status = 200, headers: Record<string, strin
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null
@@ -45,7 +44,7 @@ function getKV(): KVStore | null {
 
 function getVectorizeEnv(): VectorizeEnv | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     const lifeGraph = (env as any).LIFE_GRAPH
     if (!lifeGraph) return null
     return { LIFE_GRAPH: lifeGraph }

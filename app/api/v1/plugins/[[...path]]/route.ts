@@ -5,7 +5,7 @@
 //   path=["refresh"]     → GET (status), POST (refresh), DELETE (disconnect plugin)
 
 import { NextRequest } from "next/server"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { createTimer, logRequest, logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
@@ -20,11 +20,10 @@ import { getUserPlan } from "@/lib/billing/tier-checker"
 import type { KVStore } from "@/types"
 import type { PluginConfig, PluginId } from "@/types/plugins"
 
-export const runtime = "edge"
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch { return null }
 }

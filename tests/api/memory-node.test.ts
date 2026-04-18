@@ -5,7 +5,7 @@ import type { LifeGraph, LifeNode } from '@/types/memory'
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 vi.mock('@cloudflare/next-on-pages', () => ({
-  getRequestContext: vi.fn(),
+  getCloudflareContext: vi.fn(),
 }))
 
 vi.mock('@/lib/server/auth', () => ({
@@ -32,7 +32,7 @@ vi.mock('@/lib/server/logger', () => ({
 }))
 
 import { DELETE, PATCH } from '@/app/api/v1/memory/[nodeId]/route'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import {
   getVerifiedUserId,
   AuthenticationError,
@@ -40,7 +40,7 @@ import {
 } from '@/lib/server/auth'
 import { getLifeGraph, saveLifeGraph } from '@/lib/memory/life-graph'
 
-const mockGetRequestContext = vi.mocked(getRequestContext)
+const mockGetRequestContext = vi.mocked(getCloudflareContext)
 const mockGetVerifiedUserId = vi.mocked(getVerifiedUserId)
 const mockGetLifeGraph = vi.mocked(getLifeGraph)
 const mockSaveLifeGraph = vi.mocked(saveLifeGraph)

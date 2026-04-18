@@ -4,14 +4,13 @@ import {
   AuthenticationError,
   unauthorizedResponse,
 } from "@/lib/server/auth"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getLifeGraph, saveLifeGraph } from "@/lib/memory/life-graph"
 import { z } from "zod"
 import { sanitizeInput } from "@/lib/validation/sanitizer"
 import { logError } from "@/lib/server/logger"
 import type { KVStore } from "@/types"
 
-export const runtime = "edge"
 
 function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -22,7 +21,7 @@ function jsonResponse(body: unknown, status = 200, headers: Record<string, strin
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

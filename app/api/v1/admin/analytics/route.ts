@@ -1,4 +1,4 @@
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { getVerifiedUserId, AuthenticationError } from '@/lib/server/auth'
 import { buildAnalyticsSnapshot } from '@/lib/analytics/aggregator'
 import { getDailyStats } from '@/lib/analytics/event-store'
@@ -11,11 +11,10 @@ import type { KVStore } from '@/types'
 // KV key injection via the `analytics:daily:{date}` key pattern.
 const DATE_PARAM_RE = /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/
 
-export const runtime = 'edge'
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

@@ -112,4 +112,4 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build for Cloudflare Pages
-        run: pnpm exec next-on-pages
+        run: pnpm run build:cf

@@ -1,6 +1,6 @@
 import { type NextRequest } from 'next/server'
 import { z } from 'zod'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import {
   getVerifiedUserId,
   AuthenticationError,
@@ -23,7 +23,6 @@ import { logRequest } from '@/lib/server/logger'
 import type { KVStore } from '@/types'
 import type { MoodEntry, MoodLabel, MoodScore, WeeklyMoodInsight } from '@/types/mood'
 
-export const runtime = 'edge'
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -45,7 +44,7 @@ const moodLogSchema = z.object({
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as Record<string, unknown>).MISSI_MEMORY as KVStore ?? null
   } catch {
     return null

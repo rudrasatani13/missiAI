@@ -28,8 +28,8 @@ export interface RateLimitResult {
 async function getKV(): Promise<any | null> {
   try {
     // Dynamic import so the static module graph doesn't break in Node.js local dev
-    const { getRequestContext } = await import("@cloudflare/next-on-pages")
-    const { env } = getRequestContext()
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare")
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

@@ -9,7 +9,7 @@
  */
 
 import { NextRequest } from "next/server"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { executeAgentTool, AGENT_FUNCTION_DECLARATIONS, type AgentToolCall, type ToolContext } from "@/lib/ai/agent-tools"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
@@ -20,7 +20,6 @@ import { z } from "zod"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { KVStore } from "@/types"
 
-export const runtime = "edge"
 
 // ── Known tool names allowlist (BUG-003 fix) ───────────────────────────────────
 const KNOWN_TOOL_NAMES = new Set(AGENT_FUNCTION_DECLARATIONS.map(d => d.name))
@@ -35,7 +34,7 @@ const toolExecuteSchema = z.object({
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null
@@ -44,7 +43,7 @@ function getKV(): KVStore | null {
 
 function getVectorizeEnv(): VectorizeEnv | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     const lifeGraph = (env as any).LIFE_GRAPH
     if (!lifeGraph) return null
     return { LIFE_GRAPH: lifeGraph }

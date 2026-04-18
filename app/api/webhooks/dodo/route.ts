@@ -3,17 +3,16 @@
 // Dodo Payments sends subscription lifecycle events via Standard Webhooks.
 // This handler verifies signatures, deduplicates events, and updates user plans.
 
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { verifyDodoWebhook, determinePlanFromDodoProduct } from '@/lib/billing/dodo-client'
 import { setUserPlan } from '@/lib/billing/tier-checker'
 import { log, logSecurityEvent } from '@/lib/server/logger'
 import type { KVStore } from '@/types'
 
-export const runtime = 'edge'
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

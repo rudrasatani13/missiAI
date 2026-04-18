@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { getEnv } from "@/lib/server/env"
 import { saveGoogleTokens, fetchCalendarContext } from "@/lib/plugins/data-fetcher"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { logError } from "@/lib/server/logger"
 import type { KVStore } from "@/types"
 
-export const runtime = "edge"
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch { return null }
 }

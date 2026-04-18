@@ -1,0 +1,41 @@
+{
+  "app/chat/page.tsx -> @/components/chat/ParticleVisualizer": {
+    "id": 94209,
+    "files": [
+      "static/chunks/e9a6067a-e630ed46e3970000.js",
+      "static/chunks/74c6194b-ca1bfae263ad89d7.js",
+      "static/chunks/6590.cfc7db503dac4f44.js"
+    ]
+  },
+  "app/memory/graph/page.tsx -> @/components/memory/MemoryGraph3D": {
+    "id": 39656,
+    "files": [
+      "static/chunks/9656.5447da9d935bf7e5.js"
+    ]
+  },
+  "components/memory/MemoryGraph3D.tsx -> react-force-graph-3d": {
+    "id": 11526,
+    "files": [
+      "static/chunks/e9a6067a-e630ed46e3970000.js",
+      "static/chunks/74c6194b-ca1bfae263ad89d7.js",
+      "static/chunks/522b8a91.dd3068cf1b876f5c.js",
+      "static/chunks/1526.12bcb8bf89d3c210.js"
+    ]
+  },
+  "components/profile/ProfileCardClient.tsx -> html2canvas": {
+    "id": 95181,
+    "files": [
+      "static/chunks/c132bf7d-040efa37166b4c5f.js"
+    ]
+  },
+  "lib/ai/agent-tools.ts -> ./vertex-client": {
+    "id": 90334,
+    "files": []
+  },
+  "node_modules/.pnpm/@clerk+nextjs@6.39.0_next@15.5.15_@babel+core@7.29.0_react-dom@19.1.0_react@19.1.0__rea_89bfcd545af24aa0bbdb685becaadb3a/node_modules/@clerk/nextjs/dist/esm/app-router/client/ClerkProvider.js -> ./keyless-creator-reader.js": {
+    "id": 20457,
+    "files": [
+      "static/chunks/457.4ab32712491fe6b9.js"
+    ]
+  }
+}

@@ -4,12 +4,11 @@
 // Returns system status with KV and env checks.
 // No versioning on health endpoint.
 
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { envExists } from "@/lib/server/env"
 import { log } from "@/lib/server/logger"
 import type { KVStore } from "@/types"
 
-export const runtime = "edge"
 
 interface HealthResponse {
   status: "ok" | "degraded" | "down"
@@ -23,7 +22,7 @@ interface HealthResponse {
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

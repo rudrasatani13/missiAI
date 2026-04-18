@@ -18,7 +18,7 @@ vi.mock("@/lib/rateLimiter", () => ({
 }))
 
 vi.mock("@cloudflare/next-on-pages", () => ({
-  getRequestContext: vi.fn(),
+  getCloudflareContext: vi.fn(),
 }))
 
 vi.mock("@/lib/billing/usage-tracker", () => ({
@@ -44,7 +44,7 @@ vi.mock("@/lib/server/logger", () => ({
 import { getVerifiedUserId } from "@/lib/server/auth"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkRateLimit } from "@/lib/rateLimiter"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { checkVoiceLimit } from "@/lib/billing/usage-tracker"
 import { isVertexAI, getVertexProjectId, getVertexLocation } from "@/lib/ai/vertex-auth"
 import { getGeminiLiveWsUrl } from "@/lib/ai/vertex-client"
@@ -52,7 +52,7 @@ import { getGeminiLiveWsUrl } from "@/lib/ai/vertex-client"
 const mockGetVerifiedUserId = vi.mocked(getVerifiedUserId)
 const mockGetUserPlan = vi.mocked(getUserPlan)
 const mockCheckRateLimit = vi.mocked(checkRateLimit)
-const mockGetRequestContext = vi.mocked(getRequestContext)
+const mockGetRequestContext = vi.mocked(getCloudflareContext)
 const mockCheckVoiceLimit = vi.mocked(checkVoiceLimit)
 const mockIsVertexAI = vi.mocked(isVertexAI)
 const mockGetVertexProjectId = vi.mocked(getVertexProjectId)
@@ -166,7 +166,7 @@ describe("POST /api/v1/live-token", () => {
   })
 
   it("handles when getKV() returns null (RequestContext error)", async () => {
-    // Force getRequestContext to throw an error so getKV returns null
+    // Force getCloudflareContext to throw an error so getKV returns null
     mockGetRequestContext.mockImplementation(() => {
       throw new Error("No context")
     })

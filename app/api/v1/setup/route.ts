@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
 import { clerkClient } from '@clerk/nextjs/server'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { logRequest, logError } from '@/lib/server/logger'
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
 import { getUserPlan } from '@/lib/billing/tier-checker'
@@ -11,7 +11,6 @@ import { z } from 'zod'
 import type { KVStore } from '@/types'
 import type { VectorizeEnv } from '@/lib/memory/vectorize'
 
-export const runtime = 'edge'
 
 function jsonResponse(body: unknown, status = 200, headers: HeadersInit = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -22,7 +21,7 @@ function jsonResponse(body: unknown, status = 200, headers: HeadersInit = {}): R
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null
@@ -31,7 +30,7 @@ function getKV(): KVStore | null {
 
 function getVectorizeEnv(): VectorizeEnv | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     const lifeGraph = (env as any).LIFE_GRAPH
     if (!lifeGraph) return null
     return { LIFE_GRAPH: lifeGraph }

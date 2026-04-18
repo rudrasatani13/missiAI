@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { clerkClient } from '@clerk/nextjs/server'
 import {
   getVerifiedUserId,
@@ -15,11 +15,10 @@ import { logRequest, logError } from '@/lib/server/logger'
 import type { KVStore } from '@/types'
 import type { LifeNode } from '@/types/memory'
 
-export const runtime = 'edge'
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

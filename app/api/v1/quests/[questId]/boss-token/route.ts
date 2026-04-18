@@ -1,7 +1,7 @@
 // ─── Boss Token API Route ─────────────────────────────────────────────────────
 
 import { NextRequest } from 'next/server'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import {
   getVerifiedUserId,
   AuthenticationError,
@@ -15,11 +15,10 @@ import {
 } from '@/lib/quests/quest-store'
 import type { KVStore } from '@/types'
 
-export const runtime = 'edge'
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as Record<string, unknown>).MISSI_MEMORY as KVStore ?? null
   } catch {
     return null

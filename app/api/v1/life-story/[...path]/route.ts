@@ -6,7 +6,7 @@
 
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { z } from 'zod'
 import { getLifeGraph } from '@/lib/memory/life-graph'
 import { detectChapters } from '@/lib/life-story/chapter-detector'
@@ -19,11 +19,10 @@ import { MemoryCategory } from '@/types/memory'
 import { ConstellationGrouping } from '@/types/life-story'
 import type { KVStore } from "@/types"
 
-export const runtime = 'edge'
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

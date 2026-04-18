@@ -1,7 +1,7 @@
 // ─── Quest API Routes — Single Quest CRUD ─────────────────────────────────────
 
 import { NextRequest } from 'next/server'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { z } from 'zod'
 import {
   getVerifiedUserId,
@@ -18,11 +18,10 @@ import { awardXP } from '@/lib/gamification/xp-engine'
 import type { KVStore } from '@/types'
 import type { QuestAchievementContext } from '@/types/quests'
 
-export const runtime = 'edge'
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as Record<string, unknown>).MISSI_MEMORY as KVStore ?? null
   } catch {
     return null

@@ -3,7 +3,7 @@ import { checkRateLimit, rateLimitHeaders, rateLimitExceededResponse } from "@/l
 
 // The module has dynamic import, so we can mock the import module directly
 vi.mock("@cloudflare/next-on-pages", () => ({
-  getRequestContext: vi.fn(() => ({
+  getCloudflareContext: vi.fn(() => ({
     env: {
       MISSI_MEMORY: {
         get: async (key: string) => (globalThis as any).KV_NAMESPACE.get(key),
@@ -98,7 +98,7 @@ describe("rateLimiter", () => {
     it("should fail open if KV is unavailable", async () => {
       // Override the mock to throw/simulate no env for this test
       vi.doMock("@cloudflare/next-on-pages", () => ({
-        getRequestContext: vi.fn(() => ({ env: {} }))
+        getCloudflareContext: vi.fn(() => ({ env: {} }))
       }))
 
       // We need to re-import checkRateLimit after doMock, but we can also just

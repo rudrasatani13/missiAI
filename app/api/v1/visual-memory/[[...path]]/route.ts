@@ -5,7 +5,7 @@
 //   path=["analyze"] → POST (analyze image)
 
 import { type NextRequest } from 'next/server'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { z } from 'zod'
 import {
   getVerifiedUserId,
@@ -31,7 +31,6 @@ import { awardXP } from '@/lib/gamification/xp-engine'
 import type { VisualMemoryRecord } from '@/types/visual-memory'
 import type { KVStore } from '@/types'
 
-export const runtime = 'edge'
 
 const PLAN_LIMITS: Record<string, number> = { free: 10, plus: 50, pro: 50 }
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])
@@ -39,14 +38,14 @@ const MAX_FILE_SIZE_BYTES = 5_242_880
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as Record<string, unknown>).MISSI_MEMORY as KVStore ?? null
   } catch { return null }
 }
 
 function getVectorizeEnv(): VectorizeEnv | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     const lifeGraph = (env as Record<string, unknown>).LIFE_GRAPH
     if (!lifeGraph) return null
     return { LIFE_GRAPH: lifeGraph as VectorizeEnv['LIFE_GRAPH'] }

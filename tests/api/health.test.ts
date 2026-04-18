@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 // Mock @cloudflare/next-on-pages before importing the route
 vi.mock("@cloudflare/next-on-pages", () => ({
-  getRequestContext: vi.fn(),
+  getCloudflareContext: vi.fn(),
 }))
 
 // Mock @/lib/server/logger to avoid side effects
@@ -11,9 +11,9 @@ vi.mock("@/lib/server/logger", () => ({
 }))
 
 import { GET } from "@/app/api/health/route"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 
-const mockGetRequestContext = vi.mocked(getRequestContext)
+const mockGetRequestContext = vi.mocked(getCloudflareContext)
 
 beforeEach(() => {
   vi.clearAllMocks()

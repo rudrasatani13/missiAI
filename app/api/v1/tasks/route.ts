@@ -5,16 +5,15 @@
  * Used by the client-side polling hook to check for completed tasks.
  */
 
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { getUserTasks, getActiveTasks } from "@/lib/tasks/task-store"
 import type { KVStore } from "@/types"
 
-export const runtime = "edge"
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

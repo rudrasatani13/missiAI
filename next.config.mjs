@@ -1,8 +1,7 @@
-// Build: 2026-04-18T14:55 — force Cloudflare Pages cache bust
-import { setupDevPlatform } from '@cloudflare/next-on-pages/next-dev'
+import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare'
 
 if (process.env.NODE_ENV === 'development') {
-  await setupDevPlatform()
+  await initOpenNextCloudflareForDev()
 }
 
 // Ensure Clerk has a valid publishable key at build time so static prerendering doesn't crash

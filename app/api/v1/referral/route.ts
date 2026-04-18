@@ -1,4 +1,4 @@
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
 import { getOrCreateReferral, trackReferral, getReferralByCode, getReferrer } from '@/lib/billing/referral'
 import { log } from '@/lib/server/logger'
@@ -8,11 +8,10 @@ import { sanitizeInput } from '@/lib/validation/sanitizer'
 import type { KVStore } from '@/types'
 import { z } from 'zod'
 
-export const runtime = 'edge'
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
   } catch {
     return null

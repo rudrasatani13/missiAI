@@ -1,7 +1,7 @@
 // ─── Quest Stats API Route ────────────────────────────────────────────────────
 
 import { NextRequest } from 'next/server'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import {
   getVerifiedUserId,
   AuthenticationError,
@@ -12,11 +12,10 @@ import { getQuests } from '@/lib/quests/quest-store'
 import type { KVStore } from '@/types'
 import type { QuestStats } from '@/types/quests'
 
-export const runtime = 'edge'
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as Record<string, unknown>).MISSI_MEMORY as KVStore ?? null
   } catch {
     return null

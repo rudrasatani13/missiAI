@@ -1,7 +1,7 @@
 // ─── Mission Complete API Route ────────────────────────────────────────────────
 
 import { NextRequest } from 'next/server'
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import {
   getVerifiedUserId,
   AuthenticationError,
@@ -20,11 +20,10 @@ import { awardXP } from '@/lib/gamification/xp-engine'
 import type { KVStore } from '@/types'
 import type { Quest, QuestMission, QuestAchievementContext } from '@/types/quests'
 
-export const runtime = 'edge'
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as Record<string, unknown>).MISSI_MEMORY as KVStore ?? null
   } catch {
     return null
@@ -236,7 +235,7 @@ export async function POST(
         const { addOrUpdateNode } = await import('@/lib/memory/life-graph')
         const vectorizeEnv = (() => {
           try {
-            const { env } = getRequestContext()
+            const { env } = getCloudflareContext()
             const e = env as Record<string, unknown>
             return e.VECTORIZE_INDEX ? (env as unknown) : null
           } catch { return null }

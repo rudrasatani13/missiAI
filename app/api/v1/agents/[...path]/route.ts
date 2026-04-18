@@ -3,7 +3,7 @@
 // Handles: confirm, expenses, history, plan
 // Consolidation reduces 4 separate edge function bundles into 1.
 
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
@@ -21,13 +21,12 @@ import type { KVStore } from "@/types"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { LifeNode } from "@/types/memory"
 
-export const runtime = "edge"
 
 // ─── Shared Helpers ───────────────────────────────────────────────────────────
 
 function getKV(): KVStore | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     return (env as Record<string, unknown>).MISSI_MEMORY as KVStore ?? null
   } catch {
     return null
@@ -36,7 +35,7 @@ function getKV(): KVStore | null {
 
 function getVectorizeEnv(): VectorizeEnv | null {
   try {
-    const { env } = getRequestContext()
+    const { env } = getCloudflareContext()
     const lifeGraph = (env as Record<string, unknown>).LIFE_GRAPH
     if (!lifeGraph) return null
     return { LIFE_GRAPH: lifeGraph as VectorizeEnv["LIFE_GRAPH"] }
