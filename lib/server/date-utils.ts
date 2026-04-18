@@ -1,12 +1,4 @@
 // ─── Timezone-Aware Date Utilities ────────────────────────────────────────────
-//
-// BUGFIX (A3/B1): Multiple features used `new Date().toISOString().slice(0, 10)`
-// for "today", which returns the UTC date. For users in IST (UTC+5:30), this
-// means midnight–5:30 AM local time shows *yesterday's* date — breaking daily
-// briefs, mood entries, rate limits, and streak calculations.
-//
-// This module provides a timezone-aware alternative that all daily features
-// should use instead of raw UTC slicing.
 
 /**
  * Returns today's date string (YYYY-MM-DD) in the given IANA timezone.
@@ -37,7 +29,7 @@ export function getTodayInTimezone(timezone?: string): string {
     })
     return formatter.format(new Date())
   } catch {
-    // BUGFIX (A3): Invalid timezone string — fall back to UTC silently.
+    // Invalid timezone string — fall back to UTC silently.
     // This handles typos, unsupported zones, and any edge cases gracefully.
     return new Date().toISOString().slice(0, 10)
   }
