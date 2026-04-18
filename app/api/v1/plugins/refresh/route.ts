@@ -30,24 +30,8 @@ export async function GET(req: NextRequest) {
 
   const kv = getKV()
 
-  // ── Local dev fallback: read tokens from cookies ───────────────────────────
   if (!kv) {
-    const cookieHeader = req.headers.get("cookie") ?? ""
-    const parseCookie = (name: string) => {
-      const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`))
-      if (!match) return null
-      try { return JSON.parse(decodeURIComponent(match[1])) } catch { return null }
-    }
-
-    const gTokens = parseCookie(`google_tokens_${userId}`)
-    const nTokens = parseCookie(`notion_tokens_${userId}`)
-
-    return Response.json({
-      kvAvailable: false,
-      localDev: true,
-      google: gTokens ? { connected: true, expiresAt: gTokens.expiresAt } : null,
-      notion: nTokens ? { connected: true, workspaceName: nTokens.workspaceName ?? "Notion" } : null,
-    })
+    return Response.json({ success: false, error: "KV not available" }, { status: 503 })
   }
 
   const [googleTokens, notionTokens] = await Promise.all([
