@@ -50,6 +50,8 @@ next-env.d.ts
 
 # Cloudflare
 .wrangler/
+.open-next/
+.vercel/
 
 # Re-allow the safe env template (must be AFTER all *.env.* rules)
 !.env.example
