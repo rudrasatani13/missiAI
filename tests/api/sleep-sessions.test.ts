@@ -27,7 +27,8 @@ jest.mock('@cloudflare/next-on-pages', () => ({
 }))
 
 jest.mock('@/lib/server/env', () => ({
-    getEnv: () => ({ ELEVENLABS_API_KEY: 'test-key', }))
+    getEnv: () => ({ ELEVENLABS_API_KEY: 'test-key' })
+}))
 
 function createRequest(body: any = {}): NextRequest {
   return new NextRequest('http://localhost', {

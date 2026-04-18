@@ -159,13 +159,29 @@ export function determinePlanFromDodoProduct(productId: string): PlanId {
 // The secret key is Base64-encoded (with optional "whsec_" prefix).
 
 // Constant-time comparison to prevent timing attacks
-function timingSafeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let result = 0
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+// Ensure constant time byte comparison to prevent timing attacks
+async function timingSafeCompare(a: string, b: string): Promise<boolean> {
+  try {
+    const encoder = new TextEncoder()
+    const aBytes = encoder.encode(a)
+    const bBytes = encoder.encode(b)
+
+    if (aBytes.byteLength !== bBytes.byteLength) {
+      return false
+    }
+
+    const key = await crypto.subtle.generateKey(
+      { name: 'HMAC', hash: 'SHA-256' },
+      true,
+      ['sign', 'verify']
+    )
+
+    const aSig = await crypto.subtle.sign('HMAC', key, aBytes)
+    const isValid = await crypto.subtle.verify('HMAC', key, aSig, bBytes)
+    return isValid
+  } catch {
+    return false
   }
-  return result === 0
 }
 
 // Decode base64 string to Uint8Array
@@ -247,7 +263,7 @@ export async function verifyDodoWebhook(
       if (parts.length !== 2) continue
       const [version, sigValue] = parts
       if (version !== 'v1') continue
-      if (timingSafeCompare(computedSig, sigValue)) {
+      if (await timingSafeCompare(computedSig, sigValue)) {
         return true
       }
     }

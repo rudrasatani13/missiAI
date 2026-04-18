@@ -19,6 +19,10 @@ export default function MemoryGraph3D({
   const graphData = useMemo(() => {
     const links: any[] = []
     
+    // Pre-calculate sets for O(1) lookups
+    const nodeTagsSets = nodes.map(n => new Set(n.tags || []))
+    const nodePeopleSets = nodes.map(n => new Set(n.people || []))
+
     // Simple naive linking mapping nodes to each other based on shared context
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
@@ -29,12 +33,14 @@ export default function MemoryGraph3D({
 
         // Link by shared tags
         let sharedTags = 0
-        n1.tags.forEach(t => { if (n2.tags.includes(t)) sharedTags++ })
+        const n2Tags = nodeTagsSets[j]
+        n1.tags.forEach(t => { if (n2Tags.has(t)) sharedTags++ })
         linkValue += sharedTags * 2
 
         // Link by shared people
         let sharedPeople = 0
-        n1.people.forEach(p => { if (n2.people.includes(p)) sharedPeople++ })
+        const n2People = nodePeopleSets[j]
+        n1.people.forEach(p => { if (n2People.has(p)) sharedPeople++ })
         linkValue += sharedPeople * 3
 
         // Link weakly by category
