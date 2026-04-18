@@ -1,20 +1,30 @@
 "use client"
 
-import { SignUp } from "@clerk/nextjs"
+import { SignUp, useUser } from "@clerk/nextjs"
 import { dark } from "@clerk/themes"
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { LEDLogo } from "@/components/ui/LEDLogo"
 import { ThreeParticleWaves } from "@/components/ui/ThreeParticleWaves"
 
 export default function SignUpPage() {
   const [mounted, setMounted] = useState(false)
+  const { isSignedIn, isLoaded } = useUser()
+  const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  if (!mounted) return null
+  // Redirect authenticated users to /chat
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.replace("/chat")
+    }
+  }, [isLoaded, isSignedIn, router])
+
+  if (!mounted || (isLoaded && isSignedIn)) return null
 
   return (
     <div

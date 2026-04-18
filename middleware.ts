@@ -392,6 +392,17 @@ const clerkHandler = clerkMiddleware(
     }
   }
 
+  // ── Redirect authenticated users away from landing / auth pages ──
+  // Once signed in, the user should always land on /chat — never see
+  // the marketing home page or the sign-in / sign-up forms again.
+  const isLandingOrAuth = request.nextUrl.pathname === "/" || isAuthRoute(request)
+  if (isLandingOrAuth) {
+    const authObj = await auth()
+    if (authObj.userId) {
+      return NextResponse.redirect(new URL("/chat", request.url))
+    }
+  }
+
   if (!isPublicRoute(request)) {
     await auth.protect()
 

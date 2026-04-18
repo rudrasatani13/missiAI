@@ -24,6 +24,7 @@ const spaceFont = Space_Grotesk({
 })
 
 import { useUser } from "@clerk/nextjs"
+import { useRouter } from "next/navigation"
 
 // Capture referral code from URL on landing page
 function useReferralCapture() {
@@ -267,8 +268,25 @@ function NavButtons() {
    MAIN LANDING PAGE
    ───────────────────────────────────────────────── */
 export default function LandingPage() {
-  const { isSignedIn } = useUser()
+  const { isSignedIn, isLoaded } = useUser()
+  const router = useRouter()
   useReferralCapture()
+
+  // ── Redirect authenticated users to /chat ──
+  // Middleware handles this server-side, but this is a client-side fallback
+  // in case the page was served from cache or a static export.
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.replace("/chat")
+    }
+  }, [isLoaded, isSignedIn, router])
+
+  // Don't flash the landing page while checking auth state
+  if (!isLoaded || isSignedIn) {
+    return (
+      <div className="min-h-screen bg-black" style={{ backgroundColor: '#000000' }} />
+    )
+  }
 
   return (
     <div className={`bg-black text-white overflow-x-hidden ${ithacaFont.variable} ${spaceFont.variable}`} style={{ fontFamily: "var(--font-space), system-ui, sans-serif", backgroundColor: '#000000', color: '#ffffff' }}>
