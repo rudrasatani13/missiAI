@@ -146,4 +146,4 @@ jobs:
         run: pnpm run build:cf
 
       - name: Deploy to Cloudflare Workers
-        run: pnpm exec wrangler deploy
+        run: pnpm dlx wrangler deploy
