@@ -135,6 +135,7 @@ export async function handleLiveWs(
     })
     return jsonError(502, "UPSTREAM_NO_WEBSOCKET", "Upstream did not upgrade to WebSocket")
   }
+  console.log("[live-ws] upstream upgraded OK", { userId, upstreamStatus: upstreamRes.status })
   upstreamWs.accept()
 
   // 5. Create the client-facing pair and wire bidirectional relay.
@@ -147,6 +148,7 @@ export async function handleLiveWs(
   const closeBoth = (code?: number, reason?: string) => {
     if (closed) return
     closed = true
+    console.log("[live-ws] closing both sockets", { userId, code, reason })
     try { serverSocket.close(code ?? 1000, reason ?? "relay_closed") } catch {}
     try { upstreamWs.close(code ?? 1000, reason ?? "relay_closed") } catch {}
   }
@@ -154,26 +156,41 @@ export async function handleLiveWs(
   // Client → Upstream
   serverSocket.addEventListener("message", (ev) => {
     if (closed || ev.data === undefined) return
+    console.log("[live-ws] client→upstream msg", { userId, len: typeof ev.data === "string" ? ev.data.length : (ev.data as ArrayBuffer).byteLength })
     try {
       upstreamWs.send(ev.data)
-    } catch {
+    } catch (e) {
+      console.error("[live-ws] upstream send failed", { userId, error: String(e) })
       closeBoth(1011, "upstream_send_failed")
     }
   })
-  serverSocket.addEventListener("close", (ev) => closeBoth(ev.code, ev.reason))
-  serverSocket.addEventListener("error", () => closeBoth(1011, "client_error"))
+  serverSocket.addEventListener("close", (ev) => {
+    console.log("[live-ws] client closed", { userId, code: ev.code, reason: ev.reason })
+    closeBoth(ev.code, ev.reason)
+  })
+  serverSocket.addEventListener("error", (ev) => {
+    console.error("[live-ws] client socket error", { userId })
+    closeBoth(1011, "client_error")
+  })
 
   // Upstream → Client
   upstreamWs.addEventListener("message", (ev) => {
     if (closed || ev.data === undefined) return
     try {
       serverSocket.send(ev.data)
-    } catch {
+    } catch (e) {
+      console.error("[live-ws] client send failed", { userId, error: String(e) })
       closeBoth(1011, "client_send_failed")
     }
   })
-  upstreamWs.addEventListener("close", (ev) => closeBoth(ev.code, ev.reason))
-  upstreamWs.addEventListener("error", () => closeBoth(1011, "upstream_error"))
+  upstreamWs.addEventListener("close", (ev) => {
+    console.log("[live-ws] upstream closed", { userId, code: ev.code, reason: ev.reason })
+    closeBoth(ev.code, ev.reason)
+  })
+  upstreamWs.addEventListener("error", () => {
+    console.error("[live-ws] upstream socket error", { userId })
+    closeBoth(1011, "upstream_error")
+  })
 
   console.log("[live-ws] relay established", { userId, modelPath })
 
