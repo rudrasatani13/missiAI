@@ -86,6 +86,21 @@ function applyCorsHeaders(response: NextResponse, request: NextRequest | Request
 // Each Cloudflare Worker isolate has its own memory, so these Maps are
 // per-isolate rather than globally distributed. They act as a per-instance
 // burst guard; deploy Cloudflare WAF / Rate Limiting rules for distributed abuse.
+
+interface IPBucket {
+  count: number
+  windowStart: number
+}
+
+interface ViolationEntry {
+  violations: number
+  firstViolationAt: number
+}
+
+const violationMap = new Map<string, ViolationEntry>()
+const VIOLATION_WINDOW_MS  = 10 * 60_000
+const VIOLATION_ESCALATION = 3
+
 const ipMap = new Map<string, IPBucket>()
 const prevIpMap = new Map<string, IPBucket>()
 
