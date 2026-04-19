@@ -93,6 +93,7 @@ jobs:
     needs: test
     env:
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      NEXT_PUBLIC_APP_URL: "https://missi.space"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
