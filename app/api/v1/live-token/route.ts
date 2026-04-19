@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
         : // Fall back to same-origin from the incoming request when APP_URL is relative.
           (new URL(req.url).protocol === "https:" ? "wss://" : "ws://")
     const wsHost = appOrigin.replace(/^https?:\/\//, "")
-    const wsUrl = `${wsScheme}${wsHost}/api/v1/live-ws?ticket=${encodeURIComponent(ticket)}`
+    const wsUrl = `${wsScheme}${wsHost}/api/v1/voice-relay?ticket=${encodeURIComponent(ticket)}`
 
     logRequest("live-token.created", userId, startTime)
 

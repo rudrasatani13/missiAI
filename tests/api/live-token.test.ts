@@ -154,7 +154,7 @@ describe("POST /api/v1/live-token", () => {
 
     expect(response.status).toBe(200)
     // C1 assertion: the wsUrl is a same-origin relay URL, never the raw Vertex URL
-    expect(body.wsUrl).toBe("wss://missi.space/api/v1/live-ws?ticket=ticket-abc.sig-xyz")
+    expect(body.wsUrl).toBe("wss://missi.space/api/v1/voice-relay?ticket=ticket-abc.sig-xyz")
     expect(body.wsUrl).not.toMatch(/aiplatform\.googleapis\.com/)
     expect(body.wsUrl).not.toMatch(/access_token=/)
     expect(body.modelPath).toBe(`projects/test-project/locations/us-central1/publishers/google/models/${LIVE_MODEL}`)
@@ -207,7 +207,7 @@ describe("POST /api/v1/live-token", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body.wsUrl).toContain("/api/v1/live-ws")
+    expect(body.wsUrl).toContain("/api/v1/voice-relay")
     expect(mockCheckVoiceLimit).not.toHaveBeenCalled()
   })
 
@@ -218,7 +218,7 @@ describe("POST /api/v1/live-token", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body.wsUrl).toContain("/api/v1/live-ws")
+    expect(body.wsUrl).toContain("/api/v1/voice-relay")
     expect(mockCheckVoiceLimit).not.toHaveBeenCalled()
   })
 })

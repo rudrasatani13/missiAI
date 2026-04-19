@@ -56,7 +56,7 @@ export default {
     // Intercept the Live API WebSocket relay BEFORE OpenNext sees it.
     // OpenNext cannot pass the `webSocket` extension through; the raw
     // Cloudflare runtime can. All other requests fall through untouched.
-    if (url.pathname === "/api/v1/live-ws") {
+    if (url.pathname === "/api/v1/voice-relay") {
       return handleLiveWs(request, env, ctx)
     }
 
