@@ -16,10 +16,10 @@
 //     which DOES run through OpenNext and therefore runs Clerk middleware).
 //     That endpoint verifies the Clerk session + plan + voice quota, then
 //     mints a short-lived HMAC-signed ticket bound to the userId.
-//   - The browser opens wss://<origin>/api/v1/live-ws?ticket=<TICKET>. The
-//     ticket itself is the auth token here — 5 min TTL, HMAC-signed, bound
-//     to a single userId and modelPath. Stealing a ticket is equivalent to
-//     stealing the Clerk cookie, but limited to 5 min and the Live API only.
+//   - The browser opens wss://<origin>/api/v1/voice-relay?ticket=<TICKET>.
+//     The ticket itself is the auth token here — 5 min TTL, HMAC-signed,
+//     bound to a single userId and modelPath. Stealing a ticket is equivalent
+//     to stealing the Clerk cookie, but limited to 5 min and the Live API only.
 //   - The real Google Cloud OAuth token never leaves this worker.
 
 import { verifyLiveTicket } from "@/lib/ai/live-ticket"
@@ -121,22 +121,15 @@ export async function handleLiveWs(
       },
     })
   } catch (err) {
-    console.error("[live-ws] upstream fetch failed", {
-      userId,
-      error: err instanceof Error ? err.message : String(err),
-    })
+    console.error("[live-ws] upstream connect failed", err instanceof Error ? err.message : String(err))
     return jsonError(502, "UPSTREAM_UNREACHABLE", "Upstream unavailable")
   }
 
   const upstreamWs = (upstreamRes as unknown as { webSocket?: CfWebSocketLike }).webSocket
   if (!upstreamWs) {
-    console.error("[live-ws] upstream did not upgrade", {
-      userId,
-      status: upstreamRes.status,
-    })
+    console.error("[live-ws] upstream did not upgrade", upstreamRes.status)
     return jsonError(502, "UPSTREAM_NO_WEBSOCKET", "Upstream did not upgrade to WebSocket")
   }
-  console.log("[live-ws] upstream upgraded OK", { userId, upstreamStatus: upstreamRes.status })
   upstreamWs.accept()
 
   // 5. Create the client-facing pair and wire bidirectional relay.
@@ -149,7 +142,6 @@ export async function handleLiveWs(
   const closeBoth = (code?: number, reason?: string) => {
     if (closed) return
     closed = true
-    console.log("[live-ws] closing both sockets", { userId, code, reason })
     try { serverSocket.close(code ?? 1000, reason ?? "relay_closed") } catch {}
     try { upstreamWs.close(code ?? 1000, reason ?? "relay_closed") } catch {}
   }
@@ -157,43 +149,26 @@ export async function handleLiveWs(
   // Client → Upstream
   serverSocket.addEventListener("message", (ev) => {
     if (closed || ev.data === undefined) return
-    console.log("[live-ws] client→upstream msg", { userId, len: typeof ev.data === "string" ? ev.data.length : (ev.data as ArrayBuffer).byteLength })
     try {
       upstreamWs.send(ev.data)
-    } catch (e) {
-      console.error("[live-ws] upstream send failed", { userId, error: String(e) })
+    } catch {
       closeBoth(1011, "upstream_send_failed")
     }
   })
-  serverSocket.addEventListener("close", (ev) => {
-    console.log("[live-ws] client closed", { userId, code: ev.code, reason: ev.reason })
-    closeBoth(ev.code, ev.reason)
-  })
-  serverSocket.addEventListener("error", (ev) => {
-    console.error("[live-ws] client socket error", { userId })
-    closeBoth(1011, "client_error")
-  })
+  serverSocket.addEventListener("close", (ev) => closeBoth(ev.code, ev.reason))
+  serverSocket.addEventListener("error", () => closeBoth(1011, "client_error"))
 
   // Upstream → Client
   upstreamWs.addEventListener("message", (ev) => {
     if (closed || ev.data === undefined) return
     try {
       serverSocket.send(ev.data)
-    } catch (e) {
-      console.error("[live-ws] client send failed", { userId, error: String(e) })
+    } catch {
       closeBoth(1011, "client_send_failed")
     }
   })
-  upstreamWs.addEventListener("close", (ev) => {
-    console.log("[live-ws] upstream closed", { userId, code: ev.code, reason: ev.reason })
-    closeBoth(ev.code, ev.reason)
-  })
-  upstreamWs.addEventListener("error", () => {
-    console.error("[live-ws] upstream socket error", { userId })
-    closeBoth(1011, "upstream_error")
-  })
-
-  console.log("[live-ws] relay established", { userId, modelPath })
+  upstreamWs.addEventListener("close", (ev) => closeBoth(ev.code, ev.reason))
+  upstreamWs.addEventListener("error", () => closeBoth(1011, "upstream_error"))
 
   // 6. Return the client end. Status 101 is set by the runtime on webSocket.
   return new Response(null, {

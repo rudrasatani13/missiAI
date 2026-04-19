@@ -1,6 +1,6 @@
 // ─── Custom Cloudflare Worker Entrypoint ─────────────────────────────────────
 //
-// Wraps the OpenNext-generated worker so we can handle `/api/v1/live-ws`
+// Wraps the OpenNext-generated worker so we can handle `/api/v1/voice-relay`
 // OUTSIDE Next.js. The OpenNext pipeline strips the `webSocket` extension
 // field from route Responses, which makes native Cloudflare WebSocket
 // upgrades impossible from Next.js API route handlers (confirmed against
@@ -34,7 +34,6 @@ import openNextWorker, {
 } from "../.open-next/worker.js"
 
 import { handleLiveWs } from "./live-ws-handler"
-import { getVertexAccessToken, getVertexLocation, getVertexProjectId, isVertexAI } from "@/lib/ai/vertex-auth"
 
 // Preserve the Durable Object class exports expected by Cloudflare's runtime.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,8 +53,8 @@ export default {
   ): Promise<Response> {
     // OpenNext populates process.env from Worker bindings only when its own
     // fetch handler runs. Routes intercepted BEFORE openNextWorker.fetch()
-    // (live-ws, live-diag) would see empty process.env. Copy bindings now
-    // so vertex-auth and env.ts can read secrets via process.env normally.
+    // would see empty process.env. Copy all string bindings now so
+    // vertex-auth and env.ts can read secrets via process.env normally.
     const cfEnv = env as Record<string, string>
     for (const [k, v] of Object.entries(cfEnv)) {
       if (typeof v === "string" && !process.env[k]) process.env[k] = v
@@ -68,37 +67,6 @@ export default {
     // Cloudflare runtime can. All other requests fall through untouched.
     if (url.pathname === "/api/v1/voice-relay") {
       return handleLiveWs(request, env, ctx)
-    }
-
-    // Temporary diagnostic — remove after debugging
-    if (url.pathname === "/api/v1/live-diag") {
-      try {
-        const token = await getVertexAccessToken()
-        const location = getVertexLocation()
-        const project = getVertexProjectId()
-        const wsUrl = `https://${location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`
-        let wsStatus = "not_tested"
-        if (token) {
-          try {
-            const r = await fetch(wsUrl, { headers: { Upgrade: "websocket", Authorization: `Bearer ${token}` } })
-            const ws = (r as any).webSocket
-            wsStatus = ws ? "upgraded_ok" : `no_websocket_status_${r.status}`
-            if (ws) ws.close(1000, "diag")
-          } catch (e) {
-            wsStatus = `fetch_error: ${String(e)}`
-          }
-        }
-        return new Response(JSON.stringify({
-          isVertex: isVertexAI(),
-          hasToken: !!token,
-          project,
-          location,
-          wsUrl,
-          wsStatus,
-        }), { headers: { "Content-Type": "application/json" } })
-      } catch (e) {
-        return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { "Content-Type": "application/json" } })
-      }
     }
 
     return openNextWorker.fetch(request, env, ctx)
