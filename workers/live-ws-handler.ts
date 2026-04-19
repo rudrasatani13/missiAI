@@ -104,13 +104,19 @@ export async function handleLiveWs(
   }
   const location = getVertexLocation()
   const upstreamUrl =
-    `wss://${location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent` +
-    `?access_token=${encodeURIComponent(gcpToken)}`
+    `wss://${location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent`
 
   // 4. Open upstream WebSocket via Cloudflare's fetch-with-Upgrade pattern.
+  // Auth must be in the Authorization header — the access_token query param is
+  // not accepted by the BidiGenerateContent WebSocket endpoint.
   let upstreamRes: Response
   try {
-    upstreamRes = await fetch(upstreamUrl, { headers: { Upgrade: "websocket" } })
+    upstreamRes = await fetch(upstreamUrl, {
+      headers: {
+        Upgrade: "websocket",
+        Authorization: `Bearer ${gcpToken}`,
+      },
+    })
   } catch (err) {
     console.error("[live-ws] upstream fetch failed", {
       userId,
