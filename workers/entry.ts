@@ -52,6 +52,15 @@ export default {
     env: unknown,
     ctx: CfExecutionContext,
   ): Promise<Response> {
+    // OpenNext populates process.env from Worker bindings only when its own
+    // fetch handler runs. Routes intercepted BEFORE openNextWorker.fetch()
+    // (live-ws, live-diag) would see empty process.env. Copy bindings now
+    // so vertex-auth and env.ts can read secrets via process.env normally.
+    const cfEnv = env as Record<string, string>
+    for (const [k, v] of Object.entries(cfEnv)) {
+      if (typeof v === "string" && !process.env[k]) process.env[k] = v
+    }
+
     const url = new URL(request.url)
 
     // Intercept the Live API WebSocket relay BEFORE OpenNext sees it.
