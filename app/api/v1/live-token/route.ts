@@ -88,18 +88,13 @@ export async function POST(req: NextRequest) {
     const env = getEnv()
     const ticket = await issueLiveTicket(env, { userId, modelPath })
 
-    // Use the canonical app origin. The client's own origin would also work
-    // but APP_URL is the single source of truth that matches the Worker's
-    // routing config and avoids protocol/port mismatches in dev.
-    const appOrigin = env.APP_URL.replace(/\/+$/, "")
-    const wsScheme = appOrigin.startsWith("https://")
-      ? "wss://"
-      : appOrigin.startsWith("http://")
-        ? "ws://"
-        : // Fall back to same-origin from the incoming request when APP_URL is relative.
-          (new URL(req.url).protocol === "https:" ? "wss://" : "ws://")
-    const wsHost = appOrigin.replace(/^https?:\/\//, "")
-    const wsUrl = `${wsScheme}${wsHost}/api/v1/voice-relay?ticket=${encodeURIComponent(ticket)}`
+    // Derive the relay URL from the incoming request origin so it always
+    // matches the actual deployment host. APP_URL is not reliable at runtime
+    // on Cloudflare Workers because NEXT_PUBLIC_* vars are baked in at build
+    // time and may resolve to localhost when built in CI without that var set.
+    const reqUrl = new URL(req.url)
+    const wsScheme = reqUrl.protocol === "https:" ? "wss://" : "ws://"
+    const wsUrl = `${wsScheme}${reqUrl.host}/api/v1/voice-relay?ticket=${encodeURIComponent(ticket)}`
 
     logRequest("live-token.created", userId, startTime)
 
