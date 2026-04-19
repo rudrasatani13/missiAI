@@ -85,7 +85,7 @@ export async function processBotMessage(opts: BotProcessOptions): Promise<string
   // Use source field to tag bot-originated memory nodes
   fireAndForgetMemoryExtraction(kv, vectorizeEnv, userId, conversation, platform)
 
-  return response || 'Kuch gadbad ho gayi — please thodi der baad try karo!'
+  return response || 'Something went wrong — please try again in a bit!'
 }
 
 // ─── Memory extraction (non-blocking) ────────────────────────────────────────

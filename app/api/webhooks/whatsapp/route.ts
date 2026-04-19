@@ -190,7 +190,7 @@ export async function POST(req: Request): Promise<Response> {
           await storeWhatsAppMapping(kv, senderPhone, pendingUserId)
           sendWhatsAppMessage(
             senderPhone,
-            'WhatsApp linked to your Missi account! 🎉 Ab yahan se seedha baat kar sakte ho. Kya chahiye?',
+            'WhatsApp linked to your Missi account! 🎉 You can now chat with me directly here. What do you need?',
           ).catch(() => {})
           log({ level: 'info', event: 'bot.wa.linked_via_code', userId: pendingUserId, timestamp: Date.now() })
           continue
@@ -236,7 +236,7 @@ export async function POST(req: Request): Promise<Response> {
     if (!limitAllowed) {
       sendWhatsAppMessage(
         senderPhone,
-        'Aaj ka daily limit ho gaya! Kal phir baat karte hain 😊',
+        'You\'ve hit your daily message limit! Let\'s chat again tomorrow 😊',
       ).catch(() => {})
       continue
     }
@@ -245,7 +245,7 @@ export async function POST(req: Request): Promise<Response> {
     if (message.type !== 'text') {
       sendWhatsAppMessage(
         senderPhone,
-        'Abhi sirf text samajh paati hoon main! 🙏',
+        'I can only understand text messages for now! 🙏',
       ).catch(() => {})
       continue
     }
@@ -277,7 +277,7 @@ export async function POST(req: Request): Promise<Response> {
         logApiError('bot.wa.processing_error', err, { userId, httpStatus: 500, path: '/api/webhooks/whatsapp' })
         sendWhatsAppMessage(
           senderPhone,
-          'Oops, kuch gadbad ho gayi! Thodi der mein try karo 🙏',
+          'Oops, something went wrong! Please try again in a bit 🙏',
         ).catch(() => {})
       }
     })()

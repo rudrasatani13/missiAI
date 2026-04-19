@@ -178,7 +178,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!limitAllowed) {
     sendTelegramMessage(
       chatId,
-      'Aaj ka daily limit ho gaya! Kal phir baat karte hain 😊',
+      'You\'ve hit your daily message limit! Let\'s chat again tomorrow 😊',
     ).catch(() => {})
     return ok200
   }
@@ -187,7 +187,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!messageText.trim()) {
     sendTelegramMessage(
       chatId,
-      'Abhi sirf text samajh paati hoon main! 🙏',
+      'I can only understand text messages for now! 🙏',
     ).catch(() => {})
     return ok200
   }
@@ -209,7 +209,7 @@ export async function POST(req: Request): Promise<Response> {
       log({ level: 'info', event: 'bot.tg.message_processed', userId, timestamp: Date.now() })
     } catch (err) {
       logApiError('bot.tg.processing_error', err, { userId, httpStatus: 500, path: '/api/webhooks/telegram' })
-      sendTelegramMessage(chatId, 'Oops, kuch gadbad ho gayi! Thodi der mein try karo 🙏').catch(() => {})
+      sendTelegramMessage(chatId, 'Oops, something went wrong! Please try again in a bit 🙏').catch(() => {})
     }
   })()
 
@@ -252,7 +252,7 @@ async function handleTelegramLinking(
 
     await sendTelegramMessage(
       chatId,
-      'Missi se connected ho gaye! 🎉 Ab yahan se directly baat kar sakte ho. Kya chahiye?',
+      'Connected to your Missi account! 🎉 You can now chat with me directly here. What do you need?',
     )
   } catch (err) {
     logApiError('bot.tg.linking_error', err, { httpStatus: 500, path: '/api/webhooks/telegram' })
