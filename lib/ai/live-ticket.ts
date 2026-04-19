@@ -9,10 +9,14 @@
 //   1. Client calls POST /api/v1/live-token (authenticated, voice-time-gated).
 //   2. Server issues a short-lived HMAC-signed ticket that binds a userId
 //      and the selected model/voice to a ≤5-minute window.
-//   3. Client opens wss://<origin>/api/v1/live-ws?ticket=<TICKET>.
-//   4. Relay verifies (a) Clerk session, (b) ticket signature, (c) ticket
-//      expiry. Only then is the upstream Vertex WebSocket opened server-side
-//      and frames are proxied bidirectionally. The real GCP token never
+//   3. Client opens wss://<origin>/api/v1/live-ws?ticket=<TICKET>. That path
+//      is handled OUTSIDE OpenNext by the raw-Worker relay in
+//      workers/live-ws-handler.ts (see workers/entry.ts for how it is wired
+//      up). OpenNext 1.x cannot pass `Response.webSocket` through.
+//   4. Relay verifies (a) ticket signature, (b) ticket expiry, (c) userId
+//      binding. Only then is the upstream Vertex WebSocket opened
+//      server-side and frames are proxied bidirectionally. The real GCP
+//      token never
 //      leaves the worker isolate.
 
 import type { AppEnv } from "@/lib/server/env"

@@ -1,5 +1,9 @@
 name = "missiai"
-main = ".open-next/worker.js"
+# Custom entry wraps the OpenNext worker so we can handle /api/v1/live-ws
+# on the raw Cloudflare runtime. OpenNext 1.x strips Response.webSocket,
+# which prevents native WebSocket upgrades from Next.js API routes. See
+# workers/entry.ts and workers/live-ws-handler.ts for details.
+main = "workers/entry.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 [observability]

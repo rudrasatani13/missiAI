@@ -148,7 +148,8 @@ export async function geminiEmbed(
  *     Google Cloud `cloud-platform`-scoped OAuth access token in its query
  *     string. This URL MUST NEVER be sent to the browser. It is only safe
  *     to use inside the Cloudflare Worker as the upstream target of the
- *     server-side relay in `/api/v1/live-ws/route.ts`.
+ *     server-side relay in `workers/live-ws-handler.ts` (deployed via the
+ *     custom wrangler entry in `workers/entry.ts`).
  *
  * Prefer calling `getVertexAccessToken()` + building the URL locally inside
  * the relay handler over calling this function elsewhere.

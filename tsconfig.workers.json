@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["esnext", "dom"],
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": [
+    "workers/**/*.ts",
+    "lib/ai/live-ticket.ts",
+    "lib/ai/vertex-auth.ts",
+    "lib/server/env.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".open-next",
+    ".next"
+  ]
+}
