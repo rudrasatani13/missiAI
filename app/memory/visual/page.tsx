@@ -23,7 +23,10 @@ export default function VisualMemoryPage() {
           style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.04) 0%, transparent 70%)' }} />
       </div>
 
-      <div className="relative z-10 max-w-[960px] mx-auto px-4 md:px-6 py-6 md:py-8">
+      <div
+        className="relative z-10 max-w-[960px] mx-auto px-4 md:px-6 pb-6 md:pb-8"
+        style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top))' }}
+      >
 
         {/* Header */}
         <motion.div

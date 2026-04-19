@@ -360,7 +360,7 @@ export default function TodayMissionClient() {
 
   return (
     <div
-      className="relative min-h-screen text-white flex flex-col items-center px-4 py-10 md:py-16"
+      className="relative min-h-dvh text-white flex flex-col items-center px-4 pb-10 md:pb-16 pt-safe"
       style={{
         background: '#060608',
         fontFamily: 'var(--font-body)',

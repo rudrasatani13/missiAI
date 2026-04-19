@@ -557,7 +557,7 @@ export default function StreakAvatarPage() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-start px-4 py-8 md:py-12 lg:px-10"
+      className="min-h-dvh flex flex-col items-center justify-start px-4 pb-8 md:pb-12 lg:px-10 pt-safe"
       style={{
         background: '#060608',
         fontFamily: 'var(--font-body)',

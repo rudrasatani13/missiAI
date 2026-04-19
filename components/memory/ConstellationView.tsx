@@ -114,9 +114,9 @@ export function ConstellationView() {
         setMousePos({ x: e.clientX - bounds.left, y: e.clientY - bounds.top })
       }}
     >
-      {/* Dynamic Background Glow based on mouse tracking */}
-      <div 
-        className="absolute pointer-events-none transition-transform duration-100 ease-out"
+      {/* Dynamic Background Glow based on mouse tracking — desktop/hover only */}
+      <div
+        className="absolute pointer-events-none transition-transform duration-100 ease-out no-touch-hover"
         style={{
           left: mousePos.x,
           top: mousePos.y,
@@ -129,7 +129,7 @@ export function ConstellationView() {
       />
 
       {/* Mode Switcher */}
-      <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-20 flex flex-wrap items-center justify-center gap-2 bg-black/40 backdrop-blur-xl p-1.5 rounded-full border border-white/10 shadow-2xl">
+      <div className="absolute top-3 sm:top-6 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1 sm:gap-2 bg-black/50 backdrop-blur-xl p-1 sm:p-1.5 rounded-full border border-white/10 shadow-2xl max-w-[calc(100vw-24px)]">
         {[
           { id: 'by_category', label: 'Category' },
           { id: 'by_time', label: 'Time' },
@@ -139,7 +139,7 @@ export function ConstellationView() {
           <button
             key={m.id}
             onClick={() => setMode(m.id as Mode)}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
+            className={`px-2.5 py-1 sm:px-4 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold tracking-wide transition-all whitespace-nowrap ${
               mode === m.id ? 'bg-white text-black shadow-md scale-105' : 'text-white/60 hover:text-white hover:bg-white/10'
             }`}
           >
@@ -150,7 +150,7 @@ export function ConstellationView() {
 
       {/* Rendering Canvas */}
       <div className="flex-1 w-full h-full relative cursor-crosshair overflow-hidden touch-pan-x touch-pan-y z-10">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" className="w-full h-full min-h-[600px] min-w-[600px] absolute inset-0">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" className="w-full h-full absolute inset-0">
           <defs>
             <filter id="strongGlow" x="-100%" y="-100%" width="300%" height="300%">
               <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>

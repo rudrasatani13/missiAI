@@ -674,7 +674,7 @@ export function ProfileCardClient() {
   if (loading) {
     return (
       <div
-        className="min-h-screen flex flex-col items-center justify-start px-4 py-8 md:py-12"
+        className="min-h-dvh flex flex-col items-center justify-start px-4 pb-8 md:pb-12 pt-safe"
         style={{ background: '#060608' }}
       >
         <div className="w-full max-w-[640px]">
@@ -695,7 +695,7 @@ export function ProfileCardClient() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#060608' }}>
+      <div className="min-h-dvh flex flex-col items-center justify-center px-4 pt-safe" style={{ background: '#060608' }}>
         <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>Could not load your profile card.</p>
         <button onClick={() => fetchCard()} className="px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
           Try again
@@ -709,7 +709,7 @@ export function ProfileCardClient() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-start px-4 py-8 md:py-12"
+      className="min-h-dvh flex flex-col items-center justify-start px-4 pb-8 md:pb-12 pt-safe"
       style={{ background: '#060608' }}
     >
       {/* Fixed ambient field — violet */}

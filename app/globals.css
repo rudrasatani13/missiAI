@@ -710,3 +710,47 @@ body.auth-page div[style*="mix-blend-mode"] {
 .animate-glow-pulse {
   animation: glowPulse 2s ease-in-out infinite;
 }
+
+/* ── Mobile: safe-area + scrollbar + dynamic viewport utilities ──────────── */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+.pt-safe { padding-top: max(1rem, env(safe-area-inset-top)); }
+.pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+.pl-safe { padding-left: max(0px, env(safe-area-inset-left)); }
+.pr-safe { padding-right: max(0px, env(safe-area-inset-right)); }
+.pt-safe-only { padding-top: env(safe-area-inset-top); }
+.pb-safe-only { padding-bottom: env(safe-area-inset-bottom); }
+
+.min-h-dvh { min-height: 100vh; min-height: 100dvh; }
+.h-dvh { height: 100vh; height: 100dvh; }
+
+/* Hide scrollbars while keeping scroll */
+.scrollbar-hide,
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Prevent horizontal scroll globally on mobile */
+html, body { overflow-x: hidden; }
+
+/* Disable hover-only flourishes (e.g. cursor-tracked glow) on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .no-touch-hover { display: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

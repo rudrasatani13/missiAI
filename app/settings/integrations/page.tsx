@@ -12,8 +12,8 @@ type TGStep = 'idle' | 'loading' | 'show_link' | 'linked'
 
 export default function IntegrationsPage() {
   return (
-    <main className="min-h-screen bg-black text-white">
-      <div className="max-w-xl mx-auto px-4 py-12">
+    <main className="min-h-dvh bg-black text-white pt-safe">
+      <div className="max-w-xl mx-auto px-4 pb-12 pt-6 md:pt-12">
         <div className="mb-8">
           <Link
             href="/chat"

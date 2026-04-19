@@ -8,6 +8,7 @@ import { useBilling } from '@/hooks/useBilling'
 import { useReferral } from '@/hooks/useReferral'
 import { Check, X, Sparkles, ChevronDown, AlertTriangle, Crown, ArrowRight, Gift, Copy, Users, Award } from 'lucide-react'
 import { CelebrationOverlay } from '@/components/ui/CelebrationOverlay'
+import { ScrollReveal } from '@/components/ui/ScrollReveal'
 import type { PlanId } from '@/types/billing'
 
 function PaymentBadges() {
@@ -176,6 +177,7 @@ function PlanCard({
   return (
     <div
       data-testid={`plan-card-${planId}`}
+      className="plan-card"
       style={{
         position: 'relative',
         background: isGlass
@@ -189,9 +191,10 @@ function PlanCard({
             ? '1px solid rgba(255,255,255,0.08)'
             : '1px solid rgba(255,255,255,0.06)',
         borderRadius: 14,
-        padding: '28px 22px',
+        padding: '24px 20px',
         display: 'flex',
         flexDirection: 'column',
+        height: '100%',
         boxShadow: isGlass
           ? '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)'
           : 'none',
@@ -523,16 +526,21 @@ export default function PricingPage() {
   return (
     <div
       data-testid="pricing-page"
+      className="pricing-root"
       style={{
         minHeight: '100vh',
         background: '#060608',
         color: '#fff',
         fontFamily: 'var(--font-body)',
         position: 'relative',
-        overflow: 'hidden',
+        overflowX: 'hidden',
       }}
     >
-      {/* Ambient field — fixed, very soft cool white-blue orbs */}
+      {/*
+        Ambient field — pure radial-gradients (no CSS filter: blur).
+        Large `filter: blur()` on fixed GPU layers triggered a blank-render bug
+        on iOS Safari; radial gradients give the same effect without the bug.
+      */}
       <div
         aria-hidden
         style={{
@@ -540,35 +548,10 @@ export default function PricingPage() {
           inset: 0,
           zIndex: 0,
           pointerEvents: 'none',
+          background:
+            'radial-gradient(420px circle at 12% 10%, rgba(190,210,240,0.06), transparent 65%), radial-gradient(380px circle at 88% 85%, rgba(170,190,220,0.05), transparent 65%)',
         }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: '-15%',
-            left: '-10%',
-            width: 520,
-            height: 520,
-            borderRadius: '50%',
-            background:
-              'radial-gradient(circle, rgba(190,210,240,0.08) 0%, transparent 70%)',
-            filter: 'blur(120px)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '-20%',
-            right: '-10%',
-            width: 480,
-            height: 480,
-            borderRadius: '50%',
-            background:
-              'radial-gradient(circle, rgba(170,190,220,0.06) 0%, transparent 70%)',
-            filter: 'blur(120px)',
-          }}
-        />
-      </div>
+      />
 
       {/* Celebration Animation */}
       {showCelebration && (
@@ -594,7 +577,8 @@ export default function PricingPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '18px 24px',
+          padding: '18px 20px',
+          paddingTop: 'max(18px, env(safe-area-inset-top))',
         }}
       >
         <Link
@@ -630,12 +614,13 @@ export default function PricingPage() {
       </nav>
 
       <div
+        className="pricing-content"
         style={{
           position: 'relative',
           zIndex: 1,
           maxWidth: 880,
           margin: '0 auto',
-          padding: '32px 24px 80px',
+          padding: '24px 16px 72px',
         }}
       >
         {/* Cancellation pending banner */}
@@ -696,12 +681,13 @@ export default function PricingPage() {
         )}
 
         {/* Header */}
-        <div
+        <ScrollReveal
+          className="pricing-header"
           style={{
             textAlign: 'center',
-            marginBottom: 48,
+            marginBottom: 40,
             maxWidth: 480,
-            margin: '0 auto 48px',
+            margin: '0 auto 40px',
           }}
         >
           <div
@@ -758,18 +744,20 @@ export default function PricingPage() {
               ? 'Start free — no credit card needed. Upgrade when Missi becomes indispensable.'
               : 'Manage your subscription or explore other plans below.'}
           </p>
-        </div>
+        </ScrollReveal>
 
         {/* Plan cards */}
         <div
           data-testid="plan-cards-grid"
+          className="pricing-plans-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: 16,
-            marginBottom: 48,
+            gap: 14,
+            marginBottom: 40,
           }}
         >
+          <ScrollReveal delay={0.0}>
           <PlanCard
             name="Free"
             price={0}
@@ -795,7 +783,9 @@ export default function PricingPage() {
             isLoading={isLoading}
             buttonLabel={freeButtonLabel}
           />
+          </ScrollReveal>
 
+          <ScrollReveal delay={0.08}>
           <PlanCard
             name="Plus"
             price={9}
@@ -819,7 +809,9 @@ export default function PricingPage() {
             isLoading={isLoading || (isUpgrading && upgradingPlan === 'plus') || isCancelling}
             buttonLabel={(isUpgrading && upgradingPlan === 'plus') ? 'Processing...' : plusButtonLabel}
           />
+          </ScrollReveal>
 
+          <ScrollReveal delay={0.16}>
           <PlanCard
             name="Pro"
             price={19}
@@ -841,6 +833,7 @@ export default function PricingPage() {
             isLoading={isLoading || (isUpgrading && upgradingPlan === 'pro') || isCancelling}
             buttonLabel={(isUpgrading && upgradingPlan === 'pro') ? 'Processing...' : proButtonLabel}
           />
+          </ScrollReveal>
         </div>
 
         {/* Powered by */}
@@ -1038,7 +1031,7 @@ export default function PricingPage() {
         )}
 
         {/* FAQ */}
-        <div style={{ maxWidth: 560, margin: '0 auto' }}>
+        <ScrollReveal style={{ maxWidth: 560, margin: '0 auto' }}>
           <h2
             data-testid="faq-heading"
             style={{
@@ -1076,8 +1069,27 @@ export default function PricingPage() {
             question="Is my data safe?"
             answer="Yes. All memory data is encrypted in transit and at rest. Your conversations and personal facts are private and never used for model training."
           />
-        </div>
+        </ScrollReveal>
       </div>
+
+      {/* Mobile-only layout tweaks for inline-styled elements */}
+      <style>{`
+        @media (max-width: 640px) {
+          .pricing-plans-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .pricing-header h1 {
+            font-size: 26px !important;
+          }
+          .pricing-content {
+            padding: 20px 14px 64px !important;
+          }
+          .plan-card {
+            padding: 22px 18px !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }

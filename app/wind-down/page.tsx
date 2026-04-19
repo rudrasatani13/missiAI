@@ -141,10 +141,12 @@ export default function WindDownPage() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-start px-4 py-12 relative"
+      className="min-h-dvh flex flex-col items-center justify-start px-4 relative"
       style={{
         background: '#060608',
         fontFamily: 'var(--font-body)',
+        paddingTop: 'max(2rem, env(safe-area-inset-top))',
+        paddingBottom: '3rem',
       }}
     >
       {/* Ambient field — soft rose (wind-down palette) */}
@@ -161,7 +163,7 @@ export default function WindDownPage() {
         {/* Back button */}
         <Link
           href="/chat"
-          className="flex items-center gap-2 mb-8 transition-colors text-xs"
+          className="flex items-center gap-2 mb-6 md:mb-8 transition-colors text-xs"
           style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -169,10 +171,10 @@ export default function WindDownPage() {
         </Link>
 
         {/* Header */}
-        <div className="flex flex-col items-center mb-10">
-          <Moon className="w-7 h-7 mb-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+        <div className="flex flex-col items-center mb-8 md:mb-10">
+          <Moon className="w-6 h-6 md:w-7 md:h-7 mb-4 md:mb-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
           <h1
-            className="text-3xl md:text-[40px] font-light text-white mb-3"
+            className="text-[28px] md:text-[40px] font-light text-white mb-2 md:mb-3"
             style={{ letterSpacing: '-0.02em', lineHeight: 1.1 }}
           >
             Good night
@@ -186,11 +188,11 @@ export default function WindDownPage() {
         </div>
 
         {/* Content Layout - Two Glass Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch w-full mb-16">
-          
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-8 items-stretch w-full mb-12 md:mb-16">
+
           {/* LEFT COLUMN: Evaluation & Reflection */}
           <div
-            className="flex flex-col w-full rounded-2xl p-7 lg:p-9"
+            className="flex flex-col w-full rounded-2xl p-4 sm:p-6 lg:p-9"
             style={{
               background: 'rgba(20,20,26,0.55)',
               backdropFilter: 'blur(24px) saturate(140%)',
@@ -259,7 +261,7 @@ export default function WindDownPage() {
 
           {/* RIGHT COLUMN: Sleep Sessions */}
           <div
-            className="flex flex-col w-full rounded-2xl p-7 lg:p-9"
+            className="flex flex-col w-full rounded-2xl p-4 sm:p-6 lg:p-9"
             style={{
               background: 'rgba(20,20,26,0.55)',
               backdropFilter: 'blur(24px) saturate(140%)',

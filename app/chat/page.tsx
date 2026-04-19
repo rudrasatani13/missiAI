@@ -782,8 +782,12 @@ export default function VoiceAssistantPage() {
       )}
 
       {/* ── Main Voice Controls Dock ─── */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pb-10 md:pb-14 pointer-events-none"
-        style={{ paddingBottom: plan?.id === 'free' ? 52 : undefined }}>
+      <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pointer-events-none"
+        style={{
+          paddingBottom: plan?.id === 'free'
+            ? 'calc(52px + env(safe-area-inset-bottom))'
+            : 'calc(2.5rem + env(safe-area-inset-bottom))',
+        }}>
 
         {/* Visual Memory Result Card — shown after successful analysis or on error */}
         {visualResult && (

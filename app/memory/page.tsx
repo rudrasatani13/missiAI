@@ -13,6 +13,7 @@ import { CategoryFilter } from '@/components/memory/CategoryFilter'
 import { MemorySearch } from '@/components/memory/MemorySearch'
 import { GroupedMemoryView } from '@/components/memory/GroupedMemoryView'
 import { Magnetic } from '@/components/ui/Magnetic'
+import { ScrollReveal } from '@/components/ui/ScrollReveal'
 import type { MemoryCategory } from '@/types/memory'
 
 const CATEGORIES: MemoryCategory[] = [
@@ -146,34 +147,59 @@ export default function MemoryPage() {
         filter: 'blur(100px)',
       }} />
 
-      <div className="relative z-10 max-w-[900px] mx-auto px-4 md:px-6 py-6 md:py-8">
+      <div
+        className="relative z-10 max-w-[900px] mx-auto px-4 md:px-6 pb-6 md:py-8"
+        style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top))' }}
+      >
 
         {/* ── Header ───────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="flex items-center justify-between mb-7"
+          className="flex flex-col gap-3 mb-6 md:flex-row md:items-center md:justify-between md:mb-7"
         >
-          <Magnetic>
-            <Link
-              href="/chat"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors no-underline text-xs"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Back</span>
-            </Link>
-          </Magnetic>
+          {/* Top row: Back · Title · Refresh (always single row) */}
+          <div className="flex items-center justify-between md:justify-start md:gap-4">
+            <Magnetic>
+              <Link
+                href="/chat"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors no-underline text-xs"
+                style={{ color: 'rgba(255,255,255,0.4)' }}
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Back</span>
+              </Link>
+            </Magnetic>
 
-          <div className="flex items-center gap-2.5">
-            <Brain className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
-            <h1 className="text-base md:text-lg font-medium m-0" style={{ color: 'rgba(255,255,255,0.9)' }}>
-              Memory Graph
-            </h1>
+            <div className="flex items-center gap-2.5">
+              <Brain className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+              <h1 className="text-base md:text-lg font-medium m-0" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                Memory Graph
+              </h1>
+            </div>
+
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              title="Refresh"
+              className="p-1.5 rounded-full transition-colors hover:bg-white/[0.04] active:scale-[0.97] md:hidden"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: isRefreshing ? 'default' : 'pointer',
+                color: 'rgba(255,255,255,0.35)',
+              }}
+            >
+              <RefreshCw
+                className="w-3.5 h-3.5"
+                style={{ animation: isRefreshing ? 'spin 0.8s linear infinite' : 'none' }}
+              />
+            </button>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          {/* Bottom row on mobile / right-aligned on desktop: view chips + add + refresh */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 md:overflow-visible">
             {[
               { href: '/memory/visual', icon: <Camera className="w-3 h-3" />, label: 'Visual' },
               { href: '/memory/graph', icon: <Network className="w-3 h-3" />, label: '3D' },
@@ -182,7 +208,7 @@ export default function MemoryPage() {
               <Link
                 key={href}
                 href={href}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors no-underline hover:bg-white/[0.04] active:scale-[0.97]"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors no-underline hover:bg-white/[0.04] active:scale-[0.97] flex-shrink-0"
                 style={{
                   background: 'rgba(255,255,255,0.02)',
                   border: '1px solid rgba(255,255,255,0.07)',
@@ -194,7 +220,7 @@ export default function MemoryPage() {
             ))}
             <button
               onClick={() => setShowAddForm((v) => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors active:scale-[0.97]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors active:scale-[0.97] flex-shrink-0"
               style={{
                 background: showAddForm ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)',
                 border: '1px solid rgba(255,255,255,0.07)',
@@ -203,13 +229,13 @@ export default function MemoryPage() {
               }}
             >
               {showAddForm ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-              <span className="hidden sm:inline">{showAddForm ? 'Cancel' : 'Add'}</span>
+              <span>{showAddForm ? 'Cancel' : 'Add'}</span>
             </button>
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
               title="Refresh"
-              className="p-1.5 rounded-full transition-colors hover:bg-white/[0.04] active:scale-[0.97]"
+              className="p-1.5 rounded-full transition-colors hover:bg-white/[0.04] active:scale-[0.97] hidden md:flex flex-shrink-0"
               style={{
                 background: 'none',
                 border: 'none',
@@ -331,27 +357,32 @@ export default function MemoryPage() {
         </div>
 
         {/* ── Stats ─────────────────────────────────────────────────── */}
-        <GlassCard className="px-5 py-4 mb-4" delay={0.1}>
-          <StatsBar stats={stats} />
-        </GlassCard>
+        <ScrollReveal>
+          <GlassCard className="px-5 py-4 mb-4" delay={0.1}>
+            <StatsBar stats={stats} />
+          </GlassCard>
+        </ScrollReveal>
 
         {/* ── Search + Filters ──────────────────────────────────────── */}
-        <GlassCard className="px-5 py-4 mb-4" delay={0.15}>
-          <div className="mb-3">
-            <MemorySearch
-              query={searchQuery}
-              onChange={updateSearch}
-              resultCount={filteredNodes.length}
+        <ScrollReveal delay={0.05}>
+          <GlassCard className="px-5 py-4 mb-4" delay={0.15}>
+            <div className="mb-3">
+              <MemorySearch
+                query={searchQuery}
+                onChange={updateSearch}
+                resultCount={filteredNodes.length}
+              />
+            </div>
+            <CategoryFilter
+              selected={selectedCategory}
+              counts={categoryCounts}
+              onChange={updateCategory}
             />
-          </div>
-          <CategoryFilter
-            selected={selectedCategory}
-            counts={categoryCounts}
-            onChange={updateCategory}
-          />
-        </GlassCard>
+          </GlassCard>
+        </ScrollReveal>
 
         {/* ── Content ───────────────────────────────────────────────── */}
+        <ScrollReveal delay={0.1}>
         <GlassCard className="px-5 py-5 mb-8" delay={0.2}>
           {isLoading ? (
             <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
@@ -426,6 +457,7 @@ export default function MemoryPage() {
             />
           )}
         </GlassCard>
+        </ScrollReveal>
       </div>
 
       <style>{`

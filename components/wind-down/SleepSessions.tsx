@@ -69,9 +69,9 @@ export default function SleepSessions() {
     <div className="w-full flex flex-col gap-6" style={{ fontFamily: 'var(--font-body)' }}>
         
       {/* Header */}
-      <div className="flex flex-col items-start mb-4">
-         <h2 className="text-2xl font-light text-white tracking-wide mb-2">Sleep Sessions</h2>
-         <p className="text-sm font-light leading-relaxed text-white/40">
+      <div className="flex flex-col items-start mb-3 sm:mb-4">
+         <h2 className="text-xl sm:text-2xl font-light text-white tracking-wide mb-1.5 sm:mb-2">Sleep Sessions</h2>
+         <p className="text-xs sm:text-sm font-light leading-relaxed text-white/40">
            Unwind with a personalized story or breathwork.
          </p>
       </div>
@@ -83,17 +83,31 @@ export default function SleepSessions() {
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex justify-start gap-2 mb-4 flex-wrap">
-        <button onClick={() => setActiveTab('tonight')} className={`px-4 py-2 rounded-full text-xs transition-colors ${activeTab === 'tonight' ? 'bg-white/10 text-white border border-white/20' : 'text-white/40 hover:text-white/60 hover:bg-white/5 border border-transparent'}`}>Personal</button>
-        <button onClick={() => setActiveTab('custom')} className={`px-4 py-2 rounded-full text-xs transition-colors ${activeTab === 'custom' ? 'bg-white/10 text-white border border-white/20' : 'text-white/40 hover:text-white/60 hover:bg-white/5 border border-transparent'}`}>Custom</button>
-        <button onClick={() => setActiveTab('breathing')} className={`px-4 py-2 rounded-full text-xs transition-colors ${activeTab === 'breathing' ? 'bg-white/10 text-white border border-white/20' : 'text-white/40 hover:text-white/60 hover:bg-white/5 border border-transparent'}`}>Breathing</button>
-        <button onClick={() => setActiveTab('library')} className={`px-4 py-2 rounded-full text-xs transition-colors ${activeTab === 'library' ? 'bg-white/10 text-white border border-white/20' : 'text-white/40 hover:text-white/60 hover:bg-white/5 border border-transparent'}`}>Library</button>
+      {/* Tabs — scroll edge-to-edge on tiny phones */}
+      <div className="flex items-center gap-1.5 sm:gap-2 mb-4 overflow-x-auto scrollbar-hide -mx-1 px-1">
+        {([
+          { id: 'tonight', label: 'Personal' },
+          { id: 'custom', label: 'Custom' },
+          { id: 'breathing', label: 'Breathing' },
+          { id: 'library', label: 'Library' },
+        ] as const).map(t => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            className={`flex-shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-[11px] sm:text-xs transition-colors whitespace-nowrap ${
+              activeTab === t.id
+                ? 'bg-white/10 text-white border border-white/20'
+                : 'text-white/40 hover:text-white/60 hover:bg-white/5 border border-transparent'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {/* Tab: Personal */}
       {activeTab === 'tonight' && (
-        <div className="w-full bg-black/20 border border-white/10 inset-shadow-sm rounded-3xl p-8 flex flex-col items-center justify-center text-center">
+        <div className="w-full bg-black/20 border border-white/10 inset-shadow-sm rounded-3xl p-5 sm:p-8 flex flex-col items-center justify-center text-center">
             <Stars className="w-8 h-8 text-indigo-300 opacity-80 mb-5" />
             <h3 className="text-lg text-white font-light tracking-wide mb-2">Tonight&apos;s Story</h3>
             <p className="text-sm text-center font-light mb-6 text-white/50">
@@ -115,7 +129,7 @@ export default function SleepSessions() {
 
       {/* Tab: Custom */}
       {activeTab === 'custom' && (
-        <div className="w-full bg-black/20 border border-white/10 inset-shadow-sm rounded-3xl p-8 flex flex-col items-center justify-center text-center">
+        <div className="w-full bg-black/20 border border-white/10 inset-shadow-sm rounded-3xl p-5 sm:p-8 flex flex-col items-center justify-center text-center">
             <Edit3 className="w-8 h-8 text-emerald-300 opacity-80 mb-5" />
             <h3 className="text-lg text-white font-light tracking-wide mb-2">Custom Story</h3>
             <p className="text-sm text-center font-light mb-6 text-white/50">
@@ -150,7 +164,7 @@ export default function SleepSessions() {
              <button 
                  onClick={() => handlePlayBreathing('4-7-8', 6)}
                  disabled={isGenerating}
-                 className="w-full flex items-center justify-between p-6 bg-black/20 border border-white/10 inset-shadow-sm rounded-[24px] hover:bg-black/40 transition-colors disabled:opacity-50 text-left"
+                 className="w-full flex items-center justify-between p-4 sm:p-6 bg-black/20 border border-white/10 inset-shadow-sm rounded-[24px] hover:bg-black/40 transition-colors disabled:opacity-50 text-left"
              >
                  <div>
                      <h4 className="text-white text-sm tracking-wide mb-1 flex items-center gap-2">
@@ -164,7 +178,7 @@ export default function SleepSessions() {
              <button 
                  onClick={() => handlePlayBreathing('box', 5)}
                  disabled={isGenerating}
-                 className="w-full flex items-center justify-between p-6 bg-black/20 border border-white/10 inset-shadow-sm rounded-[24px] hover:bg-black/40 transition-colors disabled:opacity-50 text-left"
+                 className="w-full flex items-center justify-between p-4 sm:p-6 bg-black/20 border border-white/10 inset-shadow-sm rounded-[24px] hover:bg-black/40 transition-colors disabled:opacity-50 text-left"
              >
                  <div>
                      <h4 className="text-white text-sm tracking-wide mb-1 flex items-center gap-2">
@@ -178,7 +192,7 @@ export default function SleepSessions() {
              <button 
                  onClick={() => handlePlayBreathing('belly', 8)}
                  disabled={isGenerating}
-                 className="w-full flex items-center justify-between p-6 bg-black/20 border border-white/10 inset-shadow-sm rounded-[24px] hover:bg-black/40 transition-colors disabled:opacity-50 text-left"
+                 className="w-full flex items-center justify-between p-4 sm:p-6 bg-black/20 border border-white/10 inset-shadow-sm rounded-[24px] hover:bg-black/40 transition-colors disabled:opacity-50 text-left"
              >
                  <div>
                      <h4 className="text-white text-sm tracking-wide mb-1 flex items-center gap-2">
@@ -199,7 +213,7 @@ export default function SleepSessions() {
                      key={story.id} 
                      onClick={() => handlePlayLibrary(story)}
                      disabled={isGenerating}
-                     className="snap-start shrink-0 w-64 p-6 bg-black/20 border border-white/10 inset-shadow-sm rounded-[24px] hover:bg-black/40 transition-colors text-left flex flex-col justify-between"
+                     className="snap-start shrink-0 w-56 sm:w-64 p-4 sm:p-6 bg-black/20 border border-white/10 inset-shadow-sm rounded-[24px] hover:bg-black/40 transition-colors text-left flex flex-col justify-between"
                      style={{ minHeight: '180px' }}
                  >
                      <div>

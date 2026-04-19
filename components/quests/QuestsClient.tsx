@@ -330,7 +330,7 @@ export default function QuestsClient() {
     const allMissions = selectedQuest.chapters.flatMap(c => c.missions)
 
     return (
-      <div className="relative min-h-screen flex flex-col items-center px-4 py-10 md:py-16"
+      <div className="relative min-h-dvh flex flex-col items-center px-4 pb-10 md:pb-16 pt-safe"
         style={{ background: '#060608', fontFamily: 'var(--font-body)' }}>
         {/* Ambient */}
         <div aria-hidden className="pointer-events-none fixed inset-0 z-0" style={{
@@ -502,7 +502,7 @@ export default function QuestsClient() {
 
   if (view === 'create') {
     return (
-      <div className="relative min-h-screen flex flex-col items-center px-4 py-10 md:py-16"
+      <div className="relative min-h-dvh flex flex-col items-center px-4 pb-10 md:pb-16 pt-safe"
         style={{ background: '#060608', fontFamily: 'var(--font-body)' }}>
         <div aria-hidden className="pointer-events-none fixed inset-0 z-0" style={{
           background: 'radial-gradient(520px circle at 15% 10%, rgba(251,191,36,0.06), transparent 60%), radial-gradient(480px circle at 85% 90%, rgba(245,158,11,0.05), transparent 65%)',
@@ -538,7 +538,7 @@ export default function QuestsClient() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center px-4 py-10 md:py-16"
+      className="relative min-h-dvh flex flex-col items-center px-4 pb-10 md:pb-16 pt-safe"
       style={{ background: '#060608', fontFamily: 'var(--font-body)' }}
     >
       {/* Ambient field — warm amber */}

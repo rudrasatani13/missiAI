@@ -14,32 +14,43 @@ const MemoryGraph3D = nextDynamic(() => import('@/components/memory/MemoryGraph3
 export default function GraphPage() {
   const { graph, isLoading, error } = useMemoryDashboard()
   const [selectedNode, setSelectedNode] = useState<LifeNode | null>(null)
-  
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.matchMedia('(max-width: 767px)').matches)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   // Extract all nodes from the graph
   const nodes = graph ? graph.nodes : []
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 md:p-8 flex flex-col relative overflow-hidden">
-      <header className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 relative z-10">
+    <main
+      className="min-h-dvh bg-black text-white px-4 pb-4 md:p-8 flex flex-col relative overflow-hidden"
+      style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
+    >
+      <header className="mb-4 md:mb-6 flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4 relative z-10">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-medium tracking-tight">Memory Dashboard</h1>
-            <Brain className="w-6 h-6 text-white/40" />
+          <div className="flex items-center gap-3 mb-1.5">
+            <h1 className="text-2xl md:text-3xl font-medium tracking-tight">Memory Dashboard</h1>
+            <Brain className="w-5 h-5 md:w-6 md:h-6 text-white/40" />
           </div>
-          <p className="text-white/50 text-sm max-w-xl flex items-center gap-2">
-            A 3D spatial view of your context. Click any node to inspect details.
+          <p className="text-white/50 text-xs md:text-sm max-w-xl flex items-center gap-2">
+            A 3D spatial view of your context. Tap any node to inspect details.
           </p>
         </div>
 
         <Link
           href="/memory"
-          className="inline-flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors py-2"
+          className="inline-flex items-center gap-2 text-xs md:text-sm text-white/50 hover:text-white transition-colors py-1.5 md:py-2 self-start"
         >
           <ArrowLeft className="w-4 h-4" /> Back to List
         </Link>
       </header>
 
-      <section className="flex-1 w-full relative z-0 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.05)] border border-white/10 bg-black min-h-[calc(100vh-140px)]">
+      <section className="flex-1 w-full relative z-0 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.05)] border border-white/10 bg-black min-h-[calc(100dvh-160px)]">
         {isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center bg-white/[0.02]">
             <div className="flex flex-col items-center gap-3 text-white/40">
@@ -57,17 +68,19 @@ export default function GraphPage() {
           </div>
         )}
 
-        {/* Side Inspector Panel using Framer Motion - INSIDE the main graph box */}
+        {/* Inspector — side drawer on desktop, bottom sheet on mobile */}
         <AnimatePresence>
           {selectedNode && (
             <motion.div
-              initial={{ opacity: 0, x: 100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 100 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="absolute top-4 bottom-4 right-4 left-auto w-80 md:w-96 rounded-2xl border border-white/10 z-20 flex flex-col overflow-hidden shadow-2xl"
+              initial={isMobile ? { opacity: 0, y: '100%' } : { opacity: 0, x: 100 }}
+              animate={isMobile ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 }}
+              exit={isMobile ? { opacity: 0, y: '100%' } : { opacity: 0, x: 100 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="absolute z-20 flex flex-col overflow-hidden shadow-2xl border border-white/10 rounded-2xl
+                         left-2 right-2 bottom-2 max-h-[70%]
+                         md:top-4 md:bottom-4 md:right-4 md:left-auto md:w-96 md:max-h-none"
               style={{
-                background: 'rgba(0, 0, 0, 0.65)',
+                background: 'rgba(0, 0, 0, 0.75)',
                 backdropFilter: 'blur(25px)',
                 WebkitBackdropFilter: 'blur(25px)',
               }}
