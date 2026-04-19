@@ -42,6 +42,15 @@ function getVectorizeEnv(): VectorizeEnv | null {
   }
 }
 
+function getExecutionContext(): { waitUntil: (p: Promise<unknown>) => void } | null {
+  try {
+    const { ctx } = getCloudflareContext() as { ctx?: { waitUntil: (p: Promise<unknown>) => void } }
+    return ctx ?? null
+  } catch {
+    return null
+  }
+}
+
 function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
@@ -91,6 +100,7 @@ export async function POST(req: Request): Promise<Response> {
 
   const kv = getKV()
   const vectorizeEnv = getVectorizeEnv()
+  const execCtx = getExecutionContext()
   if (!kv) return ok200
 
   // ── 3. Deduplication by update_id ─────────────────────────────────────────
@@ -183,7 +193,10 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   // ── 10. Process via Gemini pipeline and reply ──────────────────────────────
-  ;(async () => {
+  // IMPORTANT: Use waitUntil() so the Cloudflare Worker stays alive during
+  // async Gemini processing. Without this, the Worker is killed after
+  // returning the 200 Response, before the AI reply is generated.
+  const processingPromise = (async () => {
     try {
       const reply = await processBotMessage({
         kv,
@@ -198,7 +211,13 @@ export async function POST(req: Request): Promise<Response> {
       logApiError('bot.tg.processing_error', err, { userId, httpStatus: 500, path: '/api/webhooks/telegram' })
       sendTelegramMessage(chatId, 'Oops, kuch gadbad ho gayi! Thodi der mein try karo 🙏').catch(() => {})
     }
-  })().catch(() => {})
+  })()
+
+  if (execCtx) {
+    execCtx.waitUntil(processingPromise)
+  } else {
+    await processingPromise
+  }
 
   return ok200
 }

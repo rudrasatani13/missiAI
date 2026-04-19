@@ -44,6 +44,15 @@ function getVectorizeEnv(): VectorizeEnv | null {
   }
 }
 
+function getExecutionContext(): { waitUntil: (p: Promise<unknown>) => void } | null {
+  try {
+    const { ctx } = getCloudflareContext() as { ctx?: { waitUntil: (p: Promise<unknown>) => void } }
+    return ctx ?? null
+  } catch {
+    return null
+  }
+}
+
 function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
@@ -128,6 +137,7 @@ export async function POST(req: Request): Promise<Response> {
 
   const kv = getKV()
   const vectorizeEnv = getVectorizeEnv()
+  const execCtx = getExecutionContext()
 
   // ── 4. Extract message entry ───────────────────────────────────────────────
   const entry = payload?.entry?.[0]
@@ -141,13 +151,15 @@ export async function POST(req: Request): Promise<Response> {
 
   // Process each inbound message (usually just one)
   for (const message of messages) {
+    try {
     // ── 5. Replay attack protection — validate timestamp ───────────────────
     const tsSeconds = parseInt(message.timestamp, 10)
     const nowSeconds = Math.floor(Date.now() / 1000)
-    if (!Number.isNaN(tsSeconds) && Math.abs(nowSeconds - tsSeconds) > 300) {
+    const ageSec = nowSeconds - tsSeconds
+    if (!Number.isNaN(tsSeconds) && Math.abs(ageSec) > 300) {
       logSecurityEvent('security.bot.wa.replay_attempt', {
         path: '/api/webhooks/whatsapp',
-        metadata: { messageId: message.id, ageSec: nowSeconds - tsSeconds },
+        metadata: { messageId: message.id, ageSec },
       })
       continue
     }
@@ -156,7 +168,10 @@ export async function POST(req: Request): Promise<Response> {
     const senderPhone: string = message.from
 
     // ── 6. Deduplication ──────────────────────────────────────────────────
-    if (!kv) continue
+    if (!kv) {
+      log({ level: 'error', event: 'bot.wa.kv_unavailable', metadata: { messageId }, timestamp: Date.now() })
+      continue
+    }
     const isDup = await isMessageDuplicate(kv, 'whatsapp', messageId)
     if (isDup) {
       log({ level: 'info', event: 'bot.wa.dedup_skipped', metadata: { messageId }, timestamp: Date.now() })
@@ -239,7 +254,10 @@ export async function POST(req: Request): Promise<Response> {
     if (!userText.trim()) continue
 
     // ── 11. Process via Gemini pipeline and send reply ─────────────────────
-    ;(async () => {
+    // IMPORTANT: Use waitUntil() so the Cloudflare Worker stays alive during
+    // async Gemini processing. Without this, the Worker is killed after
+    // returning the 200 Response, before the AI reply is generated.
+    const processingPromise = (async () => {
       try {
         const reply = await processBotMessage({
           kv,
@@ -262,7 +280,16 @@ export async function POST(req: Request): Promise<Response> {
           'Oops, kuch gadbad ho gayi! Thodi der mein try karo 🙏',
         ).catch(() => {})
       }
-    })().catch(() => {})
+    })()
+
+    if (execCtx) {
+      execCtx.waitUntil(processingPromise)
+    } else {
+      await processingPromise
+    }
+    } catch (loopErr) {
+      logApiError('bot.wa.loop_error', loopErr, { httpStatus: 500, path: '/api/webhooks/whatsapp' })
+    }
   }
 
   return ok200
