@@ -67,7 +67,7 @@ export default {
         const token = await getVertexAccessToken()
         const location = getVertexLocation()
         const project = getVertexProjectId()
-        const wsUrl = `wss://${location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`
+        const wsUrl = `https://${location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`
         let wsStatus = "not_tested"
         if (token) {
           try {
