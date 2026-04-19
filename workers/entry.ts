@@ -34,6 +34,7 @@ import openNextWorker, {
 } from "../.open-next/worker.js"
 
 import { handleLiveWs } from "./live-ws-handler"
+import { getVertexAccessToken, getVertexLocation, getVertexProjectId, isVertexAI } from "@/lib/ai/vertex-auth"
 
 // Preserve the Durable Object class exports expected by Cloudflare's runtime.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,6 +59,37 @@ export default {
     // Cloudflare runtime can. All other requests fall through untouched.
     if (url.pathname === "/api/v1/voice-relay") {
       return handleLiveWs(request, env, ctx)
+    }
+
+    // Temporary diagnostic — remove after debugging
+    if (url.pathname === "/api/v1/live-diag") {
+      try {
+        const token = await getVertexAccessToken()
+        const location = getVertexLocation()
+        const project = getVertexProjectId()
+        const wsUrl = `wss://${location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`
+        let wsStatus = "not_tested"
+        if (token) {
+          try {
+            const r = await fetch(wsUrl, { headers: { Upgrade: "websocket", Authorization: `Bearer ${token}` } })
+            const ws = (r as any).webSocket
+            wsStatus = ws ? "upgraded_ok" : `no_websocket_status_${r.status}`
+            if (ws) ws.close(1000, "diag")
+          } catch (e) {
+            wsStatus = `fetch_error: ${String(e)}`
+          }
+        }
+        return new Response(JSON.stringify({
+          isVertex: isVertexAI(),
+          hasToken: !!token,
+          project,
+          location,
+          wsUrl,
+          wsStatus,
+        }), { headers: { "Content-Type": "application/json" } })
+      } catch (e) {
+        return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { "Content-Type": "application/json" } })
+      }
     }
 
     return openNextWorker.fetch(request, env, ctx)

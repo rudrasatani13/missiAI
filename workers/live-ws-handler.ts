@@ -103,10 +103,11 @@ export async function handleLiveWs(
     return jsonError(503, "UPSTREAM_AUTH_FAILED", "Unable to obtain upstream credentials")
   }
   const location = getVertexLocation()
-  // Gemini Live is in v1beta1 — the SDK (VERTEX_AI_API_DEFAULT_VERSION) confirms this.
-  // Using v1 causes the relay to establish (101) but Vertex closes on first message.
+  // Cloudflare Workers fetch() does NOT accept wss:// URLs — use https:// with
+  // Upgrade: websocket header and CF upgrades the connection automatically.
+  // Gemini Live is in v1beta1 (VERTEX_AI_API_DEFAULT_VERSION in the SDK).
   const upstreamUrl =
-    `wss://${location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`
+    `https://${location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`
 
   // 4. Open upstream WebSocket via Cloudflare's fetch-with-Upgrade pattern.
   // Auth must be in the Authorization header — the access_token query param is
