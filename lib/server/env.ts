@@ -64,7 +64,7 @@ const envSchema = z.object({
     },
     z.string()
   ),
-  AI_BACKEND: z.enum(['vertex', 'google-ai']).default('vertex'),
+  AI_BACKEND: z.literal('vertex').default('vertex'),
   VERTEX_AI_PROJECT_ID: emptyStringToUndefined,
   VERTEX_AI_LOCATION: emptyStringToUndefined,
   GOOGLE_SERVICE_ACCOUNT_JSON: emptyStringToUndefined,
