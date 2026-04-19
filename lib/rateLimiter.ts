@@ -36,6 +36,74 @@ async function getKV(): Promise<any | null> {
   }
 }
 
+// ─── Isolate-local fallback counters (M4 fix) ────────────────────────────────
+//
+// If KV is unavailable we used to "fail open" — every request was allowed and
+// only a warning was logged. That meant a KV outage silently removed all
+// per-user rate limits, so a single Pro user could drain hundreds of $ of AI
+// calls before anyone noticed. We now keep a bounded per-isolate counter map
+// as a last-ditch bucket. It is NOT globally consistent (each Cloudflare
+// isolate has its own copy) but it still caps a single-instance attacker
+// to ~`limit` requests per window, which is enough to keep the blast radius
+// small during an outage.
+
+interface FallbackBucket {
+  count: number
+  windowMinute: number
+}
+
+const fallbackBuckets = new Map<string, FallbackBucket>()
+const MAX_FALLBACK_ENTRIES = 10_000
+
+function sweepFallback(nowMinute: number) {
+  if (fallbackBuckets.size <= MAX_FALLBACK_ENTRIES) {
+    // Lazy sweep: only walk the map when we're over capacity
+    return
+  }
+  const toDelete: string[] = []
+  for (const [key, bucket] of fallbackBuckets.entries()) {
+    if (bucket.windowMinute < nowMinute) {
+      toDelete.push(key)
+      if (toDelete.length >= 512) break
+    }
+  }
+  for (const key of toDelete) fallbackBuckets.delete(key)
+  // If still over, drop oldest (insertion order) to bring us back under the cap.
+  while (fallbackBuckets.size > MAX_FALLBACK_ENTRIES) {
+    const firstKey = fallbackBuckets.keys().next().value
+    if (firstKey === undefined) break
+    fallbackBuckets.delete(firstKey)
+  }
+}
+
+function fallbackRateLimit(
+  userId: string,
+  route: RouteType,
+  limit: number,
+  windowMinute: number,
+  resetAt: number,
+  retryAfter: number,
+): RateLimitResult {
+  const key = `${userId}:${route}:${windowMinute}`
+  sweepFallback(windowMinute)
+  let bucket = fallbackBuckets.get(key)
+  if (!bucket || bucket.windowMinute !== windowMinute) {
+    bucket = { count: 0, windowMinute }
+    fallbackBuckets.set(key, bucket)
+  }
+  if (bucket.count >= limit) {
+    return { allowed: false, remaining: 0, limit, resetAt, retryAfter }
+  }
+  bucket.count++
+  return {
+    allowed: true,
+    remaining: Math.max(0, limit - bucket.count),
+    limit,
+    resetAt,
+    retryAfter: 0,
+  }
+}
+
 // ─── Core check ───────────────────────────────────────────────────────────────
 //
 // Sliding-window counter (two-bucket approximation).
@@ -80,8 +148,12 @@ export async function checkRateLimit(
 
   const kv = await getKV()
   if (!kv) {
-    console.warn("[RateLimit] KV unavailable — failing open")
-    return { allowed: true, remaining: 1, limit, resetAt, retryAfter: 0 }
+    // M4 fix: fail-reduced instead of fail-open when KV is unavailable.
+    // The isolate-local counter still caps a single Cloudflare isolate to
+    // the configured per-user limit, which keeps the blast radius of a KV
+    // outage bounded instead of removing all quotas entirely.
+    console.warn("[RateLimit] KV unavailable — falling back to isolate-local counter")
+    return fallbackRateLimit(userId, route, limit, windowMinute, resetAt, retryAfter)
   }
 
   // Fetch both windows in parallel to minimise KV round-trips

@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Brain, RefreshCw, Network, Plus, X, Camera, BookOpen } from 'lucide-react'
+import { Brain, RefreshCw, Network, Plus, X, Camera, BookOpen } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
 import { useMemoryDashboard } from '@/hooks/useMemoryDashboard'
@@ -12,8 +12,8 @@ import { StatsBar } from '@/components/memory/StatsBar'
 import { CategoryFilter } from '@/components/memory/CategoryFilter'
 import { MemorySearch } from '@/components/memory/MemorySearch'
 import { GroupedMemoryView } from '@/components/memory/GroupedMemoryView'
-import { Magnetic } from '@/components/ui/Magnetic'
 import { ScrollReveal } from '@/components/ui/ScrollReveal'
+import { ChatShell } from '@/components/shell/ChatShell'
 import type { MemoryCategory } from '@/types/memory'
 
 const CATEGORIES: MemoryCategory[] = [
@@ -133,16 +133,11 @@ export default function MemoryPage() {
     !isLoading && !isEmptyGraph && filteredNodes.length === 0 && (selectedCategory !== 'all' || searchQuery.trim().length >= 2)
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        background: '#060608',
-        color: 'rgba(255,255,255,0.85)',
-        fontFamily: 'inherit',
-      }}
-    >
-      {/* Ambient field — soft violet (memory palette) */}
-      <div aria-hidden className="fixed inset-0 pointer-events-none z-0" style={{
+    <ChatShell>
+      {/* Ambient field — soft violet (memory palette). Contained inside the
+          rounded main card (absolute, not fixed) so it doesn't bleed past the
+          floating shell's margins. */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none z-0" style={{
         background: 'radial-gradient(500px circle at 20% 15%, rgba(139,92,246,0.07), transparent 60%), radial-gradient(420px circle at 82% 88%, rgba(109,40,217,0.05), transparent 65%)',
         filter: 'blur(100px)',
       }} />
@@ -159,19 +154,8 @@ export default function MemoryPage() {
           transition={{ duration: 0.3 }}
           className="flex flex-col gap-3 mb-6 md:flex-row md:items-center md:justify-between md:mb-7"
         >
-          {/* Top row: Back · Title · Refresh (always single row) */}
+          {/* Top row: Title · Refresh (sidebar provides nav) */}
           <div className="flex items-center justify-between md:justify-start md:gap-4">
-            <Magnetic>
-              <Link
-                href="/chat"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors no-underline text-xs"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Back</span>
-              </Link>
-            </Magnetic>
-
             <div className="flex items-center gap-2.5">
               <Brain className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
               <h1 className="text-base md:text-lg font-medium m-0" style={{ color: 'rgba(255,255,255,0.9)' }}>
@@ -469,7 +453,7 @@ export default function MemoryPage() {
           to { transform: rotate(360deg); }
         }
       `}</style>
-    </div>
+    </ChatShell>
   )
 }
 

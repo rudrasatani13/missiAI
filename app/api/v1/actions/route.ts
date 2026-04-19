@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { createTimer, logRequest, logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
+import { waitUntil } from "@/lib/server/wait-until"
 import { actionSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { detectIntent, isActionable } from "@/lib/actions/intent-detector"
 import { executeAction } from "@/lib/actions/action-executor"
@@ -111,14 +112,16 @@ export async function POST(req: Request) {
       durationMs,
     })
 
-    // Analytics: fire-and-forget
+    // Analytics: fire-and-forget (H1 fix: wrap in waitUntil)
     if (kv) {
-      recordEvent(kv, {
-        type: 'action',
-        userId,
-        metadata: { actionType: result.type },
-      }).catch(() => {})
-      recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
+      waitUntil(
+        recordEvent(kv, {
+          type: 'action',
+          userId,
+          metadata: { actionType: result.type },
+        }).catch(() => {}),
+      )
+      waitUntil(recordUserSeen(kv, userId, getTodayDate()).catch(() => {}))
     }
 
     return successResponse({ actionable: true, intent, result }, 200, rateLimitHeaders(rateResult))

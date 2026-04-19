@@ -13,11 +13,13 @@ import { selectGeminiModel, getFallbackModel } from "@/lib/ai/model-router"
 import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
 import { calculateTotalCost, checkBudgetAlert } from "@/lib/server/cost-tracker"
 import { getEnv } from "@/lib/server/env"
+import { waitUntil } from "@/lib/server/wait-until"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkAndIncrementVoiceTime, getTodayDate } from "@/lib/billing/usage-tracker"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { AGENT_FUNCTION_DECLARATIONS, executeAgentTool, getToolLabel } from "@/lib/ai/agent-tools"
 import type { AgentToolCall } from "@/lib/ai/agent-tools"
+import { classifyAgentTool, AGENT_DESTRUCTIVE_TOOL_NAMES } from "@/lib/ai/agent-tool-policy"
 import { getGoogleTokens } from "@/lib/plugins/data-fetcher"
 import { awardXP } from "@/lib/gamification/xp-engine"
 import { geminiGenerateStream } from "@/lib/ai/vertex-client"
@@ -123,14 +125,18 @@ export async function POST(req: NextRequest) {
   if (!rateResult.allowed) return rateLimitExceededResponse(rateResult)
 
   // 2b. Daily login XP — triggers loginStreak update (fire-and-forget, once per day)
+  // H1 fix: wrapped in waitUntil so the cooldown write actually lands on
+  // Cloudflare — previously the worker could be killed mid-kv.put().
   if (kv) {
     const loginCooldownKey = `xp-cooldown:login:${userId}`
-    kv.get(loginCooldownKey).then(existing => {
-      if (!existing) {
-        awardXP(kv, userId, 'login').catch(() => {})
-        kv.put(loginCooldownKey, '1', { expirationTtl: 86400 }).catch(() => {}) // 24h cooldown
-      }
-    }).catch(() => {})
+    waitUntil(
+      kv.get(loginCooldownKey).then(existing => {
+        if (!existing) {
+          awardXP(kv, userId, 'login').catch(() => {})
+          kv.put(loginCooldownKey, '1', { expirationTtl: 86400 }).catch(() => {}) // 24h cooldown
+        }
+      }).catch(() => {}),
+    )
   }
 
   // 3. Body validation
@@ -174,9 +180,12 @@ export async function POST(req: NextRequest) {
       const vectorizeEnv = getVectorizeEnv()
       
       const memoryPromise = searchLifeGraph(kv, vectorizeEnv, userId, currentMessage, { topK: 5 })
+      // M3 fix: aligned across chat / chat-stream / bot-pipeline to 5s.
+      // Previously 3s, which was too tight under real KV + Vectorize load and
+      // silently dropped memory context on the latency-critical EDITH voice path.
       let timeoutId: ReturnType<typeof setTimeout>
       const timeoutPromise = new Promise<never>((_, r) => {
-        timeoutId = setTimeout(() => r(new Error("Timeout")), 3000)
+        timeoutId = setTimeout(() => r(new Error("Timeout")), 5000)
       })
       try {
         const results = await Promise.race([ memoryPromise, timeoutPromise ])
@@ -228,15 +237,22 @@ export async function POST(req: NextRequest) {
   // BUG-005 fix: Sanitized URL for safe use in error/log contexts
   const sanitizedWsUrl = wsUrl.replace(/xi-api-key=[^&]+/, 'xi-api-key=***')
 
-  // Filter tool declarations based on connected credentials.
+  // Filter tool declarations based on connected credentials and policy.
   // readCalendar and createCalendarEvent are only available when Google Calendar is connected.
   // This check must happen BEFORE the Gemini request is built so Gemini never sees
   // tools it can't actually use (prevents failed tool calls due to missing credentials).
+  //
+  // C2 fix: strip destructive tools from the declarations Gemini sees. This
+  // reduces the attack surface by making prompt-injection less likely to even
+  // *attempt* a destructive call. Runtime enforcement still happens below via
+  // classifyAgentTool(), so a model that guesses a tool name can't bypass it.
   const googleTokens = kv ? await getGoogleTokens(kv, userId).catch(() => null) : null
   const CALENDAR_TOOLS = new Set(["readCalendar", "createCalendarEvent", "updateCalendarEvent", "deleteCalendarEvent", "findFreeSlot"])
-  const availableDeclarations = googleTokens
-    ? AGENT_FUNCTION_DECLARATIONS
-    : AGENT_FUNCTION_DECLARATIONS.filter(d => !CALENDAR_TOOLS.has(d.name))
+  const availableDeclarations = AGENT_FUNCTION_DECLARATIONS.filter((d) => {
+    if (AGENT_DESTRUCTIVE_TOOL_NAMES.has(d.name)) return false
+    if (!googleTokens && CALENDAR_TOOLS.has(d.name)) return false
+    return true
+  })
 
   // Build request WITH available agent tool declarations
   // Pass the fully-assembled systemPrompt (with EDITH mode + persona) to avoid
@@ -311,6 +327,12 @@ export async function POST(req: NextRequest) {
         const agentLoopDeadline = Date.now() + REQUEST_TIMEOUT_MS
         // Track conversation contents for multi-turn tool calling
         let agentContents: any[] = [...(currentRequestBody.contents as any[])]
+        // M5 fix: maintain a running byte-count of agentContents so the guard
+        // below is O(1) per iteration instead of stringifying the entire
+        // conversation on every loop (O(N·M)). We seed it from the initial
+        // contents and increment it whenever we push a new entry.
+        const MAX_AGENT_CONTENTS_BYTES = 200_000
+        let agentContentsBytes = JSON.stringify(agentContents).length
 
         while (loopCount < MAX_AGENT_LOOPS && totalToolCalls < MAX_TOTAL_TOOL_CALLS) {
           // Timeout safety net
@@ -318,8 +340,8 @@ export async function POST(req: NextRequest) {
             sendSSE({ text: "\n\n[Agent loop timed out — returning what I have so far.]" })
             break
           }
-          // BUG-007 fix: Prevent agentContents from growing unbounded within a single request
-          if (JSON.stringify(agentContents).length > 200_000) {
+          // BUG-007 / M5 fix: use the running byte counter instead of a per-iteration stringify.
+          if (agentContentsBytes > MAX_AGENT_CONTENTS_BYTES) {
             sendSSE({ text: "\n\n[Context too large — wrapping up.]" })
             break
           }
@@ -342,8 +364,9 @@ export async function POST(req: NextRequest) {
                 customPrompt,
                 systemPrompt,
               )
-              // Update contents reference
+              // Update contents reference (and resync the running byte count)
               agentContents = [...(currentRequestBody.contents as any[])]
+              agentContentsBytes = JSON.stringify(agentContents).length
               eventStream = await streamGeminiResponse(model, currentRequestBody)
             } else {
               throw primaryErr
@@ -387,23 +410,41 @@ export async function POST(req: NextRequest) {
           totalToolCalls++
           const toolLabel = getToolLabel(pendingFunctionCall.name)
 
-          // Tell the client about the agent step (running)
-          sendSSE({
-            agentStep: {
-              toolName: pendingFunctionCall.name,
-              status: "running",
-              label: toolLabel,
-            },
-          })
+          // C2 fix: enforce the destructive-tool allowlist at runtime. Even
+          // though availableDeclarations doesn't advertise destructive tools,
+          // a model can still emit any function name — prompt injection via
+          // a poisoned memory or user utterance can coerce it. We refuse to
+          // execute and return a synthetic "refused" result to the model so
+          // it can recover gracefully with a text reply.
+          const policy = classifyAgentTool(pendingFunctionCall.name)
+          let toolResult: Awaited<ReturnType<typeof executeAgentTool>>
 
-          const toolResult = await executeAgentTool(pendingFunctionCall, {
-            kv,
-            vectorizeEnv,
-            userId,
-            googleClientId: appEnv.GOOGLE_CLIENT_ID,
-            googleClientSecret: appEnv.GOOGLE_CLIENT_SECRET,
-            resendApiKey: appEnv.RESEND_API_KEY,
-          })
+          if (!policy.allowed) {
+            logError(
+              "chat_stream.tool_blocked",
+              `Blocked ${policy.reason} tool "${pendingFunctionCall.name}" from agent loop`,
+              userId,
+            )
+            const refusalMsg =
+              policy.reason === "destructive"
+                ? "This action requires explicit user confirmation and cannot be performed in this chat channel. Use the confirmation flow in the UI instead."
+                : "That tool is not available in this channel."
+            toolResult = {
+              toolName: pendingFunctionCall.name,
+              status: "error",
+              summary: "Tool blocked by policy",
+              output: refusalMsg,
+            }
+          } else {
+            toolResult = await executeAgentTool(pendingFunctionCall, {
+              kv,
+              vectorizeEnv,
+              userId,
+              googleClientId: appEnv.GOOGLE_CLIENT_ID,
+              googleClientSecret: appEnv.GOOGLE_CLIENT_SECRET,
+              resendApiKey: appEnv.RESEND_API_KEY,
+            })
+          }
 
           // Tell the client the step is done
           sendSSE({
@@ -416,7 +457,7 @@ export async function POST(req: NextRequest) {
           })
 
           // Award XP for agent tool usage
-          if (kv) awardXP(kv, userId, 'agent', 3).catch(() => {})
+          if (kv) waitUntil(awardXP(kv, userId, 'agent', 3).catch(() => {}))
 
           // ── Feed tool result back to Gemini ───────────────────────────
           // Append the model's functionCall and our functionResponse
@@ -431,12 +472,11 @@ export async function POST(req: NextRequest) {
             },
           })
 
-          agentContents.push({
+          const modelEntry = {
             role: "model",
             parts: modelParts,
-          })
-
-          agentContents.push({
+          }
+          const userEntry = {
             role: "user",
             parts: [{
               functionResponse: {
@@ -446,7 +486,11 @@ export async function POST(req: NextRequest) {
                 },
               },
             }],
-          })
+          }
+          agentContents.push(modelEntry)
+          agentContents.push(userEntry)
+          // M5 fix: keep the running byte counter in sync with agentContents.
+          agentContentsBytes += JSON.stringify(modelEntry).length + JSON.stringify(userEntry).length
 
           // Rebuild the request with updated conversation
           currentRequestBody = {

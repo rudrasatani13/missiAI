@@ -9,6 +9,7 @@ import { getUserPlan } from "@/lib/billing/tier-checker"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { checkVoiceLimit, getTodayDate } from "@/lib/billing/usage-tracker"
+import { waitUntil } from "@/lib/server/wait-until"
 import { COST_CONSTANTS } from "@/lib/server/cost-tracker"
 import { getUserPersona } from "@/lib/personas/persona-store"
 import { getVoiceId as getPersonaVoiceId } from "@/lib/personas/persona-config"
@@ -161,17 +162,19 @@ export async function POST(req: NextRequest) {
 
       logRequest("tts.completed", userId, startTime, { charCount, attempt })
 
-      // Analytics: fire-and-forget
+      // Analytics: fire-and-forget (H1 fix: wrap in waitUntil)
       try {
         const { env } = getCloudflareContext()
         const kv = (env as any).MISSI_MEMORY as KVStore | null
         if (kv) {
-          recordEvent(kv, {
-            type: 'tts',
-            userId,
-            costUsd: charCount * COST_CONSTANTS.TTS_COST_PER_CHAR,
-          }).catch(() => {})
-          recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
+          waitUntil(
+            recordEvent(kv, {
+              type: 'tts',
+              userId,
+              costUsd: charCount * COST_CONSTANTS.TTS_COST_PER_CHAR,
+            }).catch(() => {}),
+          )
+          waitUntil(recordUserSeen(kv, userId, getTodayDate()).catch(() => {}))
         }
       } catch {
         // KV unavailable, skip analytics

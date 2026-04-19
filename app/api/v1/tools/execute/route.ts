@@ -12,6 +12,7 @@ import { NextRequest } from "next/server"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { executeAgentTool, AGENT_FUNCTION_DECLARATIONS, type AgentToolCall, type ToolContext } from "@/lib/ai/agent-tools"
+import { AGENT_SAFE_TOOL_NAMES, AGENT_DESTRUCTIVE_TOOL_NAMES } from "@/lib/ai/agent-tool-policy"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { logRequest, logError } from "@/lib/server/logger"
@@ -32,36 +33,11 @@ import type { KVStore } from "@/types"
 // recipient/body to send real email via Resend, or calendar write tools to
 // mutate the user's calendar, without any server-side step-up.
 //
-// Fix: explicit safe-tool set. Tools that require step-up (sendEmail,
-// confirmSendEmail, createCalendarEvent, deleteCalendarEvent,
-// updateCalendarEvent) are intentionally absent and return 400.
-const LIVE_SAFE_TOOL_NAMES = new Set([
-  "searchMemory",
-  "setReminder",
-  "takeNote",
-  "readCalendar",       // read-only
-  "findFreeSlot",       // read-only
-  "createNote",
-  "draftEmail",         // drafts only — no Resend call made
-  "searchWeb",
-  "searchNews",
-  "searchYouTube",
-  "logExpense",
-  "getWeekSummary",
-  "updateGoalProgress",
-  "lookupContact",
-  "saveContact",
-])
-
-// High-risk tools blocked from this endpoint: require agent-confirm token flow.
-// Kept explicit so the block is visible during code review.
-const BLOCKED_FROM_LIVE = new Set([
-  "sendEmail",
-  "confirmSendEmail",
-  "createCalendarEvent",
-  "deleteCalendarEvent",
-  "updateCalendarEvent",
-])
+// C2 fix: the allowlist is now shared from `@/lib/ai/agent-tool-policy` so the
+// chat-stream agent loop enforces the exact same policy. Do NOT inline a
+// divergent list here.
+const LIVE_SAFE_TOOL_NAMES = AGENT_SAFE_TOOL_NAMES
+const BLOCKED_FROM_LIVE = AGENT_DESTRUCTIVE_TOOL_NAMES
 
 // ── Zod schema for request body (BUG-003 fix) ────────────────────────────────
 const toolExecuteSchema = z.object({

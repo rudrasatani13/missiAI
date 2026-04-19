@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import Link from 'next/link'
 import { ArrowLeft, Plus, Sword, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuests } from '@/hooks/useQuests'
@@ -330,10 +329,10 @@ export default function QuestsClient() {
     const allMissions = selectedQuest.chapters.flatMap(c => c.missions)
 
     return (
-      <div className="relative min-h-dvh flex flex-col items-center px-4 pb-10 md:pb-16 pt-safe"
-        style={{ background: '#060608', fontFamily: 'var(--font-body)' }}>
+      <div className="relative min-h-full flex flex-col items-center px-4 py-8 md:py-12"
+        style={{ fontFamily: 'var(--font-body)' }}>
         {/* Ambient */}
-        <div aria-hidden className="pointer-events-none fixed inset-0 z-0" style={{
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-0" style={{
           background: `radial-gradient(520px circle at 15% 10%, ${color}0A, transparent 60%), radial-gradient(480px circle at 85% 90%, ${color}06, transparent 65%)`,
           filter: 'blur(120px)',
         }} />
@@ -502,9 +501,9 @@ export default function QuestsClient() {
 
   if (view === 'create') {
     return (
-      <div className="relative min-h-dvh flex flex-col items-center px-4 pb-10 md:pb-16 pt-safe"
-        style={{ background: '#060608', fontFamily: 'var(--font-body)' }}>
-        <div aria-hidden className="pointer-events-none fixed inset-0 z-0" style={{
+      <div className="relative min-h-full flex flex-col items-center px-4 py-8 md:py-12"
+        style={{ fontFamily: 'var(--font-body)' }}>
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-0" style={{
           background: 'radial-gradient(520px circle at 15% 10%, rgba(251,191,36,0.06), transparent 60%), radial-gradient(480px circle at 85% 90%, rgba(245,158,11,0.05), transparent 65%)',
           filter: 'blur(120px)',
         }} />
@@ -538,30 +537,20 @@ export default function QuestsClient() {
 
   return (
     <div
-      className="relative min-h-dvh flex flex-col items-center px-4 pb-10 md:pb-16 pt-safe"
-      style={{ background: '#060608', fontFamily: 'var(--font-body)' }}
+      className="relative min-h-full flex flex-col items-center px-4 py-8 md:py-12"
+      style={{ fontFamily: 'var(--font-body)' }}
     >
       {/* Ambient field — warm amber */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-0"
+        className="pointer-events-none absolute inset-0 z-0"
         style={{
           background: 'radial-gradient(520px circle at 15% 10%, rgba(251,191,36,0.06), transparent 60%), radial-gradient(480px circle at 85% 90%, rgba(245,158,11,0.05), transparent 65%)',
           filter: 'blur(120px)',
         }}
       />
 
-      {/* Back nav */}
-      <div className="relative z-10 w-full max-w-lg mb-10">
-        <Link
-          href="/chat"
-          className="inline-flex items-center gap-2 text-xs transition-colors"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Back to Missi
-        </Link>
-      </div>
+      {/* Sidebar provides navigation — no Back link needed. */}
 
       {/* Hero */}
       <motion.div

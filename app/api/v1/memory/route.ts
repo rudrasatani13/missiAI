@@ -17,6 +17,7 @@ import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/l
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { logRequest, logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
+import { waitUntil } from "@/lib/server/wait-until"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { getTodayDate } from "@/lib/billing/usage-tracker"
 import { awardXP } from "@/lib/gamification/xp-engine"
@@ -130,10 +131,10 @@ export async function GET(req: NextRequest) {
         resultCount: results.length,
       })
 
-      // Analytics: fire-and-forget
+      // Analytics: fire-and-forget (H1 fix: wrap in waitUntil)
       if (kv) {
-        recordEvent(kv, { type: 'memory_read', userId }).catch(() => {})
-        recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
+        waitUntil(recordEvent(kv, { type: 'memory_read', userId }).catch(() => {}))
+        waitUntil(recordUserSeen(kv, userId, getTodayDate()).catch(() => {}))
       }
 
       return jsonResponse({ success: true, data: results }, 200, rateLimitHeaders(rateResult))
@@ -145,10 +146,10 @@ export async function GET(req: NextRequest) {
       nodeCount: graph.nodes.length,
     })
 
-    // Analytics: fire-and-forget
+    // Analytics: fire-and-forget (H1 fix: wrap in waitUntil)
     if (kv) {
-      recordEvent(kv, { type: 'memory_read', userId }).catch(() => {})
-      recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
+      waitUntil(recordEvent(kv, { type: 'memory_read', userId }).catch(() => {}))
+      waitUntil(recordUserSeen(kv, userId, getTodayDate()).catch(() => {}))
     }
 
     return jsonResponse({ success: true, data: graph }, 200, rateLimitHeaders(rateResult))
@@ -256,10 +257,10 @@ export async function POST(req: NextRequest) {
       totalInteractions: graph.totalInteractions,
     })
 
-    // Analytics & Gamification: fire-and-forget
+    // Analytics & Gamification: fire-and-forget (H1 fix: wrap in waitUntil)
     if (kv) {
-      recordEvent(kv, { type: 'memory_write', userId }).catch(() => {})
-      recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
+      waitUntil(recordEvent(kv, { type: 'memory_write', userId }).catch(() => {}))
+      waitUntil(recordUserSeen(kv, userId, getTodayDate()).catch(() => {}))
 
       // Award chat XP only for meaningful conversations (4+ turns)
       // and only once per 5-minute window to prevent duplicate beacon awards
@@ -267,15 +268,15 @@ export async function POST(req: NextRequest) {
         const cooldownKey = `xp-cooldown:chat:${userId}`
         const cooldownHit = await kv.get(cooldownKey).catch(() => null)
         if (!cooldownHit) {
-          awardXP(kv, userId, 'chat', 3).catch(() => {})
-          kv.put(cooldownKey, '1', { expirationTtl: 300 }).catch(() => {}) // 5-min cooldown
+          waitUntil(awardXP(kv, userId, 'chat', 3).catch(() => {}))
+          waitUntil(kv.put(cooldownKey, '1', { expirationTtl: 300 }).catch(() => {})) // 5-min cooldown
         }
       }
 
       // Award XP for each memory node saved
       if (added > 0) {
         for (let i = 0; i < Math.min(added, 10); i++) {
-          awardXP(kv, userId, 'memory', 2).catch(() => {})
+          waitUntil(awardXP(kv, userId, 'memory', 2).catch(() => {}))
         }
       }
     }

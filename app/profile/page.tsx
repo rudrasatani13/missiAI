@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { ProfileCardClient } from '@/components/profile/ProfileCardClient'
+import { ChatShell } from '@/components/shell/ChatShell'
 
 export default function ProfilePage() {
   const { isLoaded, isSignedIn } = useUser()
@@ -17,5 +18,9 @@ export default function ProfilePage() {
 
   if (!isLoaded || !isSignedIn) return null
 
-  return <ProfileCardClient />
+  return (
+    <ChatShell>
+      <ProfileCardClient />
+    </ChatShell>
+  )
 }

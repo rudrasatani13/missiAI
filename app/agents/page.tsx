@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import AgentDashboard from '@/components/agents/AgentDashboard'
+import { ChatShell } from '@/components/shell/ChatShell'
 
 export default function AgentsPage() {
   const { isLoaded, isSignedIn } = useUser()
@@ -17,5 +18,9 @@ export default function AgentsPage() {
 
   if (!isLoaded || !isSignedIn) return null
 
-  return <AgentDashboard />
+  return (
+    <ChatShell>
+      <AgentDashboard />
+    </ChatShell>
+  )
 }

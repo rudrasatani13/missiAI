@@ -34,7 +34,9 @@ export function UsageBar({ usedSeconds, limitSeconds, planId, onUpgrade }: Usage
     <div
       data-testid="usage-bar"
       style={{
-        position: 'fixed',
+        // absolute so it sits inside the rounded chat <main> instead of
+        // overflowing beyond the floating container's margin.
+        position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,

@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, Sparkles, Heart } from 'lucide-react'
+import { Sparkles, Heart } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import type { MoodEntry, MoodLabel, WeeklyMoodInsight } from '@/types/mood'
@@ -935,14 +934,15 @@ export default function MoodTimelineClient() {
 
   return (
     <div
-      className="min-h-screen"
+      className="relative min-h-full"
       style={{
-        background: '#060608',
         color: 'rgba(255,255,255,0.85)',
       }}
     >
-      {/* Ambient field — soft rose (mood palette) */}
-      <div aria-hidden className="fixed inset-0 pointer-events-none z-0" style={{
+      {/* Ambient field — soft rose (mood palette). Absolute so it stays inside
+          the floating shell's rounded main card instead of bleeding over the
+          sidebar. */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none z-0" style={{
         background: 'radial-gradient(520px circle at 15% 10%, rgba(251,113,133,0.06), transparent 60%), radial-gradient(400px circle at 85% 88%, rgba(244,63,94,0.04), transparent 65%)',
         filter: 'blur(100px)',
       }} />
@@ -957,17 +957,9 @@ export default function MoodTimelineClient() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="flex items-center justify-between mb-7"
+          className="flex items-center justify-center mb-7"
         >
-          <Link
-            href="/chat"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors no-underline text-xs"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Back</span>
-          </Link>
-
+          {/* Sidebar provides navigation — no Back link needed. */}
           <div className="flex items-center gap-2.5">
             <Heart
               className="w-4 h-4"
@@ -980,8 +972,6 @@ export default function MoodTimelineClient() {
               Mood Timeline
             </h1>
           </div>
-
-          <div style={{ width: 60 }} />
         </motion.div>
 
         {/* ── Loading skeleton ────────────────────────────────────────── */}

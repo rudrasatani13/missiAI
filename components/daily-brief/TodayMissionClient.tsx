@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Check, RefreshCw, Flame, Zap, MessageCircle } from 'lucide-react'
+import { Check, RefreshCw, Flame, Zap, MessageCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { DailyBrief, DailyTask } from '@/types/daily-brief'
 
@@ -360,16 +360,13 @@ export default function TodayMissionClient() {
 
   return (
     <div
-      className="relative min-h-dvh text-white flex flex-col items-center px-4 pb-10 md:pb-16 pt-safe"
-      style={{
-        background: '#060608',
-        fontFamily: 'var(--font-body)',
-      }}
+      className="relative min-h-full text-white flex flex-col items-center px-4 py-8 md:py-12"
+      style={{ fontFamily: 'var(--font-body)' }}
     >
-      {/* Ambient field — warm amber */}
+      {/* Ambient field — warm amber. Absolute so it stays inside the shell card. */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-0"
+        className="pointer-events-none absolute inset-0 z-0"
         style={{
           background:
             'radial-gradient(520px circle at 15% 10%, rgba(251,191,36,0.06), transparent 60%), radial-gradient(480px circle at 85% 90%, rgba(245,158,11,0.05), transparent 65%)',
@@ -377,17 +374,7 @@ export default function TodayMissionClient() {
         }}
       />
 
-      {/* Back nav */}
-      <div className="relative z-10 w-full max-w-lg mb-10">
-        <Link
-          href="/chat"
-          className="inline-flex items-center gap-2 text-xs transition-colors"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Back to Missi
-        </Link>
-      </div>
+      {/* Sidebar provides navigation — no Back link needed. */}
 
       {/* Hero — eyebrow + greeting */}
       <motion.div

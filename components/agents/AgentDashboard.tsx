@@ -6,9 +6,8 @@ import {
   Zap, Calendar, FileText, Mail, TrendingUp, Target,
   Brain, Search, DollarSign, ChevronDown, ChevronUp,
   CheckCircle, XCircle, Loader2, AlertCircle, Clock,
-  ArrowLeft, Sparkles,
+  Sparkles,
 } from 'lucide-react'
-import Link from 'next/link'
 import type { AgentPlan, AgentPlanStep } from '@/lib/ai/agent-planner'
 import type { AgentHistoryEntry } from '@/lib/ai/agent-history'
 
@@ -409,12 +408,9 @@ export default function AgentDashboard() {
   const showExecution = isExecuting || (isComplete && executionSteps.length > 0)
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Header */}
+    <div className="min-h-full text-white">
+      {/* Header (sidebar provides navigation — no Back link needed) */}
       <div className="border-b border-white/10 px-6 py-4 flex items-center gap-4">
-        <Link href="/chat" className="text-white/40 hover:text-white/70 transition-colors">
-          <ArrowLeft size={18} />
-        </Link>
         <div className="flex items-center gap-2">
           <Zap size={18} className="text-purple-400" />
           <h1 className="text-white/90 font-medium">Missi Agent</h1>

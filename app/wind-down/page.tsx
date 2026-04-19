@@ -1,13 +1,13 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { Moon, Clock, Star, Sunrise, ArrowLeft } from 'lucide-react'
+import { Moon, Clock, Star, Sunrise } from 'lucide-react'
 import { useWindDown } from '@/hooks/useWindDown'
 import type { BriefingItem } from '@/types/proactive'
 import SleepSessions from '@/components/wind-down/SleepSessions'
+import { ChatShell } from '@/components/shell/ChatShell'
 
 function getCurrentTime(): string {
   const now = new Date()
@@ -140,37 +140,30 @@ export default function WindDownPage() {
     : []
 
   return (
-    <div
-      className="min-h-dvh flex flex-col items-center justify-start px-4 relative"
-      style={{
-        background: '#060608',
-        fontFamily: 'var(--font-body)',
-        paddingTop: 'max(2rem, env(safe-area-inset-top))',
-        paddingBottom: '3rem',
-      }}
-    >
-      {/* Ambient field — soft rose (wind-down palette) */}
+    <ChatShell>
       <div
-        aria-hidden
-        className="fixed inset-0 pointer-events-none z-0"
+        className="relative min-h-full flex flex-col items-center justify-start px-4"
         style={{
-          background: 'radial-gradient(500px circle at 20% 15%, rgba(251,113,133,0.06), transparent 60%), radial-gradient(380px circle at 80% 85%, rgba(244,63,94,0.04), transparent 65%)',
-          filter: 'blur(100px)',
+          fontFamily: 'var(--font-body)',
+          paddingTop: '2rem',
+          paddingBottom: '3rem',
         }}
-      />
-      
-      <div className="w-full max-w-6xl relative z-10 flex flex-col h-full">
-        {/* Back button */}
-        <Link
-          href="/chat"
-          className="flex items-center gap-2 mb-6 md:mb-8 transition-colors text-xs"
-          style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back</span>
-        </Link>
+      >
+        {/* Ambient field — soft rose (wind-down palette). Absolute so it stays
+            inside the rounded main card. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background: 'radial-gradient(500px circle at 20% 15%, rgba(251,113,133,0.06), transparent 60%), radial-gradient(380px circle at 80% 85%, rgba(244,63,94,0.04), transparent 65%)',
+            filter: 'blur(100px)',
+          }}
+        />
 
-        {/* Header */}
+        <div className="w-full max-w-6xl relative z-10 flex flex-col h-full">
+          {/* Sidebar provides navigation — no Back link needed. */}
+
+          {/* Header */}
         <div className="flex flex-col items-center mb-8 md:mb-10">
           <Moon className="w-6 h-6 md:w-7 md:h-7 mb-4 md:mb-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
           <h1
@@ -274,7 +267,8 @@ export default function WindDownPage() {
           </div>
 
         </div>
+        </div>
       </div>
-    </div>
+    </ChatShell>
   )
 }

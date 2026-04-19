@@ -33,7 +33,8 @@ BOT CHANNEL RULES (non-negotiable):
 - If you reference a URL, write it as plain text — no markdown link syntax.
 `.trim()
 
-const MEMORY_TIMEOUT_MS = 6_000
+// M3 fix: aligned across chat / chat-stream / bot-pipeline to 5s.
+const MEMORY_TIMEOUT_MS = 5_000
 
 export interface BotProcessOptions {
   kv: KVStore

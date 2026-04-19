@@ -15,6 +15,7 @@ import { selectGeminiModel, getFallbackModel } from "@/lib/ai/model-router"
 import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
 import { calculateTotalCost, checkBudgetAlert } from "@/lib/server/cost-tracker"
 import { getEnv } from "@/lib/server/env"
+import { waitUntil } from "@/lib/server/wait-until"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkAndIncrementVoiceTime, getTodayDate } from "@/lib/billing/usage-tracker"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
@@ -151,7 +152,8 @@ export async function POST(req: NextRequest) {
       const memoryPromise = searchLifeGraph(kv, vectorizeEnv, userId, currentMessage,
         { topK: 5 },
       )
-      const MEMORY_TIMEOUT_MS = 6000
+      // M3 fix: aligned across chat / chat-stream / bot-pipeline to 5s.
+      const MEMORY_TIMEOUT_MS = 5000
       const results = await Promise.race([
         memoryPromise,
         new Promise<never>((_, reject) =>
@@ -307,23 +309,31 @@ export async function POST(req: NextRequest) {
                 totalCostUsd: costData.totalCostUsd,
               })
 
+              // H1 fix: every background task below now uses waitUntil() so
+              // the Cloudflare worker stays alive until they settle. Without
+              // this, the isolate is killed as soon as the SSE stream closes
+              // on the client, silently dropping analytics, cache writes,
+              // mood captures, and budget alerts.
+
               // Budget alert check (non-blocking)
-              checkBudgetAlert(kv, costData.totalCostUsd).catch(() => {})
+              waitUntil(checkBudgetAlert(kv, costData.totalCostUsd).catch(() => {}))
 
               // Usage already incremented pre-response via checkAndIncrementVoice
               if (kv) {
                 // Analytics: fire-and-forget
-                recordEvent(kv, {
-                  type: 'chat',
-                  userId,
-                  costUsd: costData.totalCostUsd,
-                  metadata: { model: costData.model, tokensIn: costData.inputTokens, tokensOut: costData.outputTokens },
-                }).catch(() => {})
-                recordUserSeen(kv, userId, getTodayDate()).catch(() => {})
+                waitUntil(
+                  recordEvent(kv, {
+                    type: 'chat',
+                    userId,
+                    costUsd: costData.totalCostUsd,
+                    metadata: { model: costData.model, tokensIn: costData.inputTokens, tokensOut: costData.outputTokens },
+                  }).catch(() => {}),
+                )
+                waitUntil(recordUserSeen(kv, userId, getTodayDate()).catch(() => {}))
               }
 
               if (cacheKey && isCacheable(userMessageText, fullResponse)) {
-                setCachedResponse(cacheKey, fullResponse).catch(() => {})
+                waitUntil(setCachedResponse(cacheKey, fullResponse).catch(() => {}))
               }
 
               // ── Mood capture: fire-and-forget, never blocks the response ──
@@ -338,9 +348,11 @@ export async function POST(req: NextRequest) {
                   .join("\n")
                 const today = new Date().toISOString().slice(0, 10)
                 const sessionId = crypto.randomUUID().slice(0, 8)
-                analyzeMoodFromConversation(moodTranscript, today, sessionId)
-                  .then((entry) => addMoodEntry(kv, userId, entry))
-                  .catch(() => {})
+                waitUntil(
+                  analyzeMoodFromConversation(moodTranscript, today, sessionId)
+                    .then((entry) => addMoodEntry(kv, userId, entry))
+                    .catch(() => {}),
+                )
               }
 
               return

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import nextDynamic from "next/dynamic"
-import { ArrowLeft, Brain, Settings, X, Crown, Moon, Flame, Camera, Puzzle, IdCard, Heart, Target, Mic2, Check, Zap, Sword, MessageSquare } from "lucide-react"
+import { ArrowLeft, X } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useGeminiLive, type LiveState } from "@/hooks/useGeminiLive"
@@ -17,7 +17,7 @@ import { useBilling } from "@/hooks/useBilling"
 import { PERSONALITY_OPTIONS, type PersonalityKey, type ConversationEntry } from "@/types/chat"
 import { VoiceButton } from "@/components/chat/VoiceButton"
 import { StatusDisplay } from "@/components/chat/StatusDisplay"
-import { SettingsPanel } from "@/components/chat/SettingsPanel"
+import { ChatSidebar } from "@/components/chat/ChatSidebar"
 import { ConversationLog } from "@/components/chat/ConversationLog"
 import { ActionCard } from "@/components/chat/ActionCard"
 import { PluginBadge } from "@/components/chat/PluginBadge"
@@ -572,6 +572,24 @@ export default function VoiceAssistantPage() {
     signOut().catch(() => { }); setTimeout(() => { window.location.href = "/" }, 500)
   }, [signOut, cancelAll])
 
+  // Soft reset for "Chat" sidebar item: cancel voice, clear conversation, refresh greeting gate, push /chat
+  const handleNewChat = useCallback(() => {
+    cancelAll()
+    if (liveMode && geminiLive.state !== "disconnected") {
+      geminiLive.disconnect()
+    }
+    conversationRef.current = []
+    setActivePanel(null)
+    setLiveTranscriptIn("")
+    setLiveTranscriptOut("")
+    try { sessionStorage.removeItem('missi-greeted') } catch { }
+    greetedRef.current = false
+    router.push('/chat')
+  }, [cancelAll, liveMode, geminiLive, router])
+
+  // Sidebar width reported by ChatSidebar (0 on mobile). Used to offset fixed chat children.
+  const [sidebarWidth, setSidebarWidth] = useState(240)
+
   // Trigger action detection when user speaks (lastTranscript changes)
   useEffect(() => {
     if (!lastTranscript || lastTranscript === lastResponseForActionRef.current) return
@@ -625,13 +643,59 @@ export default function VoiceAssistantPage() {
   }, [pluginResult, clearPluginResult, clearResult])
 
   return (
-    <div className="fixed inset-0 bg-black text-white overflow-hidden select-none"
-      style={{ fontFamily: "var(--font-body)" }}>
+    <div className="fixed inset-0 flex gap-2 md:gap-3 p-2 md:p-3 bg-black text-white overflow-hidden select-none"
+      style={{ fontFamily: "var(--font-body)", ['--chat-sidebar-width' as any]: `${sidebarWidth}px` }}>
       {/* Hide global footer on chat page */}
       <style>{`[data-testid="global-footer"] { display: none !important; }`}</style>
 
+      <ChatSidebar
+        plan={plan?.id}
+        onLogout={handleLogout}
+        onNewChat={handleNewChat}
+        isLiveMode={liveMode}
+        activePersona={activePersona}
+        onPersonaChange={(p) => {
+          setActivePersona({
+            personaId: p.personaId,
+            displayName: p.displayName,
+            accentColor: p.accentColor,
+            geminiVoiceName: p.geminiVoiceName,
+          })
+          if (liveMode) {
+            geminiLive.disconnect()
+            setLiveMode(false)
+          }
+        }}
+        onSwitchToLive={() => {
+          setLiveMode(true)
+          setActivePersona(null)
+        }}
+        onPickImage={() => fileInputRef.current?.click()}
+        onWidthChange={setSidebarWidth}
+        personality={personality}
+        onPersonalityChange={updatePersonality}
+        voiceEnabled={voiceEnabled}
+        onVoiceToggle={() => setVoiceEnabled((v) => !v)}
+        customPrompt={customPrompt}
+        onCustomPromptChange={updateCustomPrompt}
+        onNameChange={(newName: string) => {
+          try { localStorage.setItem('missi-user-name', newName) } catch { }
+          setLocalName(newName)
+        }}
+      />
+
+      <main
+        className="relative flex-1 min-w-0 h-full overflow-hidden rounded-2xl md:rounded-3xl"
+        style={{
+          background: "#000",
+          border: "1px solid rgba(255,255,255,0.06)",
+          boxShadow:
+            "0 20px 60px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.02)",
+        }}
+      >
+
       {/* Daily brief banner — fire-and-forget, never blocks chat */}
-      <div className="fixed top-0 left-0 right-0 z-[200] p-3 md:p-4 pointer-events-auto" style={{ maxWidth: 600, margin: '0 auto' }}>
+      <div className="absolute top-0 left-0 right-0 z-[200] p-3 md:p-4 pointer-events-auto" style={{ maxWidth: 600, margin: '0 auto' }}>
         <DailyBriefBanner />
       </div>
       {showBootSequence && !bootCompleted && (
@@ -651,20 +715,22 @@ export default function VoiceAssistantPage() {
         <OnboardingTour onComplete={() => setShowOnboarding(false)} />
       )}
       <ParticleVisualizer state={effectiveVoiceState} isActive={effectiveVoiceState !== "idle"} audioLevel={audioLevel} avatarTier={avatarTier} />
-      <div className="fixed inset-0 z-10" onClick={isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
+      <div className="absolute inset-0 z-10" onClick={isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
         style={{ cursor: isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
-      <div className="relative w-[90%] md:w-[600px] mx-auto z-[100] pointer-events-none">
-        <nav className="flex items-center justify-between w-full mt-6 px-4 py-2.5 pointer-events-auto rounded-[32px] shadow-2xl"
+      {/* On mobile: offset from left to clear the fixed sidebar hamburger (48px).
+          On desktop: 600px centered. */}
+      <div className="relative w-auto md:w-[600px] ml-12 mr-3 md:mx-auto z-[100] pointer-events-none">
+        <nav className="flex items-center justify-between w-full mt-12 md:mt-6 px-4 py-2.5 pointer-events-auto rounded-[32px] shadow-2xl"
           style={{
             background: "rgba(255,255,255,0.08)",
             backdropFilter: "blur(24px)",
             WebkitBackdropFilter: "blur(24px)",
             border: "1px solid rgba(255,255,255,0.15)",
           }}>
-          {/* Left: Back */}
+          {/* Left: Back — hidden on mobile (sidebar hamburger handles navigation) */}
           <div className="flex items-center flex-1 justify-start gap-2">
             <Magnetic>
-              <Link href="/" className="flex items-center justify-center p-2 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-all text-white" data-testid="home-link">
+              <Link href="/" className="hidden md:flex items-center justify-center p-2 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-all text-white" data-testid="home-link">
                 <ArrowLeft className="w-4 h-4" />
               </Link>
             </Magnetic>
@@ -691,73 +757,9 @@ export default function VoiceAssistantPage() {
             </svg>
           </div>
 
-          {/* Right: Persona Indicator + Settings */}
-          <div className="flex items-center flex-1 justify-end gap-1.5 md:gap-2">
-            {/* Persona Indicator — only shows when AI persona is active */}
-            {!liveMode && activePersona && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'settings' ? null : 'settings') }}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-full opacity-70 hover:opacity-100 hover:bg-white/10 transition-all"
-                data-testid="persona-indicator"
-                style={{ background: "none", border: "none", cursor: "pointer", maxHeight: 24 }}
-              >
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: activePersona.accentColor, flexShrink: 0 }} />
-                <span className="text-[9px] font-medium text-white/50 hidden md:inline" style={{ whiteSpace: "nowrap" }}>
-                  {activePersona.displayName}
-                </span>
-              </button>
-            )}
-            <Magnetic>
-              <button
-                onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'settings' ? null : 'settings') }}
-                className="p-2 rounded-full opacity-70 hover:opacity-100 hover:bg-white/20 transition-all text-white"
-                data-testid="settings-toggle-btn"
-                style={{ background: "none", border: "none", cursor: "pointer" }}>
-                <Settings className="w-4 h-4" />
-              </button>
-            </Magnetic>
-          </div>
+          {/* Right: empty spacer so MISSI stays centered */}
+          <div className="flex items-center flex-1 justify-end" aria-hidden />
         </nav>
-
-        <SettingsPanel personality={personality} onPersonalityChange={updatePersonality}
-          voiceEnabled={voiceEnabled} onVoiceToggle={() => setVoiceEnabled((v) => !v)}
-          isOpen={activePanel !== null} activePanel={activePanel} onClose={() => setActivePanel(null)}
-          userName={displayFullName} userEmail={user?.primaryEmailAddress?.emailAddress || ""}
-          userImageUrl={user?.imageUrl || null} onLogout={handleLogout}
-          plugins={plugins}
-          onConnectPlugin={connectPlugin}
-          onDisconnectPlugin={disconnectPlugin}
-          plan={plan?.id}
-          customPrompt={customPrompt}
-          onCustomPromptChange={updateCustomPrompt}
-          onPanelMouseEnter={() => {}}
-          onPanelMouseLeave={() => {}}
-          onNameChange={(newName: string) => {
-            try { localStorage.setItem('missi-user-name', newName) } catch { }
-            setLocalName(newName)
-          }}
-          isLiveMode={liveMode}
-          onPersonaChange={(p) => {
-            setActivePersona({
-              personaId: p.personaId,
-              displayName: p.displayName,
-              accentColor: p.accentColor,
-              geminiVoiceName: p.geminiVoiceName,
-            })
-            // Switch to persona voice pipeline
-            if (liveMode) {
-              geminiLive.disconnect()
-              setLiveMode(false)
-            }
-            setActivePanel(null)
-          }}
-          onSwitchToLive={() => {
-            setLiveMode(true)
-            setActivePersona(null)
-            setActivePanel(null)
-          }}
-          activePersona={activePersona}
-        />
       </div>
 
 
@@ -767,7 +769,7 @@ export default function VoiceAssistantPage() {
 
       {/* ── Action Card Overlay — above everything ─── */}
       {displayResult && (
-        <div className="fixed bottom-32 md:bottom-36 left-0 right-0 z-50 flex justify-center pointer-events-none"
+        <div className="absolute bottom-32 md:bottom-36 left-0 right-0 z-50 flex justify-center pointer-events-none"
           data-testid="action-card-container">
           <ActionCard
             result={displayResult}
@@ -782,7 +784,7 @@ export default function VoiceAssistantPage() {
       )}
 
       {/* ── Main Voice Controls Dock ─── */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 flex flex-col items-center pointer-events-none"
+      <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center pointer-events-none"
         style={{
           paddingBottom: plan?.id === 'free'
             ? 'calc(52px + env(safe-area-inset-bottom))'
@@ -914,7 +916,7 @@ export default function VoiceAssistantPage() {
       </div>
 
       {/* Agent Steps Visualizer — appears above the bottom dock */}
-      <div className="fixed bottom-48 md:bottom-52 left-0 right-0 z-30 flex justify-center pointer-events-none">
+      <div className="absolute bottom-48 md:bottom-52 left-0 right-0 z-30 flex justify-center pointer-events-none">
         <AgentSteps steps={agentSteps} />
       </div>
 
@@ -925,111 +927,16 @@ export default function VoiceAssistantPage() {
         onUpgrade={() => initiateCheckout('pro')}
       />
 
-      {/* Floating side nav — bottom-left */}
-      {/* BUG-015 fix: Added max-height and overflow-auto to prevent overflow on short viewports */}
-      <div className="fixed bottom-44 md:bottom-36 left-4 md:left-6 z-20 pointer-events-auto flex flex-col items-center gap-4 px-2.5 py-4 rounded-full shadow-2xl transition-all"
-        style={{
-          background: 'rgba(255,255,255,0.05)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          maxHeight: 'calc(100vh - 220px)',
-          overflowY: 'auto',
-        }}>
-        <input
-          type="file"
-          accept="image/*"
-          capture="environment"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={handleImageSelect}
-        />
-        <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
-          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          style={{ color: 'white' }}>
-          <Camera className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Vision</span>
-        </button>
-        <Link href="/agents" onClick={(e) => e.stopPropagation()}
-          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          style={{ color: '#a78bfa' }}>
-          <Zap className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Agent</span>
-        </Link>
-        <div className="w-[60%] h-[1px] bg-white/10" />
-        <Link href="/pricing" onClick={(e) => e.stopPropagation()}
-          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          data-testid="upgrade-to-pro-link"
-          style={{ color: '#F59E0B' }}>
-          <Crown className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>{plan?.id === 'pro' ? 'PRO' : 'PLUS'}</span>
-        </Link>
-        <div
-          onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'plugins' ? null : 'plugins') }}
-          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center cursor-pointer"
-          style={{ color: 'white' }}>
-          <Puzzle className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Plugins</span>
-        </div>
-        <Link href="/today" onClick={(e) => e.stopPropagation()}
-          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          style={{ color: '#fbbf24' }}>
-          <Target className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Mission</span>
-        </Link>
-        <div
-          onClick={(e) => { e.stopPropagation(); setActivePanel(activePanel === 'personas' ? null : 'personas') }}
-          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center cursor-pointer"
-          style={{ color: (!liveMode && activePersona) ? activePersona.accentColor : 'white' }}>
-          <Mic2 className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Voice & Persona</span>
-        </div>
-        <div className="w-[60%] h-[1px] bg-white/10" />
-        <Link href="/memory" onClick={(e) => e.stopPropagation()}
-          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          style={{ color: 'white' }}>
-          <Brain className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Memory</span>
-        </Link>
-        <Link href="/mood" onClick={(e) => e.stopPropagation()}
-          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          style={{ color: 'white' }}>
-          <Heart className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Mood</span>
-        </Link>
-        <Link href="/wind-down" onClick={(e) => e.stopPropagation()}
-          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          style={{ color: 'white' }}>
-          <Moon className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Wind Down</span>
-        </Link>
-        <Link href="/quests" onClick={(e) => e.stopPropagation()}
-          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          style={{ color: '#FBBF24' }}>
-          <Sword className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Quests</span>
-        </Link>
-        <Link href="/streak" onClick={(e) => e.stopPropagation()}
-          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          style={{ color: 'white' }}>
-          <Flame className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Streaks</span>
-        </Link>
-        <Link href="/profile" onClick={(e) => e.stopPropagation()}
-          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          style={{ color: 'white' }}>
-          <IdCard className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>Profile Card</span>
-        </Link>
-        <Link href="/settings/integrations" onClick={(e) => e.stopPropagation()}
-          className="group relative opacity-50 hover:opacity-100 transition-all hover:scale-110 flex items-center justify-center"
-          style={{ color: '#25D366' }}>
-          <MessageSquare className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>WhatsApp & Telegram</span>
-        </Link>
+      {/* Hidden file input — triggered by sidebar More → Vision */}
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        ref={fileInputRef}
+        className="hidden"
+        onChange={handleImageSelect}
+      />
 
-      </div>
-
-
+      </main>
     </div>)
 }

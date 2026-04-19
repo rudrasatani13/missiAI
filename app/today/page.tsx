@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import TodayMissionClient from '@/components/daily-brief/TodayMissionClient'
+import { ChatShell } from '@/components/shell/ChatShell'
 
 export default function TodayPage() {
   const { isLoaded, isSignedIn } = useUser()
@@ -17,5 +18,9 @@ export default function TodayPage() {
 
   if (!isLoaded || !isSignedIn) return null
 
-  return <TodayMissionClient />
+  return (
+    <ChatShell>
+      <TodayMissionClient />
+    </ChatShell>
+  )
 }

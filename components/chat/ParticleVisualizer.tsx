@@ -331,12 +331,22 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0, avatarTier =
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x000000)
 
-    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 50)
+    // Size is derived from the canvas' own layout box (which is 100%/100% of
+    // its parent). This makes the orb recenter inside the chat column when the
+    // sidebar expands/collapses, instead of staying glued to the viewport.
+    const getSize = () => {
+      const w = Math.max(1, canvas.clientWidth || window.innerWidth)
+      const h = Math.max(1, canvas.clientHeight || window.innerHeight)
+      return { w, h }
+    }
+    const initial = getSize()
+
+    const camera = new THREE.PerspectiveCamera(55, initial.w / initial.h, 0.1, 50)
     // Camera closer so particles are bigger on screen
     camera.position.set(0, 0, 2.8)
     camera.lookAt(0, 0, 0)
 
-    renderer.setSize(window.innerWidth, window.innerHeight, false)
+    renderer.setSize(initial.w, initial.h, false)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
     const uniforms: Record<string, { value: number }> = {
@@ -432,10 +442,14 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0, avatarTier =
       tTendril: 0.35, tFlowSpeed: 0.12, tPulse: 0.6, tStateBlend: 0,
     }
 
-    // Parallax on mouse move
+    // Parallax on mouse move — use canvas bounding rect so movement is
+    // centered on the visible canvas, not the full viewport (otherwise the
+    // orb drifts off-center when a sidebar occupies part of the window).
     const onMove = (e: MouseEvent) => {
-      const mx = (e.clientX / window.innerWidth)  * 2 - 1
-      const my = (e.clientY / window.innerHeight) * 2 - 1
+      const rect = canvas.getBoundingClientRect()
+      if (rect.width <= 0 || rect.height <= 0) return
+      const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1
+      const my = ((e.clientY - rect.top) / rect.height) * 2 - 1
       camera.position.x = mx * 0.2
       camera.position.y = -my * 0.15
       camera.position.z = 2.8
@@ -444,11 +458,20 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0, avatarTier =
     document.addEventListener("mousemove", onMove)
 
     const onResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight
+      const { w, h } = getSize()
+      camera.aspect = w / h
       camera.updateProjectionMatrix()
-      renderer.setSize(window.innerWidth, window.innerHeight, false)
+      renderer.setSize(w, h, false)
     }
     window.addEventListener("resize", onResize)
+
+    // Observe the canvas itself so we react when the chat column changes
+    // width (sidebar expand/collapse), even though window size hasn't changed.
+    let ro: ResizeObserver | null = null
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => onResize())
+      ro.observe(canvas)
+    }
 
     const onVisibility = () => {
       pausedRef.current = document.hidden
@@ -500,6 +523,7 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0, avatarTier =
       cancelAnimationFrame(animRef.current)
       document.removeEventListener("mousemove", onMove)
       window.removeEventListener("resize", onResize)
+      ro?.disconnect()
       document.removeEventListener("visibilitychange", onVisibility)
       try { renderer.dispose() } catch { }
     }
@@ -544,7 +568,7 @@ function ParticleVisualizerInner({ state, isActive, audioLevel = 0, avatarTier =
     <canvas
       ref={canvasRef}
       data-testid="particle-visualizer"
-      style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 0 }}
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 0, display: "block" }}
     />
   )
 }

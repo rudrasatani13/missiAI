@@ -142,7 +142,16 @@ export async function geminiEmbed(
 }
 
 /**
- * Get the WebSocket URL for Gemini Live API via Vertex AI.
+ * Get the UPSTREAM WebSocket URL for Gemini Live API via Vertex AI.
+ *
+ * ⚠️  CRITICAL (C1 pre-launch audit fix): The returned URL embeds a live
+ *     Google Cloud `cloud-platform`-scoped OAuth access token in its query
+ *     string. This URL MUST NEVER be sent to the browser. It is only safe
+ *     to use inside the Cloudflare Worker as the upstream target of the
+ *     server-side relay in `/api/v1/live-ws/route.ts`.
+ *
+ * Prefer calling `getVertexAccessToken()` + building the URL locally inside
+ * the relay handler over calling this function elsewhere.
  */
 export async function getGeminiLiveWsUrl(): Promise<string> {
   if (!isVertexAI()) {
@@ -151,7 +160,7 @@ export async function getGeminiLiveWsUrl(): Promise<string> {
 
   const token = await getVertexAccessToken()
   if (!token) throw new Error("Failed to obtain Vertex AI access token for Live API")
-  
+
   const location = getVertexLocation()
   return `wss://${location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent?access_token=${token}`
 }

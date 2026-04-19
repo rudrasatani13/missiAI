@@ -281,7 +281,15 @@ export async function POST(req: Request) {
       },
       timestamp: Date.now(),
     })
-    // Return 200 even on error — Dodo retries on non-200
+    // M6 fix: Return 500 on handler failure so Dodo retries the webhook.
+    // Idempotency is enforced by markEventProcessed() — retries are safe.
+    // Previously we swallowed errors and returned 200, which meant partial
+    // failures (e.g. Clerk plan updated but KV subscription mapping write
+    // failed) would be silently dropped with no chance of recovery.
+    return new Response(
+      JSON.stringify({ received: false, error: 'Handler failed' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
   }
 
   return new Response(

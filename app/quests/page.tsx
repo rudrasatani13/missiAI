@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import QuestsClient from '@/components/quests/QuestsClient'
+import { ChatShell } from '@/components/shell/ChatShell'
 
 export default function QuestsPage() {
   const { isLoaded, isSignedIn } = useUser()
@@ -17,5 +18,9 @@ export default function QuestsPage() {
 
   if (!isLoaded || !isSignedIn) return null
 
-  return <QuestsClient />
+  return (
+    <ChatShell>
+      <QuestsClient />
+    </ChatShell>
+  )
 }

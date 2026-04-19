@@ -9,6 +9,7 @@ import { useReferral } from '@/hooks/useReferral'
 import { Check, X, Sparkles, ChevronDown, AlertTriangle, Crown, ArrowRight, Gift, Copy, Users, Award } from 'lucide-react'
 import { CelebrationOverlay } from '@/components/ui/CelebrationOverlay'
 import { ScrollReveal } from '@/components/ui/ScrollReveal'
+import { ChatShell } from '@/components/shell/ChatShell'
 import type { PlanId } from '@/types/billing'
 
 function PaymentBadges() {
@@ -523,13 +524,13 @@ export default function PricingPage() {
       ? (isCancelling ? 'Cancelling...' : cancelAtPeriodEnd ? 'Cancellation Pending' : 'Cancel Subscription')
       : 'Upgrade to Pro'
 
-  return (
+  const pageBody = (
     <div
       data-testid="pricing-page"
       className="pricing-root"
       style={{
-        minHeight: '100vh',
-        background: '#060608',
+        minHeight: isSignedIn ? '100%' : '100vh',
+        background: isSignedIn ? 'transparent' : '#060608',
         color: '#fff',
         fontFamily: 'var(--font-body)',
         position: 'relative',
@@ -540,11 +541,13 @@ export default function PricingPage() {
         Ambient field — pure radial-gradients (no CSS filter: blur).
         Large `filter: blur()` on fixed GPU layers triggered a blank-render bug
         on iOS Safari; radial gradients give the same effect without the bug.
+        When wrapped inside ChatShell (signed in), switch to `absolute` so the
+        ambient stays contained in the rounded main card.
       */}
       <div
         aria-hidden
         style={{
-          position: 'fixed',
+          position: isSignedIn ? 'absolute' : 'fixed',
           inset: 0,
           zIndex: 0,
           pointerEvents: 'none',
@@ -1092,4 +1095,9 @@ export default function PricingPage() {
       `}</style>
     </div>
   )
+
+  // Signed-in users see the page embedded in the shared shell (sidebar
+  // always visible). Unauthenticated marketing visitors get the standalone
+  // full-viewport page with its own background.
+  return isSignedIn ? <ChatShell>{pageBody}</ChatShell> : pageBody
 }

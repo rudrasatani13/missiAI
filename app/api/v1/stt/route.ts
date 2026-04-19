@@ -7,7 +7,7 @@ import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/l
 import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { checkVoiceLimit } from "@/lib/billing/usage-tracker"
+import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
 import type { KVStore } from "@/types"
 
 
@@ -52,27 +52,12 @@ export async function POST(req: NextRequest) {
     throw e
   }
 
-  // ── 2. Voice limit check (read-only — chat endpoint does the increment) ──
+  // ── 2. Plan & KV setup (fail-closed for non-pro when KV is down) ─────────
   const planId = await getUserPlan(userId)
   const kv = getKV()
 
   if (!kv && planId !== 'pro') {
     return jsonResponse({ success: false, error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" }, 503)
-  }
-
-  if (kv && planId !== 'pro') {
-    const voiceLimit = await checkVoiceLimit(kv, userId, planId)
-    if (!voiceLimit.allowed) {
-      logRequest("stt.voice_limit", userId, startTime)
-      return jsonResponse({
-        success: false,
-        error: "Daily voice limit reached",
-        code: "USAGE_LIMIT_EXCEEDED",
-        upgrade: "/pricing",
-        usedSeconds: voiceLimit.usedSeconds,
-        limitSeconds: voiceLimit.limitSeconds,
-      }, 429)
-    }
   }
 
   // ── 3. Rate limit ─────────────────────────────────────────────────────────
@@ -83,7 +68,7 @@ export async function POST(req: NextRequest) {
     return rateLimitExceededResponse(rateResult)
   }
 
-  // ── 3. Parse FormData ────────────────────────────────────────────────────
+  // ── 4. Parse FormData ────────────────────────────────────────────────────
   let formData: FormData
   try {
     formData = await req.formData()
@@ -98,7 +83,7 @@ export async function POST(req: NextRequest) {
     return jsonResponse({ success: false, error: "No audio file provided", code: "VALIDATION_ERROR" }, 400)
   }
 
-  // ── 4. Validate audio file with Zod ──────────────────────────────────────
+  // ── 5. Validate audio file with Zod ──────────────────────────────────────
   const parsed = sttSchema.safeParse({
     name: audioFile.name,
     size: audioFile.size,
@@ -109,7 +94,43 @@ export async function POST(req: NextRequest) {
     return validationErrorResponse(parsed.error)
   }
 
-  // ── 5. Env check ──────────────────────────────────────────────────────────
+  // ── 6. Voice-time check-and-increment (H3 fix) ───────────────────────────
+  //
+  // Previously this endpoint only did a read-only check, which meant a client
+  // could hammer STT without ever hitting the daily voice quota tracked by
+  // /api/v1/chat(-stream). We now debit the user's voice-time budget here
+  // using either the client-reported `voiceDurationMs` (clamped server-side
+  // to [3s, 120s] by sanitizeDuration) or a conservative estimate derived
+  // from the audio file size (assume 64 kbps → ~8 KB/s).
+  const rawDurationField = formData.get("voiceDurationMs")
+  const clientDurationMs =
+    typeof rawDurationField === "string" && rawDurationField.trim().length > 0
+      ? Number.parseInt(rawDurationField, 10)
+      : NaN
+  const estimatedDurationMs = Math.max(
+    3000,
+    Math.round((audioFile.size / 8000) * 1000), // ~64 kbps audio
+  )
+  const effectiveDurationMs = Number.isFinite(clientDurationMs) && clientDurationMs > 0
+    ? clientDurationMs
+    : estimatedDurationMs
+
+  if (kv) {
+    const voiceLimit = await checkAndIncrementVoiceTime(kv, userId, planId, effectiveDurationMs)
+    if (!voiceLimit.allowed) {
+      logRequest("stt.voice_limit", userId, startTime)
+      return jsonResponse({
+        success: false,
+        error: "Daily voice limit reached",
+        code: "USAGE_LIMIT_EXCEEDED",
+        upgrade: "/pricing",
+        usedSeconds: voiceLimit.usedSeconds,
+        limitSeconds: voiceLimit.limitSeconds,
+      }, 429)
+    }
+  }
+
+  // ── 7. Env check ──────────────────────────────────────────────────────────
   let apiKey: string
   try {
     const appEnv = getEnv()
@@ -119,7 +140,7 @@ export async function POST(req: NextRequest) {
     return jsonResponse({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }, 500)
   }
 
-  // ── 6. Call ElevenLabs with retry for transient errors ─────────────────────
+  // ── 8. Call ElevenLabs with retry for transient errors ───────────────────
   const MAX_STT_RETRIES = 2
   let lastErr: unknown = null
 
@@ -150,8 +171,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Log the full provider detail server-side, but never surface it to the client
+  // (H2 fix): previously included `detail` in the response body which could leak
+  // ElevenLabs internals (request ids, internal paths, rate-limit hints, etc.).
   logApiError("stt.error", lastErr, { userId, httpStatus: 500 })
-  // Surface ElevenLabs error detail for debugging (no sensitive data exposed)
-  const detail = (lastErr as any)?.detail || (lastErr instanceof Error ? lastErr.message : "Unknown error")
-  return jsonResponse({ success: false, error: "Transcription failed", code: "INTERNAL_ERROR", detail }, 500)
+  return jsonResponse({ success: false, error: "Transcription failed", code: "INTERNAL_ERROR" }, 500)
 }

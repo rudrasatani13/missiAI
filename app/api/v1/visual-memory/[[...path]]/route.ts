@@ -28,6 +28,7 @@ import {
   incrementVisualRateLimit,
 } from '@/lib/visual-memory/visual-store'
 import { awardXP } from '@/lib/gamification/xp-engine'
+import { waitUntil } from '@/lib/server/wait-until'
 import type { VisualMemoryRecord } from '@/types/visual-memory'
 import type { KVStore } from '@/types'
 
@@ -203,8 +204,11 @@ async function handleAnalyze(req: NextRequest) {
   }
   await addVisualRecord(kv, userId, record)
 
-  incrementVisualRateLimit(kv, userId).catch(() => {})
-  awardXP(kv, userId, 'memory', 1).catch(() => {})
+  // H1 fix: the rate-limit increment MUST survive worker termination —
+  // previously a user could race the response-close to bypass the daily cap
+  // because the .catch() promise was dropped when the isolate ended.
+  waitUntil(incrementVisualRateLimit(kv, userId).catch(() => {}))
+  waitUntil(awardXP(kv, userId, 'memory', 1).catch(() => {}))
 
   const remainingToday = Math.max(0, dailyLimit - usedToday - 1)
   return jsonResponse({

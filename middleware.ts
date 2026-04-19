@@ -147,26 +147,64 @@ function isSuspiciousUA(ua: string | null): boolean {
 
 // ── Sliding-window check ─────────────────────────────────────────────────────
 
+// Hard cap on entries per Map. When exceeded, we evict the oldest entries
+// until we're back under the cap. Prevents a single isolate from being
+// DoS-ed into OOM by an attacker rotating through many source IPs faster
+// than our stale-sweep can reclaim them.
+const MAX_MAP_ENTRIES = 10_000
+// Hard limit on how many stale entries we delete per sweep — keeps the
+// middleware's CPU budget bounded regardless of map size.
+const MAX_SWEEP_DELETES_PER_CALL = 256
+
+function sweepMapBounded(
+  map: Map<string, IPBucket>,
+  windowMs: number,
+  now: number,
+  budget: { remaining: number },
+) {
+  if (budget.remaining <= 0) return
+  for (const [ip, bucket] of map.entries()) {
+    if (budget.remaining <= 0) return
+    if (now >= bucket.windowStart + windowMs) {
+      map.delete(ip)
+      budget.remaining--
+    }
+  }
+}
+
 function sweepStaleIPs() {
   const now = Date.now()
-  const sweepMap = (map: Map<string, IPBucket>, windowMs: number) => {
-    for (const [ip, bucket] of map.entries()) {
-      if (now >= bucket.windowStart + windowMs) {
-        map.delete(ip)
+  const budget = { remaining: MAX_SWEEP_DELETES_PER_CALL }
+  sweepMapBounded(ipMap, IP_WINDOW_MS, now, budget)
+  sweepMapBounded(prevIpMap, IP_WINDOW_MS * 2, now, budget)
+  sweepMapBounded(healthIpMap, IP_WINDOW_MS, now, budget)
+  sweepMapBounded(prevHealthIpMap, IP_WINDOW_MS * 2, now, budget)
+  sweepMapBounded(authIpMap, AUTH_WINDOW_MS, now, budget)
+  sweepMapBounded(prevAuthIpMap, AUTH_WINDOW_MS * 2, now, budget)
+
+  if (budget.remaining > 0) {
+    for (const [ip, v] of violationMap.entries()) {
+      if (budget.remaining <= 0) break
+      if (now - v.firstViolationAt >= VIOLATION_WINDOW_MS) {
+        violationMap.delete(ip)
+        budget.remaining--
       }
     }
   }
-  sweepMap(ipMap, IP_WINDOW_MS)
-  sweepMap(prevIpMap, IP_WINDOW_MS * 2)
-  sweepMap(healthIpMap, IP_WINDOW_MS)
-  sweepMap(prevHealthIpMap, IP_WINDOW_MS * 2)
-  sweepMap(authIpMap, AUTH_WINDOW_MS)
-  sweepMap(prevAuthIpMap, AUTH_WINDOW_MS * 2)
-  
-  for (const [ip, v] of violationMap.entries()) {
-    if (now - v.firstViolationAt >= VIOLATION_WINDOW_MS) {
-      violationMap.delete(ip)
-    }
+}
+
+// Hard cap enforcement: if a map breaches MAX_MAP_ENTRIES we drop entries in
+// insertion order until the map is back at 90 % capacity. JavaScript Map
+// iterates in insertion order, so the "oldest" entries are evicted first.
+function enforceMapCap(map: Map<string, IPBucket>) {
+  if (map.size <= MAX_MAP_ENTRIES) return
+  const target = Math.floor(MAX_MAP_ENTRIES * 0.9)
+  const toDelete = map.size - target
+  let deleted = 0
+  for (const key of map.keys()) {
+    if (deleted >= toDelete) break
+    map.delete(key)
+    deleted++
   }
 }
 
@@ -177,9 +215,14 @@ function checkIPRateLimitInternal(
   limit: number,
   windowMs: number = IP_WINDOW_MS,
 ): { allowed: boolean; retryAfter: number; remaining: number; limit: number; resetAt: number } {
-  if (Math.random() < 0.01) {
-    sweepStaleIPs();
-  }
+  // Run a bounded stale-sweep on every request. MAX_SWEEP_DELETES_PER_CALL
+  // (256) keeps CPU usage predictable even on very large maps. This replaces
+  // the 1 % random sweep, which allowed maps to grow unbounded under load.
+  sweepStaleIPs()
+  // Belt-and-braces: if an attacker rotates through source IPs faster than
+  // the sliding window expiry, enforce a hard eviction cap here as well.
+  enforceMapCap(currentMap)
+  enforceMapCap(prevMap)
 
   const now = Date.now()
 

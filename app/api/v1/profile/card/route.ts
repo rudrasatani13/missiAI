@@ -12,6 +12,7 @@ import { awardXP } from '@/lib/gamification/xp-engine'
 import { geminiGenerate } from '@/lib/ai/vertex-client'
 import { AVATAR_TIERS } from '@/types/gamification'
 import { logRequest, logError } from '@/lib/server/logger'
+import { waitUntil } from '@/lib/server/wait-until'
 import type { KVStore } from '@/types'
 import type { LifeNode } from '@/types/memory'
 
@@ -250,14 +251,17 @@ export async function GET(req: NextRequest) {
     return jsonResponse({ success: false, error: 'Failed to load profile data' }, 500)
   }
 
-  // Award daily login XP (fire-and-forget) — triggers loginStreak update
+  // Award daily login XP (fire-and-forget) — triggers loginStreak update.
+  // H1 fix: waitUntil so the cooldown key write survives worker termination.
   const loginCooldownKey = `xp-cooldown:login:${userId}`
-  kv.get(loginCooldownKey).then(existing => {
-    if (!existing) {
-      awardXP(kv!, userId, 'login').catch(() => {})
-      kv!.put(loginCooldownKey, '1', { expirationTtl: 86400 }).catch(() => {})
-    }
-  }).catch(() => {})
+  waitUntil(
+    kv.get(loginCooldownKey).then(existing => {
+      if (!existing) {
+        awardXP(kv!, userId, 'login').catch(() => {})
+        kv!.put(loginCooldownKey, '1', { expirationTtl: 86400 }).catch(() => {})
+      }
+    }).catch(() => {}),
+  )
 
   // Check for cached result (unless refresh=true)
   const refresh = req.nextUrl.searchParams.get('refresh') === 'true'

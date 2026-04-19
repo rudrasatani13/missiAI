@@ -1,10 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ArrowLeft,
   Heart,
   Users,
   Target,
@@ -673,17 +671,8 @@ export function ProfileCardClient() {
 
   if (loading) {
     return (
-      <div
-        className="min-h-dvh flex flex-col items-center justify-start px-4 pb-8 md:pb-12 pt-safe"
-        style={{ background: '#060608' }}
-      >
+      <div className="min-h-full flex flex-col items-center justify-start px-4 py-6 md:py-10">
         <div className="w-full max-w-[640px]">
-          <div className="mb-10">
-            <Link href="/chat" className="inline-flex items-center gap-2 transition-colors no-underline" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span className="text-xs font-light tracking-wide">Back</span>
-            </Link>
-          </div>
           <div className="rounded-3xl overflow-hidden" style={{ background: 'rgba(12,12,16,0.95)', border: '1px solid rgba(255,255,255,0.08)', height: 600, animation: 'pulse 1.5s ease-in-out infinite' }} />
         </div>
         <style>{`@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }`}</style>
@@ -695,7 +684,7 @@ export function ProfileCardClient() {
 
   if (error || !data) {
     return (
-      <div className="min-h-dvh flex flex-col items-center justify-center px-4 pt-safe" style={{ background: '#060608' }}>
+      <div className="min-h-full flex flex-col items-center justify-center px-4">
         <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>Could not load your profile card.</p>
         <button onClick={() => fetchCard()} className="px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
           Try again
@@ -708,14 +697,11 @@ export function ProfileCardClient() {
   const t = theme.card
 
   return (
-    <div
-      className="min-h-dvh flex flex-col items-center justify-start px-4 pb-8 md:pb-12 pt-safe"
-      style={{ background: '#060608' }}
-    >
-      {/* Fixed ambient field — violet */}
+    <div className="relative min-h-full flex flex-col items-center justify-start px-4 py-6 md:py-10">
+      {/* Ambient field — violet. Absolute so it stays inside the rounded shell card. */}
       <div
         aria-hidden
-        className="fixed inset-0 pointer-events-none z-0"
+        className="absolute inset-0 pointer-events-none z-0"
         style={{
           background: 'radial-gradient(500px circle at 30% 20%, rgba(139,92,246,0.06), transparent 60%), radial-gradient(380px circle at 70% 80%, rgba(99,102,241,0.04), transparent 65%)',
           filter: 'blur(100px)',
@@ -723,16 +709,8 @@ export function ProfileCardClient() {
       />
 
       <div className="w-full max-w-[640px] relative z-10">
-        {/* Header: Back + Refresh */}
-        <div className="flex items-center justify-between mb-6">
-          <Link
-            href="/chat"
-            className="inline-flex items-center gap-2 transition-colors no-underline"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="text-xs font-light tracking-wide">Back</span>
-          </Link>
+        {/* Header: Refresh (sidebar provides navigation) */}
+        <div className="flex items-center justify-end mb-6">
           <button
             onClick={() => fetchCard(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-light transition-colors active:scale-[0.97]"

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { ChatShell } from '@/components/shell/ChatShell'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -12,28 +12,21 @@ type TGStep = 'idle' | 'loading' | 'show_link' | 'linked'
 
 export default function IntegrationsPage() {
   return (
-    <main className="min-h-dvh bg-black text-white pt-safe">
-      <div className="max-w-xl mx-auto px-4 pb-12 pt-6 md:pt-12">
-        <div className="mb-8">
-          <Link
-            href="/chat"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            ← Back to chat
-          </Link>
-        </div>
+    <ChatShell>
+      <div className="min-h-full text-white">
+        <div className="max-w-xl mx-auto px-4 pb-12 pt-6 md:pt-12">
+          <h1 className="text-2xl font-semibold mb-1">Messaging Integrations</h1>
+          <p className="text-gray-400 text-sm mb-8">
+            Chat with Missi on WhatsApp and Telegram. Pro plan required.
+          </p>
 
-        <h1 className="text-2xl font-semibold mb-1">Messaging Integrations</h1>
-        <p className="text-gray-400 text-sm mb-8">
-          Chat with Missi on WhatsApp and Telegram. Pro plan required.
-        </p>
-
-        <div className="space-y-6">
-          <WhatsAppCard />
-          <TelegramCard />
+          <div className="space-y-6">
+            <WhatsAppCard />
+            <TelegramCard />
+          </div>
         </div>
       </div>
-    </main>
+    </ChatShell>
   )
 }
 

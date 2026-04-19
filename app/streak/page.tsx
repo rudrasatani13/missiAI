@@ -3,12 +3,13 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { Flame, ArrowLeft, Trophy, Zap, TrendingUp, Sparkles, Check } from 'lucide-react'
+import { Flame, Trophy, Zap, TrendingUp, Sparkles, Check } from 'lucide-react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAvatar } from '@/hooks/useAvatar'
 import { useStreak } from '@/hooks/useStreak'
 import { AVATAR_TIERS, type AvatarTier } from '@/types/gamification'
+import { ChatShell } from '@/components/shell/ChatShell'
 import type { HabitStreak, Achievement } from '@/types/gamification'
 
 // ─── Glass Card wrapper ──────────────────────────────────────────────────────
@@ -556,31 +557,22 @@ export default function StreakAvatarPage() {
   })()
 
   return (
-    <div
-      className="min-h-dvh flex flex-col items-center justify-start px-4 pb-8 md:pb-12 lg:px-10 pt-safe"
-      style={{
-        background: '#060608',
-        fontFamily: 'var(--font-body)',
-      }}
-    >
-      {/* Ambient field — warm amber (streak palette) */}
-      <div aria-hidden className="fixed inset-0 pointer-events-none z-0" style={{
-        background: 'radial-gradient(500px circle at 20% 10%, rgba(251,191,36,0.06), transparent 60%), radial-gradient(400px circle at 80% 85%, rgba(245,158,11,0.04), transparent 65%)',
-        filter: 'blur(100px)',
-      }} />
+    <ChatShell>
+      <div
+        className="relative min-h-full flex flex-col items-center justify-start px-4 py-6 md:py-8 lg:px-10"
+        style={{ fontFamily: 'var(--font-body)' }}
+      >
+        {/* Ambient field — warm amber (streak palette). Absolute so it stays
+            inside the rounded main card. */}
+        <div aria-hidden className="absolute inset-0 pointer-events-none z-0" style={{
+          background: 'radial-gradient(500px circle at 20% 10%, rgba(251,191,36,0.06), transparent 60%), radial-gradient(400px circle at 80% 85%, rgba(245,158,11,0.04), transparent 65%)',
+          filter: 'blur(100px)',
+        }} />
 
-      <div className="w-full max-w-md lg:max-w-6xl relative z-10">
-        {/* Back link */}
-        <Link
-          href="/chat"
-          className="inline-flex items-center gap-2 mb-10 px-3 py-1.5 rounded-full transition-colors text-xs"
-          style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back</span>
-        </Link>
+        <div className="w-full max-w-md lg:max-w-6xl relative z-10">
+          {/* Sidebar provides navigation — no Back link needed. */}
 
-        {/* ── Desktop: 2-column grid / Mobile: stacked ──────────────── */}
+          {/* ── Desktop: 2-column grid / Mobile: stacked ──────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
           {/* ── Left Column ─────────────────────────────────────────── */}
@@ -721,6 +713,7 @@ export default function StreakAvatarPage() {
           50% { transform: scale(1.1); opacity: 0.35; }
         }
       `}</style>
-    </div>
+      </div>
+    </ChatShell>
   )
 }

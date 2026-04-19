@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
+import { NextRequest } from "next/server"
 import { POST } from "@/app/api/v1/live-token/route"
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
+//
+// C1 pre-launch audit: these tests were rewritten after we replaced the
+// direct Vertex WebSocket URL + GCP OAuth token with a same-origin relay
+// URL + HMAC-signed ticket. We no longer mock `getGeminiLiveWsUrl` because
+// the route no longer calls it — the real GCP token stays on the server.
 
 vi.mock("@/lib/server/auth", () => ({
   getVerifiedUserId: vi.fn(),
@@ -31,8 +37,13 @@ vi.mock("@/lib/ai/vertex-auth", () => ({
   getVertexLocation: vi.fn(),
 }))
 
-vi.mock("@/lib/ai/vertex-client", () => ({
-  getGeminiLiveWsUrl: vi.fn(),
+vi.mock("@/lib/ai/live-ticket", () => ({
+  issueLiveTicket: vi.fn(),
+  LIVE_TICKET_TTL_SECONDS: 300,
+}))
+
+vi.mock("@/lib/server/env", () => ({
+  getEnv: vi.fn(),
 }))
 
 vi.mock("@/lib/server/logger", () => ({
@@ -47,7 +58,8 @@ import { checkRateLimit } from "@/lib/rateLimiter"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { checkVoiceLimit } from "@/lib/billing/usage-tracker"
 import { isVertexAI, getVertexProjectId, getVertexLocation } from "@/lib/ai/vertex-auth"
-import { getGeminiLiveWsUrl } from "@/lib/ai/vertex-client"
+import { issueLiveTicket } from "@/lib/ai/live-ticket"
+import { getEnv } from "@/lib/server/env"
 
 const mockGetVerifiedUserId = vi.mocked(getVerifiedUserId)
 const mockGetUserPlan = vi.mocked(getUserPlan)
@@ -57,9 +69,14 @@ const mockCheckVoiceLimit = vi.mocked(checkVoiceLimit)
 const mockIsVertexAI = vi.mocked(isVertexAI)
 const mockGetVertexProjectId = vi.mocked(getVertexProjectId)
 const mockGetVertexLocation = vi.mocked(getVertexLocation)
-const mockGetGeminiLiveWsUrl = vi.mocked(getGeminiLiveWsUrl)
+const mockIssueLiveTicket = vi.mocked(issueLiveTicket)
+const mockGetEnv = vi.mocked(getEnv)
 
 const LIVE_MODEL = "gemini-live-2.5-flash-native-audio"
+
+function makeReq(): NextRequest {
+  return new NextRequest("https://missi.space/api/v1/live-token", { method: "POST" })
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -69,8 +86,14 @@ beforeEach(() => {
   mockGetUserPlan.mockResolvedValue("free")
   mockCheckRateLimit.mockResolvedValue({ allowed: true, limit: 10, remaining: 9, resetAt: 0, retryAfter: 0 })
   mockCheckVoiceLimit.mockResolvedValue({ allowed: true, usedSeconds: 0, limitSeconds: 100, remainingSeconds: 100 })
-  mockIsVertexAI.mockReturnValue(false)
-  mockGetGeminiLiveWsUrl.mockResolvedValue("wss://gemini.test.com/ws")
+  mockIsVertexAI.mockReturnValue(true)
+  mockGetVertexProjectId.mockReturnValue("test-project")
+  mockGetVertexLocation.mockReturnValue("us-central1")
+  mockIssueLiveTicket.mockResolvedValue("ticket-abc.sig-xyz")
+  mockGetEnv.mockReturnValue({
+    APP_URL: "https://missi.space",
+    // Only the fields the route actually reads need to exist here.
+  } as any)
 
   mockGetRequestContext.mockReturnValue({
     env: {
@@ -88,7 +111,7 @@ describe("POST /api/v1/live-token", () => {
   it("returns 401 if user is not authorized", async () => {
     mockGetVerifiedUserId.mockRejectedValue(new Error("Unauthorized"))
 
-    const response = await POST()
+    const response = await POST(makeReq())
     const body = await response.json()
 
     expect(response.status).toBe(401)
@@ -98,7 +121,7 @@ describe("POST /api/v1/live-token", () => {
   it("returns 429 if rate limit is exceeded", async () => {
     mockCheckRateLimit.mockResolvedValue({ allowed: false, limit: 10, remaining: 0, resetAt: 0, retryAfter: 60 })
 
-    const response = await POST()
+    const response = await POST(makeReq())
     const body = await response.json()
 
     expect(response.status).toBe(429)
@@ -108,41 +131,51 @@ describe("POST /api/v1/live-token", () => {
   it("returns 429 if voice time limit is reached", async () => {
     mockCheckVoiceLimit.mockResolvedValue({ allowed: false, usedSeconds: 100, limitSeconds: 100, remainingSeconds: 0 })
 
-    const response = await POST()
+    const response = await POST(makeReq())
     const body = await response.json()
 
     expect(response.status).toBe(429)
     expect(body.error).toBe("Voice time limit reached for today. Upgrade your plan for more voice time.")
   })
 
-  it("returns 200 and standard model path when Vertex AI is disabled", async () => {
-    const response = await POST()
+  it("returns 503 when Vertex AI is not configured", async () => {
+    mockIsVertexAI.mockReturnValue(false)
+
+    const response = await POST(makeReq())
+    const body = await response.json()
+
+    expect(response.status).toBe(503)
+    expect(body.error).toBe("Live API backend not configured")
+  })
+
+  it("returns 200 with same-origin relay URL and ticket when Vertex AI is enabled", async () => {
+    const response = await POST(makeReq())
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body.wsUrl).toBe("wss://gemini.test.com/ws")
-    expect(body.modelPath).toBe(`models/${LIVE_MODEL}`)
+    // C1 assertion: the wsUrl is a same-origin relay URL, never the raw Vertex URL
+    expect(body.wsUrl).toBe("wss://missi.space/api/v1/live-ws?ticket=ticket-abc.sig-xyz")
+    expect(body.wsUrl).not.toMatch(/aiplatform\.googleapis\.com/)
+    expect(body.wsUrl).not.toMatch(/access_token=/)
+    expect(body.modelPath).toBe(`projects/test-project/locations/us-central1/publishers/google/models/${LIVE_MODEL}`)
     expect(body.expiresAt).toBeDefined()
   })
 
-  it("returns 200 and Vertex AI model path when Vertex AI is enabled", async () => {
-    mockIsVertexAI.mockReturnValue(true)
-    mockGetVertexProjectId.mockReturnValue("test-project")
-    mockGetVertexLocation.mockReturnValue("test-location")
+  it("passes the resolved userId and modelPath into the ticket", async () => {
+    await POST(makeReq())
 
-    const response = await POST()
-    const body = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(body.wsUrl).toBe("wss://gemini.test.com/ws")
-    expect(body.modelPath).toBe(`projects/test-project/locations/test-location/publishers/google/models/${LIVE_MODEL}`)
-    expect(body.expiresAt).toBeDefined()
+    expect(mockIssueLiveTicket).toHaveBeenCalledTimes(1)
+    const [, opts] = mockIssueLiveTicket.mock.calls[0]
+    expect(opts.userId).toBe("user_123")
+    expect(opts.modelPath).toBe(
+      `projects/test-project/locations/us-central1/publishers/google/models/${LIVE_MODEL}`,
+    )
   })
 
-  it("returns 500 if an error occurs while generating the WebSocket URL", async () => {
-    mockGetGeminiLiveWsUrl.mockRejectedValue(new Error("Failed to generate WS URL"))
+  it("returns 500 if the ticket issuer throws", async () => {
+    mockIssueLiveTicket.mockRejectedValue(new Error("KV secret missing"))
 
-    const response = await POST()
+    const response = await POST(makeReq())
     const body = await response.json()
 
     expect(response.status).toBe(500)
@@ -152,7 +185,7 @@ describe("POST /api/v1/live-token", () => {
   it("uses the correct rate limit tier for free plans", async () => {
     mockGetUserPlan.mockResolvedValue("free")
 
-    await POST()
+    await POST(makeReq())
 
     expect(mockCheckRateLimit).toHaveBeenCalledWith("user_123", "free", "ai")
   })
@@ -160,7 +193,7 @@ describe("POST /api/v1/live-token", () => {
   it("uses the correct rate limit tier for paid plans", async () => {
     mockGetUserPlan.mockResolvedValue("pro")
 
-    await POST()
+    await POST(makeReq())
 
     expect(mockCheckRateLimit).toHaveBeenCalledWith("user_123", "paid", "ai")
   })
@@ -170,33 +203,22 @@ describe("POST /api/v1/live-token", () => {
       throw new Error("No context")
     })
 
-    const response = await POST()
+    const response = await POST(makeReq())
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body.wsUrl).toBe("wss://gemini.test.com/ws")
+    expect(body.wsUrl).toContain("/api/v1/live-ws")
     expect(mockCheckVoiceLimit).not.toHaveBeenCalled()
   })
 
   it("skips the voice limit check when MISSI_MEMORY is missing", async () => {
     mockGetRequestContext.mockReturnValue({ env: {} } as any)
 
-    const response = await POST()
+    const response = await POST(makeReq())
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body.wsUrl).toBe("wss://gemini.test.com/ws")
+    expect(body.wsUrl).toContain("/api/v1/live-ws")
     expect(mockCheckVoiceLimit).not.toHaveBeenCalled()
-  })
-
-  it("handles non-Error objects in catch block when generating WS URL fails", async () => {
-    mockGetGeminiLiveWsUrl.mockRejectedValue("String error")
-
-    const response = await POST()
-    const body = await response.json()
-
-    expect(response.status).toBe(500)
-    expect(body.error).toBe("Internal server error")
-    expect(mockGetGeminiLiveWsUrl).toHaveBeenCalled()
   })
 })
