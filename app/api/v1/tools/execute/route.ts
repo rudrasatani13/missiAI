@@ -21,10 +21,47 @@ import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { KVStore } from "@/types"
 
 
-// ── Known tool names allowlist (BUG-003 fix) ───────────────────────────────────
-const KNOWN_TOOL_NAMES = new Set(AGENT_FUNCTION_DECLARATIONS.map(d => d.name))
-// Also allow confirmSendEmail which is an internal confirmation tool
-KNOWN_TOOL_NAMES.add("confirmSendEmail")
+// ── Safe-tool allowlist for the Live WebSocket path ───────────────────────────
+//
+// This endpoint is called by the Gemini Live client and must NOT allow tools
+// that send outbound messages or destructively mutate external services without
+// a server-issued confirmation token (the agent-confirm flow).
+//
+// Threat: any authenticated user (or prompt-injection in a Live session) could
+// call POST /api/v1/tools/execute with name="confirmSendEmail" and arbitrary
+// recipient/body to send real email via Resend, or calendar write tools to
+// mutate the user's calendar, without any server-side step-up.
+//
+// Fix: explicit safe-tool set. Tools that require step-up (sendEmail,
+// confirmSendEmail, createCalendarEvent, deleteCalendarEvent,
+// updateCalendarEvent) are intentionally absent and return 400.
+const LIVE_SAFE_TOOL_NAMES = new Set([
+  "searchMemory",
+  "setReminder",
+  "takeNote",
+  "readCalendar",       // read-only
+  "findFreeSlot",       // read-only
+  "createNote",
+  "draftEmail",         // drafts only — no Resend call made
+  "searchWeb",
+  "searchNews",
+  "searchYouTube",
+  "logExpense",
+  "getWeekSummary",
+  "updateGoalProgress",
+  "lookupContact",
+  "saveContact",
+])
+
+// High-risk tools blocked from this endpoint: require agent-confirm token flow.
+// Kept explicit so the block is visible during code review.
+const BLOCKED_FROM_LIVE = new Set([
+  "sendEmail",
+  "confirmSendEmail",
+  "createCalendarEvent",
+  "deleteCalendarEvent",
+  "updateCalendarEvent",
+])
 
 // ── Zod schema for request body (BUG-003 fix) ────────────────────────────────
 const toolExecuteSchema = z.object({
@@ -92,11 +129,18 @@ export async function POST(req: NextRequest) {
 
   const { name, args } = parsed.data
 
-  // ── 4. Validate tool name against allowlist (BUG-003 fix) ────────────────
-  if (!KNOWN_TOOL_NAMES.has(name)) {
+  // ── 4. Validate tool name against safe-tool allowlist ────────────────────
+  if (BLOCKED_FROM_LIVE.has(name)) {
+    logRequest("tools-execute.blocked_tool", userId, startTime, { toolName: name })
+    return Response.json(
+      { error: `Tool "${name}" requires agent confirmation and cannot be called from this endpoint.` },
+      { status: 400 },
+    )
+  }
+  if (!LIVE_SAFE_TOOL_NAMES.has(name)) {
     logRequest("tools-execute.unknown_tool", userId, startTime, { toolName: name })
     return Response.json(
-      { error: `Unknown tool: "${name}". Available tools: ${[...KNOWN_TOOL_NAMES].join(", ")}` },
+      { error: `Unknown tool: "${name}". Available tools: ${[...LIVE_SAFE_TOOL_NAMES].join(", ")}` },
       { status: 400 },
     )
   }

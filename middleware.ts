@@ -75,7 +75,7 @@ function applyCorsHeaders(response: NextResponse, request: NextRequest | Request
     response.headers.set("Access-Control-Allow-Origin", origin)
     response.headers.set("Access-Control-Allow-Credentials", "true")
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-clerk-user-id")
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
   }
   
   return response
@@ -84,36 +84,8 @@ function applyCorsHeaders(response: NextResponse, request: NextRequest | Request
 // ─── IP-based rate limiter (sliding window, Edge-runtime compatible) ──────────
 //
 // Each Cloudflare Worker isolate has its own memory, so these Maps are
-// per-isolate rather than globally distributed.  They act as a per-instance
-// burst guard that complements the KV-backed per-user limit enforced inside
-// each route handler.
-//
-// Sliding-window (two-bucket approximation):
-//   effective = prev_count × overlap_fraction + current_count
-// This smooths out the fixed-window burst vulnerability where a client could
-// send 2× the limit across a window boundary.
-
-interface IPBucket {
-  count: number
-  windowStart: number // ms timestamp of current window start
-}
-
-// ── Violation tracker for escalating penalties ───────────────────────────────
-// After 3 consecutive rate-limit violations within a tracking period, the
-// retry-after is doubled.  This makes automated scripts progressively slower
-// without affecting real users who hit the limit once.
-
-interface ViolationEntry {
-  violations: number
-  firstViolationAt: number
-}
-
-const violationMap = new Map<string, ViolationEntry>()
-const VIOLATION_WINDOW_MS  = 10 * 60_000 // 10 min tracking window
-const VIOLATION_ESCALATION = 3           // violations before doubling retry-after
-
-// ── IP bucket maps ───────────────────────────────────────────────────────────
-
+// per-isolate rather than globally distributed. They act as a per-instance
+// burst guard; deploy Cloudflare WAF / Rate Limiting rules for distributed abuse.
 const ipMap = new Map<string, IPBucket>()
 const prevIpMap = new Map<string, IPBucket>()
 
@@ -473,7 +445,9 @@ export default async function middleware(request: NextRequest, event: NextFetchE
     // Log completed API requests
     if (isAPIRoute(request)) {
       const status = response?.status ?? 200
-      const userId = request.headers.get("x-clerk-user-id") ?? undefined
+      // Do NOT read userId from x-clerk-user-id or any other client-supplied
+      // header — any caller can forge that value, which would poison audit logs.
+      // Route handlers log their verified userId after calling getVerifiedUserId().
       const ua = request.headers.get("user-agent") ?? undefined
 
       if (status === 401) {
@@ -489,7 +463,6 @@ export default async function middleware(request: NextRequest, event: NextFetchE
       log({
         level: "info",
         event: "api.request",
-        userId,
         ip: clientIp,
         userAgent: ua ? ua.slice(0, 200) : undefined,
         durationMs: Date.now() - startTime,

@@ -18,7 +18,14 @@ import type { AgentPlan } from "./agent-planner"
 
 const TOKEN_TTL_SECONDS = 300 // 5 minutes
 
-// ─── Token Generation ─────────────────────────────────────────────────────────
+function requireConfirmSecret(secret: string | undefined): string {
+  if (!secret || secret.trim().length === 0) {
+    throw new Error("MISSI_KV_ENCRYPTION_SECRET is required")
+  }
+  return secret
+}
+
+// ─── Token Generation ────────────────────────────────────────────────────────
 
 /**
  * Generate a signed confirmation token using HMAC-SHA256.
@@ -29,9 +36,10 @@ export async function generateConfirmToken(
   userId: string,
   encryptionSecret: string,
 ): Promise<string> {
+  const secret = requireConfirmSecret(encryptionSecret)
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(encryptionSecret),
+    new TextEncoder().encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
@@ -49,7 +57,7 @@ export async function generateConfirmToken(
     .join("")
 }
 
-// ─── Token Storage ────────────────────────────────────────────────────────────
+// ─── Token Storage ──────────────────────────────────────────────────────────
 
 interface StoredConfirmToken {
   plan: AgentPlan
@@ -79,7 +87,7 @@ export async function storeConfirmToken(
   )
 }
 
-// ─── Token Verification ───────────────────────────────────────────────────────
+// ─── Token Verification ─────────────────────────────────────────────────────
 
 /**
  * Verify a confirmation token and consume it (single-use).

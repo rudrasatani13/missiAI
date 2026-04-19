@@ -103,6 +103,9 @@ wrangler secret put DODO_BUSINESS_PRODUCT_ID
 # Admin
 wrangler secret put ADMIN_USER_ID
 
+# KV encryption / confirmation tokens
+wrangler secret put MISSI_KV_ENCRYPTION_SECRET
+
 # Push Notifications
 wrangler secret put VAPID_PRIVATE_KEY
 
@@ -116,12 +119,13 @@ wrangler secret put NOTION_CLIENT_SECRET
 wrangler secret list
 ```
 
-### Cloudflare Pages Dashboard
+### Runtime behavior
 
-1. Go to **Cloudflare Pages** > select `missiai` project
-2. Navigate to **Settings > Environment variables**
-3. Click **Add variable** > enter name and value > toggle **Encrypt**
-4. Set the same variables for both **Production** and **Preview** environments
+- `MISSI_KV_ENCRYPTION_SECRET` is required in production for KV encryption, agent confirmation tokens, and boss tokens.
+- Missing or empty `MISSI_KV_ENCRYPTION_SECRET` now fails closed with a 503 on routes that need it.
+- Confirmation tokens are single-use and are not generated with fallback secrets.
+- The live tools endpoint does not allow direct outbound email; confirmation is required for any send.
+- Per-isolate IP rate limiting is a burst guard only; Cloudflare WAF / Rate Limiting rules are still required for distributed abuse.
 
 ---
 
@@ -188,6 +192,8 @@ missiAI uses **dual-layer rate limiting**:
 
 1. **IP-based burst guard** — in-memory, applied in middleware to all API routes.
    Prevents rapid-fire requests from a single IP.
+   - This is per-isolate on Cloudflare Workers and does not provide global distributed protection.
+   - Add Cloudflare WAF / Rate Limiting rules for distributed abuse.
 
 2. **Per-user KV-backed limits** — applied in route handlers. Tracks usage per
    authenticated Clerk user ID with configurable windows and thresholds.
@@ -210,6 +216,20 @@ The `/api/webhooks/dodo` endpoint verifies webhook signatures using the
 - The `DODO_WEBHOOK_SECRET` is used to verify the `webhook-signature` header
 - Invalid signatures are rejected with 401 before any processing occurs
 - Webhook events are idempotent — duplicate delivery does not cause issues
+
+### WhatsApp Webhook
+
+- Requires `WHATSAPP_APP_SECRET` for HMAC verification and `WHATSAPP_VERIFY_TOKEN` for subscription setup.
+- Missing env fails closed.
+- Invalid signatures return 401; replayed messages older than 5 minutes are ignored.
+- Invalid payloads are not silently accepted.
+
+### Telegram Webhook
+
+- Requires `TELEGRAM_WEBHOOK_SECRET`.
+- Missing env fails closed.
+- Invalid secret-token headers return 401.
+- `/start {code}` linking codes are single-use and time-limited.
 
 ---
 
@@ -255,6 +275,11 @@ curl -sI https://missi.space | grep -iE \
 - OAuth tokens are **never** exposed to the client
 - Refresh is handled server-side in API routes
 - Disconnecting a plugin immediately deletes stored tokens from KV
+
+### Admin policy
+
+- `/admin` and `/api/v1/admin/*` require Clerk auth plus either `publicMetadata.role === "admin"` or `ADMIN_USER_ID`.
+- Sensitive admin mutations should use step-up re-auth where practical.
 
 ---
 
@@ -345,9 +370,10 @@ Validation is enforced in strict order before any KV, memory, or AI operation:
    - Counter: `bot:daily:wa:{userId}:{date}` — capped at 200 messages/day
    - KV-backed, TTL 48 h
 
-7. **HTTP 200 always returned to Meta**
-   - All processing is fire-and-forget after immediate 200 response
-   - This prevents Meta from retrying on transient failures and triggering duplicate processing
+7. **HTTP response policy**
+   - **401** returned immediately on invalid HMAC signature — intentional fail-closed; invalid payloads are never silently accepted even though Meta retries non-200 responses.
+   - **200** returned for all other cases (valid sig + transient error, parse failure, unknown sender, plan block, etc.) to prevent Meta retry storms on recoverable conditions.
+   - All AI processing after a valid 200 response is fire-and-forget via `waitUntil()`.
 
 ### Telegram Bot API — `app/api/webhooks/telegram/route.ts`
 
@@ -385,6 +411,22 @@ Validation is enforced in strict order before any KV, memory, or AI operation:
 - No raw message content stored in KV deduplication keys — dedup keys store only `"1"`
 - All security events (failed signatures, replay attempts, unknown senders, plan blocks) are logged with `logSecurityEvent` from `lib/server/logger.ts`
 - Webhook endpoints are public (no Clerk auth) but still subject to IP-based rate limiting via `middleware.ts`
+- WhatsApp 6-digit link codes are rate-limited to 10 attempts per sender phone per day (`bot:wa:link-attempts:{phone}:{date}`) to prevent brute-forcing the 1M-combination space within the 15-minute code TTL.
+
+### Live Tools Endpoint (`/api/v1/tools/execute`)
+
+This endpoint is called by the Gemini Live WebSocket client. It uses an explicit **safe-tool allowlist** rather than a general function-declaration allowlist:
+
+- **Allowed**: read-only and non-destructive tools (`searchMemory`, `readCalendar`, `findFreeSlot`, `draftEmail`, `searchWeb`, `searchNews`, `searchYouTube`, `logExpense`, `getWeekSummary`, `updateGoalProgress`, `lookupContact`, `saveContact`, `setReminder`, `takeNote`, `createNote`).
+- **Blocked** (return 400): `sendEmail`, `confirmSendEmail`, `createCalendarEvent`, `deleteCalendarEvent`, `updateCalendarEvent`. These require a server-issued confirmation token via the agent-confirm flow (`POST /api/v1/agents/plan` → `POST /api/v1/agents/confirm`).
+
+### Admin Authorization
+
+Both `/admin` pages and `/api/v1/admin/*` API routes require **two checks** (defense-in-depth):
+1. Middleware verifies Clerk `publicMetadata.role === "admin"` OR `userId === ADMIN_USER_ID`.
+2. Each admin API route handler re-verifies the same condition independently before processing the mutation.
+
+The dual policy (role-based + env-var super-admin) is consistent across all admin surfaces.
 
 ---
 

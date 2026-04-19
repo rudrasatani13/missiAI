@@ -23,8 +23,9 @@ vi.mock("@/lib/billing/usage-tracker", () => ({
 
 vi.mock("@/lib/server/env", () => ({
   getEnv: vi.fn().mockReturnValue({
-        GOOGLE_CLIENT_ID: "test-client-id",
+    GOOGLE_CLIENT_ID: "test-client-id",
     GOOGLE_CLIENT_SECRET: "test-client-secret",
+    MISSI_KV_ENCRYPTION_SECRET: "test-secret-32-chars-long!!!!!",
   }),
 }))
 
@@ -187,6 +188,19 @@ describe("POST /api/v1/agents/plan", () => {
     expect(body.requiresConfirmation).toBe(false)
     // Token is always issued for plans with steps so the confirm route never receives null
     expect(body.confirmToken).toBe("mock-token-abc")
+  })
+
+  it("returns 503 when MISSI_KV_ENCRYPTION_SECRET is missing for destructive plans", async () => {
+    const { getEnv } = await import("@/lib/server/env")
+    vi.mocked(getEnv).mockReturnValueOnce({
+      GOOGLE_CLIENT_ID: "test-client-id",
+      GOOGLE_CLIENT_SECRET: "test-client-secret",
+      MISSI_KV_ENCRYPTION_SECRET: undefined,
+    } as ReturnType<typeof getEnv>)
+    mockBuildAgentPlan.mockResolvedValueOnce(DESTRUCTIVE_PLAN)
+
+    const res = await planPost(makeRequest({ message: "schedule a meeting" }))
+    expect(res.status).toBe(503)
   })
 })
 

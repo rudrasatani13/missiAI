@@ -38,6 +38,12 @@ export interface ToolContext {
   resendApiKey?: string        // for sendEmail tool
 }
 
+const MAX_PROVIDER_ERROR_LENGTH = 120
+
+function safeProviderError(message: string): string {
+  return message.slice(0, MAX_PROVIDER_ERROR_LENGTH)
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const VALID_EXPENSE_CATEGORIES = [
@@ -1128,53 +1134,15 @@ export async function executeAgentTool(
 
       // ── Send Email — Actually sends without confirmation ──────
       case "sendEmail": {
-        const to = stripHtml(String(args.to || "")).slice(0, 200)
-        const subject = stripHtml(String(args.subject || "")).slice(0, 150) || "No Subject"
-        const body = stripHtml(String(args.body || "")).slice(0, 3000)
-        const replyTo = args.replyTo ? stripHtml(String(args.replyTo)).slice(0, 200) : undefined
-
-        if (!to || !to.includes("@")) {
-          return { toolName: name, status: "error", summary: "Invalid email", output: "Please provide a valid recipient email address." }
-        }
-
-        const resendKey = ctx.resendApiKey
-        if (!resendKey) {
-          return { toolName: name, status: "error", summary: "Email not configured", output: "Email sending is not configured. Please add RESEND_API_KEY to the environment." }
-        }
-
-        try {
-          const emailRes = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${resendKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              from: "Missi <missi@missi.space>",
-              to: [to],
-              subject,
-              text: body,
-              ...(replyTo ? { reply_to: replyTo } : {}),
-            }),
-          })
-
-          if (!emailRes.ok) {
-            const errData = await emailRes.text().catch(() => "")
-            return { toolName: name, status: "error", summary: "Email send failed", output: `Failed to send email: ${errData.slice(0, 200)}` }
-          }
-
-          return {
-            toolName: name,
-            status: "done",
-            summary: `Email sent to ${to}`,
-            output: `Email sent successfully to ${to} with subject "${subject}".`,
-          }
-        } catch (err) {
-          return { toolName: name, status: "error", summary: "Email failed", output: `Error sending email: ${err instanceof Error ? err.message : String(err)}` }
+        return {
+          toolName: name,
+          status: "error",
+          summary: "Email requires confirmation",
+          output: "Outbound email is disabled in this endpoint. Use the confirmation flow to send email.",
         }
       }
 
-      // ── Confirm Send Email — Actually sends after user confirmation ──────
+      // ── Confirm Send Email — Actually sends after user confirmation ───────
       case "confirmSendEmail": {
         const to = stripHtml(String(args.to || "")).slice(0, 200)
         const subject = stripHtml(String(args.subject || "")).slice(0, 150) || "No Subject"
@@ -1208,7 +1176,7 @@ export async function executeAgentTool(
 
           if (!emailRes.ok) {
             const errData = await emailRes.text().catch(() => "")
-            return { toolName: name, status: "error", summary: "Email send failed", output: `Failed to send email: ${errData.slice(0, 200)}` }
+            return { toolName: name, status: "error", summary: "Email send failed", output: `Failed to send email: ${safeProviderError(errData)}` }
           }
 
           return {
@@ -1218,7 +1186,7 @@ export async function executeAgentTool(
             output: `Email sent successfully to ${to} with subject "${subject}".`,
           }
         } catch (err) {
-          return { toolName: name, status: "error", summary: "Email failed", output: `Error sending email: ${err instanceof Error ? err.message : String(err)}` }
+          return { toolName: name, status: "error", summary: "Email failed", output: `Error sending email: ${safeProviderError(err instanceof Error ? err.message : String(err))}` }
         }
       }
 

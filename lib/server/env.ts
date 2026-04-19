@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // Server-only utilities for environment variables
 
-// ─── Typed Environment Variables ──────────────────────────────────────────────
+// ─── Typed Environment Variables ─────────────────────────────────────────────
 //
 // Single source of truth for required env vars. Throws a clear error with the
 // missing key name so deployment issues surface immediately.
@@ -19,6 +19,13 @@ const emptyStringToUndefined = z.preprocess((val) => {
 }, z.string().optional());
 
 const requiredString = z.preprocess((val) => {
+  if (typeof val === 'string' && val.trim() === '') {
+    return undefined;
+  }
+  return val;
+}, z.string({ required_error: "Missing required environment variable" }));
+
+const requiredSecret = z.preprocess((val) => {
   if (typeof val === 'string' && val.trim() === '') {
     return undefined;
   }
@@ -56,6 +63,13 @@ const envSchema = z.object({
   NOTION_CLIENT_ID: emptyStringToUndefined,
   NOTION_CLIENT_SECRET: emptyStringToUndefined,
   NOTION_API_KEY: emptyStringToUndefined,
+  MISSI_KV_ENCRYPTION_SECRET: z.preprocess(
+    (val) => {
+      if (typeof val === 'string' && val.trim() === '') return undefined;
+      return val;
+    },
+    z.string().min(32, "MISSI_KV_ENCRYPTION_SECRET must be at least 32 characters")
+  ).optional(),
   APP_URL: z.preprocess(
     (val, ctx) => {
       if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
@@ -80,7 +94,11 @@ export type AppEnv = z.infer<typeof envSchema>;
  */
 export function getEnv(): AppEnv {
   try {
-    return envSchema.parse(process.env);
+    const env = envSchema.parse(process.env);
+    if (env.NODE_ENV === 'production' && !env.MISSI_KV_ENCRYPTION_SECRET) {
+      throw new Error('Missing or invalid required environment variable(s): MISSI_KV_ENCRYPTION_SECRET');
+    }
+    return env;
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missingKeys = error.issues.map((issue) => issue.path.join('.')).join(', ');

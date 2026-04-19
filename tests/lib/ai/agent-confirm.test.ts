@@ -6,11 +6,7 @@ vi.mock("nanoid", () => ({
   nanoid: vi.fn(() => "test-plan-id"),
 }))
 
-import {
-  generateConfirmToken,
-  storeConfirmToken,
-  verifyAndConsumeToken,
-} from "@/lib/ai/agent-confirm"
+import { generateConfirmToken, storeConfirmToken, verifyAndConsumeToken } from "@/lib/ai/agent-confirm"
 
 const MOCK_SECRET = "test-encryption-secret-32-chars!!"
 const MOCK_USER_ID = "user_abc123"
@@ -55,6 +51,10 @@ describe("generateConfirmToken", () => {
     await new Promise(r => setTimeout(r, 2))
     const t2 = await generateConfirmToken("hash2", "user2", MOCK_SECRET)
     expect(t1).not.toBe(t2)
+  })
+
+  it("throws when the confirmation secret is missing", async () => {
+    await expect(generateConfirmToken("planhash123", MOCK_USER_ID, "")).rejects.toThrow("MISSI_KV_ENCRYPTION_SECRET is required")
   })
 })
 

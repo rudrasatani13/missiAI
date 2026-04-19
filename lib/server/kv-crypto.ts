@@ -8,8 +8,8 @@
 // DESIGN DECISIONS:
 // 1. Backward-compatible: `decryptFromKV` auto-detects plaintext vs encrypted
 //    data via the `enc:v1:` prefix. Existing KV values continue to work.
-// 2. Graceful fallback: If `MISSI_KV_ENCRYPTION_SECRET` is not set, data is
-//    written as plaintext. This allows development without the secret.
+// 2. Fail closed: `MISSI_KV_ENCRYPTION_SECRET` is required for any new writes
+//    and for decrypting encrypted values.
 // 3. Per-value unique IV: Each encryption uses a fresh 12-byte random IV,
 //    concatenated with the ciphertext for storage.
 //
@@ -28,21 +28,21 @@ const IV_LENGTH = 12 // bytes — standard for AES-GCM
 const KEY_LENGTH = 32 // bytes — AES-256
 const ENCRYPTED_PREFIX = 'enc:v1:'
 
-// ─── Key Derivation (cached per worker isolate lifecycle) ─────────────────────
+// ─── Key Derivation (cached per worker isolate lifecycle) ────────────────────
 
 let _cachedKey: CryptoKey | null = null
 let _cachedSecretHash: string | null = null
 
-function getSecret(): string | null {
-  // SECURITY: Read from environment — never hardcode
+function getSecret(): string {
   const secret = process.env.MISSI_KV_ENCRYPTION_SECRET
-  if (!secret || secret.trim().length === 0) return null
+  if (!secret || secret.trim().length === 0) {
+    throw new Error('MISSI_KV_ENCRYPTION_SECRET is required')
+  }
   return secret
 }
 
-async function getKey(): Promise<CryptoKey | null> {
+async function getKey(): Promise<CryptoKey> {
   const secret = getSecret()
-  if (!secret) return null
 
   // Cache invalidation: if the secret changes (rotate), re-derive the key
   if (_cachedKey && _cachedSecretHash === secret) return _cachedKey
@@ -61,16 +61,14 @@ async function getKey(): Promise<CryptoKey | null> {
   return _cachedKey
 }
 
-// ─── Encrypt / Decrypt ────────────────────────────────────────────────────────
+// ─── Encrypt / Decrypt ───────────────────────────────────────────────────────
 
 /**
  * Encrypts a plaintext string using AES-256-GCM.
  * Returns the encrypted string with the `enc:v1:` prefix.
- * Returns null if encryption is not available (no secret configured).
  */
-export async function encryptForKV(plaintext: string): Promise<string | null> {
+export async function encryptForKV(plaintext: string): Promise<string> {
   const key = await getKey()
-  if (!key) return null
 
   const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH))
   const encoded = new TextEncoder().encode(plaintext)
@@ -107,38 +105,26 @@ export async function decryptFromKV(stored: string): Promise<string> {
   if (!stored.startsWith(ENCRYPTED_PREFIX)) return stored
 
   const key = await getKey()
-  if (!key) {
-    // Secret not configured but data is encrypted — this is an error state
-    // (e.g. secret was removed after encryption). Return empty to prevent crashes.
-    console.error('[kv-crypto] Cannot decrypt: MISSI_KV_ENCRYPTION_SECRET not set')
-    return ''
-  }
 
   const raw = stored.slice(ENCRYPTED_PREFIX.length)
   const combined = Uint8Array.from(atob(raw), (c) => c.charCodeAt(0))
 
   if (combined.length <= IV_LENGTH) {
-    console.error('[kv-crypto] Malformed encrypted data: too short')
-    return ''
+    throw new Error('Malformed encrypted data')
   }
 
   const iv = combined.slice(0, IV_LENGTH)
   const ciphertext = combined.slice(IV_LENGTH)
 
-  try {
-    const decrypted = await crypto.subtle.decrypt(
-      { name: ALGO, iv },
-      key,
-      ciphertext,
-    )
-    return new TextDecoder().decode(decrypted)
-  } catch (err) {
-    console.error('[kv-crypto] Decryption failed:', err)
-    return ''
-  }
+  const decrypted = await crypto.subtle.decrypt(
+    { name: ALGO, iv },
+    key,
+    ciphertext,
+  )
+  return new TextDecoder().decode(decrypted)
 }
 
-// ─── High-Level KV Wrappers ───────────────────────────────────────────────────
+// ─── High-Level KV Wrappers ──────────────────────────────────────────────────
 
 /**
  * Reads a KV value with automatic decryption.
@@ -151,8 +137,7 @@ export async function kvGet(kv: KVStore, key: string): Promise<string | null> {
 }
 
 /**
- * Writes a KV value with encryption (if secret is configured).
- * Falls back to plaintext if encryption is not available.
+ * Writes a KV value with encryption.
  */
 export async function kvPut(
   kv: KVStore,
@@ -161,5 +146,5 @@ export async function kvPut(
   options?: { expirationTtl?: number },
 ): Promise<void> {
   const encrypted = await encryptForKV(value)
-  await kv.put(key, encrypted ?? value, options)
+  await kv.put(key, encrypted, options)
 }

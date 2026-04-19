@@ -19,6 +19,7 @@ import {
   isMessageDuplicate,
   markMessageProcessed,
   consumePendingWhatsAppLink,
+  checkAndIncrementWaLinkAttempt,
 } from '@/lib/bot/bot-auth'
 import { processBotMessage } from '@/lib/bot/bot-pipeline'
 import { logSecurityEvent, logApiError, log } from '@/lib/server/logger'
@@ -182,9 +183,20 @@ export async function POST(req: Request): Promise<Response> {
     // ── 7. Resolve Clerk userId from sender phone ──────────────────────────
     const userId = await resolveClerkUserFromPhone(kv, senderPhone)
     if (!userId) {
-      // Check if this is an account-linking code (exactly 6 digits)
+      // Check if this is an account-linking code (exactly 6 digits).
+      // Rate-limit code guesses per sender phone to prevent brute-forcing
+      // the 1M-combination space within the 15-minute code TTL.
       const msgText = (message.text?.body ?? '').trim()
       if (/^\d{6}$/.test(msgText)) {
+        const linkRateResult = await checkAndIncrementWaLinkAttempt(kv, senderPhone, today())
+        if (!linkRateResult.allowed) {
+          logSecurityEvent('security.bot.wa.link_attempts_exceeded', {
+            path: '/api/webhooks/whatsapp',
+            metadata: { senderPhone: senderPhone.slice(0, 4) + '****', attempts: linkRateResult.attempts },
+          })
+          // Silent continue — don't reveal rate-limit details to attacker
+          continue
+        }
         const pendingUserId = await consumePendingWhatsAppLink(kv, msgText)
         if (pendingUserId) {
           await storeWhatsAppMapping(kv, senderPhone, pendingUserId)

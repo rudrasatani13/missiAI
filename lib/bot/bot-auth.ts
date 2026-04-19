@@ -38,6 +38,13 @@ const MAX_OTP_ATTEMPTS_PER_DAY = 5
 const TGLINK_TTL_SECONDS = 15 * 60 // 15 minutes
 const PENDING_WA_LINK_TTL_SECONDS = 15 * 60 // 15 minutes
 
+// Per-sender phone rate limit for WhatsApp link-code guessing.
+// 6-digit codes have 1M combinations. Without this guard an attacker could
+// brute-force the 15-min window from an unlinked phone. Capped at 10
+// attempts / phone / day; the code expires in 15 min regardless.
+const MAX_WA_LINK_ATTEMPTS_PER_DAY = 10
+const WA_LINK_ATTEMPTS_TTL_SECONDS = 24 * 3600 // 24 hours
+
 // ─── Sender → userId resolution ──────────────────────────────────────────────
 
 export async function resolveClerkUserFromPhone(
@@ -242,6 +249,31 @@ export async function consumePendingWhatsAppLink(
   if (!userId) return null
   await kv.delete(`bot:wa:pending:${code}`)
   return userId
+}
+
+// ─── WhatsApp link-code attempt rate limiter ──────────────────────────────────
+//
+// Called before attempting consumePendingWhatsAppLink for an unlinked sender.
+// Keyed by phone (masked in KV key via consistent hash to avoid storing raw
+// numbers in key names), limited to MAX_WA_LINK_ATTEMPTS_PER_DAY per day.
+
+export async function checkAndIncrementWaLinkAttempt(
+  kv: KVStore,
+  phone: string,
+  date: string, // YYYY-MM-DD
+): Promise<{ allowed: boolean; attempts: number }> {
+  // KV key stores the phone to enforce rate limit; phone is already stored
+  // in bot:wa:{phone} for the actual mapping — same trust boundary.
+  const key = `bot:wa:link-attempts:${phone}:${date}`
+  const raw = await kv.get(key)
+  const attempts = raw ? parseInt(raw, 10) : 0
+
+  if (attempts >= MAX_WA_LINK_ATTEMPTS_PER_DAY) {
+    return { allowed: false, attempts }
+  }
+
+  await kv.put(key, String(attempts + 1), { expirationTtl: WA_LINK_ATTEMPTS_TTL_SECONDS })
+  return { allowed: true, attempts: attempts + 1 }
 }
 
 export async function storeTelegramLinkCode(

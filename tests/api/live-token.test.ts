@@ -165,8 +165,7 @@ describe("POST /api/v1/live-token", () => {
     expect(mockCheckRateLimit).toHaveBeenCalledWith("user_123", "paid", "ai")
   })
 
-  it("handles when getKV() returns null (RequestContext error)", async () => {
-    // Force getCloudflareContext to throw an error so getKV returns null
+  it("skips the voice limit check when KV is unavailable", async () => {
     mockGetRequestContext.mockImplementation(() => {
       throw new Error("No context")
     })
@@ -174,16 +173,13 @@ describe("POST /api/v1/live-token", () => {
     const response = await POST()
     const body = await response.json()
 
-    // It should just skip the voice limit check and continue successfully
     expect(response.status).toBe(200)
     expect(body.wsUrl).toBe("wss://gemini.test.com/ws")
     expect(mockCheckVoiceLimit).not.toHaveBeenCalled()
   })
 
-  it("handles when getKV() returns null (MISSI_MEMORY undefined)", async () => {
-    mockGetRequestContext.mockReturnValue({
-      env: {},
-    } as any)
+  it("skips the voice limit check when MISSI_MEMORY is missing", async () => {
+    mockGetRequestContext.mockReturnValue({ env: {} } as any)
 
     const response = await POST()
     const body = await response.json()

@@ -271,18 +271,16 @@ async function handlePlan(req: Request): Promise<Response> {
   let confirmToken: string | null = null
   if (agentPlan.steps.length > 0) {
     const planHash = nanoid(12)
-    const secret = process.env.MISSI_KV_ENCRYPTION_SECRET || "missi-agent-confirm-fallback-secret-v1"
-    try {
-      confirmToken = await generateConfirmToken(planHash, userId, secret)
-    } catch (err) {
-      console.error("[agent-plan] HMAC token generation failed, using nanoid fallback:", err)
-      confirmToken = `fallback-${nanoid(32)}`
+    const secret = appEnv.MISSI_KV_ENCRYPTION_SECRET
+    if (!secret) {
+      return jsonResponse({ error: 'Confirmation unavailable' }, 503)
     }
     try {
+      confirmToken = await generateConfirmToken(planHash, userId, secret)
       await storeConfirmToken(kv, confirmToken, agentPlan, userId)
     } catch (err) {
-      console.error("[agent-plan] Failed to store confirm token in KV:", err)
-      confirmToken = null
+      console.error("[agent-plan] Failed to generate/store confirm token:", err)
+      return jsonResponse({ error: 'Confirmation unavailable' }, 503)
     }
   }
 

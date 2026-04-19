@@ -391,3 +391,31 @@ describe("executeAgentTool — searchWeb", () => {
     expect(result.output.length).toBeGreaterThan(0)
   })
 })
+
+describe("executeAgentTool — sendEmail / confirmSendEmail", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("blocks sendEmail and requires confirmation", async () => {
+    const result = await executeAgentTool({
+      name: "sendEmail",
+      args: { to: "a@example.com", subject: "Hi", body: "Hello" },
+    }, makeCtx())
+
+    expect(result.status).toBe("error")
+    expect(result.output).toContain("confirmation")
+  })
+
+  it("sanitizes provider errors for confirmSendEmail", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("x".repeat(500), { status: 400 })))
+
+    const result = await executeAgentTool({
+      name: "confirmSendEmail",
+      args: { to: "a@example.com", subject: "Hi", body: "Hello" },
+    }, makeCtx())
+
+    expect(result.status).toBe("error")
+    expect(result.output.length).toBeLessThanOrEqual(200)
+  })
+})
