@@ -1247,8 +1247,17 @@ function ChatSidebarInner({
     setMobileOpen(false)
   }, [pathname])
 
-  // Effective desktop width
-  const effectiveOpen = open || subPanelForcedExpand
+  // Effective desktop width.
+  //
+  // An active sub-panel always forces the sidebar wide enough to render its
+  // rows, otherwise the sub-panel is rendered inside the 56px collapsed
+  // column and every label gets clipped to 1-2 characters (the bug this
+  // branch fixes). This is more robust than relying on `subPanelForcedExpand`
+  // alone, which is only set when the sub-panel is opened from an already-
+  // collapsed state — if the user opens a sub-panel while expanded and THEN
+  // hits the collapse chevron, the forced-expand flag stays false and the
+  // visible column shrinks while the panel is still mounted.
+  const effectiveOpen = open || subPanelForcedExpand || activeSub !== null
   const desktopWidth = effectiveOpen ? EXPANDED_WIDTH : COLLAPSED_WIDTH
   const showLabels = effectiveOpen
 
@@ -1474,7 +1483,14 @@ function ChatSidebarInner({
         {!isMobile && (
           <button
             type="button"
-            onClick={() => persistOpen(!open)}
+            onClick={() => {
+              // When collapsing, also close any open sub-panel so the
+              // sidebar actually shrinks. Without this, `effectiveOpen`
+              // stays true because of the active sub-panel and the
+              // chevron "doesn't appear to do anything" — confusing UX.
+              if (open && activeSub !== null) closeSub()
+              persistOpen(!open)
+            }}
             aria-expanded={open}
             aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
             data-testid="sidebar-toggle-btn"
