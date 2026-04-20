@@ -355,6 +355,26 @@ img[src*="missiai"] {
   }
 }
 
+/* ═══════ Custom Cursor ═══════ */
+body.custom-cursor-active,
+body.custom-cursor-active * {
+  cursor: none !important;
+}
+
+body.custom-cursor-active a,
+body.custom-cursor-active button,
+body.custom-cursor-active [role="button"],
+body.custom-cursor-active .interactive {
+  cursor: pointer !important;
+}
+
+body.custom-cursor-active a *,
+body.custom-cursor-active button *,
+body.custom-cursor-active [role="button"] *,
+body.custom-cursor-active .interactive * {
+  cursor: inherit !important;
+}
+
 /* ═══════ Auth Page — hide custom cursor & footer ═══════ */
 body.auth-page [data-testid="global-footer"] {
   display: none !important;
@@ -728,6 +748,12 @@ body.auth-page div[style*="mix-blend-mode"] {
 
 .min-h-dvh { min-height: 100vh; min-height: 100dvh; }
 .h-dvh { height: 100vh; height: 100dvh; }
+
+/* Custom scrollbar for agent dashboard typewriter */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.2); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.3); }
 
 /* Hide scrollbars while keeping scroll */
 .scrollbar-hide,
