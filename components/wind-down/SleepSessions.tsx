@@ -278,11 +278,6 @@ export default function SleepSessions() {
           </div>
       )}
 
-      {/* Inject custom scrollbar hiding utility locally just in case it doesn't exist */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}} />
     </div>
   )
 }

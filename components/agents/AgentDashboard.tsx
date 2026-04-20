@@ -52,12 +52,6 @@ function TypewriterText({ text, speed = 12 }: { text: string; speed?: number }) 
         WebkitOverflowScrolling: 'touch',
       }}
     >
-      <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.2); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.3); }
-      `}} />
       <p className="text-xs text-white/50 whitespace-pre-wrap font-sans leading-relaxed break-words" style={{ wordBreak: 'break-word', minHeight: 'min-content' }}>
         {visible}
         {isTyping && <span className="inline-block w-1.5 h-3.5 bg-purple-400/80 ml-0.5 animate-pulse rounded-sm" />}
