@@ -9,6 +9,7 @@ import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useGeminiLive, type LiveState } from "@/hooks/useGeminiLive"
 import { buildSystemPrompt } from "@/services/ai.service"
+import { useChatSettings, type AIDialSettings } from "@/hooks/useChatSettings"
 import { AGENT_FUNCTION_DECLARATIONS } from "@/lib/ai/agent-tools"
 import { useProactive } from "@/hooks/useProactive"
 import { useActionEngine } from "@/hooks/useActionEngine"
@@ -270,6 +271,51 @@ export default function VoiceAssistantPage() {
   // Track current voiceState in a ref for use in async callbacks / timeouts
   const voiceStateRef = useRef<string>("idle")
 
+  // ── Live Settings sync ───────────────────────────────────────────────────
+  // Shared settings are authored on /settings. We subscribe here so every
+  // chat turn reads the freshest personality, customPrompt, voiceEnabled,
+  // AI dials, incognito and analytics-opt-out without requiring a reload.
+  const sharedSettings = useChatSettings()
+  const aiDialsRef = useRef<AIDialSettings | null>(sharedSettings.aiDials)
+  const incognitoRef = useRef<boolean>(sharedSettings.privacy.memoryPaused)
+  const analyticsOptOutRef = useRef<boolean>(sharedSettings.privacy.analyticsOptOut)
+  const voiceEnabledFromSettingsRef = useRef<boolean>(sharedSettings.voiceEnabled)
+
+  useEffect(() => {
+    aiDialsRef.current = sharedSettings.aiDials
+  }, [sharedSettings.aiDials])
+
+  useEffect(() => {
+    incognitoRef.current = sharedSettings.privacy.memoryPaused
+  }, [sharedSettings.privacy.memoryPaused])
+
+  useEffect(() => {
+    analyticsOptOutRef.current = sharedSettings.privacy.analyticsOptOut
+  }, [sharedSettings.privacy.analyticsOptOut])
+
+  useEffect(() => {
+    voiceEnabledFromSettingsRef.current = sharedSettings.voiceEnabled
+    setVoiceEnabled(sharedSettings.voiceEnabled)
+  }, [sharedSettings.voiceEnabled])
+
+  // Mirror personality / customPrompt from settings page into local state.
+  // The local state still drives UI (personality pill), but now updates
+  // propagate instantly when the user changes it on /settings.
+  useEffect(() => {
+    const p = sharedSettings.personality
+    if (p && p !== personalityRef.current) {
+      setPersonality(p)
+      personalityRef.current = p
+    }
+  }, [sharedSettings.personality])
+
+  useEffect(() => {
+    if (sharedSettings.customPrompt !== customPromptRef.current) {
+      setCustomPrompt(sharedSettings.customPrompt)
+      customPromptRef.current = sharedSettings.customPrompt
+    }
+  }, [sharedSettings.customPrompt])
+
   const {
     state: voiceState, audioLevel, statusText, lastTranscript,
     error, setError, streamingText, lastResponse, handleTap: legacyHandleTap, cancelAll, greet, saveMemoryBeacon,
@@ -281,7 +327,10 @@ export default function VoiceAssistantPage() {
     memoriesRef,
     conversationRef,
     imagePayloadRef,
-    onImageConsumed: () => setThumbnail(null)
+    onImageConsumed: () => setThumbnail(null),
+    aiDialsRef,
+    incognitoRef,
+    analyticsOptOutRef,
   })
 
   // ── Real-time Voice Mode ──────────────────────────────────────────────────
@@ -672,16 +721,6 @@ export default function VoiceAssistantPage() {
         }}
         onPickImage={() => fileInputRef.current?.click()}
         onWidthChange={setSidebarWidth}
-        personality={personality}
-        onPersonalityChange={updatePersonality}
-        voiceEnabled={voiceEnabled}
-        onVoiceToggle={() => setVoiceEnabled((v) => !v)}
-        customPrompt={customPrompt}
-        onCustomPromptChange={updateCustomPrompt}
-        onNameChange={(newName: string) => {
-          try { localStorage.setItem('missi-user-name', newName) } catch { }
-          setLocalName(newName)
-        }}
       />
 
       <main

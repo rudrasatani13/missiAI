@@ -114,9 +114,9 @@ export async function POST(req: NextRequest) {
   }
 
   let { messages } = parsed.data
-  const { personality, customPrompt } = parsed.data
+  const { personality, customPrompt, aiDials, incognito, analyticsOptOut } = parsed.data
   const maxOutputTokens = parsed.data.maxOutputTokens ?? 600
-  const clientMemories = parsed.data.memories ?? ""
+  const clientMemories = incognito ? "" : (parsed.data.memories ?? "")
   const voiceDurationMs = parsed.data.voiceDurationMs
 
   // ── 5b. Voice usage gating (time-based, pessimistic) ──────────────────────
@@ -140,9 +140,10 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 6. Fetch Life Graph context via semantic search ─────────────────────────
-  // Capped at 3s so memory lookup doesn't delay the response
+  // Capped at 3s so memory lookup doesn't delay the response.
+  // Incognito mode skips this entirely — user asked for a stateless turn.
   let memories = ""
-  if (kv) {
+  if (kv && !incognito) {
     try {
       const lastUserMessage = messages.filter((m) => m.role === "user").pop()
       const currentMessage = lastUserMessage?.content ?? ""
@@ -195,7 +196,7 @@ export async function POST(req: NextRequest) {
     memories = memories ? memories + "\n" + clientMemories : clientMemories
   }
 
-  const systemPromptBase = buildSystemPrompt(personality, memories, customPrompt)
+  const systemPromptBase = buildSystemPrompt(personality, memories, customPrompt, aiDials)
 
   // Prepend persona prompt modifier BEFORE the base prompt so it takes priority
   let systemPrompt = systemPromptBase
@@ -262,7 +263,7 @@ export async function POST(req: NextRequest) {
   try {
     const appEnv = getEnv()
 
-    let requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens, undefined, customPrompt)
+    let requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens, undefined, customPrompt, undefined, aiDials)
     let textStream: ReadableStream<import("@/lib/ai/gemini-stream").GeminiStreamEvent>
     try {
       textStream = await streamGeminiResponse(model, requestBody)
@@ -272,7 +273,7 @@ export async function POST(req: NextRequest) {
       if (fallback && primaryErr instanceof Error && primaryErr.message.includes('503')) {
         logError('chat.primary_model_503', primaryErr, userId)
         model = fallback
-        requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens, undefined, customPrompt)
+        requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens, undefined, customPrompt, undefined, aiDials)
         textStream = await streamGeminiResponse(model, requestBody)
       } else {
         throw primaryErr
@@ -319,8 +320,9 @@ export async function POST(req: NextRequest) {
               waitUntil(checkBudgetAlert(kv, costData.totalCostUsd).catch(() => {}))
 
               // Usage already incremented pre-response via checkAndIncrementVoice
-              if (kv) {
-                // Analytics: fire-and-forget
+              if (kv && !analyticsOptOut) {
+                // Analytics: fire-and-forget. Skipped when the user opted out
+                // via Settings → Privacy → "Opt out of analytics".
                 waitUntil(
                   recordEvent(kv, {
                     type: 'chat',
@@ -337,8 +339,9 @@ export async function POST(req: NextRequest) {
               }
 
               // ── Mood capture: fire-and-forget, never blocks the response ──
-              // Only analyse if the conversation has at least 3 user messages
-              if (kv && messages.filter((m) => m.role === "user").length >= 3) {
+              // Only analyse if the conversation has at least 3 user messages,
+              // and skip entirely in incognito mode (user asked for a stateless turn).
+              if (kv && !incognito && messages.filter((m) => m.role === "user").length >= 3) {
                 const moodTranscript = messages
                   .map((m) =>
                     m.role === "user"

@@ -3,6 +3,7 @@
 import { ClerkProvider } from "@clerk/nextjs"
 import { dark } from "@clerk/themes"
 import { SessionGuard } from "@/components/auth/SessionGuard"
+import { AppearanceProvider } from "@/components/providers/AppearanceProvider"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -14,9 +15,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       signUpUrl="/sign-up"
       afterSignOutUrl="/"
     >
-      <SessionGuard>
-        {children}
-      </SessionGuard>
+      <AppearanceProvider>
+        <SessionGuard>
+          {children}
+        </SessionGuard>
+      </AppearanceProvider>
     </ClerkProvider>
   )
 }

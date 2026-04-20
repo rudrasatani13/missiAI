@@ -1,4 +1,4 @@
-import { buildSystemPrompt } from "@/services/ai.service"
+import { buildSystemPrompt, dialsToTemperature, dialsToMaxTokens, type AIDialsInput } from "@/services/ai.service"
 import type { Message, PersonalityKey } from "@/types"
 import { geminiGenerateStream } from "@/lib/ai/vertex-client"
 import type { AgentToolCall } from "@/lib/ai/agent-tools"
@@ -30,8 +30,14 @@ export function buildGeminiRequest(
   customPrompt?: string,
   /** Pre-built system prompt — skips buildSystemPrompt if provided */
   systemPromptOverride?: string,
+  /**
+   * User-tuned Behavior Dials. When present they influence BOTH the system
+   * prompt (via `buildSystemPrompt`) and the Gemini generation config
+   * (temperature from `creativity`, maxOutputTokens from `responseLength`).
+   */
+  aiDials?: AIDialsInput,
 ): Record<string, unknown> {
-  const systemPrompt = systemPromptOverride || buildSystemPrompt(personality, memories, customPrompt)
+  const systemPrompt = systemPromptOverride || buildSystemPrompt(personality, memories, customPrompt, aiDials)
 
   const contents = messages.map((m) => {
     const parts: any[] = [{ text: m.content }]
@@ -65,10 +71,13 @@ export function buildGeminiRequest(
     system_instruction: { parts: [{ text: systemPrompt }] },
     contents,
     generationConfig: {
-      temperature: 0.85,
+      // Creativity dial (0–100) maps to temperature 0.2–1.2; defaults to 0.85
+      temperature: dialsToTemperature(aiDials, 0.85),
       topP: 0.95,
       topK: 40,
-      maxOutputTokens,
+      // Response length dial overrides caller's maxOutputTokens for
+      // "short"/"long"; "medium" or absent leaves caller's value untouched.
+      maxOutputTokens: dialsToMaxTokens(aiDials, maxOutputTokens),
     },
   }
 

@@ -16,6 +16,23 @@ const messageSchema = z.object({
 
 // ─── /api/v1/chat ────────────────────────────────────────────────────────────────
 
+/**
+ * AI Behavior Dials — a user-tunable personality overlay surfaced on the
+ * Settings page (`AIBehaviorSection`). The server consumes these to (a)
+ * append natural-language modifiers onto the system prompt and (b) map
+ * `creativity` → Gemini `temperature` and `responseLength` → `maxOutputTokens`.
+ * All fields are optional — when absent, server-side defaults apply.
+ */
+export const aiDialsSchema = z.object({
+  responseLength: z.enum(["short", "medium", "long"]).optional(),
+  warmth: z.number().min(0).max(100).optional(),
+  humor: z.number().min(0).max(100).optional(),
+  formality: z.number().min(0).max(100).optional(),
+  creativity: z.number().min(0).max(100).optional(),
+})
+
+export type AIDials = z.infer<typeof aiDialsSchema>
+
 export const chatSchema = z.object({
   messages: z
     .array(messageSchema)
@@ -33,6 +50,12 @@ export const chatSchema = z.object({
   voiceMode: z.boolean().optional(),
   /** Client-reported recording duration in milliseconds (server clamps to 3–120s) */
   voiceDurationMs: z.number().min(0).max(300000).optional(),
+  /** AI Behavior Dials from Settings → AI Behavior */
+  aiDials: aiDialsSchema.optional(),
+  /** Incognito mode — skip memory read & write and mood capture for this turn */
+  incognito: z.boolean().optional(),
+  /** Mirror of Privacy → "Opt out of analytics". Gates server-side recordEvent. */
+  analyticsOptOut: z.boolean().optional(),
 })
 
 export type ChatInput = z.infer<typeof chatSchema>
@@ -85,6 +108,10 @@ export const memorySchema = z.object({
     .min(2, "Conversation must have at least 2 messages")
     .max(50, "Too many messages in conversation"),
   interactionCount: z.number().int().min(0).default(0),
+  /** Incognito mode — do NOT extract / store anything from this conversation. */
+  incognito: z.boolean().optional(),
+  /** Mirror of Privacy → "Opt out of analytics". Gates server-side recordEvent. */
+  analyticsOptOut: z.boolean().optional(),
 })
 
 export type MemoryInput = z.infer<typeof memorySchema>

@@ -266,7 +266,57 @@ const MODEL_DEFAULTS: Record<AIProviderName, string> = {
 
 // ─── Prompt Builder ───────────────────────────────────────────────────────────
 
-export function buildSystemPrompt(personality: PersonalityKey, memories?: string, customPrompt?: string): string {
+/**
+ * AI Behavior Dials (server shape) — duplicated minimally here so this
+ * module doesn't depend on Zod. Matches `aiDialsSchema` in
+ * `lib/validation/schemas.ts`.
+ */
+export interface AIDialsInput {
+  responseLength?: "short" | "medium" | "long"
+  warmth?: number
+  humor?: number
+  formality?: number
+  creativity?: number
+}
+
+/**
+ * Translate AI Behavior Dials into an imperative prompt block. We bias to
+ * short, action-oriented sentences so the model takes them as hard rules
+ * rather than vague hints. Mid-range values (40–60) collapse to no modifier
+ * for that axis, keeping the base personality intact.
+ */
+function renderAIDialsModifier(dials: AIDialsInput | undefined): string {
+  if (!dials) return ""
+  const lines: string[] = []
+
+  if (typeof dials.warmth === "number") {
+    if (dials.warmth >= 70) lines.push("Be warm, caring and empathic. Acknowledge feelings before facts.")
+    else if (dials.warmth <= 30) lines.push("Keep tone neutral and matter-of-fact. Skip emotional acknowledgements.")
+  }
+  if (typeof dials.humor === "number") {
+    if (dials.humor >= 70) lines.push("Use light humour, playful asides and witty turns of phrase where appropriate.")
+    else if (dials.humor <= 30) lines.push("Stay serious. No jokes, no playful asides.")
+  }
+  if (typeof dials.formality === "number") {
+    if (dials.formality >= 70) lines.push("Use a professional, polished register. Avoid slang and contractions.")
+    else if (dials.formality <= 30) lines.push("Keep it casual and conversational. Contractions and relaxed phrasing are fine.")
+  }
+  if (dials.responseLength === "short") {
+    lines.push("Keep replies concise — 1-2 sentences. No filler, no lists, no preamble.")
+  } else if (dials.responseLength === "long") {
+    lines.push("Give detailed, thorough replies with examples and context when helpful.")
+  }
+
+  if (lines.length === 0) return ""
+  return `\n\nUSER BEHAVIOR PREFERENCES (follow these precisely):\n- ${lines.join("\n- ")}`
+}
+
+export function buildSystemPrompt(
+  personality: PersonalityKey,
+  memories?: string,
+  customPrompt?: string,
+  aiDials?: AIDialsInput,
+): string {
   let base = ""
   if (personality === "custom" && customPrompt?.trim()) {
     base = `${customPrompt.trim()}\n\n${CORE_RULES_FOR_CUSTOM}`
@@ -275,11 +325,35 @@ export function buildSystemPrompt(personality: PersonalityKey, memories?: string
     base = PERSONALITIES[personality as Exclude<PersonalityKey, 'custom'>] ?? PERSONALITIES[DEFAULT_PERSONALITY as Exclude<PersonalityKey, 'custom'>]
   }
 
-  if (!memories?.trim()) return base
+  const modifier = renderAIDialsModifier(aiDials)
+
+  if (!memories?.trim()) return `${base}${modifier}`
   // Memory formatting (wrapping, safety markers) is handled by the formatter
   // functions (formatLifeGraphForPrompt / formatFactsForPrompt), so we just
   // append the already-formatted block.
-  return `${base}\n\n${memories.trim()}`
+  return `${base}${modifier}\n\n${memories.trim()}`
+}
+
+/**
+ * Shared helpers so the Gemini request-builder (in `lib/ai/gemini-stream.ts`)
+ * and any non-streaming caller can derive the same generation params from
+ * the user's Behavior Dials.
+ */
+export function dialsToTemperature(dials: AIDialsInput | undefined, fallback = 0.85): number {
+  if (!dials || typeof dials.creativity !== "number") return fallback
+  // 0 → 0.2 (very deterministic), 50 → 0.85 (default), 100 → 1.2 (very creative)
+  const t = 0.2 + (dials.creativity / 100) * 1.0
+  return Math.max(0.2, Math.min(1.2, Number(t.toFixed(2))))
+}
+
+export function dialsToMaxTokens(
+  dials: AIDialsInput | undefined,
+  fallback: number,
+): number {
+  if (!dials?.responseLength) return fallback
+  if (dials.responseLength === "short") return 300
+  if (dials.responseLength === "long") return 1400
+  return fallback // medium → leave caller's choice
 }
 
 // ─── Internal Provider Config ─────────────────────────────────────────────────

@@ -201,7 +201,17 @@ export async function POST(req: NextRequest) {
     return validationErrorResponse(parsed.error)
   }
 
-  const { conversation, interactionCount } = parsed.data
+  const { conversation, interactionCount, incognito, analyticsOptOut } = parsed.data
+
+  // Incognito mode is a hard stop — honour the user's request to keep this
+  // conversation out of their life graph entirely. We return a benign success
+  // so the sendBeacon caller (`saveMemoryBeacon`) doesn't surface an error.
+  if (incognito) {
+    logRequest("memory.skipped_incognito", userId, startTime, {
+      interactionCount,
+    })
+    return jsonResponse({ success: true, skipped: "incognito" })
+  }
 
   const kv = getKV()
   if (!kv) {
@@ -258,10 +268,16 @@ export async function POST(req: NextRequest) {
     })
 
     // Analytics & Gamification: fire-and-forget (H1 fix: wrap in waitUntil)
-    if (kv) {
+    if (kv && !analyticsOptOut) {
       waitUntil(recordEvent(kv, { type: 'memory_write', userId }).catch(() => {}))
       waitUntil(recordUserSeen(kv, userId, getTodayDate()).catch(() => {}))
 
+    }
+
+    // Gamification stays enabled even with analyticsOptOut — XP / chat / memory
+    // awards are a user-facing feature, not telemetry. Keep the KV guard so a
+    // missing binding is still handled safely.
+    if (kv) {
       // Award chat XP only for meaningful conversations (4+ turns)
       // and only once per 5-minute window to prevent duplicate beacon awards
       if (interactionCount >= 4) {

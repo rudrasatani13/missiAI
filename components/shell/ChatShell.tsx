@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { useClerk } from "@clerk/nextjs"
 import { ChatSidebar } from "@/components/chat/ChatSidebar"
 import { useBilling } from "@/hooks/useBilling"
-import { useChatSettings } from "@/hooks/useChatSettings"
 
 /**
  * Floating rounded chrome used on every non-/chat page (Memory, Mood, Streaks, etc.).
@@ -13,9 +12,10 @@ import { useChatSettings } from "@/hooks/useChatSettings"
  * Layout:
  *   [ ChatSidebar ] — [ rounded main card containing {children} ]
  *
- * The sidebar shares its settings state (personality, voice toggle, custom prompt,
- * user name) with the /chat page via localStorage through `useChatSettings`, so
- * toggling anything in one surface is instantly reflected in the other.
+ * Settings state (personality, voice toggle, custom prompt, user name) is now
+ * edited on the dedicated /settings full-page and persisted via localStorage
+ * through `useChatSettings`, so values are reflected across every surface
+ * (sidebar rows, /chat live mode, /settings, etc.) on next render.
  *
  * The main card has `overflow-auto` with a styled scrollbar so long-form pages
  * can scroll internally without breaking the floating container.
@@ -24,7 +24,6 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { signOut } = useClerk()
   const { plan } = useBilling()
-  const settings = useChatSettings()
   // Start at 0 so the very first client render on mobile doesn't briefly
   // allocate a 240px sidebar column (which would squish <main> into a
   // sliver since fixed-positioned grid items are ignored by auto-flow).
@@ -96,13 +95,6 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
           router.push("/chat")
         }}
         onWidthChange={setSidebarWidth}
-        personality={settings.personality}
-        onPersonalityChange={settings.setPersonality}
-        voiceEnabled={settings.voiceEnabled}
-        onVoiceToggle={settings.toggleVoice}
-        customPrompt={settings.customPrompt}
-        onCustomPromptChange={settings.setCustomPrompt}
-        onNameChange={settings.setUserName}
       />
 
       {/*

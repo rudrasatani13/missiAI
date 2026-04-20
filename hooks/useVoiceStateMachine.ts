@@ -13,6 +13,7 @@ import { PCMPlayer, globalPcmPlayer } from "@/lib/client/pcm-player"
 import type { VoiceState, ConversationEntry, PersonalityKey } from "@/types/chat"
 import { useEmotionDetector } from "@/hooks/useEmotionDetector"
 import type { EmotionAdaptation } from "@/types/emotion"
+import type { AIDialSettings } from "@/hooks/useChatSettings"
 
 export type { VoiceState }
 
@@ -24,12 +25,33 @@ export interface UseVoiceStateMachineOptions {
   conversationRef: React.MutableRefObject<ConversationEntry[]>
   imagePayloadRef?: React.MutableRefObject<string | null>
   onImageConsumed?: () => void
+  /**
+   * Settings-page controlled values. Passed as refs so we always read the
+   * freshest value inside async closures (stream callbacks, sendBeacon, etc.).
+   * All are optional; when absent, server-side defaults apply.
+   */
+  aiDialsRef?: React.MutableRefObject<AIDialSettings | null>
+  /** Incognito / memory-paused mode. When true we skip memory read/write + mood. */
+  incognitoRef?: React.MutableRefObject<boolean>
+  /** Analytics opt-out mirror. Gates server-side `recordEvent` calls. */
+  analyticsOptOutRef?: React.MutableRefObject<boolean>
 }
 
 /* ── Hook ─────────────────────────────────────────────────────────────────── */
 
 export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
-  const { userId, personalityRef, customPromptRef, memoriesRef, conversationRef, imagePayloadRef, onImageConsumed } = options
+  const {
+    userId,
+    personalityRef,
+    customPromptRef,
+    memoriesRef,
+    conversationRef,
+    imagePayloadRef,
+    onImageConsumed,
+    aiDialsRef,
+    incognitoRef,
+    analyticsOptOutRef,
+  } = options
 
   /* ── Public reactive state ──────────────────────────────────────────────── */
   const [state, setState] = useState<VoiceState>("idle")
@@ -580,6 +602,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           ? `\n\nEMOTION CONTEXT:\n${adaptation.systemPromptSuffix}`
           : ''
 
+        const incognito = !!incognitoRef?.current
+        const analyticsOptOut = !!analyticsOptOutRef?.current
         const res = await fetchWithTimeout(
           "/api/v1/chat-stream",
           {
@@ -589,7 +613,12 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
               messages: msgs,
               personality: personalityRef.current,
               customPrompt: customPromptRef?.current,
-              memories: memoriesRef.current + emotionSuffix,
+              // Incognito drops memories client-side too so even if the server
+              // misses the flag, nothing personalises this turn.
+              memories: incognito ? "" : (memoriesRef.current + emotionSuffix),
+              aiDials: aiDialsRef?.current ?? undefined,
+              incognito: incognito || undefined,
+              analyticsOptOut: analyticsOptOut || undefined,
               // BUG-H1 fix: only enable EDITH mode when the user has explicitly turned
               // it on. Previously hardcoded true, which always injected the full EDITH
               // system prompt (autonomous execution, Hinglish tone, tool chaining) even
@@ -1173,12 +1202,19 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     const convo = conversationRef.current
     if (!uid || convo.length < 2) return
 
+    // Incognito mode: honour the user's "pause memory" preference from
+    // Settings → Privacy. No beacon sent — extraction would still happen
+    // server-side if we did, so the only safe path is to skip entirely.
+    if (incognitoRef?.current) return
+
     const interactionCount = convo.filter((m) => m.role === "user").length
+    const analyticsOptOut = !!analyticsOptOutRef?.current
 
     let messages = convo
     let payload = JSON.stringify({
       conversation: messages,
       interactionCount,
+      analyticsOptOut: analyticsOptOut || undefined,
     })
 
     // sendBeacon payloads should stay under 64 KB
@@ -1187,6 +1223,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       payload = JSON.stringify({
         conversation: messages,
         interactionCount,
+        analyticsOptOut: analyticsOptOut || undefined,
       })
     }
 
@@ -1194,7 +1231,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       "/api/v1/memory",
       new Blob([payload], { type: "application/json" }),
     )
-  }, [userId, conversationRef]) // BUG-010 fix: removed unused memoriesRef from deps
+  }, [userId, conversationRef, incognitoRef, analyticsOptOutRef])
 
   /* ── Keep fnRef in sync after every render ──────────────────────────────── */
 

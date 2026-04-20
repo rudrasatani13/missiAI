@@ -6,8 +6,6 @@ import { usePathname, useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
 import {
   Brain,
-  Briefcase,
-  BrainCircuit,
   Camera,
   Check,
   ChevronLeft,
@@ -21,14 +19,11 @@ import {
   Mic2,
   Moon,
   MoreHorizontal,
-  Pencil,
   Plug,
   Settings,
-  Sparkles,
   Sword,
   Target,
   User as UserIcon,
-  Wand2,
   X as XIcon,
   Zap,
   Calendar,
@@ -42,7 +37,6 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { LEDLogo } from "@/components/ui/LEDLogo"
-import { PERSONALITY_OPTIONS, type PersonalityKey } from "@/types/chat"
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Types
@@ -66,18 +60,9 @@ export interface ChatSidebarProps {
   onPickImage: () => void
   /** Called whenever the desktop sidebar width resolves, so the page can offset fixed children. */
   onWidthChange?: (pxWidth: number) => void
-
-  // Settings sub-panel (moved from the old top-right gear)
-  personality: PersonalityKey
-  onPersonalityChange: (p: PersonalityKey) => void
-  voiceEnabled: boolean
-  onVoiceToggle: () => void
-  customPrompt: string
-  onCustomPromptChange: (prompt: string) => void
-  onNameChange?: (newName: string) => void
 }
 
-type SubPanelKey = "voice" | "integrations" | "more" | "settings" | null
+type SubPanelKey = "voice" | "integrations" | "more" | null
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -691,392 +676,17 @@ function IntegrationsSubPanel() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Settings sub-panel (personality + voice engine + proactive + plan + name edit)
+// Settings sub-panel — REMOVED. The full settings surface now lives at /settings
+// as its own dedicated page (see app/settings/page.tsx). The sidebar's
+// "Settings" row navigates there instead of sliding a panel in.
 // ──────────────────────────────────────────────────────────────────────────────
 
-const PERSONALITY_ICON_MAP: Record<string, React.ReactNode> = {
-  Sparkles: <Sparkles className="w-4 h-4" />,
-  Heart: <Heart className="w-4 h-4" />,
-  Briefcase: <Briefcase className="w-4 h-4" />,
-  Zap: <Zap className="w-4 h-4" />,
-  BrainCircuit: <BrainCircuit className="w-4 h-4" />,
-  Wand2: <Wand2 className="w-4 h-4" />,
-}
-
-function SettingsSubPanel({
-  plan,
-  personality,
-  onPersonalityChange,
-  voiceEnabled,
-  onVoiceToggle,
-  customPrompt,
-  onCustomPromptChange,
-  userName,
-  userEmail,
-  userImageUrl,
-  onNameChange,
-}: {
-  plan: ChatSidebarProps["plan"]
-  personality: PersonalityKey
-  onPersonalityChange: (p: PersonalityKey) => void
-  voiceEnabled: boolean
-  onVoiceToggle: () => void
-  customPrompt: string
-  onCustomPromptChange: (prompt: string) => void
-  userName: string
-  userEmail: string
-  userImageUrl: string | null
-  onNameChange?: (newName: string) => void
-}) {
-  const router = useRouter()
-  const isFreePlan = !plan || plan === "free"
-
-  const [isEditingName, setIsEditingName] = useState(false)
-  const [editName, setEditName] = useState(userName)
-  const [savingName, setSavingName] = useState(false)
-
-  useEffect(() => {
-    setEditName(userName)
-  }, [userName])
-
-  const handleSaveName = useCallback(async () => {
-    const trimmed = editName.trim()
-    if (trimmed.length < 1 || trimmed === userName) {
-      setIsEditingName(false)
-      setEditName(userName)
-      return
-    }
-    setSavingName(true)
-    try {
-      await fetch("/api/v1/setup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed }),
-      })
-      onNameChange?.(trimmed)
-      toast.success("Name updated!")
-    } catch {
-      toast.error("Failed to update name")
-    } finally {
-      setSavingName(false)
-      setIsEditingName(false)
-    }
-  }, [editName, userName, onNameChange])
-
-  async function handleEnablePush() {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      toast.error("Push notifications are not supported in your browser")
-      return
-    }
-    try {
-      const permission = await Notification.requestPermission()
-      if (permission !== "granted") {
-        toast.error("Permission denied")
-        return
-      }
-      toast.loading("Enabling check-ins...", { id: "push" })
-      const reg = await navigator.serviceWorker.ready
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-      })
-      const res = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(sub),
-      })
-      if (!res.ok) throw new Error("Failed to save subscription")
-      toast.success("Proactive Check-ins enabled!", { id: "push" })
-    } catch (err) {
-      toast.error("Failed to enable notifications", { id: "push" })
-      console.error(err)
-    }
-  }
-
-  const eyebrowStyle: React.CSSProperties = {
-    fontSize: 10,
-    fontWeight: 600,
-    letterSpacing: "0.18em",
-    textTransform: "uppercase",
-    color: "rgba(255,255,255,0.35)",
-    margin: "0 0 10px",
-  }
-  const dividerStyle: React.CSSProperties = { height: 1, background: "rgba(255,255,255,0.05)", border: "none", margin: "14px 0" }
-  const glassSection: React.CSSProperties = {
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.06)",
-    borderRadius: 12,
-    padding: 12,
-  }
-
-  return (
-    <div className="p-3">
-      {/* Profile card with inline name edit */}
-      <div style={glassSection} className="mb-3">
-        <div className="flex items-center gap-3">
-          <div className="relative flex-shrink-0">
-            {userImageUrl ? (
-              <img src={userImageUrl} alt="" className="rounded-full" style={{ width: 40, height: 40, border: "1px solid rgba(255,255,255,0.1)" }} />
-            ) : (
-              <div className="rounded-full flex items-center justify-center" style={{ width: 40, height: 40, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <UserIcon className="w-4 h-4 text-white/50" />
-              </div>
-            )}
-            {(plan === "plus" || plan === "pro") && (
-              <div
-                className="absolute -bottom-1 -right-1 p-[3px] rounded-full border-[1.5px] border-[#0c0c10] flex items-center justify-center"
-                style={{ background: "rgba(245,158,11,0.85)" }}
-                title="PRO Member"
-              >
-                <Crown className="w-2 h-2 text-white" />
-              </div>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            {isEditingName ? (
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSaveName()
-                    if (e.key === "Escape") {
-                      setIsEditingName(false)
-                      setEditName(userName)
-                    }
-                  }}
-                  className="text-xs font-semibold text-white tracking-wide outline-none"
-                  style={{
-                    width: 120,
-                    fontSize: 12,
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    borderRadius: 8,
-                    padding: "4px 8px",
-                  }}
-                  autoFocus
-                  disabled={savingName}
-                />
-                <button
-                  onClick={handleSaveName}
-                  disabled={savingName}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.7)", padding: 2 }}
-                  title="Save"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => {
-                    setIsEditingName(false)
-                    setEditName(userName)
-                  }}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)", padding: 2 }}
-                  title="Cancel"
-                >
-                  <XIcon className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <p className="text-xs font-semibold text-white tracking-wide truncate">{userName}</p>
-                {onNameChange && (
-                  <button
-                    onClick={() => {
-                      setEditName(userName)
-                      setIsEditingName(true)
-                    }}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.3)", padding: 2 }}
-                    title="Edit name"
-                    data-testid="sidebar-edit-name-btn"
-                  >
-                    <Pencil className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            )}
-            <p className="text-[10px] font-light text-white/40 truncate">{userEmail}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Personality */}
-      <p style={eyebrowStyle}>Personality</p>
-      <div className="flex flex-col gap-0.5">
-        {PERSONALITY_OPTIONS.map((p) => {
-          const IconComp = PERSONALITY_ICON_MAP[p.iconName]
-          const isPremium = p.requiredPlan === "plus" || p.requiredPlan === "pro"
-          const isLocked = isPremium && isFreePlan
-          const isActive = personality === p.key
-
-          return (
-            <button
-              key={p.key}
-              onClick={() => {
-                if (isLocked) {
-                  toast.error(`Upgrade to Plus/Pro to unlock ${p.label}!`)
-                  router.push("/pricing")
-                } else {
-                  onPersonalityChange(p.key)
-                }
-              }}
-              data-testid={`sidebar-personality-${p.key}-btn`}
-              className="relative w-full flex items-center justify-between text-left transition-colors hover:bg-white/[0.03]"
-              style={{
-                paddingLeft: 14,
-                paddingRight: 10,
-                paddingTop: 9,
-                paddingBottom: 9,
-                borderRadius: 10,
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                opacity: isLocked ? 0.45 : 1,
-              }}
-            >
-              {isActive && (
-                <span
-                  aria-hidden
-                  style={{
-                    position: "absolute",
-                    left: 4,
-                    top: 10,
-                    bottom: 10,
-                    width: 2,
-                    borderRadius: 1,
-                    background: "rgba(255,255,255,0.6)",
-                  }}
-                />
-              )}
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div style={{ color: isActive ? "#fff" : "rgba(255,255,255,0.5)", display: "flex", alignItems: "center" }}>
-                  {IconComp}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p style={{ fontSize: 12, fontWeight: 500, color: isActive ? "#fff" : "rgba(255,255,255,0.75)", margin: 0, lineHeight: 1.3 }}>
-                    {p.label}
-                  </p>
-                  <p style={{ fontSize: 10, fontWeight: 400, color: "rgba(255,255,255,0.4)", margin: "2px 0 0", lineHeight: 1.4 }}>
-                    {p.desc}
-                  </p>
-                </div>
-              </div>
-              {isLocked ? (
-                <Lock className="w-3 h-3" style={{ color: "rgba(255,255,255,0.45)" }} />
-              ) : isActive ? (
-                <Check className="w-3 h-3" style={{ color: "rgba(255,255,255,0.55)" }} />
-              ) : null}
-            </button>
-          )
-        })}
-      </div>
-
-      {personality === "custom" && (
-        <div className="mt-3">
-          <p style={eyebrowStyle}>System Instructions</p>
-          <textarea
-            value={customPrompt}
-            onChange={(e) => onCustomPromptChange(e.target.value)}
-            placeholder="E.g. You are a sarcastic AI that answers in riddles..."
-            className="w-full h-24 resize-none outline-none"
-            style={{
-              fontSize: 12,
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 10,
-              padding: "10px 12px",
-              color: "rgba(255,255,255,0.9)",
-              lineHeight: 1.6,
-            }}
-          />
-        </div>
-      )}
-
-      <hr style={dividerStyle} />
-
-      {/* Voice Engine */}
-      <div className="flex items-center justify-between">
-        <span style={{ ...eyebrowStyle, margin: 0 }}>Voice Engine</span>
-        <button
-          onClick={onVoiceToggle}
-          data-testid="sidebar-voice-toggle-btn"
-          className="relative rounded-full transition-colors"
-          style={{
-            width: 40,
-            height: 22,
-            background: voiceEnabled ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.1)",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          <span
-            style={{
-              position: "absolute",
-              top: 3,
-              width: 16,
-              height: 16,
-              borderRadius: "50%",
-              background: voiceEnabled ? "#0c0c10" : "rgba(255,255,255,0.7)",
-              left: voiceEnabled ? 20 : 4,
-              transition: "left 0.2s ease, background 0.2s ease",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
-            }}
-          />
-        </button>
-      </div>
-
-      {/* Proactive Check-Ins */}
-      <div className="flex items-center justify-between mt-4">
-        <span style={{ ...eyebrowStyle, margin: 0 }}>Proactive Check-Ins</span>
-        <button
-          onClick={handleEnablePush}
-          className="transition-colors hover:bg-white/[0.04]"
-          style={{
-            padding: "4px 12px",
-            borderRadius: 999,
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: "0.05em",
-            background: "transparent",
-            border: "1px solid rgba(255,255,255,0.12)",
-            color: "rgba(255,255,255,0.75)",
-            cursor: "pointer",
-          }}
-        >
-          Enable
-        </button>
-      </div>
-
-      <hr style={dividerStyle} />
-
-      {/* Plan row */}
-      <Link
-        href="/pricing"
-        className="flex items-center justify-between w-full transition-opacity hover:opacity-90"
-        style={{ textDecoration: "none", padding: "4px 0" }}
-      >
-        <div className="flex items-center gap-2.5">
-          <Crown className="w-3.5 h-3.5" style={{ color: "#F59E0B" }} />
-          <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.85)" }}>
-            {isFreePlan ? "Upgrade to PRO" : "Manage Subscription"}
-          </span>
-        </div>
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: isFreePlan ? "#F59E0B" : "rgba(255,255,255,0.45)",
-          }}
-        >
-          {isFreePlan ? "View Plans" : plan}
-        </span>
-      </Link>
-    </div>
-  )
-}
-
+// Kept only so the existing ChatSidebarProps keep their shape (ChatShell and
+// /chat/page.tsx still pass these through). They're no longer consumed inside
+// the sidebar — the new /settings page reads from the same useChatSettings
+// hook directly. We intentionally don't delete the props themselves to avoid
+// a ripple change across the callers; TypeScript marks them as unused at the
+// destructure site which is acceptable for now.
 // ──────────────────────────────────────────────────────────────────────────────
 // More sub-panel
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1141,16 +751,10 @@ function ChatSidebarInner({
   onSwitchToLive,
   onPickImage,
   onWidthChange,
-  personality,
-  onPersonalityChange,
-  voiceEnabled,
-  onVoiceToggle,
-  customPrompt,
-  onCustomPromptChange,
-  onNameChange,
 }: ChatSidebarProps) {
   const { user } = useUser()
   const pathname = usePathname()
+  const router = useRouter()
   const isMobile = useMediaQuery("(max-width: 767px)", false)
 
   // Desktop collapsed/expanded state — hydrated from localStorage
@@ -1195,8 +799,16 @@ function ChatSidebarInner({
     if (typeof window === "undefined") return null
     try {
       const sub = sessionStorage.getItem(SS_SUB_KEY)
-      if (sub === "voice" || sub === "integrations" || sub === "more" || sub === "settings") {
+      // "settings" used to be a valid sub-panel; it now lives at /settings as
+      // its own page, so we ignore any stale session value for it. Other
+      // sub-panels still hydrate normally across route remounts.
+      if (sub === "voice" || sub === "integrations" || sub === "more") {
         return sub
+      }
+      if (sub === "settings") {
+        try {
+          sessionStorage.removeItem(SS_SUB_KEY)
+        } catch {}
       }
     } catch {}
     return null
@@ -1706,9 +1318,7 @@ function ChatSidebarInner({
                     ? "Integrations"
                     : activeSub === "more"
                       ? "More"
-                      : activeSub === "settings"
-                        ? "Settings"
-                        : "Back"}
+                      : "Back"}
               </span>
             </button>
           </div>
@@ -1725,21 +1335,9 @@ function ChatSidebarInner({
             )}
             {activeSub === "integrations" && <IntegrationsSubPanel />}
             {activeSub === "more" && <MoreSubPanel onPickImage={onPickImage} onClose={closeSub} />}
-            {activeSub === "settings" && (
-              <SettingsSubPanel
-                plan={plan}
-                personality={personality}
-                onPersonalityChange={onPersonalityChange}
-                voiceEnabled={voiceEnabled}
-                onVoiceToggle={onVoiceToggle}
-                customPrompt={customPrompt}
-                onCustomPromptChange={onCustomPromptChange}
-                userName={user?.firstName ?? user?.fullName ?? ""}
-                userEmail={user?.primaryEmailAddress?.emailAddress ?? ""}
-                userImageUrl={user?.imageUrl ?? null}
-                onNameChange={onNameChange}
-              />
-            )}
+            {/* The old "settings" sub-panel moved to its own full page at
+                /settings (see components/chat/SettingsSubPanel below — now
+                unused but kept for backwards reference until we delete it). */}
           </div>
         </div>
       </div>
@@ -1753,7 +1351,16 @@ function ChatSidebarInner({
           icon={<Settings className="w-4 h-4" />}
           label="Settings"
           showLabel={showLabels}
-          onClick={() => openSub("settings")}
+          active={pathname?.startsWith("/settings") && !pathname?.startsWith("/settings/integrations")}
+          onClick={() => {
+            // Settings used to open as a sliding sub-panel in this sidebar; it
+            // now lives on its own full page at /settings for a more focused
+            // editing surface. Close any other open sub-panel before routing
+            // so it doesn't linger when the user comes back.
+            if (activeSub !== null) closeSub()
+            setMobileOpen(false)
+            router.push("/settings")
+          }}
           testId="sidebar-settings-btn"
         />
         <NavRow

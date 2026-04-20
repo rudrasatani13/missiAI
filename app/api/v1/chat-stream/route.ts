@@ -146,9 +146,10 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return validationErrorResponse(parsed.error)
 
   let { messages } = parsed.data
-  const { personality, voiceEnabled, voiceMode, customPrompt } = parsed.data
+  const { personality, voiceEnabled, voiceMode, customPrompt, aiDials, incognito, analyticsOptOut } = parsed.data
   const maxOutputTokens = voiceMode ? 800 : (parsed.data.maxOutputTokens ?? 600)
-  const clientMemories = parsed.data.memories ?? ""
+  // Incognito mode drops any client-supplied memories as defence-in-depth.
+  const clientMemories = incognito ? "" : (parsed.data.memories ?? "")
   // SEC-004 fix: client-reported voiceDurationMs is untrusted — a user could
   // send 0 on every request to avoid incrementing their daily voice quota.
   // When voiceMode is active, enforce a server-side minimum of 3 s so that
@@ -171,9 +172,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 4. Memory context (pre-fetch)
+  // 4. Memory context (pre-fetch). Incognito mode skips the whole block —
+  // user has asked for a stateless turn with no life-graph personalization.
   let memories = ""
-  if (kv) {
+  if (kv && !incognito) {
     try {
       const lastUserMessage = messages.filter((m) => m.role === "user").pop()
       const currentMessage = lastUserMessage?.content ?? ""
@@ -197,7 +199,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (clientMemories) memories = memories ? `${memories}\n${clientMemories}` : clientMemories
-  let systemPrompt = buildSystemPrompt(personality, memories, customPrompt)
+  let systemPrompt = buildSystemPrompt(personality, memories, customPrompt, aiDials)
 
   // Append persona prompt modifier at the very end (after memory, personality, safety)
   // SECURITY (A1): Init to "default" — NOT "calm". On KV failure, no persona override is applied.
@@ -266,6 +268,7 @@ export async function POST(req: NextRequest) {
     availableDeclarations,
     customPrompt,
     systemPrompt,  // ← CRITICAL: pass our fully-assembled prompt with EDITH mode
+    aiDials,       // ← user's Settings → AI Behavior dials (maps to temp / maxTokens)
   )
   
   try {
@@ -363,6 +366,7 @@ export async function POST(req: NextRequest) {
                 availableDeclarations,
                 customPrompt,
                 systemPrompt,
+                aiDials,
               )
               // Update contents reference (and resync the running byte count)
               agentContents = [...(currentRequestBody.contents as any[])]

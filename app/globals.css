@@ -754,3 +754,95 @@ html, body { overflow-x: hidden; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Appearance settings (driven by <html data-*> via AppearanceProvider)
+
+   These rules are what actually make the Settings → Appearance & A11y
+   section functional. The provider writes:
+     data-accent         = amber | blue | purple | pink | green
+     data-font-scale     = sm | md | lg
+     data-reduce-motion  = true | false
+     data-high-contrast  = true | false
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Accent defaults to amber so anything that opts-in via var(--missi-accent)
+     renders the same as before the appearance system existed. */
+  --missi-accent: #F59E0B;
+  --missi-accent-soft: rgba(245, 158, 11, 0.12);
+  --missi-accent-border: rgba(245, 158, 11, 0.28);
+}
+
+html[data-accent="amber"] {
+  --missi-accent: #F59E0B;
+  --missi-accent-soft: rgba(245, 158, 11, 0.12);
+  --missi-accent-border: rgba(245, 158, 11, 0.28);
+}
+html[data-accent="blue"] {
+  --missi-accent: #3B82F6;
+  --missi-accent-soft: rgba(59, 130, 246, 0.14);
+  --missi-accent-border: rgba(59, 130, 246, 0.32);
+}
+html[data-accent="purple"] {
+  --missi-accent: #A855F7;
+  --missi-accent-soft: rgba(168, 85, 247, 0.14);
+  --missi-accent-border: rgba(168, 85, 247, 0.32);
+}
+html[data-accent="pink"] {
+  --missi-accent: #EC4899;
+  --missi-accent-soft: rgba(236, 72, 153, 0.14);
+  --missi-accent-border: rgba(236, 72, 153, 0.32);
+}
+html[data-accent="green"] {
+  --missi-accent: #10B981;
+  --missi-accent-soft: rgba(16, 185, 129, 0.14);
+  --missi-accent-border: rgba(16, 185, 129, 0.32);
+}
+
+/* Font scale — rescales the whole app via root font-size.
+   `md` is the current baseline so it stays at 100%. */
+html[data-font-scale="sm"] { font-size: 93.75%; }  /* 15px base */
+html[data-font-scale="md"] { font-size: 100%; }    /* 16px base */
+html[data-font-scale="lg"] { font-size: 112.5%; }  /* 18px base */
+
+/* Reduce motion — user override. Complements the OS-level
+   prefers-reduced-motion media query above. */
+html[data-reduce-motion="true"],
+html[data-reduce-motion="true"] *,
+html[data-reduce-motion="true"] *::before,
+html[data-reduce-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* High contrast — strengthens text and border opacities so low-vision users
+   get legible UI without requiring a full light theme. */
+html[data-high-contrast="true"] body {
+  color: #ffffff !important;
+}
+html[data-high-contrast="true"] [style*="rgba(255,255,255,0.4"],
+html[data-high-contrast="true"] [style*="rgba(255,255,255,0.45"],
+html[data-high-contrast="true"] [style*="rgba(255,255,255,0.5"],
+html[data-high-contrast="true"] [style*="rgba(255,255,255,0.55"],
+html[data-high-contrast="true"] [style*="rgba(255,255,255,0.6"],
+html[data-high-contrast="true"] [style*="rgba(255,255,255,0.65"],
+html[data-high-contrast="true"] [style*="rgba(255,255,255,0.7"] {
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+html[data-high-contrast="true"] [style*="border: 1px solid rgba(255,255,255,0.0"],
+html[data-high-contrast="true"] [style*="border: 1px solid rgba(255,255,255,0.1"] {
+  border-color: rgba(255, 255, 255, 0.28) !important;
+}
+html[data-high-contrast="true"] .text-white\/40,
+html[data-high-contrast="true"] .text-white\/45,
+html[data-high-contrast="true"] .text-white\/50,
+html[data-high-contrast="true"] .text-white\/55,
+html[data-high-contrast="true"] .text-white\/60,
+html[data-high-contrast="true"] .text-white\/65,
+html[data-high-contrast="true"] .text-white\/70,
+html[data-high-contrast="true"] .text-white\/75 {
+  color: rgba(255, 255, 255, 0.92) !important;
+}
