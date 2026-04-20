@@ -314,12 +314,6 @@ export default function LandingPage() {
             <div className="w-[80vw] md:w-[55vw] max-w-[800px] relative">
               <svg className="w-full h-auto drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" viewBox="0 0 800 220">
                 <defs>
-                  <style dangerouslySetInnerHTML={{
-                    __html: `
-                      @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-                      @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-                    `
-                  }} />
                   {/* The square/pill dot pattern matching the reference image */}
                   <pattern id="led-pattern" width="6" height="4" patternUnits="userSpaceOnUse" patternTransform="translate(0, 2)">
                     {/* distinct ovalish blocks for the LED cells */}
