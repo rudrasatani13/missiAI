@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { getEnv } from "@/lib/server/env"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
+import { randomHex } from "@/lib/bot/bot-crypto"
 import type { KVStore } from "@/types"
 
 
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
   // SECURITY: Generate a cryptographically random state token and store
   // the userId mapping in KV. This prevents CSRF attacks where an attacker
   // forges a state parameter to bind their OAuth tokens to a victim's account.
-  const stateToken = crypto.randomUUID()
+  const stateToken = randomHex(32)
   const kv = getKV()
   if (kv) {
     await kv.put(

@@ -18,6 +18,7 @@ export function CustomCursor() {
     // Only enable custom cursor on non-touch devices
     if (window.matchMedia("(pointer: fine)").matches) {
       setCursorEnabled(true);
+      document.body.classList.add("custom-cursor-active");
     }
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -44,6 +45,7 @@ export function CustomCursor() {
     window.addEventListener("mousemove", handleMouseMove);
 
     return () => {
+      document.body.classList.remove("custom-cursor-active");
       window.removeEventListener("mousemove", handleMouseMove);
     };
   }, [mouseX, mouseY]);
@@ -52,17 +54,6 @@ export function CustomCursor() {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: `
-        * {
-          cursor: none !important;
-        }
-        a, button, [role="button"], .interactive {
-          cursor: pointer !important;
-        }
-        a *, button *, [role="button"] *, .interactive * {
-          cursor: inherit !important;
-        }
-      `}} />
       {!isHovering && (
         <motion.div
           className="fixed top-0 left-0 w-8 h-8 rounded-full pointer-events-none z-[9999]"

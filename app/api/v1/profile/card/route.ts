@@ -400,18 +400,21 @@ export async function GET(req: NextRequest) {
     const personalitySnapshot = await generatePersonalitySnapshot(topEmotionalNodes)
 
     // ── Memory Stats ───────────────────────────────────────────────────────
-    const tagCounts = new Map<string, number>()
-    for (const node of graph.nodes) {
-      for (const tag of node.tags) {
-        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)
-      }
-    }
     let mostTalkedAbout = 'Nothing yet'
     let maxTagCount = 0
-    for (const [tag, count] of tagCounts) {
-      if (count > maxTagCount) {
-        maxTagCount = count
-        mostTalkedAbout = tag
+    const tagCounts: Record<string, number> = Object.create(null)
+
+    for (let i = 0; i < graph.nodes.length; i++) {
+      const tags = graph.nodes[i].tags
+      for (let j = 0; j < tags.length; j++) {
+        const tag = tags[j]
+        const count = (tagCounts[tag] || 0) + 1
+        tagCounts[tag] = count
+
+        if (count > maxTagCount) {
+          maxTagCount = count
+          mostTalkedAbout = tag
+        }
       }
     }
 
