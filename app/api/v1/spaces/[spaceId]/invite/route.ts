@@ -60,10 +60,12 @@ export async function POST(
   const planId = await getUserPlan(userId)
   if (!canAccessSpaces(planId)) return proRequiredResponse()
 
-  const member = await verifyMembership(kv, spaceId, userId)
-  if (!member) return errorResponse('Not a member of this Space', 'FORBIDDEN', 403)
+  const [member, space] = await Promise.all([
+    verifyMembership(kv, spaceId, userId),
+    getSpace(kv, spaceId),
+  ])
 
-  const space = await getSpace(kv, spaceId)
+  if (!member) return errorResponse('Not a member of this Space', 'FORBIDDEN', 403)
   if (!space) return errorResponse('Space not found', 'NOT_FOUND', 404)
 
   if ((space.activeInviteTokens?.length ?? 0) >= MAX_ACTIVE_INVITES) {

@@ -212,14 +212,19 @@ export async function POST(req: NextRequest) {
     try {
       const spaceIds = (await getUserSpaces(kv, userId)).slice(0, 3)
       if (spaceIds.length > 0) {
-        const blocks: { graph: Awaited<ReturnType<typeof getSpaceGraph>>; name: string }[] = []
-        for (const sid of spaceIds) {
+        const fetchPromises = spaceIds.map(async (sid) => {
           const [meta, graph] = await Promise.all([
             getSpace(kv, sid),
             getSpaceGraph(kv, sid),
           ])
-          if (meta && graph.nodes.length > 0) blocks.push({ graph, name: meta.name })
-        }
+          return { meta, graph }
+        })
+
+        const results = await Promise.all(fetchPromises)
+        const blocks = results
+          .filter(r => r.meta && r.graph.nodes.length > 0)
+          .map(r => ({ graph: r.graph, name: r.meta!.name }))
+
         const spaceBlock = formatSpaceContextForPrompt(blocks)
         if (spaceBlock) {
           memories = memories ? `${memories}\n\n${spaceBlock}` : spaceBlock
