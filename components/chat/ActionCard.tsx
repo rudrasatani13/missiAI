@@ -65,6 +65,7 @@ function CopyButton({ onCopy }: { onCopy: () => void }) {
     <button
       data-testid="action-card-copy-btn"
       onClick={handleCopy}
+      aria-label="Copy draft"
       style={{
         background: "rgba(255,255,255,0.08)",
         border: "1px solid rgba(255,255,255,0.12)",
@@ -234,6 +235,7 @@ export function ActionCard({ result, onDismiss, onCopy }: ActionCardProps) {
               e.stopPropagation();
               handleDismiss();
             }}
+            aria-label="Dismiss action card"
             style={{
               background: "none",
               border: "none",

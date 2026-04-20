@@ -372,6 +372,7 @@ function ThemeSelector({
             key={t.id}
             onClick={() => onChange(t.id)}
             title={t.name}
+            aria-label={`Select ${t.name} theme`}
             className="relative transition-opacity active:scale-[0.97]"
             style={{
               width: 28,
@@ -477,6 +478,7 @@ function ShareSheet({
                       key={platform.id}
                       onClick={() => onCapture(platform)}
                       disabled={capturing !== null}
+                      aria-label={`Share to ${platform.name}`}
                       className="flex flex-col items-center gap-1.5 shrink-0 transition-opacity hover:opacity-80 active:opacity-60"
                       style={{
                         background: 'none',
@@ -511,6 +513,7 @@ function ShareSheet({
                 {/* Copy Link */}
                 <button
                   onClick={handleCopyLink}
+                  aria-label="Copy profile link"
                   className="flex flex-col items-center gap-1.5 shrink-0 transition-opacity hover:opacity-80 active:opacity-60"
                   style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                 >
