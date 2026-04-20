@@ -616,6 +616,7 @@ function UserProfileCard({
                   padding: "2px",
                 }}
                 title="Save"
+                aria-label="Save name"
               >
                 <Check className="w-3.5 h-3.5" />
               </button>
@@ -632,6 +633,7 @@ function UserProfileCard({
                   padding: "2px",
                 }}
                 title="Cancel"
+                aria-label="Cancel editing name"
               >
                 <XIcon className="w-3.5 h-3.5" />
               </button>
@@ -655,6 +657,7 @@ function UserProfileCard({
                     padding: "2px",
                   }}
                   title="Edit name"
+                  aria-label="Edit name"
                   data-testid="edit-name-btn"
                 >
                   <Pencil className="w-3 h-3" />
@@ -1216,6 +1219,7 @@ function SettingsPanelInner({
                 onClick={onVoiceToggle}
                 data-testid="voice-toggle-btn"
                 className="relative w-10 h-[22px] rounded-full transition-colors"
+                aria-label={voiceEnabled ? "Disable Voice Engine" : "Enable Voice Engine"}
                 style={{
                   background: voiceEnabled
                     ? "rgba(255,255,255,0.9)"
