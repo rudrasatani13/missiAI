@@ -26,8 +26,6 @@ import {
 import { getEnv } from '@/lib/server/env'
 import { MAX_ACTIVE_INVITES } from '@/types/spaces'
 
-export const runtime = 'edge'
-
 const spaceIdSchema = z.string().min(8).max(32)
 const tokenSchema = z.string().min(4).max(32)
 

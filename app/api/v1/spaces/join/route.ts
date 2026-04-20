@@ -28,8 +28,6 @@ import {
 import { MAX_SPACE_MEMBERS } from '@/types/spaces'
 import type { SpaceMember } from '@/types/spaces'
 
-export const runtime = 'edge'
-
 const joinSchema = z.object({ token: z.string().min(1).max(30) })
 
 // Generic client-facing message used for all invalid / expired / consumed

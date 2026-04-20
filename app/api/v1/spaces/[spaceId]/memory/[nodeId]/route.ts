@@ -18,8 +18,6 @@ import {
   jsonResponse,
 } from '@/lib/spaces/space-api-helpers'
 
-export const runtime = 'edge'
-
 const spaceIdSchema = z.string().min(8).max(32)
 const nodeIdSchema = z.string().min(1).max(32)
 

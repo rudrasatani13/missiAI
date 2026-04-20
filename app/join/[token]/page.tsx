@@ -13,8 +13,6 @@ import type { KVStore } from '@/types'
 import type { SpaceMetadata } from '@/types/spaces'
 import JoinActions from './JoinActions'
 
-export const runtime = 'edge'
-
 function getKV(): KVStore | null {
   try {
     const { env } = getCloudflareContext()

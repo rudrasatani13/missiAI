@@ -27,8 +27,6 @@ import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 import { MEMORY_CATEGORIES } from '@/types/spaces'
 import type { SharedMemoryNode } from '@/types/spaces'
 
-export const runtime = 'edge'
-
 const spaceIdSchema = z.string().min(8).max(32)
 
 const postSchema = z.object({

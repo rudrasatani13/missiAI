@@ -31,8 +31,6 @@ import {
 } from '@/types/spaces'
 import type { SpaceSummary } from '@/types/spaces'
 
-export const runtime = 'edge'
-
 const createSchema = z.object({
   name: z.string().min(2).max(50),
   description: z.string().max(200).optional().default(''),

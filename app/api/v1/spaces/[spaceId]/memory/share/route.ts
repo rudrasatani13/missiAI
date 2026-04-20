@@ -29,8 +29,6 @@ import {
 } from '@/lib/spaces/space-api-helpers'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 
-export const runtime = 'edge'
-
 const spaceIdSchema = z.string().min(8).max(32)
 const shareSchema = z.object({
   personalNodeId: z.string().min(1).max(20),
