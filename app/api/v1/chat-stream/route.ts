@@ -22,6 +22,8 @@ import type { AgentToolCall } from "@/lib/ai/agent-tools"
 import { classifyAgentTool, AGENT_DESTRUCTIVE_TOOL_NAMES } from "@/lib/ai/agent-tool-policy"
 import { getGoogleTokens } from "@/lib/plugins/data-fetcher"
 import { awardXP } from "@/lib/gamification/xp-engine"
+import { getSpace, getSpaceGraph, getUserSpaces } from "@/lib/spaces/space-store"
+import { formatSpaceContextForPrompt } from "@/lib/spaces/space-context"
 import { geminiGenerateStream } from "@/lib/ai/vertex-client"
 import { getUserPersona } from "@/lib/personas/persona-store"
 import { getVoiceId as getPersonaVoiceId, getPersonaConfig } from "@/lib/personas/persona-config"
@@ -199,6 +201,32 @@ export async function POST(req: NextRequest) {
   }
 
   if (clientMemories) memories = memories ? `${memories}\n${clientMemories}` : clientMemories
+
+  // SPACE CONTEXT — read-only injected after personal memory.
+  // Any failure here must NEVER block the chat response. Worst case: no Space
+  // context gets added this turn.
+  if (kv && !incognito) {
+    try {
+      const spaceIds = (await getUserSpaces(kv, userId)).slice(0, 3)
+      if (spaceIds.length > 0) {
+        const blocks: { graph: Awaited<ReturnType<typeof getSpaceGraph>>; name: string }[] = []
+        for (const sid of spaceIds) {
+          const [meta, graph] = await Promise.all([
+            getSpace(kv, sid),
+            getSpaceGraph(kv, sid),
+          ])
+          if (meta && graph.nodes.length > 0) blocks.push({ graph, name: meta.name })
+        }
+        const spaceBlock = formatSpaceContextForPrompt(blocks)
+        if (spaceBlock) {
+          memories = memories ? `${memories}\n\n${spaceBlock}` : spaceBlock
+        }
+      }
+    } catch {
+      /* Space context is optional — never block chat. */
+    }
+  }
+
   let systemPrompt = buildSystemPrompt(personality, memories, customPrompt, aiDials)
 
   // Append persona prompt modifier at the very end (after memory, personality, safety)

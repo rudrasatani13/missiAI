@@ -17,6 +17,9 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhooks/whatsapp",
   "/api/webhooks/telegram",
   "/pricing(.*)",
+  // Missi Spaces invite preview page is public so recipients can see the
+  // Space name/emoji before signing up. Joining still requires Clerk auth.
+  "/join(.*)",
 ])
 
 // Auth page routes — rate-limited separately with a tighter per-IP cap to

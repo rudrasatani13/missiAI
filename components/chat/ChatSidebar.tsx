@@ -23,6 +23,7 @@ import {
   Settings,
   Sword,
   Target,
+  Users,
   User as UserIcon,
   X as XIcon,
   Zap,
@@ -1252,6 +1253,14 @@ function ChatSidebarInner({
               active={pathname?.startsWith("/memory")}
               showLabel={showLabels}
               testId="sidebar-memory-btn"
+            />
+            <NavRow
+              icon={<Users className="w-4 h-4" />}
+              label="Spaces"
+              href="/spaces"
+              active={pathname?.startsWith("/spaces")}
+              showLabel={showLabels}
+              testId="sidebar-spaces-btn"
             />
             <NavRow
               icon={<Heart className="w-4 h-4" />}

@@ -124,6 +124,137 @@ export async function decryptFromKV(stored: string): Promise<string> {
   return new TextDecoder().decode(decrypted)
 }
 
+// ─── Per-Tenant Salted Encryption (v2) ───────────────────────────────────────
+//
+// Missi Spaces requires per-tenant key isolation: a compromise of one Space's
+// ciphertext must not reveal any other Space's data. We derive a subkey per
+// salt via HKDF-SHA256 from MISSI_KV_ENCRYPTION_SECRET. The salt is typically
+// the spaceId (or invite token).
+//
+// FORMAT: encv2:<base64(iv[12] + ciphertext + authTag)>
+// Backwards-compatible: values without this prefix are rejected by the v2
+// decryptor. The v1 helpers above remain untouched for existing call sites.
+
+const ENCRYPTED_V2_PREFIX = 'encv2:'
+
+// In-memory subkey cache — scoped per (secret, salt). Cleared implicitly on
+// worker isolate recycle. The cache never crosses secret rotations because
+// the cache key includes the secret itself.
+const _subkeyCache = new Map<string, CryptoKey>()
+const SUBKEY_CACHE_MAX = 256
+
+async function hkdfSha256(
+  ikm: Uint8Array,
+  salt: Uint8Array,
+  info: Uint8Array,
+  length: number,
+): Promise<Uint8Array> {
+  const baseKey = await crypto.subtle.importKey(
+    'raw',
+    ikm,
+    { name: 'HKDF' },
+    false,
+    ['deriveBits'],
+  )
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'HKDF', hash: 'SHA-256', salt, info },
+    baseKey,
+    length * 8,
+  )
+  return new Uint8Array(bits)
+}
+
+async function getSaltedKey(salt: string): Promise<CryptoKey> {
+  const secret = getSecret()
+  const cacheKey = `${secret.length}:${secret.slice(0, 4)}:${salt}`
+  const cached = _subkeyCache.get(cacheKey)
+  if (cached) return cached
+
+  const ikm = new TextEncoder().encode(secret)
+  const saltBytes = new TextEncoder().encode(salt)
+  const info = new TextEncoder().encode('missi:kv:v2')
+  const keyBytes = await hkdfSha256(ikm, saltBytes, info, KEY_LENGTH)
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyBytes,
+    { name: ALGO },
+    false,
+    ['encrypt', 'decrypt'],
+  )
+
+  // Bounded cache: evict oldest entry if we exceed the cap.
+  if (_subkeyCache.size >= SUBKEY_CACHE_MAX) {
+    const firstKey = _subkeyCache.keys().next().value
+    if (firstKey !== undefined) _subkeyCache.delete(firstKey)
+  }
+  _subkeyCache.set(cacheKey, key)
+  return key
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  const CHUNK_SIZE = 32768
+  const chunks: string[] = []
+  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+    const chunk = bytes.subarray(i, i + CHUNK_SIZE)
+    chunks.push(String.fromCharCode.apply(null, Array.from(chunk)))
+  }
+  return btoa(chunks.join(''))
+}
+
+/**
+ * Encrypts a plaintext using a per-tenant derived key.
+ * `salt` is typically the spaceId (or invite token). Two different salts
+ * produce completely independent keys so ciphertext from one tenant is
+ * cryptographically useless to another.
+ */
+export async function encryptKVValue(plaintext: string, salt: string): Promise<string> {
+  if (!salt || salt.length === 0) {
+    throw new Error('encryptKVValue: salt is required')
+  }
+  const key = await getSaltedKey(salt)
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH))
+  const encoded = new TextEncoder().encode(plaintext)
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: ALGO, iv },
+    key,
+    encoded,
+  )
+  const combined = new Uint8Array(IV_LENGTH + ciphertext.byteLength)
+  combined.set(iv, 0)
+  combined.set(new Uint8Array(ciphertext), IV_LENGTH)
+  return ENCRYPTED_V2_PREFIX + bytesToBase64(combined)
+}
+
+/**
+ * Decrypts a value produced by `encryptKVValue` using the same salt.
+ * Returns null on any failure — callers MUST treat null as "no data" and
+ * never surface the raw error to clients. This prevents decryption-oracle
+ * style attacks and keeps Space route handlers simple.
+ */
+export async function decryptKVValue(
+  stored: string,
+  salt: string,
+): Promise<string | null> {
+  if (!stored.startsWith(ENCRYPTED_V2_PREFIX)) return null
+  try {
+    const key = await getSaltedKey(salt)
+    const raw = stored.slice(ENCRYPTED_V2_PREFIX.length)
+    const combined = Uint8Array.from(atob(raw), (c) => c.charCodeAt(0))
+    if (combined.length <= IV_LENGTH) return null
+    const iv = combined.slice(0, IV_LENGTH)
+    const ciphertext = combined.slice(IV_LENGTH)
+    const decrypted = await crypto.subtle.decrypt(
+      { name: ALGO, iv },
+      key,
+      ciphertext,
+    )
+    return new TextDecoder().decode(decrypted)
+  } catch {
+    return null
+  }
+}
+
 // ─── High-Level KV Wrappers ──────────────────────────────────────────────────
 
 /**
