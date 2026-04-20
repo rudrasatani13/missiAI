@@ -1279,6 +1279,14 @@ function ChatSidebarInner({
               testId="sidebar-streaks-btn"
             />
             <NavRow
+              icon={<BookOpen className="w-4 h-4" />}
+              label="Exam Buddy"
+              href="/exam-buddy"
+              active={pathname?.startsWith("/exam-buddy")}
+              showLabel={showLabels}
+              testId="sidebar-exam-buddy-btn"
+            />
+            <NavRow
               icon={<Plug className="w-4 h-4" />}
               label="Integrations"
               showLabel={showLabels}

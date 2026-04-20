@@ -56,6 +56,15 @@ export const chatSchema = z.object({
   incognito: z.boolean().optional(),
   /** Mirror of Privacy → "Opt out of analytics". Gates server-side recordEvent. */
   analyticsOptOut: z.boolean().optional(),
+  /** Exam Buddy mode context — when present activates Hinglish tutor modifier */
+  examBuddy: z.object({
+    examTarget: z.enum([
+      'jee_mains', 'jee_advanced', 'neet', 'upsc',
+      'cbse_10', 'cbse_12', 'cat', 'gate',
+    ]),
+    subject: z.string().max(50).optional(),
+    topic: z.string().max(100).optional(),
+  }).optional(),
 })
 
 export type ChatInput = z.infer<typeof chatSchema>

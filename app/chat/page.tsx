@@ -7,7 +7,7 @@ import nextDynamic from "next/dynamic"
 import { ArrowLeft, X } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
-import { useGeminiLive, type LiveState } from "@/hooks/useGeminiLive"
+import { useGeminiLive } from "@/hooks/useGeminiLive"
 import { buildSystemPrompt } from "@/services/ai.service"
 import { useChatSettings, type AIDialSettings } from "@/hooks/useChatSettings"
 import { AGENT_FUNCTION_DECLARATIONS } from "@/lib/ai/agent-tools"
@@ -21,11 +21,9 @@ import { StatusDisplay } from "@/components/chat/StatusDisplay"
 import { ChatSidebar } from "@/components/chat/ChatSidebar"
 import { ConversationLog } from "@/components/chat/ConversationLog"
 import { ActionCard } from "@/components/chat/ActionCard"
-import { PluginBadge } from "@/components/chat/PluginBadge"
 import { UsageBar } from "@/components/chat/UsageBar"
 import { BootSequence } from "@/components/chat/BootSequence"
 import { AgentSteps } from "@/components/chat/AgentSteps"
-import { AvatarRing } from "@/components/chat/AvatarRing"
 import { OnboardingTour, shouldShowOnboarding } from "@/components/chat/OnboardingTour"
 import { Magnetic } from "@/components/ui/Magnetic"
 import { DailyBriefBanner } from "@/components/chat/DailyBriefBanner"
@@ -39,6 +37,8 @@ const ParticleVisualizer = nextDynamic(
   () => import("@/components/chat/ParticleVisualizer").then((m) => m.ParticleVisualizer),
   { ssr: false }
 )
+
+const isFullDevBootstrap = process.env.NODE_ENV !== 'development' || process.env.NEXT_PUBLIC_ENABLE_CF_DEV === '1'
 
 /** Convert a PluginResult to an ActionResult shape for display in ActionCard. */
 function pluginResultToActionResult(result: PluginResult): ActionResult {
@@ -61,9 +61,8 @@ function pluginResultToActionResult(result: PluginResult): ActionResult {
 export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
-  const { plan, usage, isAtLimit, usedSeconds, limitSeconds, isLoading: billingLoading, initiateCheckout, incrementUsageLocally } = useBilling()
+  const { plan, isAtLimit, usedSeconds, limitSeconds, isLoading: billingLoading, initiateCheckout, incrementUsageLocally } = useBilling()
   const [avatarTier, setAvatarTier] = useState<import('@/types/gamification').AvatarTier>(1)
-  const [avatarLevel, setAvatarLevel] = useState(1)
   const [activePanel, setActivePanel] = useState<'settings' | 'plugins' | 'personas' | null>(null)
   const [personality, setPersonality] = useState<PersonalityKey>("assistant")
   const [customPrompt, setCustomPrompt] = useState("")
@@ -94,7 +93,6 @@ export default function VoiceAssistantPage() {
 
   // Resolved display name: prefer Clerk's firstName, fallback to localStorage name
   const displayName = user?.firstName || localName || ''
-  const displayFullName = user?.fullName || localName || 'User'
 
   // ── Client-side setup guard (replaces server-side layout check) ──
   // If the user's Clerk publicMetadata doesn't have setupComplete, redirect
@@ -436,18 +434,15 @@ export default function VoiceAssistantPage() {
   const { briefing, nudges, dismissItem, markDelivered } = useProactive()
 
   // Action engine
-  const { detectAndExecute, lastResult, isExecuting, clearResult } = useActionEngine()
+  const { detectAndExecute, lastResult, clearResult } = useActionEngine()
   const lastResponseForActionRef = useRef("")
 
   // Plugin system
   const {
     plugins,
     executeVoiceCommand,
-    isConnected,
     lastResult: pluginResult,
     clearResult: clearPluginResult,
-    connectPlugin,
-    disconnectPlugin,
   } = usePlugins()
   const lastResponseForPluginRef = useRef("")
 
@@ -499,42 +494,65 @@ export default function VoiceAssistantPage() {
   // Fetch active persona info on load (display only — does NOT switch off real-time voice)
   useEffect(() => {
     if (!isLoaded || !user?.id) return
-    fetch('/api/v1/persona').then(r => r.json())
-      .then(d => {
-        if (d.displayName) {
-          setActivePersona({
-            personaId: d.personaId ?? 'calm',
-            displayName: d.displayName,
-            accentColor: d.accentColor ?? '#7DD3FC',
-            geminiVoiceName: d.geminiVoiceName ?? 'Kore',
-          })
-          // liveMode stays ON — Gemini Live is the default experience
-        }
-      }).catch(() => {})
+    let cancelled = false
+    const load = () => {
+      fetch('/api/v1/persona').then(r => r.json())
+        .then(d => {
+          if (cancelled) return
+          if (d.displayName) {
+            setActivePersona({
+              personaId: d.personaId ?? 'calm',
+              displayName: d.displayName ?? 'calm',
+              accentColor: d.accentColor ?? '#7DD3FC',
+              geminiVoiceName: d.geminiVoiceName ?? 'Kore',
+            })
+          }
+        }).catch(() => {})
+    }
+
+    if (isFullDevBootstrap) {
+      load()
+    } else {
+      const timer = setTimeout(load, 5500)
+      return () => {
+        cancelled = true
+        clearTimeout(timer)
+      }
+    }
+
+    return () => {
+      cancelled = true
+    }
   }, [isLoaded, user?.id])
 
   // Fetch avatar data for the navbar ring
   useEffect(() => {
     if (!isLoaded || !user?.id) return
-    fetch('/api/v1/streak').then(r => r.json())
-      .then(d => {
-        if (d?.success && d.data) {
-          setAvatarTier(d.data.avatarTier ?? 1)
-          setAvatarLevel(d.data.level ?? 1)
-        }
-      }).catch(() => {})
+    let cancelled = false
+    const load = () => {
+      fetch('/api/v1/streak').then(r => r.json())
+        .then(d => {
+          if (cancelled) return
+          if (d?.success && d.data) {
+            setAvatarTier(d.data.avatarTier ?? 1)
+          }
+        }).catch(() => {})
+    }
+
+    if (isFullDevBootstrap) {
+      load()
+    } else {
+      const timer = setTimeout(load, 6000)
+      return () => {
+        cancelled = true
+        clearTimeout(timer)
+      }
+    }
+
+    return () => {
+      cancelled = true
+    }
   }, [isLoaded, user?.id])
-
-  const updatePersonality = useCallback((key: PersonalityKey) => {
-    setPersonality(key); personalityRef.current = key
-    try { localStorage.setItem("missi-personality", key) } catch { }; conversationRef.current = []
-  }, [])
-
-  const updateCustomPrompt = useCallback((prompt: string) => {
-    setCustomPrompt(prompt)
-    customPromptRef.current = prompt
-    try { localStorage.setItem("missi-custom-prompt", prompt) } catch { }
-  }, [])
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -586,7 +604,7 @@ export default function VoiceAssistantPage() {
     }
 
     setTimeout(() => greet(greetingToSay), delay)
-  }, [isLoaded, user, greet, isAtLimit, billingLoading, showBootSequence, bootCompleted, liveMode])
+  }, [isLoaded, user, greet, isAtLimit, billingLoading, showBootSequence, bootCompleted, liveMode, displayName])
 
   // Proactive JARVIS moment: auto-speak first high-priority briefing item (legacy only)
   useEffect(() => {

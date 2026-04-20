@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { X, Sparkles } from 'lucide-react'
 
+const isFullDevBootstrap = process.env.NODE_ENV !== 'development' || process.env.NEXT_PUBLIC_ENABLE_CF_DEV === '1'
+
 /**
  * DailyBriefBanner — shown at the top of the chat page when the user
  * has an unviewed daily brief. Dismissed state is persisted in localStorage
@@ -16,33 +18,42 @@ export function DailyBriefBanner() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    // Fire-and-forget — never block chat from loading
-    ;(async () => {
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    const load = async () => {
       try {
-        // BUGFIX (F1): Use local date, not UTC. At 11 PM IST, toISOString()
-        // returns the next UTC day, creating a wrong dismiss key.
-        const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local time
+        const today = new Date().toLocaleDateString('en-CA')
         const dismissKey = `missi-brief-dismissed:${today}`
 
-        // Check if already dismissed today
         const dismissed = localStorage.getItem(dismissKey)
         if (dismissed === 'true') return
 
-        // Fetch today's brief status
         const res = await fetch('/api/v1/daily-brief')
-        if (!res.ok) return
+        if (!res.ok || cancelled) return
 
         const data = await res.json()
         const brief = data?.data?.brief
 
-        // Show banner only if brief exists and hasn't been viewed yet
-        if (brief && brief.viewed === false) {
+        if (!cancelled && brief && brief.viewed === false) {
           setVisible(true)
         }
       } catch {
-        // Silently fail — never interrupt chat
       }
-    })()
+    }
+
+    if (isFullDevBootstrap) {
+      void load()
+    } else {
+      timer = setTimeout(() => {
+        void load()
+      }, 4500)
+    }
+
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
   }, [])
 
   const handleDismiss = () => {

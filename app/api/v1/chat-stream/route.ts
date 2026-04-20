@@ -28,6 +28,9 @@ import { geminiGenerateStream } from "@/lib/ai/vertex-client"
 import { getUserPersona } from "@/lib/personas/persona-store"
 import { getVoiceId as getPersonaVoiceId, getPersonaConfig } from "@/lib/personas/persona-config"
 import type { KVStore } from "@/types"
+import { getProfile } from "@/lib/exam-buddy/profile-store"
+import { buildExamBuddyModifier } from "@/lib/exam-buddy/exam-prompt"
+import type { ExamBuddySessionContext } from "@/types/exam-buddy"
 
 
 const MAX_BODY_BYTES = 5_000_000 // 5 MB
@@ -244,6 +247,24 @@ export async function POST(req: NextRequest) {
   // ── EDITH Mode: Voice-first autonomous agent ──
   if (voiceMode) {
     systemPrompt = `${systemPrompt}\n\n${EDITH_PROMPT_SUFFIX}`
+  }
+
+  // ── Exam Buddy Mode: Hinglish tutor modifier ──
+  const examBuddyInput = parsed.data.examBuddy
+  if (examBuddyInput) {
+    try {
+      const ebProfile = kv ? await getProfile(kv, userId).catch(() => null) : null
+      const ebContext: ExamBuddySessionContext = {
+        examTarget: examBuddyInput.examTarget as import('@/types/exam-buddy').ExamTarget,
+        mode: 'doubt',
+        currentSubject: (examBuddyInput.subject ?? null) as import('@/types/exam-buddy').ExamSubject | null,
+        currentTopic: examBuddyInput.topic ?? null,
+      }
+      const modifier = buildExamBuddyModifier(ebProfile, ebContext)
+      systemPrompt = `${systemPrompt}\n\n${modifier}`
+    } catch {
+      /* never block chat on exam buddy failure */
+    }
   }
 
   const estimatedTokens = estimateRequestTokens(messages, systemPrompt, memories)

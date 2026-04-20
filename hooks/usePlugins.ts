@@ -5,6 +5,8 @@ import type { PluginConfig, PluginId, PluginResult } from "@/types/plugins"
 
 type SafePlugin = Omit<PluginConfig, "credentials">
 
+const isFullDevBootstrap = process.env.NODE_ENV !== 'development' || process.env.NEXT_PUBLIC_ENABLE_CF_DEV === '1'
+
 export function usePlugins() {
   const [plugins, setPlugins] = useState<SafePlugin[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -32,9 +34,27 @@ export function usePlugins() {
     }
   }, [])
 
-  // Fetch on mount
   useEffect(() => {
-    fetchPlugins()
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    const load = async () => {
+      if (cancelled) return
+      await fetchPlugins()
+    }
+
+    if (isFullDevBootstrap) {
+      void load()
+    } else {
+      timer = setTimeout(() => {
+        void load()
+      }, 5000)
+    }
+
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
   }, [fetchPlugins])
 
   const connectPlugin = useCallback(

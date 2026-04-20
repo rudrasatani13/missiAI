@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { DailyBriefing, BriefingItem, ProactiveConfig } from '@/types/proactive'
 
+const isFullDevBootstrap = process.env.NODE_ENV !== 'development' || process.env.NEXT_PUBLIC_ENABLE_CF_DEV === '1'
+
 export function useProactive() {
   const [briefing, setBriefing] = useState<DailyBriefing | null>(null)
   const [nudges, setNudges] = useState<BriefingItem[]>([])
@@ -10,35 +12,55 @@ export function useProactive() {
   const [config, setConfig] = useState<ProactiveConfig | null>(null)
 
   useEffect(() => {
-    setIsLoading(true)
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
 
-    // Use a stored last-interaction time if available, otherwise 24 hours ago
-    let lastInteractionAt: number
-    try {
-      const stored = localStorage.getItem('missi-last-interaction-at')
-      lastInteractionAt = stored ? parseInt(stored, 10) : Date.now() - 24 * 60 * 60 * 1000
-    } catch {
-      lastInteractionAt = Date.now() - 24 * 60 * 60 * 1000
+    const load = () => {
+      if (cancelled) return
+
+      setIsLoading(true)
+
+      let lastInteractionAt: number
+      try {
+        const stored = localStorage.getItem('missi-last-interaction-at')
+        lastInteractionAt = stored ? parseInt(stored, 10) : Date.now() - 24 * 60 * 60 * 1000
+      } catch {
+        lastInteractionAt = Date.now() - 24 * 60 * 60 * 1000
+      }
+
+      Promise.all([
+        fetch('/api/v1/proactive').then((r) => r.json()),
+        fetch('/api/v1/proactive', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lastInteractionAt }),
+        }).then((r) => r.json()),
+      ])
+        .then(([briefingRes, nudgesRes]) => {
+          if (cancelled) return
+          if (briefingRes?.success && briefingRes.data) {
+            setBriefing(briefingRes.data as DailyBriefing)
+          }
+          if (nudgesRes?.success && nudgesRes.data?.nudges) {
+            setNudges(nudgesRes.data.nudges as BriefingItem[])
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) setIsLoading(false)
+        })
     }
 
-    Promise.all([
-      fetch('/api/v1/proactive').then((r) => r.json()),
-      fetch('/api/v1/proactive', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lastInteractionAt }),
-      }).then((r) => r.json()),
-    ])
-      .then(([briefingRes, nudgesRes]) => {
-        if (briefingRes?.success && briefingRes.data) {
-          setBriefing(briefingRes.data as DailyBriefing)
-        }
-        if (nudgesRes?.success && nudgesRes.data?.nudges) {
-          setNudges(nudgesRes.data.nudges as BriefingItem[])
-        }
-      })
-      .catch(() => {})
-      .finally(() => setIsLoading(false))
+    if (isFullDevBootstrap) {
+      load()
+    } else {
+      timer = setTimeout(load, 4000)
+    }
+
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
   }, [])
 
   /**
