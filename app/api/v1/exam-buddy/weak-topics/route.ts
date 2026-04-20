@@ -2,8 +2,6 @@ import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/
 import { getExamBuddyKV } from '@/lib/exam-buddy/kv'
 import { getWeakTopics } from '@/lib/exam-buddy/profile-store'
 
-export const runtime = 'edge'
-
 export async function GET() {
   let userId: string
   try {

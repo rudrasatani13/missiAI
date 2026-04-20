@@ -4,8 +4,6 @@ import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/
 import { getExamBuddyKV } from '@/lib/exam-buddy/kv'
 import { getRecentSessions } from '@/lib/exam-buddy/profile-store'
 
-export const runtime = 'edge'
-
 const limitSchema = z.coerce.number().int().min(1).max(50).default(10)
 
 export async function GET(req: NextRequest) {

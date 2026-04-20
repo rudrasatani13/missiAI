@@ -14,8 +14,6 @@ import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 import { PLANS } from '@/types/billing'
 import type { ExamTarget, ExamSubject, QuizDifficulty, QuizQuestionType, QuizSession } from '@/types/exam-buddy'
 
-export const runtime = 'edge'
-
 const quizRequestSchema = z.object({
   subject: z.enum([
     'physics', 'chemistry', 'mathematics', 'biology', 'history',

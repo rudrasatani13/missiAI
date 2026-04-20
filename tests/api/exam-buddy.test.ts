@@ -385,7 +385,7 @@ describe('exam-buddy API routes', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers: { q1: 'A' } }),
     })
-    const res = await POST_SUBMIT(req, { params: { sessionId: 'sess-1' } })
+    const res = await POST_SUBMIT(req, { params: Promise.resolve({ sessionId: 'sess-1' }) })
     expect(res.status).toBe(401)
   })
 
@@ -396,7 +396,7 @@ describe('exam-buddy API routes', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers: { q1: 'Force' } }),
     })
-    const res = await POST_SUBMIT(req, { params: { sessionId: 'unknown-sess' } })
+    const res = await POST_SUBMIT(req, { params: Promise.resolve({ sessionId: 'unknown-sess' }) })
     expect(res.status).toBe(404)
   })
 
@@ -425,7 +425,7 @@ describe('exam-buddy API routes', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers: { q1abc123: 'Force' } }),
     })
-    const res = await POST_SUBMIT(req, { params: { sessionId: 'completed-sess' } })
+    const res = await POST_SUBMIT(req, { params: Promise.resolve({ sessionId: 'completed-sess' }) })
     expect(res.status).toBe(400)
   })
 
@@ -453,7 +453,7 @@ describe('exam-buddy API routes', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers: { q1abc123: 'Force' } }),
     })
-    const res = await POST_SUBMIT(req, { params: { sessionId: 'active-sess' } })
+    const res = await POST_SUBMIT(req, { params: Promise.resolve({ sessionId: 'active-sess' }) })
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -490,7 +490,7 @@ describe('exam-buddy API routes', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers: { q1: 'Force', q2: 'Force' } }),
     })
-    const res = await POST_SUBMIT(req, { params: { sessionId: 'jee-sess' } })
+    const res = await POST_SUBMIT(req, { params: Promise.resolve({ sessionId: 'jee-sess' }) })
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -522,14 +522,13 @@ describe('exam-buddy API routes', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers: { qw1: 'WrongAnswer' } }),
     })
-    const res = await POST_SUBMIT(req, { params: { sessionId: 'weak-sess' } })
+    const res = await POST_SUBMIT(req, { params: Promise.resolve({ sessionId: 'weak-sess' }) })
     const data = await res.json()
 
     expect(res.status).toBe(200)
+    expect(data.success).toBe(true)
     expect(data.weakTopicsUpdated).toBe(1)
   })
-
-  // ── Weak topics route ─────────────────────────────────────────────────────
 
   it('GET /weak-topics returns 401 when unauthenticated', async () => {
     mockGetUser.mockRejectedValueOnce(new (vi.mocked(await import('@/lib/server/auth')).AuthenticationError)())

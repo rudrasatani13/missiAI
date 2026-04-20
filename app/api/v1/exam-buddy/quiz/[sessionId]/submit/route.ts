@@ -15,8 +15,6 @@ import { awardXP } from '@/lib/gamification/xp-engine'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 import { waitUntil } from '@/lib/server/wait-until'
 
-export const runtime = 'edge'
-
 const submitSchema = z.object({
   answers: z.record(z.string().max(100)).refine(
     (val) => Object.keys(val).length > 0,
@@ -32,13 +30,9 @@ function getEncouragement(pct: number): string {
   return 'Every expert started as a beginner. Review the explanations, revisit the concepts, and try again.'
 }
 
-type RouteContext = {
-  params: Promise<{ sessionId: string }> | { sessionId: string }
-}
-
 export async function POST(
   req: NextRequest,
-  { params }: RouteContext,
+  { params }: { params: Promise<{ sessionId: string }> },
 ) {
   let userId: string
   try {
@@ -48,7 +42,7 @@ export async function POST(
     return new Response('Unauthorized', { status: 401 })
   }
 
-  const { sessionId } = await Promise.resolve(params)
+  const { sessionId } = await params
   if (!sessionId || sessionId.length > 20) {
     return new Response(
       JSON.stringify({ success: false, error: 'Invalid session ID' }),

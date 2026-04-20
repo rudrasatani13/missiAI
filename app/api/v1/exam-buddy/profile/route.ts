@@ -5,8 +5,6 @@ import { getExamBuddyKV } from '@/lib/exam-buddy/kv'
 import { getOrCreateProfile, getProfile, saveProfile } from '@/lib/exam-buddy/profile-store'
 import type { ExamTarget } from '@/types/exam-buddy'
 
-export const runtime = 'edge'
-
 const updateProfileSchema = z.object({
   examTarget: z.enum([
     'jee_mains', 'jee_advanced', 'neet', 'upsc',
