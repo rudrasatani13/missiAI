@@ -243,13 +243,31 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     const monitor = () => {
       analyser.getFloatTimeDomainData(timeDomain)
       let sum = 0
-      for (let i = 0; i < timeDomain.length; i++) sum += timeDomain[i] * timeDomain[i]
-      const rms = Math.sqrt(sum / timeDomain.length)
+      const tLen = timeDomain.length
+      let i = 0
+      for (; i <= tLen - 8; i += 8) {
+        sum += timeDomain[i] * timeDomain[i] +
+               timeDomain[i+1] * timeDomain[i+1] +
+               timeDomain[i+2] * timeDomain[i+2] +
+               timeDomain[i+3] * timeDomain[i+3] +
+               timeDomain[i+4] * timeDomain[i+4] +
+               timeDomain[i+5] * timeDomain[i+5] +
+               timeDomain[i+6] * timeDomain[i+6] +
+               timeDomain[i+7] * timeDomain[i+7]
+      }
+      for (; i < tLen; i++) sum += timeDomain[i] * timeDomain[i]
+      const rms = Math.sqrt(sum / tLen)
 
       analyser.getByteFrequencyData(freqData)
       let fSum = 0
-      for (let i = 0; i < freqData.length; i++) fSum += freqData[i]
-      const vizLevel = Math.min(1, (fSum / freqData.length / 255) * 2)
+      const fLen = freqData.length
+      let j = 0
+      for (; j <= fLen - 8; j += 8) {
+        fSum += freqData[j] + freqData[j+1] + freqData[j+2] + freqData[j+3] +
+                freqData[j+4] + freqData[j+5] + freqData[j+6] + freqData[j+7]
+      }
+      for (; j < fLen; j++) fSum += freqData[j]
+      const vizLevel = Math.min(1, (fSum / fLen / 255) * 2)
       setAudioLevel(vizLevel)
 
       // Snapshot audio data for emotion detection

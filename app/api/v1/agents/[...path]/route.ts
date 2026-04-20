@@ -106,22 +106,62 @@ async function handleConfirm(req: Request): Promise<Response> {
       }
 
       let stepsCompleted = 0
-      for (const step of plan.steps) {
-        if (!TOOL_ALLOWLIST.has(step.toolName)) {
-          send({ type: "step_error", stepNumber: step.stepNumber, error: "Tool not available" })
-          continue
-        }
-        send({ type: "step_start", stepNumber: step.stepNumber, description: step.description })
-        try {
-          const result = await executeAgentTool({ name: step.toolName, args: step.args ?? {} }, ctx)
-          send({ type: "step_done", stepNumber: step.stepNumber, summary: result.summary, output: result.output, status: result.status })
-          if (result.status === "done") {
-            stepsCompleted++
-            awardXP(kv, userId, "agent", 2).catch(() => {})
+
+      const DESTRUCTIVE_TOOLS_LOCAL = new Set([
+        "createCalendarEvent",
+        "createNote",
+        "draftEmail",
+        "sendEmail",
+        "logExpense",
+        "updateGoalProgress",
+        "takeNote",
+        "setReminder",
+        "saveContact",
+        "updateCalendarEvent",
+        "deleteCalendarEvent",
+      ])
+      // Brief check on step dependencies to avoid race conditions.
+      // If any step modifies state, we fall back to sequential execution.
+      const hasDependencies = plan.steps.some(s => DESTRUCTIVE_TOOLS_LOCAL.has(s.toolName) || s.isDestructive)
+
+      if (hasDependencies) {
+        for (const step of plan.steps) {
+          if (!TOOL_ALLOWLIST.has(step.toolName)) {
+            send({ type: "step_error", stepNumber: step.stepNumber, error: "Tool not available" })
+            continue
           }
-        } catch {
-          send({ type: "step_error", stepNumber: step.stepNumber, error: "Tool execution failed" })
+          send({ type: "step_start", stepNumber: step.stepNumber, description: step.description })
+          try {
+            const result = await executeAgentTool({ name: step.toolName, args: step.args ?? {} }, ctx)
+            send({ type: "step_done", stepNumber: step.stepNumber, summary: result.summary, output: result.output, status: result.status })
+            if (result.status === "done") {
+              stepsCompleted++
+              awardXP(kv, userId, "agent", 2).catch(() => {})
+            }
+          } catch {
+            send({ type: "step_error", stepNumber: step.stepNumber, error: "Tool execution failed" })
+          }
         }
+      } else {
+        await Promise.all(
+          plan.steps.map(async (step) => {
+            if (!TOOL_ALLOWLIST.has(step.toolName)) {
+              send({ type: "step_error", stepNumber: step.stepNumber, error: "Tool not available" })
+              return
+            }
+            send({ type: "step_start", stepNumber: step.stepNumber, description: step.description })
+            try {
+              const result = await executeAgentTool({ name: step.toolName, args: step.args ?? {} }, ctx)
+              send({ type: "step_done", stepNumber: step.stepNumber, summary: result.summary, output: result.output, status: result.status })
+              if (result.status === "done") {
+                stepsCompleted++
+                awardXP(kv, userId, "agent", 2).catch(() => {})
+              }
+            } catch {
+              send({ type: "step_error", stepNumber: step.stepNumber, error: "Tool execution failed" })
+            }
+          })
+        )
       }
 
       const finalStatus = stepsCompleted === plan.steps.length ? "completed" : stepsCompleted > 0 ? "partial" : "cancelled"
