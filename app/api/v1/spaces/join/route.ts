@@ -17,7 +17,6 @@ import {
   getSpaceMembers,
   unregisterInviteFromSpace,
   verifyAndConsumeInvite,
-  verifyMembership,
 } from '@/lib/spaces/space-store'
 import {
   errorResponse,
@@ -79,7 +78,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Idempotent: already a member → return success without mutating.
-    if (await verifyMembership(kv, spaceId, userId)) {
+    if (members.some((m) => m.userId === userId)) {
       // Still remove the token from the Space's active list since we consumed it.
       unregisterInviteFromSpace(kv, spaceId, invite.token).catch(() => {})
       return jsonResponse({

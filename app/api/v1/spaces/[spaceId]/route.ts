@@ -56,13 +56,13 @@ export async function GET(
   if (!kv) return errorResponse('Storage unavailable', 'SERVICE_UNAVAILABLE', 503)
 
   try {
-    const member = await verifyMembership(kv, spaceId, userId)
-    if (!member) return errorResponse('Not a member of this Space', 'FORBIDDEN', 403)
-
     const [space, members] = await Promise.all([
       getSpace(kv, spaceId),
       getSpaceMembers(kv, spaceId),
     ])
+
+    const member = members.find((m) => m.userId === userId)
+    if (!member) return errorResponse('Not a member of this Space', 'FORBIDDEN', 403)
     if (!space) return errorResponse('Space not found', 'NOT_FOUND', 404)
 
     logRequest('spaces.get', userId, startTime, { spaceId })
@@ -167,14 +167,15 @@ export async function DELETE(
   const kv = getKV()
   if (!kv) return errorResponse('Storage unavailable', 'SERVICE_UNAVAILABLE', 503)
 
-  const member = await verifyMembership(kv, spaceId, userId)
-  if (!member) return errorResponse('Not a member of this Space', 'FORBIDDEN', 403)
-  if (member.role !== 'owner') {
-    return errorResponse('Only the owner can dissolve this Space', 'FORBIDDEN', 403)
-  }
-
   try {
     const members = await getSpaceMembers(kv, spaceId)
+    const member = members.find((m) => m.userId === userId)
+
+    if (!member) return errorResponse('Not a member of this Space', 'FORBIDDEN', 403)
+    if (member.role !== 'owner') {
+      return errorResponse('Only the owner can dissolve this Space', 'FORBIDDEN', 403)
+    }
+
     await dissolveSpace(kv, spaceId, members.map((m) => m.userId))
     logRequest('spaces.dissolve', userId, startTime, { spaceId })
     return jsonResponse({ success: true, data: { dissolved: true } })
