@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import katex from 'katex'
+import DOMPurify from 'dompurify'
 
 /**
  * Renders text that may contain LaTeX math expressions.
@@ -9,7 +10,10 @@ import katex from 'katex'
  * Display math: $$...$$ or \[...\]
  */
 export function MathText({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
-  const html = useMemo(() => renderMathInText(text), [text])
+  const html = useMemo(() => {
+    const rawHtml = renderMathInText(text)
+    return DOMPurify.sanitize(rawHtml)
+  }, [text])
   return <span className={className} style={style} dangerouslySetInnerHTML={{ __html: html }} />
 }
 

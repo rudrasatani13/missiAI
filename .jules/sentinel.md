@@ -1,4 +1,4 @@
-## 2026-04-20 - [Sentinel] OAuth state token entropy enhancement
-**Vulnerability:** The OAuth connect routes for Google and Notion were using `crypto.randomUUID()` to generate state tokens for CSRF protection.
-**Learning:** While `crypto.randomUUID()` (UUIDv4) uses a CSPRNG in modern environments, its primary purpose is generating unique identifiers, and it provides 122 bits of entropy. For security tokens like OAuth state parameters, it is best practice to use higher-entropy cryptographically secure random bytes directly, such as a 256-bit random hex string.
-**Prevention:** Use `crypto.getRandomValues()` (or utility functions like `randomHex(32)` that wrap it) for generating security tokens, secrets, or CSRF protections instead of `crypto.randomUUID()`.
+## 2024-XX-XX - XSS Vulnerability in MathText Component
+**Vulnerability:** XSS vulnerability in `MathText` component due to use of `dangerouslySetInnerHTML` with unsanitized user input containing KaTeX rendered HTML mixed with the raw string.
+**Learning:** React components that render Markdown, KaTeX, or any custom text-to-HTML formatting are prime targets for XSS if they use `dangerouslySetInnerHTML` without proper sanitization (e.g. using DOMPurify). The vulnerability was exacerbated because `text` passed to `MathText` might not have been fully sanitized prior to this component.
+**Prevention:** Always use a sanitization library like DOMPurify when setting HTML using `dangerouslySetInnerHTML`.
