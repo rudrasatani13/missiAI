@@ -15,10 +15,13 @@ export async function generateYearInReview(graph: LifeGraph, year: number): Prom
 
   const catCountMap = new Map<MemoryCategory, number>()
   const peopleWeightMap = new Map<string, number>()
+  const idToNodeMap = new Map<string, LifeNode>()
   const monthSums = new Array(12).fill(0)
   const monthCounts = new Array(12).fill(0)
 
   for (const n of yearNodes) {
+    idToNodeMap.set(n.id, n)
+
     // Categories
     catCountMap.set(n.category, (catCountMap.get(n.category) || 0) + 1)
     
@@ -78,7 +81,7 @@ export async function generateYearInReview(graph: LifeGraph, year: number): Prom
 
   // 2. AI narrative generation
   const topCatergoriesStr = topCategories.slice(0, 3).map(c => `${c.category}: ${c.count}`).join(', ')
-  const keyMomentNodes = keyMoments.map(id => yearNodes.find(n => n.id === id)).filter(Boolean) as LifeNode[]
+  const keyMomentNodes = keyMoments.map(id => idToNodeMap.get(id)).filter(Boolean) as LifeNode[]
   const keyMomentsStr = keyMomentNodes.map(n => `- ${n.title}`).join('\n')
 
   const fallbackNarrative = "This year was yours. Every conversation, every goal, every person you added to your story — it all added up. Here's what stood out."
