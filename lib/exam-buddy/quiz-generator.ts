@@ -1,7 +1,6 @@
 // ─── Exam Buddy Quiz Generator ────────────────────────────────────────────────
 
 import { z } from 'zod'
-// @ts-ignore
 import { nanoid } from 'nanoid'
 import { callAIDirect } from '@/services/ai.service'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
