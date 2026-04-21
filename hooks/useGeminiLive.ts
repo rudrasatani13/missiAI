@@ -328,7 +328,6 @@ export function useGeminiLive(config: GeminiLiveConfig) {
       }
 
       ws.onclose = (ev) => {
-        console.log("[GeminiLive] WebSocket closed:", ev.code, ev.reason)
         isConnectedRef.current = false
         setupCompleteRef.current = false
         updateState("disconnected")
