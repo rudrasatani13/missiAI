@@ -7,7 +7,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { searchLifeGraph, formatLifeGraphForPrompt, getLifeGraph } from "@/lib/memory/life-graph"
+import { searchLifeGraph, formatLifeGraphForPrompt, getLifeGraph, MEMORY_TIMEOUT_MS } from "@/lib/memory/life-graph"
 import { getGoogleTokens } from "@/lib/plugins/data-fetcher"
 import { buildAgentPlan } from "@/lib/ai/agent-planner"
 import { verifyAndConsumeToken, generateConfirmToken, storeConfirmToken } from "@/lib/ai/agent-confirm"
@@ -292,7 +292,7 @@ async function handlePlan(req: Request): Promise<Response> {
   try {
     const results = await Promise.race([
       searchLifeGraph(kv, vectorizeEnv, userId, message, { topK: 3 }),
-      new Promise<[]>(res => setTimeout(() => res([]), 3_000)),
+      new Promise<[]>((res) => setTimeout(() => res([]), MEMORY_TIMEOUT_MS)),
     ])
     if (results.length > 0) memoryContext = formatLifeGraphForPrompt(results).slice(0, 500)
   } catch {}

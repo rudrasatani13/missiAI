@@ -9,7 +9,7 @@
 //   3. Call Gemini via callAIDirect (no streaming, no TTS)
 //   4. Fire-and-forget: extract life nodes from the exchange and persist
 
-import { searchLifeGraph, formatLifeGraphForPrompt, addOrUpdateNodes } from '@/lib/memory/life-graph'
+import { searchLifeGraph, formatLifeGraphForPrompt, addOrUpdateNodes, MEMORY_TIMEOUT_MS } from '@/lib/memory/life-graph'
 import { buildSystemPrompt, callAIDirect } from '@/services/ai.service'
 import { extractLifeNodes } from '@/lib/memory/graph-extractor'
 import { sanitizeInput } from '@/lib/validation/sanitizer'
@@ -34,7 +34,6 @@ BOT CHANNEL RULES (non-negotiable):
 `.trim()
 
 // M3 fix: aligned across chat / chat-stream / bot-pipeline to 5s.
-const MEMORY_TIMEOUT_MS = 5_000
 
 export interface BotProcessOptions {
   kv: KVStore
@@ -57,7 +56,7 @@ export async function processBotMessage(opts: BotProcessOptions): Promise<string
     const memResults = await Promise.race([
       searchLifeGraph(kv, vectorizeEnv, userId, messageText, { topK: 5 }),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('memory timeout')), MEMORY_TIMEOUT_MS),
+        setTimeout(() => reject(new Error('Memory search timeout')), MEMORY_TIMEOUT_MS),
       ),
     ])
     memories = formatLifeGraphForPrompt(memResults)
