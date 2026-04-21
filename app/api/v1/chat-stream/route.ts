@@ -298,7 +298,7 @@ export async function POST(req: NextRequest) {
   // This check must happen BEFORE the Gemini request is built so Gemini never sees
   // tools it can't actually use (prevents failed tool calls due to missing credentials).
   //
-  // C2 fix: strip destructive tools from the declarations Gemini sees. This
+  // Strip destructive tools from the declarations Gemini sees. This
   // reduces the attack surface by making prompt-injection less likely to even
   // *attempt* a destructive call. Runtime enforcement still happens below via
   // classifyAgentTool(), so a model that guesses a tool name can't bypass it.
@@ -468,7 +468,7 @@ export async function POST(req: NextRequest) {
           totalToolCalls++
           const toolLabel = getToolLabel(pendingFunctionCall.name)
 
-          // C2 fix: enforce the destructive-tool allowlist at runtime. Even
+          // Enforce the destructive-tool allowlist at runtime. Even
           // though availableDeclarations doesn't advertise destructive tools,
           // a model can still emit any function name — prompt injection via
           // a poisoned memory or user utterance can coerce it. We refuse to
