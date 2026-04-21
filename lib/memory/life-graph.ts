@@ -234,8 +234,13 @@ export async function searchLifeGraph(
 
   // Update access counts on matched nodes
   const now = Date.now()
+  const nodeMap = new Map()
+  for (const node of graph.nodes) {
+    nodeMap.set(node.id, node)
+  }
+
   for (const result of results) {
-    const graphNode = graph.nodes.find((n) => n.id === result.node.id)
+    const graphNode = nodeMap.get(result.node.id)
     if (graphNode) {
       graphNode.accessCount += 1
       graphNode.lastAccessedAt = now
