@@ -182,7 +182,6 @@ export async function getVertexAccessToken(): Promise<string | null> {
       expiresAt: Date.now() + expiresIn * 1000,
     }
 
-    console.log(`[VertexAuth] Token obtained, expires in ${expiresIn}s`)
     return accessToken
   } catch (err) {
     console.error("[VertexAuth] Failed to obtain access token:", err)
