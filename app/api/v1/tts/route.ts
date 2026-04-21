@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
 
       logRequest("tts.completed", userId, startTime, { charCount, attempt })
 
-      // Analytics: fire-and-forget (H1 fix: wrap in waitUntil)
+      // Analytics: fire-and-forget
       try {
         const { env } = getCloudflareContext()
         const kv = (env as any).MISSI_MEMORY as KVStore | null
