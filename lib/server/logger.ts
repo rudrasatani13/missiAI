@@ -40,10 +40,12 @@ const isDev =
  * Emit a structured log event.
  */
 export function log(event: LogEvent): void {
+  const logMethod = console[event.level] || console.log
+
   if (isDev) {
-    console.log(JSON.stringify(event, null, 2))
+    logMethod(JSON.stringify(event, null, 2))
   } else {
-    console.log(JSON.stringify(event))
+    logMethod(JSON.stringify(event))
   }
 }
 
