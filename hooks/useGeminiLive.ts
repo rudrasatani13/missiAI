@@ -226,7 +226,6 @@ export function useGeminiLive(config: GeminiLiveConfig) {
 
           // setupComplete — server accepted our config
           if (msg.setupComplete !== undefined) {
-            console.log("[GeminiLive] Setup complete — starting mic stream")
             setupCompleteRef.current = true
             updateState("connected")
             // Start streaming mic NOW that setup is confirmed
