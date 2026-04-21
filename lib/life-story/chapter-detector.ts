@@ -48,6 +48,9 @@ export async function detectChapters(graph: LifeGraph): Promise<LifeChapter[]> {
   const clusters: LifeNode[][] = []
 
   for (const [key, nodes] of buckets.entries()) {
+    // Optimization: Map of nodes for O(1) lookup during BFS
+    const nodeMap = new Map<string, LifeNode>(nodes.map(n => [n.id, n]))
+
     // Adjacency list for connected components
     const adj = new Map<string, string[]>()
     for (const n of nodes) {
@@ -86,7 +89,7 @@ export async function detectChapters(graph: LifeGraph): Promise<LifeChapter[]> {
         visited.add(n.id)
         while (q.length > 0) {
           const curr = q.shift()!
-          const nodeObj = nodes.find(x => x.id === curr)
+          const nodeObj = nodeMap.get(curr)
           if (nodeObj) comp.push(nodeObj)
           
           for (const neighbor of adj.get(curr) || []) {
