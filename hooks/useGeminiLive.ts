@@ -276,7 +276,6 @@ export function useGeminiLive(config: GeminiLiveConfig) {
           // tool causes the model to stall waiting for remaining responses.
           if (msg.toolCall?.functionCalls) {
             for (const fc of msg.toolCall.functionCalls) {
-              console.log("[GeminiLive] Tool call:", fc.name, fc.args)
               configRef.current.onToolCall?.(fc.name, fc.args || {})
             }
 
