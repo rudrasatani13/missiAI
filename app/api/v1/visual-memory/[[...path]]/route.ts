@@ -204,9 +204,9 @@ async function handleAnalyze(req: NextRequest) {
   }
   await addVisualRecord(kv, userId, record)
 
-  // H1 fix: the rate-limit increment MUST survive worker termination —
-  // previously a user could race the response-close to bypass the daily cap
-  // because the .catch() promise was dropped when the isolate ended.
+  // The rate-limit increment MUST survive worker termination —
+  // a user could race the response-close to bypass the daily cap
+  // if the .catch() promise was dropped when the isolate ended.
   waitUntil(incrementVisualRateLimit(kv, userId).catch(() => {}))
   waitUntil(awardXP(kv, userId, 'memory', 1).catch(() => {}))
 
