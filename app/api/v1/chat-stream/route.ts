@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
   const maxOutputTokens = voiceMode ? 800 : (parsed.data.maxOutputTokens ?? 600)
   // Incognito mode drops any client-supplied memories as defence-in-depth.
   const clientMemories = incognito ? "" : (parsed.data.memories ?? "")
-  // SEC-004 fix: client-reported voiceDurationMs is untrusted — a user could
+  // Client-reported voiceDurationMs is untrusted — a user could
   // send 0 on every request to avoid incrementing their daily voice quota.
   // When voiceMode is active, enforce a server-side minimum of 3 s so that
   // each agentic voice turn is always billed at least that amount, regardless
