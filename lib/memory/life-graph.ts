@@ -1,9 +1,6 @@
-<<<<<<< HEAD
-=======
-export const MEMORY_TIMEOUT_MS = 5000;
+export const MEMORY_TIMEOUT_MS = 5000
 
 // @ts-ignore
->>>>>>> 847e6deb639bc8dd4827b5ad72afddce4dfd9f16
 import { nanoid } from 'nanoid'
 import type { KVStore } from '@/types'
 import type {
