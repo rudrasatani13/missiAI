@@ -1,0 +1,309 @@
+<<<<<<< SEARCH
+  // Process each inbound message (usually just one)
+  for (const message of messages) {
+    try {
+    // ── 5. Replay attack protection — validate timestamp ───────────────────
+    const tsSeconds = parseInt(message.timestamp, 10)
+    const nowSeconds = Math.floor(Date.now() / 1000)
+    const ageSec = nowSeconds - tsSeconds
+    if (!Number.isNaN(tsSeconds) && Math.abs(ageSec) > 300) {
+      logSecurityEvent('security.bot.wa.replay_attempt', {
+        path: '/api/webhooks/whatsapp',
+        metadata: { messageId: message.id, ageSec },
+      })
+      continue
+    }
+
+    const messageId: string = message.id
+    const senderPhone: string = message.from
+
+    // ── 6. Deduplication ──────────────────────────────────────────────────
+    if (!kv) {
+      log({ level: 'error', event: 'bot.wa.kv_unavailable', metadata: { messageId }, timestamp: Date.now() })
+      continue
+    }
+    const isDup = await isMessageDuplicate(kv, 'whatsapp', messageId)
+    if (isDup) {
+      log({ level: 'info', event: 'bot.wa.dedup_skipped', metadata: { messageId }, timestamp: Date.now() })
+      continue
+    }
+    await markMessageProcessed(kv, 'whatsapp', messageId)
+
+    // ── 7. Resolve Clerk userId from sender phone ──────────────────────────
+    const userId = await resolveClerkUserFromPhone(kv, senderPhone)
+    if (!userId) {
+      // Check if this is an account-linking code (exactly 6 digits).
+      // Rate-limit code guesses per sender phone to prevent brute-forcing
+      // the 1M-combination space within the 15-minute code TTL.
+      const msgText = (message.text?.body ?? '').trim()
+      if (/^\d{6}$/.test(msgText)) {
+        const linkRateResult = await checkAndIncrementWaLinkAttempt(kv, senderPhone, today())
+        if (!linkRateResult.allowed) {
+          logSecurityEvent('security.bot.wa.link_attempts_exceeded', {
+            path: '/api/webhooks/whatsapp',
+            metadata: { senderPhone: senderPhone.slice(0, 4) + '****', attempts: linkRateResult.attempts },
+          })
+          // Silent continue — don't reveal rate-limit details to attacker
+          continue
+        }
+        const pendingUserId = await consumePendingWhatsAppLink(kv, msgText)
+        if (pendingUserId) {
+          await storeWhatsAppMapping(kv, senderPhone, pendingUserId)
+          sendWhatsAppMessage(
+            senderPhone,
+            'WhatsApp linked to your Missi account! 🎉 You can now chat with me directly here. What do you need?',
+          ).catch(() => {})
+          log({ level: 'info', event: 'bot.wa.linked_via_code', userId: pendingUserId, timestamp: Date.now() })
+          continue
+        }
+      }
+      logSecurityEvent('security.bot.wa.unknown_sender', {
+        path: '/api/webhooks/whatsapp',
+        metadata: { senderPhone: senderPhone.slice(0, 4) + '****' },
+      })
+      sendWhatsAppMessage(
+        senderPhone,
+        'Hey! I\'m Missi 🤖 To chat with me here, link your WhatsApp number at missi.space/settings/integrations — takes just 1 minute!',
+      ).catch(() => {})
+      continue
+    }
+
+    // ── 8. Plan gate ───────────────────────────────────────────────────────
+    const { allowed: planAllowed, planId } = await checkPlanGate(userId)
+    if (!planAllowed) {
+      log({
+        level: 'info',
+        event: 'bot.wa.plan_blocked',
+        userId,
+        metadata: { planId },
+        timestamp: Date.now(),
+      })
+      logSecurityEvent('security.bot.wa.plan_gate_blocked', {
+        userId,
+        path: '/api/webhooks/whatsapp',
+        metadata: { planId },
+      })
+      sendWhatsAppMessage(
+        senderPhone,
+        'WhatsApp access is a Pro feature. Upgrade at missi.space/pricing to keep chatting with me here! 🚀',
+      ).catch(() => {})
+      continue
+    }
+
+    // ── 9. Daily message limit ─────────────────────────────────────────────
+    const { allowed: limitAllowed } = await checkAndIncrementBotDailyLimit(
+      kv, 'whatsapp', userId, today(),
+    )
+    if (!limitAllowed) {
+      sendWhatsAppMessage(
+        senderPhone,
+        'You\'ve hit your daily message limit! Let\'s chat again tomorrow 😊',
+      ).catch(() => {})
+      continue
+    }
+
+    // ── 10. Handle non-text message types ─────────────────────────────────
+    if (message.type !== 'text') {
+      sendWhatsAppMessage(
+        senderPhone,
+        'I can only understand text messages for now! 🙏',
+      ).catch(() => {})
+      continue
+    }
+
+    const userText: string = message.text?.body ?? ''
+    if (!userText.trim()) continue
+
+    // ── 11. Process via Gemini pipeline and send reply ─────────────────────
+    // IMPORTANT: Use waitUntil() so the Cloudflare Worker stays alive during
+    // async Gemini processing. Without this, the Worker is killed after
+    // returning the 200 Response, before the AI reply is generated.
+    const processingPromise = (async () => {
+      try {
+        const reply = await processBotMessage({
+          kv,
+          vectorizeEnv,
+          userId,
+          messageText: userText,
+          platform: 'whatsapp',
+        })
+        await sendWhatsAppMessage(senderPhone, reply)
+        log({
+          level: 'info',
+          event: 'bot.wa.message_processed',
+          userId,
+          timestamp: Date.now(),
+        })
+      } catch (err) {
+        logApiError('bot.wa.processing_error', err, { userId, httpStatus: 500, path: '/api/webhooks/whatsapp' })
+        sendWhatsAppMessage(
+          senderPhone,
+          'Oops, something went wrong! Please try again in a bit 🙏',
+        ).catch(() => {})
+      }
+    })()
+
+    if (execCtx) {
+      execCtx.waitUntil(processingPromise)
+    } else {
+      await processingPromise
+    }
+    } catch (loopErr) {
+      logApiError('bot.wa.loop_error', loopErr, { httpStatus: 500, path: '/api/webhooks/whatsapp' })
+    }
+  }
+=======
+  // Process each inbound message concurrently
+  await Promise.all(messages.map(async (message) => {
+    try {
+      // ── 5. Replay attack protection — validate timestamp ───────────────────
+      const tsSeconds = parseInt(message.timestamp, 10)
+      const nowSeconds = Math.floor(Date.now() / 1000)
+      const ageSec = nowSeconds - tsSeconds
+      if (!Number.isNaN(tsSeconds) && Math.abs(ageSec) > 300) {
+        logSecurityEvent('security.bot.wa.replay_attempt', {
+          path: '/api/webhooks/whatsapp',
+          metadata: { messageId: message.id, ageSec },
+        })
+        return
+      }
+
+      const messageId: string = message.id
+      const senderPhone: string = message.from
+
+      // ── 6. Deduplication ──────────────────────────────────────────────────
+      if (!kv) {
+        log({ level: 'error', event: 'bot.wa.kv_unavailable', metadata: { messageId }, timestamp: Date.now() })
+        return
+      }
+      const isDup = await isMessageDuplicate(kv, 'whatsapp', messageId)
+      if (isDup) {
+        log({ level: 'info', event: 'bot.wa.dedup_skipped', metadata: { messageId }, timestamp: Date.now() })
+        return
+      }
+      await markMessageProcessed(kv, 'whatsapp', messageId)
+
+      // ── 7. Resolve Clerk userId from sender phone ──────────────────────────
+      const userId = await resolveClerkUserFromPhone(kv, senderPhone)
+      if (!userId) {
+        // Check if this is an account-linking code (exactly 6 digits).
+        // Rate-limit code guesses per sender phone to prevent brute-forcing
+        // the 1M-combination space within the 15-minute code TTL.
+        const msgText = (message.text?.body ?? '').trim()
+        if (/^\d{6}$/.test(msgText)) {
+          const linkRateResult = await checkAndIncrementWaLinkAttempt(kv, senderPhone, today())
+          if (!linkRateResult.allowed) {
+            logSecurityEvent('security.bot.wa.link_attempts_exceeded', {
+              path: '/api/webhooks/whatsapp',
+              metadata: { senderPhone: senderPhone.slice(0, 4) + '****', attempts: linkRateResult.attempts },
+            })
+            // Silent return — don't reveal rate-limit details to attacker
+            return
+          }
+          const pendingUserId = await consumePendingWhatsAppLink(kv, msgText)
+          if (pendingUserId) {
+            await storeWhatsAppMapping(kv, senderPhone, pendingUserId)
+            sendWhatsAppMessage(
+              senderPhone,
+              'WhatsApp linked to your Missi account! 🎉 You can now chat with me directly here. What do you need?',
+            ).catch(() => {})
+            log({ level: 'info', event: 'bot.wa.linked_via_code', userId: pendingUserId, timestamp: Date.now() })
+            return
+          }
+        }
+        logSecurityEvent('security.bot.wa.unknown_sender', {
+          path: '/api/webhooks/whatsapp',
+          metadata: { senderPhone: senderPhone.slice(0, 4) + '****' },
+        })
+        sendWhatsAppMessage(
+          senderPhone,
+          'Hey! I\'m Missi 🤖 To chat with me here, link your WhatsApp number at missi.space/settings/integrations — takes just 1 minute!',
+        ).catch(() => {})
+        return
+      }
+
+      // ── 8. Plan gate ───────────────────────────────────────────────────────
+      const { allowed: planAllowed, planId } = await checkPlanGate(userId)
+      if (!planAllowed) {
+        log({
+          level: 'info',
+          event: 'bot.wa.plan_blocked',
+          userId,
+          metadata: { planId },
+          timestamp: Date.now(),
+        })
+        logSecurityEvent('security.bot.wa.plan_gate_blocked', {
+          userId,
+          path: '/api/webhooks/whatsapp',
+          metadata: { planId },
+        })
+        sendWhatsAppMessage(
+          senderPhone,
+          'WhatsApp access is a Pro feature. Upgrade at missi.space/pricing to keep chatting with me here! 🚀',
+        ).catch(() => {})
+        return
+      }
+
+      // ── 9. Daily message limit ─────────────────────────────────────────────
+      const { allowed: limitAllowed } = await checkAndIncrementBotDailyLimit(
+        kv, 'whatsapp', userId, today(),
+      )
+      if (!limitAllowed) {
+        sendWhatsAppMessage(
+          senderPhone,
+          'You\'ve hit your daily message limit! Let\'s chat again tomorrow 😊',
+        ).catch(() => {})
+        return
+      }
+
+      // ── 10. Handle non-text message types ─────────────────────────────────
+      if (message.type !== 'text') {
+        sendWhatsAppMessage(
+          senderPhone,
+          'I can only understand text messages for now! 🙏',
+        ).catch(() => {})
+        return
+      }
+
+      const userText: string = message.text?.body ?? ''
+      if (!userText.trim()) return
+
+      // ── 11. Process via Gemini pipeline and send reply ─────────────────────
+      // IMPORTANT: Use waitUntil() so the Cloudflare Worker stays alive during
+      // async Gemini processing. Without this, the Worker is killed after
+      // returning the 200 Response, before the AI reply is generated.
+      const processingPromise = (async () => {
+        try {
+          const reply = await processBotMessage({
+            kv,
+            vectorizeEnv,
+            userId,
+            messageText: userText,
+            platform: 'whatsapp',
+          })
+          await sendWhatsAppMessage(senderPhone, reply)
+          log({
+            level: 'info',
+            event: 'bot.wa.message_processed',
+            userId,
+            timestamp: Date.now(),
+          })
+        } catch (err) {
+          logApiError('bot.wa.processing_error', err, { userId, httpStatus: 500, path: '/api/webhooks/whatsapp' })
+          sendWhatsAppMessage(
+            senderPhone,
+            'Oops, something went wrong! Please try again in a bit 🙏',
+          ).catch(() => {})
+        }
+      })()
+
+      if (execCtx) {
+        execCtx.waitUntil(processingPromise)
+      } else {
+        await processingPromise
+      }
+    } catch (loopErr) {
+      logApiError('bot.wa.loop_error', loopErr, { httpStatus: 500, path: '/api/webhooks/whatsapp' })
+    }
+  }))
+>>>>>>> REPLACE
