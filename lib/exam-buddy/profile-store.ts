@@ -120,15 +120,29 @@ export async function updateWeakTopic(
   topic: string,
   subject: ExamSubject,
 ): Promise<void> {
+  await updateWeakTopics(kv, userId, [{ topic, subject }])
+}
+
+export async function updateWeakTopics(
+  kv: KVStore,
+  userId: string,
+  topics: { topic: string; subject: ExamSubject }[],
+): Promise<void> {
+  if (topics.length === 0) return
+
   const records = await getWeakTopics(kv, userId)
-  const existing = records.find(
-    (r) => r.topic.toLowerCase() === topic.toLowerCase() && r.subject === subject,
-  )
-  if (existing) {
-    existing.wrongCount += 1
-    existing.lastAttemptedAt = Date.now()
-  } else {
-    records.push({ topic, subject, wrongCount: 1, lastAttemptedAt: Date.now() })
+  const now = Date.now()
+
+  for (const { topic, subject } of topics) {
+    const existing = records.find(
+      (r) => r.topic.toLowerCase() === topic.toLowerCase() && r.subject === subject,
+    )
+    if (existing) {
+      existing.wrongCount += 1
+      existing.lastAttemptedAt = now
+    } else {
+      records.push({ topic, subject, wrongCount: 1, lastAttemptedAt: now })
+    }
   }
 
   // Keep top MAX_WEAK_TOPICS by wrongCount
