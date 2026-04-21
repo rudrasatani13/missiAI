@@ -196,14 +196,14 @@ export async function getRecentSessions(
   const index: string[] = JSON.parse(rawIndex)
   const ids = index.slice(0, Math.min(limit, MAX_SESSION_INDEX))
 
-  const sessions: QuizSession[] = []
-  for (const id of ids) {
+  const sessionPromises = ids.map(async (id) => {
     try {
-      const session = await getQuizSession(kv, userId, id)
-      if (session) sessions.push(session)
+      return await getQuizSession(kv, userId, id)
     } catch {
-      // skip corrupt entries
+      return null
     }
-  }
+  })
+  const fetchedSessions = await Promise.all(sessionPromises)
+  const sessions: QuizSession[] = fetchedSessions.filter((s): s is QuizSession => s !== null)
   return sessions
 }
