@@ -794,8 +794,7 @@ function ChatSidebarInner({
   // Sub-panel state. ChatShell re-mounts this sidebar on every route change,
   // so we hydrate from sessionStorage *during* useState initialization (NOT in
   // a later effect) — otherwise the first paint shows the root nav and then
-  // slides into the sub-panel, which looks exactly like the bug: "sidebar
-  // snaps back to main when I click a sub-panel item".
+  // slides into the sub-panel, causing an unwanted snapping animation.
   const [activeSub, setActiveSubState] = useState<SubPanelKey>(() => {
     if (typeof window === "undefined") return null
     try {
@@ -864,8 +863,8 @@ function ChatSidebarInner({
   //
   // An active sub-panel always forces the sidebar wide enough to render its
   // rows, otherwise the sub-panel is rendered inside the 56px collapsed
-  // column and every label gets clipped to 1-2 characters (the bug this
-  // branch fixes). This is more robust than relying on `subPanelForcedExpand`
+  // column and every label gets clipped to 1-2 characters. This prevents
+  // label clipping and is more robust than relying on `subPanelForcedExpand`
   // alone, which is only set when the sub-panel is opened from an already-
   // collapsed state — if the user opens a sub-panel while expanded and THEN
   // hits the collapse chevron, the forced-expand flag stays false and the
@@ -1460,7 +1459,7 @@ function ChatSidebarInner({
         // The entrance keyframe animates `transform: translateX(-8px) → 0`,
         // which on mobile would override the inline `translateX(-100%)` used
         // to hide the drawer and cause the whole sidebar to briefly slide into
-        // view on first load ("preloaded sidebar" bug). Restrict the entrance
+        // view on first load. Restrict the entrance
         // animation to desktop, where the sidebar is always visible anyway.
         className={`flex flex-col h-full ${!isMobile && playEntrance ? "missi-sidebar-enter" : ""}`}
         style={{ ...asideStyle, visibility: readyOnClient || isMobile ? "visible" : "visible" }}
