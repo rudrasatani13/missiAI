@@ -130,15 +130,10 @@ Rules:
       }>
     }
 
-    // Log all parts for debugging
-    const parts = data?.candidates?.[0]?.content?.parts ?? []
-    console.log(`[agent-planner] Got ${parts.length} parts:`, parts.map((p, i) => `part${i}(thought=${p.thought}, len=${p.text?.length ?? 0})`).join(", "))
-
     // Try the last part first, then all parts — find the one with JSON
+    const parts = data?.candidates?.[0]?.content?.parts ?? []
     const allText = parts.map(p => p.text ?? "").join("\n")
-    console.log("[agent-planner] Combined text:", allText.slice(0, 800))
     const plan = parsePlanResponse(allText, availableTools)
-    console.log(`[agent-planner] Parsed plan: ${plan.steps.length} steps, summary: ${plan.summary}`)
     return plan
   } catch (err) {
     clearTimeout(timeout)
