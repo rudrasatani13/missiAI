@@ -136,7 +136,6 @@ Rules:
 
     // Try the last part first, then all parts — find the one with JSON
     const allText = parts.map(p => p.text ?? "").join("\n")
-    console.log("[agent-planner] Combined text:", allText.slice(0, 800))
     const plan = parsePlanResponse(allText, availableTools)
     console.log(`[agent-planner] Parsed plan: ${plan.steps.length} steps, summary: ${plan.summary}`)
     return plan
