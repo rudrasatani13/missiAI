@@ -545,10 +545,15 @@ export async function POST(req: NextRequest) {
               },
             }],
           }
+          // M5 fix: keep the running byte counter in sync with agentContents.
+          // Add 1 byte for the comma before modelEntry (if array not empty, which it isn't here)
+          // and 1 byte for the comma before userEntry.
+          const addedBytes =
+            JSON.stringify(modelEntry).length + JSON.stringify(userEntry).length + (agentContents.length > 0 ? 2 : 1)
+
           agentContents.push(modelEntry)
           agentContents.push(userEntry)
-          // M5 fix: keep the running byte counter in sync with agentContents.
-          agentContentsBytes += JSON.stringify(modelEntry).length + JSON.stringify(userEntry).length
+          agentContentsBytes += addedBytes
 
           // Rebuild the request with updated conversation
           currentRequestBody = {
