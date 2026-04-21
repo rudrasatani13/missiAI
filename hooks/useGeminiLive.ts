@@ -342,7 +342,6 @@ export function useGeminiLive(config: GeminiLiveConfig) {
       }
 
       ws.onopen = () => {
-        console.log("[GeminiLive] WebSocket connected — sending setup")
         isConnectedRef.current = true
 
         // Build tools array for Gemini Live
