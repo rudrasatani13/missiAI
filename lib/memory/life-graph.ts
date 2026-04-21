@@ -1,3 +1,5 @@
+export const MEMORY_TIMEOUT_MS = 5000;
+
 // @ts-ignore
 import { nanoid } from 'nanoid'
 import type { KVStore } from '@/types'

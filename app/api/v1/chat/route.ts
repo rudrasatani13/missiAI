@@ -5,7 +5,7 @@ import { analyzeMoodFromConversation } from "@/lib/mood/mood-analyzer"
 import { addMoodEntry } from "@/lib/mood/mood-store"
 import { chatSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
-import { searchLifeGraph, formatLifeGraphForPrompt } from "@/lib/memory/life-graph"
+import { searchLifeGraph, formatLifeGraphForPrompt, MEMORY_TIMEOUT_MS } from "@/lib/memory/life-graph"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import { buildGeminiRequest, streamGeminiResponse } from "@/lib/ai/gemini-stream"
 import { buildSystemPrompt } from "@/services/ai.service"
@@ -154,7 +154,6 @@ export async function POST(req: NextRequest) {
         { topK: 5 },
       )
       // M3 fix: aligned across chat / chat-stream / bot-pipeline to 5s.
-      const MEMORY_TIMEOUT_MS = 5000
       const results = await Promise.race([
         memoryPromise,
         new Promise<never>((_, reject) =>

@@ -3,7 +3,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { chatSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
-import { searchLifeGraph, formatLifeGraphForPrompt } from "@/lib/memory/life-graph"
+import { searchLifeGraph, formatLifeGraphForPrompt, MEMORY_TIMEOUT_MS } from "@/lib/memory/life-graph"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import { buildGeminiRequest, streamGeminiResponse } from "@/lib/ai/gemini-stream"
 import type { GeminiStreamEvent } from "@/lib/ai/gemini-stream"
@@ -192,7 +192,7 @@ export async function POST(req: NextRequest) {
       // silently dropped memory context on the latency-critical EDITH voice path.
       let timeoutId: ReturnType<typeof setTimeout>
       const timeoutPromise = new Promise<never>((_, r) => {
-        timeoutId = setTimeout(() => r(new Error("Timeout")), 5000)
+        timeoutId = setTimeout(() => r(new Error("Memory search timeout")), MEMORY_TIMEOUT_MS)
       })
       try {
         const results = await Promise.race([ memoryPromise, timeoutPromise ])
