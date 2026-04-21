@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const rl = await checkRateLimit(userId, rlTier, "ai")
   if (!rl.allowed) return rateLimitExceededResponse(rl)
 
-  // 4. BUG-013 fix: Check voice time limit before issuing live token.
+  // 4. Check voice time limit before issuing live token.
   // Uses read-only checkVoiceLimit (no increment) — we just want to know
   // if the user still has remaining voice quota before giving them a WS token.
   const kv = getKV()
