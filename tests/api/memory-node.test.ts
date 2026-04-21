@@ -24,6 +24,7 @@ vi.mock('@/lib/server/auth', () => ({
 vi.mock('@/lib/memory/life-graph', () => ({
   getLifeGraph: vi.fn(),
   saveLifeGraph: vi.fn(),
+  syncLifeNodeVector: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('@/lib/server/logger', () => ({

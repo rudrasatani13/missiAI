@@ -6,7 +6,6 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { LEDLogo } from "@/components/ui/LEDLogo"
-import { ThreeParticleWaves } from "@/components/ui/ThreeParticleWaves"
 
 export default function SignUpPage() {
   const [mounted, setMounted] = useState(false)

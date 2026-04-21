@@ -20,10 +20,6 @@ export function detectEmotionFromAudio(
   for (let i = 0; i < bandSize; i++) lowSum += freqData[i]
   const lowEnergy = (lowSum / bandSize) / 255
 
-  let midSum = 0
-  for (let i = bandSize; i < bandSize * 2; i++) midSum += freqData[i]
-  const midEnergy = (midSum / bandSize) / 255
-
   let highSum = 0
   for (let i = bandSize * 2; i < bandSize * 3; i++) highSum += freqData[i]
   const highEnergy = (highSum / bandSize) / 255

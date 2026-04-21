@@ -11,6 +11,10 @@
 import type { KVStore } from '@/types'
 import type { DailyUsage, PlanId } from '@/types/billing'
 import { PLANS } from '@/types/billing'
+import {
+  checkAndIncrementVoiceUsageAtomic,
+  checkVoiceUsageAtomic,
+} from '@/lib/server/atomic-quota'
 
 /** Minimum seconds counted per voice interaction (anti-cheat) */
 const MIN_SECONDS_PER_CALL = 3
@@ -78,6 +82,15 @@ export async function checkVoiceLimit(
 ): Promise<{ allowed: boolean; usedSeconds: number; limitSeconds: number; remainingSeconds: number }> {
   const usage = await getDailyUsage(kv, userId)
   const limitSeconds = getLimitSeconds(planId)
+  const atomicUsage = await checkVoiceUsageAtomic(userId, getTodayDate(), planId, limitSeconds)
+  if (atomicUsage) {
+    return {
+      allowed: atomicUsage.allowed,
+      usedSeconds: atomicUsage.usedSeconds,
+      limitSeconds: atomicUsage.limitSeconds,
+      remainingSeconds: atomicUsage.remainingSeconds,
+    }
+  }
 
   if (planId === 'pro') {
     return { allowed: true, usedSeconds: usage.voiceSecondsUsed, limitSeconds, remainingSeconds: 999999 }
@@ -106,6 +119,22 @@ export async function checkAndIncrementVoiceTime(
 ): Promise<{ allowed: boolean; usedSeconds: number; limitSeconds: number; remainingSeconds: number }> {
   const limitSeconds = getLimitSeconds(planId)
   const addSeconds = sanitizeDuration(durationMs)
+  const atomicUsage = await checkAndIncrementVoiceUsageAtomic(
+    userId,
+    getTodayDate(),
+    planId,
+    limitSeconds,
+    addSeconds,
+    90000,
+  )
+  if (atomicUsage) {
+    return {
+      allowed: atomicUsage.allowed,
+      usedSeconds: atomicUsage.usedSeconds,
+      limitSeconds: atomicUsage.limitSeconds,
+      remainingSeconds: atomicUsage.remainingSeconds,
+    }
+  }
 
   // Pro: always allowed, still track for analytics
   if (planId === 'pro') {

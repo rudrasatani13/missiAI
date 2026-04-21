@@ -15,6 +15,7 @@ import { executeAgentTool, AGENT_FUNCTION_DECLARATIONS, type ToolContext } from 
 import { getAgentHistory, saveAgentHistory } from "@/lib/ai/agent-history"
 import { awardXP } from "@/lib/gamification/xp-engine"
 import { getTodayDate } from "@/lib/billing/usage-tracker"
+import { checkAndIncrementAtomicCounter } from "@/lib/server/atomic-quota"
 import { nanoid } from "nanoid"
 import { z } from "zod"
 import type { KVStore } from "@/types"
@@ -243,6 +244,10 @@ async function checkAgentRateLimit(kv: KVStore, userId: string, plan: string) {
   const today = getTodayDate()
   const key = `ratelimit:agent-exec:${userId}:${today}`
   const limit = plan === "free" ? FREE_DAILY_LIMIT : PAID_DAILY_LIMIT
+  const atomicResult = await checkAndIncrementAtomicCounter(`agent:${userId}:${today}`, limit, 86_400)
+  if (atomicResult) {
+    return { allowed: atomicResult.allowed, remaining: atomicResult.remaining }
+  }
   const raw = await kv.get(key)
   const count = raw ? parseInt(raw, 10) : 0
   if (count >= limit) return { allowed: false, remaining: 0 }

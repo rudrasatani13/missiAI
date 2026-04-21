@@ -1,14 +1,10 @@
-import { LifeGraph, LifeNode, MemoryCategory } from '@/types/memory'
+import { LifeGraph, MemoryCategory } from '@/types/memory'
 import { ConstellationGrouping, ConstellationCluster } from '@/types/life-story'
 
 const CATEGORIES: MemoryCategory[] = [
   'person', 'goal', 'habit', 'preference', 'event',
   'emotion', 'skill', 'place', 'belief', 'relationship',
 ]
-
-function jitter() {
-  return (Math.random() - 0.5) * 0.15
-}
 
 function processByCategory(graph: LifeGraph): ConstellationCluster[] {
   const clusters: ConstellationCluster[] = CATEGORIES.map((cat, i) => {
@@ -34,8 +30,6 @@ function processByCategory(graph: LifeGraph): ConstellationCluster[] {
 }
 
 function processByTime(graph: LifeGraph): ConstellationCluster[] {
-  const timeBuckets = new Map<string, string[]>()
-  
   if (graph.nodes.length === 0) return []
 
   let minTime = graph.nodes[0].createdAt

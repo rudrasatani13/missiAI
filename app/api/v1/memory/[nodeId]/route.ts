@@ -5,12 +5,13 @@ import {
   unauthorizedResponse,
 } from "@/lib/server/auth"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
-import { getLifeGraph, saveLifeGraph } from "@/lib/memory/life-graph"
+import { getLifeGraph, saveLifeGraph, syncLifeNodeVector } from "@/lib/memory/life-graph"
+import { deleteUserVectors } from "@/lib/memory/vectorize"
 import { z } from "zod"
 import { sanitizeInput } from "@/lib/validation/sanitizer"
 import { logError } from "@/lib/server/logger"
 import type { KVStore } from "@/types"
-
+import type { VectorizeEnv } from "@/lib/memory/vectorize"
 
 function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -23,6 +24,17 @@ function getKV(): KVStore | null {
   try {
     const { env } = getCloudflareContext()
     return (env as any).MISSI_MEMORY ?? null
+  } catch {
+    return null
+  }
+}
+
+function getVectorizeEnv(): VectorizeEnv | null {
+  try {
+    const { env } = getCloudflareContext()
+    const lifeGraph = (env as any).LIFE_GRAPH
+    if (!lifeGraph) return null
+    return { LIFE_GRAPH: lifeGraph }
   } catch {
     return null
   }
@@ -63,6 +75,7 @@ export async function DELETE(
     if (!kv) {
       return jsonResponse({ success: false, error: "Storage unavailable" }, 503)
     }
+    const vectorizeEnv = getVectorizeEnv()
 
     // 4. Delete
     const graph = await getLifeGraph(kv, userId)
@@ -71,6 +84,9 @@ export async function DELETE(
     
     if (graph.nodes.length < before) {
       await saveLifeGraph(kv, userId, graph)
+      if (vectorizeEnv) {
+        await deleteUserVectors(vectorizeEnv, [nodeId])
+      }
     }
 
     return jsonResponse({ success: true, data: { deleted: nodeId } })
@@ -124,6 +140,7 @@ export async function PATCH(
     if (!kv) {
       return jsonResponse({ success: false, error: "Storage unavailable" }, 503)
     }
+    const vectorizeEnv = getVectorizeEnv()
 
     // 5. Update
     const graph = await getLifeGraph(kv, userId)
@@ -145,9 +162,9 @@ export async function PATCH(
 
     graph.nodes[nodeIndex] = node
     await saveLifeGraph(kv, userId, graph)
+    await syncLifeNodeVector(vectorizeEnv, node)
 
-    const { userId: _uid, ...nodeWithoutUserId } = node
-    return jsonResponse({ success: true, data: nodeWithoutUserId })
+    return jsonResponse({ success: true, data: { ...node, userId: undefined } })
   } catch (err) {
     logError("memory.node.update_error", err)
     return jsonResponse({ success: false, error: "Update failed" }, 500)

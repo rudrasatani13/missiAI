@@ -133,7 +133,9 @@ export async function updateQuest(
   if (quests[idx].userId !== userId) return null
 
   // Apply updates but NEVER allow userId to be overridden
-  const { userId: _discardedUserId, ...safeUpdates } = updates
+  const safeUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([key]) => key !== 'userId'),
+  ) as Partial<Quest>
   quests[idx] = { ...quests[idx], ...safeUpdates, userId }
 
   await saveQuests(kv, userId, quests)

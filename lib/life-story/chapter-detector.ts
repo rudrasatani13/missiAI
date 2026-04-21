@@ -47,7 +47,7 @@ export async function detectChapters(graph: LifeGraph): Promise<LifeChapter[]> {
 
   const clusters: LifeNode[][] = []
 
-  for (const [key, nodes] of buckets.entries()) {
+  for (const [, nodes] of buckets.entries()) {
     // Optimization: Map of nodes for O(1) lookup during BFS
     const nodeMap = new Map<string, LifeNode>(nodes.map(n => [n.id, n]))
 
@@ -219,11 +219,11 @@ ${sanitizeMemories(subsetForPrompt)}
           if (parsed.coverEmoji) {
             aiResult.coverEmoji = Array.from(parsed.coverEmoji as string)[0] || '📖'
           }
-        } catch (e) {
+        } catch {
           // JSON parse failed, keep fallbacks
         }
       }
-    } catch (e) {
+    } catch {
       // Keep fallbacks
     }
 

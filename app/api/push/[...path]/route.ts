@@ -90,7 +90,7 @@ async function handleSubscribe(req: NextRequest) {
 
 // ─── Trigger Handler (POST /trigger) ──────────────────────────────────────────
 
-async function handleTrigger(req: NextRequest) {
+async function handleTrigger(_req: NextRequest) {
   let userId: string
   try {
     userId = await getVerifiedUserId()

@@ -12,7 +12,6 @@ import { shouldUseTTS, truncateForTTS } from "@/lib/ai/tts-optimizer"
 import { PCMPlayer, globalPcmPlayer } from "@/lib/client/pcm-player"
 import type { VoiceState, ConversationEntry, PersonalityKey } from "@/types/chat"
 import { useEmotionDetector } from "@/hooks/useEmotionDetector"
-import type { EmotionAdaptation } from "@/types/emotion"
 import type { AIDialSettings } from "@/hooks/useChatSettings"
 
 export type { VoiceState }
@@ -35,6 +34,28 @@ export interface UseVoiceStateMachineOptions {
   incognitoRef?: React.MutableRefObject<boolean>
   /** Analytics opt-out mirror. Gates server-side `recordEvent` calls. */
   analyticsOptOutRef?: React.MutableRefObject<boolean>
+}
+
+function buildStreamMessages(conversation: ConversationEntry[]) {
+  const lastUserIndex = conversation.map((entry) => entry.role).lastIndexOf("user")
+  return conversation.map((entry, index) => ({
+    role: entry.role,
+    content: entry.content,
+    image: entry.role === "user" && index === lastUserIndex ? entry.image : undefined,
+  }))
+}
+
+function clearLastUserImage(conversation: ConversationEntry[]) {
+  for (let index = conversation.length - 1; index >= 0; index--) {
+    if (conversation[index].role === "user" && conversation[index].image) {
+      conversation[index].image = undefined
+      break
+    }
+  }
+}
+
+function shouldResumeRecording(edithMode: boolean, expectingResponse: boolean, continuous: boolean) {
+  return edithMode || expectingResponse || continuous
 }
 
 /* ── Hook ─────────────────────────────────────────────────────────────────── */
@@ -94,6 +115,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
   const ttsContextRef = useRef<AudioContext | null>(null)
   const ttsAnalyserRef = useRef<AnalyserNode | null>(null)
+  const stopTTSMonitorRef = useRef<() => void>(() => {})
   const continuousRef = useRef(false)
   /** EDITH mode: agent asked a follow-up question — extend silence timeout & auto-record */
   const expectingResponseRef = useRef(false)
@@ -196,6 +218,20 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     isTransitioningRef.current = false
     resetEmotion()
   }, [resetEmotion])
+ 
+  const clearResponseBuffers = useCallback(() => {
+    setStreamingText("")
+    setLastResponse("")
+  }, [])
+ 
+  const continueOrReset = useCallback(async () => {
+    if (shouldResumeRecording(edithModeRef.current, expectingResponseRef.current, continuousRef.current)) {
+      expectingResponseRef.current = false
+      await fnRef.current.startRecording()
+      return
+    }
+    resetToIdle()
+  }, [resetToIdle])
 
   /* ── Recording-input audio monitor ──────────────────────────────────────── */
 
@@ -287,7 +323,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
             pcmPlayerRef.current.stop()
             pcmPlayerRef.current = null
           }
-          stopTTSMonitor()
+          stopTTSMonitorRef.current()
           cancelAbort()
           setState("idle")
           setStreamingText("")
@@ -327,7 +363,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     }
 
     levelAnimRef.current = requestAnimationFrame(monitor)
-  }, [])
+  }, [cancelAbort])
 
   const stopAudioMonitor = useCallback(() => {
     if (levelAnimRef.current) cancelAnimationFrame(levelAnimRef.current)
@@ -434,6 +470,8 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     setAudioLevel(0)
   }, [])
 
+  stopTTSMonitorRef.current = stopTTSMonitor
+
   /* ═══════════════════════════════════════════════════════════════════════════
      Core voice-flow functions
      (defined bottom-up so every fn can reference later fns via fnRef)
@@ -452,14 +490,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
       /** Helper: move to next state after speaking */
       const afterSpeak = async () => {
-        // EDITH mode: ALWAYS restart recording after speaking — like a real assistant
-        // Also restart if agent asked a follow-up question or continuous mode is on
-        if (edithModeRef.current || expectingResponseRef.current || continuousRef.current) {
-          expectingResponseRef.current = false
-          await fnRef.current.startRecording()
-        } else {
-          resetToIdle()
-        }
+        await continueOrReset()
       }
 
       /** Helper: fallback to Web Speech API for mobile TTS */
@@ -586,7 +617,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         isTransitioningRef.current = false
       }
     },
-    [startTTSMonitor, stopTTSMonitor, resetToIdle, getSmoothedAdaptation],
+    [startTTSMonitor, stopTTSMonitor, continueOrReset, resetToIdle, getSmoothedAdaptation],
   )
 
   /* ── getAIResponse ──────────────────────────────────────────────────────── */
@@ -606,14 +637,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       try {
         // Only send image on the LAST user message; strip from older ones
         // to avoid bloating the payload with stale base64 data
-        const msgs = conversationRef.current.map((m, i, arr) => {
-          const isLastUserMsg = m.role === 'user' && i === arr.map(x => x.role).lastIndexOf('user')
-          return {
-            role: m.role,
-            content: m.content,
-            image: isLastUserMsg ? m.image : undefined,
-          }
-        })
+        const msgs = buildStreamMessages(conversationRef.current)
 
         const adaptation = getSmoothedAdaptation()
         const emotionSuffix = adaptation.systemPromptSuffix
@@ -657,8 +681,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           try {
             const errData = await res.clone().json()
             if (errData.code === 'USAGE_LIMIT_EXCEEDED') {
-              setStreamingText("")
-              setLastResponse("")
+              clearResponseBuffers()
               setError("Daily voice limit reached — upgrade for unlimited access")
               continuousRef.current = false  // stop continuous mode so recording doesn't restart
               resetToIdle()
@@ -724,8 +747,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         }
 
         if (!full.trim()) {
-          setStreamingText("")
-          setLastResponse("")
+          clearResponseBuffers()
           setError("Couldn't generate a response — try again")
           if (continuousRef.current) {
             await new Promise((r) => setTimeout(r, 1500))
@@ -740,12 +762,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         setLastResponse(full)
 
         // Strip image from the user message that triggered this
-        for (let ci = conversationRef.current.length - 1; ci >= 0; ci--) {
-          if (conversationRef.current[ci].role === 'user' && conversationRef.current[ci].image) {
-            conversationRef.current[ci].image = undefined
-            break
-          }
-        }
+        clearLastUserImage(conversationRef.current)
 
         conversationRef.current.push({ role: "assistant", content: full })
         if (conversationRef.current.length > 14) {
@@ -776,19 +793,13 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           await fnRef.current.speakText(ttsText)
         } else {
           // EDITH mode: always restart recording; also restart for follow-ups or continuous
-          if (edithModeRef.current || expectingResponseRef.current || continuousRef.current) {
-            expectingResponseRef.current = false
-            await fnRef.current.startRecording()
-          } else {
-            resetToIdle()
-          }
+          await continueOrReset()
         }
         return // success — exit retry loop
 
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
-          setStreamingText("")
-          setLastResponse("")
+          clearResponseBuffers()
           resetToIdle()
           return
         }
@@ -800,8 +811,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         }
 
         // All retries exhausted — remove the last user message to prevent broken context
-        setStreamingText("")
-        setLastResponse("")
+        clearResponseBuffers()
         setError(`Failed: ${err instanceof Error ? err.message : String(err)}`)
         // Remove the last user message that caused the failure
         const lastMsg = conversationRef.current[conversationRef.current.length - 1]
@@ -819,8 +829,14 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     cancelAbort,
     conversationRef,
     personalityRef,
+    customPromptRef,
     memoriesRef,
+    aiDialsRef,
+    incognitoRef,
+    analyticsOptOutRef,
     userId,
+    continueOrReset,
+    clearResponseBuffers,
     resetToIdle,
     getSmoothedAdaptation,
   ])
@@ -919,7 +935,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         }
       }
     },
-    [freshAbort, cancelAbort, conversationRef, resetToIdle],
+    [freshAbort, cancelAbort, conversationRef, imagePayloadRef, onImageConsumed, resetToIdle],
   )
 
   /* ── startRecording ─────────────────────────────────────────────────────── */
@@ -1208,7 +1224,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       freshAbort,
       startTTSMonitor,
       stopTTSMonitor,
-      resetToIdle,
       conversationRef,
     ],
   )

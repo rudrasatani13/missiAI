@@ -284,7 +284,7 @@ function gaussianRandom(): number {
   return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v)
 }
 
-function ParticleVisualizerInner({ state, isActive, audioLevel = 0, avatarTier = 1 }: ParticleVisualizerProps) {
+function ParticleVisualizerInner({ state, isActive: _isActive, audioLevel = 0, avatarTier = 1 }: ParticleVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const vizRef = useRef<{
     scene: THREE.Scene

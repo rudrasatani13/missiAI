@@ -33,11 +33,12 @@ import openNextWorker, {
   BucketCachePurge,
 } from "../.open-next/worker.js"
 
+import { AtomicCounterDO } from "./atomic-counter-do"
 import { handleLiveWs } from "./live-ws-handler"
 
 // Preserve the Durable Object class exports expected by Cloudflare's runtime.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export { DOQueueHandler, DOShardedTagCache, BucketCachePurge }
+export { DOQueueHandler, DOShardedTagCache, BucketCachePurge, AtomicCounterDO }
 
 // Cloudflare Worker fetch signature.
 interface CfExecutionContext {
@@ -55,9 +56,10 @@ export default {
     // fetch handler runs. Routes intercepted BEFORE openNextWorker.fetch()
     // would see empty process.env. Copy all string bindings now so
     // vertex-auth and env.ts can read secrets via process.env normally.
-    const cfEnv = env as Record<string, string>
+    const cfEnv = env as Record<string, unknown>
+    const processEnv = process.env as Record<string, string | undefined>
     for (const [k, v] of Object.entries(cfEnv)) {
-      if (typeof v === "string" && !process.env[k]) process.env[k] = v
+      if (typeof v === "string" && !processEnv[k]) processEnv[k] = v
     }
 
     const url = new URL(request.url)

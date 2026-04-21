@@ -58,6 +58,19 @@ function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+async function sendWhatsAppReply(
+  execCtx: { waitUntil: (p: Promise<unknown>) => void } | null,
+  phoneNumber: string,
+  text: string,
+) {
+  const replyPromise = sendWhatsAppMessage(phoneNumber, text).catch(() => {})
+  if (execCtx) {
+    execCtx.waitUntil(replyPromise)
+    return
+  }
+  await replyPromise
+}
+
 // ─── GET — Meta webhook verification challenge ────────────────────────────────
 
 export async function GET(req: Request): Promise<Response> {
@@ -200,10 +213,11 @@ export async function POST(req: Request): Promise<Response> {
           const pendingUserId = await consumePendingWhatsAppLink(kv, msgText)
           if (pendingUserId) {
             await storeWhatsAppMapping(kv, senderPhone, pendingUserId)
-            sendWhatsAppMessage(
+            await sendWhatsAppReply(
+              execCtx,
               senderPhone,
               'WhatsApp linked to your Missi account! 🎉 You can now chat with me directly here. What do you need?',
-            ).catch(() => {})
+            )
             log({ level: 'info', event: 'bot.wa.linked_via_code', userId: pendingUserId, timestamp: Date.now() })
             return
           }
@@ -212,10 +226,11 @@ export async function POST(req: Request): Promise<Response> {
           path: '/api/webhooks/whatsapp',
           metadata: { senderPhone: senderPhone.slice(0, 4) + '****' },
         })
-        sendWhatsAppMessage(
+        await sendWhatsAppReply(
+          execCtx,
           senderPhone,
           'Hey! I\'m Missi 🤖 To chat with me here, link your WhatsApp number at missi.space/settings/integrations — takes just 1 minute!',
-        ).catch(() => {})
+        )
         return
       }
 
@@ -234,10 +249,11 @@ export async function POST(req: Request): Promise<Response> {
           path: '/api/webhooks/whatsapp',
           metadata: { planId },
         })
-        sendWhatsAppMessage(
+        await sendWhatsAppReply(
+          execCtx,
           senderPhone,
           'WhatsApp access is a Pro feature. Upgrade at missi.space/pricing to keep chatting with me here! 🚀',
-        ).catch(() => {})
+        )
         return
       }
 
@@ -246,19 +262,21 @@ export async function POST(req: Request): Promise<Response> {
         kv, 'whatsapp', userId, today(),
       )
       if (!limitAllowed) {
-        sendWhatsAppMessage(
+        await sendWhatsAppReply(
+          execCtx,
           senderPhone,
           'You\'ve hit your daily message limit! Let\'s chat again tomorrow 😊',
-        ).catch(() => {})
+        )
         return
       }
 
       // ── 10. Handle non-text message types ─────────────────────────────────
       if (message.type !== 'text') {
-        sendWhatsAppMessage(
+        await sendWhatsAppReply(
+          execCtx,
           senderPhone,
           'I can only understand text messages for now! 🙏',
-        ).catch(() => {})
+        )
         return
       }
 

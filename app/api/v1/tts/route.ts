@@ -3,7 +3,7 @@ import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/
 import { ttsSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { textToSpeech } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
-import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
+import { logRequest, logError, logApiError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
@@ -14,7 +14,6 @@ import { COST_CONSTANTS } from "@/lib/server/cost-tracker"
 import { getUserPersona } from "@/lib/personas/persona-store"
 import { getVoiceId as getPersonaVoiceId } from "@/lib/personas/persona-config"
 import type { KVStore } from "@/types"
-
 
 const MAX_BODY_BYTES = 1_000_000 // 1 MB
 const TTS_TIMEOUT_MS = 15_000
@@ -29,7 +28,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 export async function POST(req: NextRequest) {
-  const elapsed = createTimer()
   const startTime = Date.now()
 
   // ── 1. Auth ───────────────────────────────────────────────────────────────

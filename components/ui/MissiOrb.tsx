@@ -198,14 +198,14 @@ export function MissiOrb({ isSpeaking = false, className = "" }: { isSpeaking?: 
       // Interpolate speaking value smoothly
       const target = isSpeakingRef.current ? 1.0 : 0.0;
       currentSpeakingTarget += (target - currentSpeakingTarget) * 0.08;
-      
-      material.uniforms.uTime.value = elapsed;
-      material.uniforms.uSpeaking.value = currentSpeakingTarget;
-      
-      // Slowly rotate the entire ring
-      particles.rotation.z = elapsed * 0.15;
+     
+     material.uniforms.uTime.value = elapsed;
+     material.uniforms.uSpeaking.value = currentSpeakingTarget;
+     
+     // Slowly rotate the entire ring
+     particles.rotation.z = elapsed * 0.15;
 
-      renderer.render(scene, camera);
+     renderer.render(scene, camera);
     };
 
     const animId = requestAnimationFrame(animate);
@@ -214,12 +214,13 @@ export function MissiOrb({ isSpeaking = false, className = "" }: { isSpeaking?: 
       updateSize();
     };
     window.addEventListener("resize", handleResize);
+    const mountEl = mountRef.current;
 
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", handleResize);
-      if (mountRef.current) {
-        mountRef.current.innerHTML = "";
+      if (mountEl) {
+        mountEl.innerHTML = "";
       }
       geometry.dispose();
       material.dispose();

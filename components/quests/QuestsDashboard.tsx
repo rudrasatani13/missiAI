@@ -66,9 +66,6 @@ export function QuestsDashboard() {
     ? quests
     : quests.filter(q => q.status === filter)
 
-  const activeQuests = quests.filter(q => q.status === 'active')
-  const completedQuestsCount = quests.filter(q => q.status === 'completed').length
-
   // Refresh selected quest from the quests list
   const currentSelectedQuest = selectedQuest
     ? quests.find(q => q.id === selectedQuest.id) ?? selectedQuest

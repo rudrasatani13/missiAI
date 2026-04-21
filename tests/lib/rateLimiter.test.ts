@@ -163,7 +163,8 @@ describe("rateLimiter", () => {
       const body = await response.json()
       expect(body).toEqual({
         success: false,
-        error: "Rate limit exceeded. Please slow down."
+        error: "Rate limit exceeded. Please slow down.",
+        code: "RATE_LIMITED",
       })
     })
   })

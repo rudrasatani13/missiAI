@@ -83,7 +83,7 @@ export async function processBotMessage(opts: BotProcessOptions): Promise<string
   ]
 
   // Use source field to tag bot-originated memory nodes
-  fireAndForgetMemoryExtraction(kv, vectorizeEnv, userId, conversation, platform)
+  fireAndForgetMemoryExtraction(kv, vectorizeEnv, userId, conversation)
 
   return response || 'Something went wrong — please try again in a bit!'
 }
@@ -95,7 +95,6 @@ function fireAndForgetMemoryExtraction(
   vectorizeEnv: VectorizeEnv | null,
   userId: string,
   conversation: ConversationEntry[],
-  platform: BotPlatform,
 ): void {
   ;(async () => {
     try {

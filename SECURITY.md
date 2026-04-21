@@ -143,7 +143,7 @@ id = "ddf2e5eb21484fd1a9aecd8e4eaada74"
 ```
 
 **Access model:**
-- Code accesses KV only via `getRequestContext().env.MISSI_MEMORY`
+- Code accesses KV only via `getCloudflareContext().env.MISSI_MEMORY`
 - No HTTP API is exposed — the binding is the only access path
 - The KV namespace ID is a resource identifier, not a credential
 - Only the deployed Worker with the binding can read/write the namespace

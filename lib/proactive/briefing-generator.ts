@@ -1,4 +1,4 @@
-import type { LifeGraph, LifeNode } from '@/types/memory'
+import type { LifeGraph } from '@/types/memory'
 import type { BriefingItem, DailyBriefing, ProactiveConfig } from '@/types/proactive'
 import { geminiGenerate } from '@/lib/ai/vertex-client'
 

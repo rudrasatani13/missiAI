@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getVerifiedUserId, AuthenticationError } from '@/lib/server/auth'
-import { setUserPlan } from '@/lib/billing/tier-checker'
+import { getUserPlan, setUserPlan } from '@/lib/billing/tier-checker'
 import { z } from 'zod'
 import type { PlanId } from '@/types/billing'
 
@@ -33,6 +33,7 @@ export async function POST(
   const isAdmin = role === 'admin' || (process.env.ADMIN_USER_ID ? userId === process.env.ADMIN_USER_ID : false)
 
   if (!isAdmin) {
+    console.warn(JSON.stringify({ event: 'admin.plan_change.forbidden', userId, targetUserId, timestamp: Date.now() }))
     return new NextResponse(
       JSON.stringify({ success: false, error: 'Forbidden', code: 'FORBIDDEN' }),
       { status: 403, headers: { 'Content-Type': 'application/json' } },
@@ -58,12 +59,29 @@ export async function POST(
   }
 
   try {
+    const previousPlan = await getUserPlan(targetUserId)
     await setUserPlan(targetUserId, parsed.data.plan as PlanId)
+    console.info(JSON.stringify({
+      event: 'admin.plan_change.success',
+      userId,
+      targetUserId,
+      oldPlan: previousPlan,
+      newPlan: parsed.data.plan,
+      timestamp: Date.now(),
+    }))
     return new NextResponse(
       JSON.stringify({ success: true, data: { userId: targetUserId, plan: parsed.data.plan } }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     )
   } catch (err) {
+    console.error(JSON.stringify({
+      event: 'admin.plan_change.error',
+      userId,
+      targetUserId,
+      newPlan: parsed.data.plan,
+      error: err instanceof Error ? err.message : String(err),
+      timestamp: Date.now(),
+    }))
     return new NextResponse(
       JSON.stringify({ success: false, error: 'Failed to update plan', code: 'INTERNAL_ERROR' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } },

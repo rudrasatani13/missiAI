@@ -6,11 +6,9 @@ import { logRequest, logError } from '@/lib/server/logger'
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
 import { getUserPlan } from '@/lib/billing/tier-checker'
 import { addOrUpdateNode } from '@/lib/memory/life-graph'
-import { getEnv } from '@/lib/server/env'
 import { z } from 'zod'
 import type { KVStore } from '@/types'
 import type { VectorizeEnv } from '@/lib/memory/vectorize'
-
 
 function jsonResponse(body: unknown, status = 200, headers: HeadersInit = {}): Response {
   return new Response(JSON.stringify(body), {

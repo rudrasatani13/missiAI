@@ -9,9 +9,8 @@ import { z } from 'zod'
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
 import { getLifeGraph } from '@/lib/memory/life-graph'
 import { getRecentEntries } from '@/lib/mood/mood-store'
-import { logRequest, logError, logApiError, createTimer } from '@/lib/server/logger'
+import { logRequest, logError, logApiError } from '@/lib/server/logger'
 import { getEnv } from '@/lib/server/env'
-import { rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
 import { getUserPlan } from '@/lib/billing/tier-checker'
 import {
   checkGenerationRateLimit,
@@ -38,7 +37,6 @@ import { validationErrorResponse } from '@/lib/validation/schemas'
 import { clerkClient } from '@clerk/nextjs/server'
 import type { LibraryStoryCategory } from '@/types/sleep-sessions'
 import type { KVStore } from '@/types'
-
 
 function getKV(): KVStore | null {
   try {
@@ -353,7 +351,7 @@ async function handleTts(req: NextRequest) {
   let appEnv
   try {
     appEnv = getEnv()
-  } catch (e) {
+  } catch {
     return NextResponse.json({ success: false, error: "Configuration error" }, { status: 500 })
   }
 
@@ -366,7 +364,7 @@ async function handleTts(req: NextRequest) {
       const customVoiceId = getPersonaVoiceId(personaPref as any, appEnv)
       if (customVoiceId) voiceId = customVoiceId
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
 

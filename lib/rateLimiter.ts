@@ -1,3 +1,5 @@
+import { API_ERROR_CODES } from '@/types/api'
+
 // ─── Tier limits (requests per minute, per route type) ────────────────────────
 //
 // 'api'  — standard data endpoints (billing, memory, plugins, etc.)
@@ -203,7 +205,11 @@ export function rateLimitHeaders(result: RateLimitResult): Record<string, string
 
 export function rateLimitExceededResponse(result: RateLimitResult): Response {
   return new Response(
-    JSON.stringify({ success: false, error: "Rate limit exceeded. Please slow down." }),
+    JSON.stringify({
+      success: false,
+      error: "Rate limit exceeded. Please slow down.",
+      code: API_ERROR_CODES.RATE_LIMITED,
+    }),
     {
       status: 429,
       headers: {

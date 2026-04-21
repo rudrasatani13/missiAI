@@ -5,7 +5,6 @@ import Link from "next/link"
 import Image from "next/image"
 import localFont from "next/font/local"
 import { ArrowRight, Mic, Waves, Lock, Zap, Clock, Globe, Sparkles } from "lucide-react"
-import { motion } from "framer-motion"
 import { Magnetic } from "@/components/ui/Magnetic"
 import { MissiOrb } from "@/components/ui/MissiOrb"
 import { CookieConsent } from "@/components/ui/CookieConsent"
@@ -138,65 +137,6 @@ function Reveal({ children, className = "", delay = 0, blur = true }: { children
     }}>{children}</div>
   )
 }
-
-/* ─────────────────────────────────────────────────
-   Voice Waveform Animation
-   ───────────────────────────────────────────────── */
-function VoiceWaveform() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-
-    let animId: number
-    const w = 280, h = 40
-    canvas.width = w
-    canvas.height = h
-
-    const draw = (t: number) => {
-      ctx.clearRect(0, 0, w, h)
-      ctx.beginPath()
-      for (let x = 0; x < w; x++) {
-        const freq1 = Math.sin((x * 0.03) + (t * 0.002)) * 8
-        const freq2 = Math.sin((x * 0.05) + (t * 0.003)) * 5
-        const freq3 = Math.sin((x * 0.02) + (t * 0.0015)) * 4
-        const envelope = Math.sin((x / w) * Math.PI)
-        const y = (h / 2) + (freq1 + freq2 + freq3) * envelope
-        if (x === 0) ctx.moveTo(x, y)
-        else ctx.lineTo(x, y)
-      }
-      ctx.strokeStyle = "rgba(255,255,255,0.15)"
-      ctx.lineWidth = 1.5
-      ctx.stroke()
-
-      // Second wave layer
-      ctx.beginPath()
-      for (let x = 0; x < w; x++) {
-        const freq1 = Math.sin((x * 0.04) + (t * 0.0025) + 1) * 6
-        const freq2 = Math.sin((x * 0.06) + (t * 0.002) + 2) * 4
-        const envelope = Math.sin((x / w) * Math.PI)
-        const y = (h / 2) + (freq1 + freq2) * envelope
-        if (x === 0) ctx.moveTo(x, y)
-        else ctx.lineTo(x, y)
-      }
-      ctx.strokeStyle = "rgba(255,255,255,0.08)"
-      ctx.lineWidth = 1
-      ctx.stroke()
-
-      animId = requestAnimationFrame(draw)
-    }
-
-    animId = requestAnimationFrame(draw)
-    return () => cancelAnimationFrame(animId)
-  }, [])
-
-  return <canvas ref={canvasRef} width={280} height={40} className="opacity-80" />
-}
-
-
 
 /* ─────────────────────────────────────────────────
    Animated Counter

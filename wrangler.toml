@@ -67,3 +67,11 @@ preview_id = "ed3c69b0ac8749e4ba80d58d262fd97f"
 [[vectorize]]
 binding = "LIFE_GRAPH"
 index_name = "missiai-life-graph"
+
+[[durable_objects.bindings]]
+name = "ATOMIC_COUNTER"
+class_name = "AtomicCounterDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["AtomicCounterDO"]

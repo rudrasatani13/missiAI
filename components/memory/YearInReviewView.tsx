@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { YearInReview } from '@/types/life-story'
-import { Share2, Download, AlertCircle, Star } from 'lucide-react'
+import { Share2, AlertCircle, Star } from 'lucide-react'
 import html2canvas from 'html2canvas'
 
 export function YearInReviewView() {
@@ -28,7 +28,7 @@ export function YearInReviewView() {
         } else {
           setError('Failed to fetch Year in Review')
         }
-      } catch (e) {
+      } catch {
         setError('Network error.')
       } finally {
         setIsLoading(false)
@@ -66,7 +66,7 @@ export function YearInReviewView() {
               text: 'See how my year unfolded with missi 🌙 missi.space',
               files: [file]
             })
-          } catch (e) {
+          } catch {
             // Unsuccessful share (e.g., user cancellation), fallback to download could be annoying, so just ignore
           }
         } else {

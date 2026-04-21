@@ -15,13 +15,11 @@ export function QuestCompleteModal({
   newAchievements = [],
   onClose,
 }: QuestCompleteModalProps) {
-  const [visible, setVisible] = useState(false)
   const [showStats, setShowStats] = useState(false)
 
   useEffect(() => {
-    const t1 = setTimeout(() => setVisible(true), 100)
     const t2 = setTimeout(() => setShowStats(true), 700)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
+    return () => { clearTimeout(t2) }
   }, [])
 
   const durationDays = quest.startedAt && quest.completedAt

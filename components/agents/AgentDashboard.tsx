@@ -154,7 +154,7 @@ export default function AgentDashboard() {
   const [history, setHistory] = useState<AgentHistoryEntry[]>([])
   const [historyOpen, setHistoryOpen] = useState(false)
   const [expenses, setExpenses] = useState<ExpenseSnapshot | null>(null)
-  const [hasCalendar, setHasCalendar] = useState(false)
+  const [hasCalendar] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [xpAnimation, setXpAnimation] = useState(false)
 

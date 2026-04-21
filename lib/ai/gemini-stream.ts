@@ -24,7 +24,7 @@ export function buildGeminiRequest(
   messages: Message[],
   personality: PersonalityKey,
   memories: string,
-  model: string = DEFAULT_MODEL,
+  _model: string = DEFAULT_MODEL,
   maxOutputTokens: number = 600,
   toolDeclarations?: Record<string, unknown>[],
   customPrompt?: string,

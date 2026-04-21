@@ -28,9 +28,27 @@ function forbiddenResponse(): Response {
   )
 }
 
-export async function GET(req: Request) {
-  const startTime = Date.now()
+async function getAllClerkUsers(
+  client: Awaited<ReturnType<typeof import('@clerk/nextjs/server').clerkClient>>,
+) {
+  const users = [] as Awaited<ReturnType<typeof client.users.getUserList>>['data']
+  let offset = 0
 
+  while (true) {
+    const page = await client.users.getUserList({ limit: 500, offset })
+    users.push(...page.data)
+    offset += page.data.length
+    if (page.data.length === 0 || offset >= page.totalCount) {
+      break
+    }
+  }
+
+  return users
+}
+
+// ── Main handler ──────────────────────────────────────────────────────────
+
+export async function GET(req: Request) {
   // ── 1. Auth ─────────────────────────────────────────────────────────────
   let userId: string
   try {
@@ -120,8 +138,8 @@ export async function GET(req: Request) {
     try {
       const { clerkClient } = await import('@clerk/nextjs/server')
       const client = await clerkClient()
-      const userList = await client.users.getUserList({ limit: 100 })
-      for (const user of userList.data) {
+      const users = await getAllClerkUsers(client)
+      for (const user of users) {
         const plan = ((user.publicMetadata as Record<string, unknown>)?.plan as string) ?? 'free'
         if (plan in planBreakdown) {
           planBreakdown[plan] += 1

@@ -4,7 +4,7 @@ import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/
 import { sttSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { speechToText } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
-import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
+import { logRequest, logError, logApiError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"

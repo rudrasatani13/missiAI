@@ -3,7 +3,6 @@
 import { useUser } from '@clerk/nextjs'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { calculateGrowthRate, formatCostUsd } from '@/lib/analytics/aggregator'
-import type { DailyStats } from '@/types/analytics'
 
 export const dynamic = 'force-dynamic'
 

@@ -24,12 +24,23 @@ export interface AIServiceOptions {
 
 // ─── Storage ──────────────────────────────────────────────────────────────────
 
+export interface KVListKey {
+  name: string
+}
+
+export interface KVListResult {
+  keys: KVListKey[]
+  list_complete: boolean
+  cursor?: string
+}
+
 // Minimal KV interface — Cloudflare KV compatible, but not vendor-locked
 export interface KVStore {
   get(key: string): Promise<string | null>
   get<T>(key: string, options: { type: 'json' }): Promise<T | null>
   put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>
   delete(key: string): Promise<void>
+  list?(options?: { prefix?: string; cursor?: string; limit?: number }): Promise<KVListResult>
 }
 
 // ─── Voice ────────────────────────────────────────────────────────────────────

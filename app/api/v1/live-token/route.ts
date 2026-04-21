@@ -9,6 +9,7 @@ import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkVoiceLimit } from "@/lib/billing/usage-tracker"
 import type { KVStore } from "@/types"
+import { API_ERROR_CODES, errorResponse } from "@/types/api"
 
 
 // Live model — all plans use the same low-latency native-audio model.
@@ -63,18 +64,20 @@ export async function POST(req: NextRequest) {
   if (kv) {
     const voiceCheck = await checkVoiceLimit(kv, userId, planId)
     if (!voiceCheck.allowed) {
-      return NextResponse.json(
-        { error: "Voice time limit reached for today. Upgrade your plan for more voice time." },
-        { status: 429 },
+      return errorResponse(
+        "Voice time limit reached for today. Upgrade your plan for more voice time.",
+        API_ERROR_CODES.USAGE_LIMIT_EXCEEDED,
+        429,
       )
     }
   }
 
   // 5. Must be Vertex — no other Live backend is supported.
   if (!isVertexAI()) {
-    return NextResponse.json(
-      { error: "Live API backend not configured" },
-      { status: 503 },
+    return errorResponse(
+      "Live API backend not configured",
+      API_ERROR_CODES.SERVICE_UNAVAILABLE,
+      503,
     )
   }
 
@@ -99,6 +102,7 @@ export async function POST(req: NextRequest) {
     logRequest("live-token.created", userId, startTime)
 
     return NextResponse.json({
+      success: true,
       wsUrl,
       modelPath,
       // Expose ticket TTL so the client can re-request before expiry if needed.
@@ -106,9 +110,10 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     logError("live-token.error", err instanceof Error ? err : new Error(String(err)), userId)
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+    return errorResponse(
+      "Internal server error",
+      API_ERROR_CODES.INTERNAL_ERROR,
+      500,
     )
   }
 }

@@ -55,7 +55,7 @@ export function ConstellationView() {
         } else {
           setError('Failed to load constellation data')
         }
-      } catch (e) {
+      } catch {
         setError('Network error')
       } finally {
         setIsLoading(false)

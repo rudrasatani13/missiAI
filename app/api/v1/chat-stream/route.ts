@@ -8,15 +8,13 @@ import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import { buildGeminiRequest, streamGeminiResponse } from "@/lib/ai/gemini-stream"
 import type { GeminiStreamEvent } from "@/lib/ai/gemini-stream"
 import { buildSystemPrompt } from "@/services/ai.service"
-import { estimateRequestTokens, estimateTokens, LIMITS, truncateToTokenLimit } from "@/lib/memory/token-counter"
+import { estimateRequestTokens, LIMITS, truncateToTokenLimit } from "@/lib/memory/token-counter"
 import { selectGeminiModel, getFallbackModel } from "@/lib/ai/model-router"
-import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
-import { calculateTotalCost, checkBudgetAlert } from "@/lib/server/cost-tracker"
+import { logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
 import { waitUntil } from "@/lib/server/wait-until"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { checkAndIncrementVoiceTime, getTodayDate } from "@/lib/billing/usage-tracker"
-import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
+import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
 import { AGENT_FUNCTION_DECLARATIONS, executeAgentTool, getToolLabel } from "@/lib/ai/agent-tools"
 import type { AgentToolCall } from "@/lib/ai/agent-tools"
 import { classifyAgentTool, AGENT_DESTRUCTIVE_TOOL_NAMES } from "@/lib/ai/agent-tool-policy"
@@ -24,14 +22,13 @@ import { getGoogleTokens } from "@/lib/plugins/data-fetcher"
 import { awardXP } from "@/lib/gamification/xp-engine"
 import { getSpace, getSpaceGraph, getUserSpaces } from "@/lib/spaces/space-store"
 import { formatSpaceContextForPrompt } from "@/lib/spaces/space-context"
-import { geminiGenerateStream } from "@/lib/ai/vertex-client"
 import { getUserPersona } from "@/lib/personas/persona-store"
 import { getVoiceId as getPersonaVoiceId, getPersonaConfig } from "@/lib/personas/persona-config"
 import type { KVStore } from "@/types"
 import { getProfile } from "@/lib/exam-buddy/profile-store"
 import { buildExamBuddyModifier } from "@/lib/exam-buddy/exam-prompt"
 import type { ExamBuddySessionContext } from "@/types/exam-buddy"
-
+import { API_ERROR_CODES } from "@/types/api"
 
 const MAX_BODY_BYTES = 5_000_000 // 5 MB
 const MAX_AGENT_LOOPS = 8 // Safety limit: max tool-call rounds
@@ -62,7 +59,7 @@ CONVERSATIONAL FLOW (multi-step tasks):
 TOOL CHAINING:
 - Chain multiple tools autonomously: searchMemory → searchWeb → summarize → speak
 - For "latest news": use searchWeb with news sites
-- For "send email": collect recipient, subject, body via conversation → call sendEmail to send it directly
+- For "send email": collect recipient, subject, body via conversation → draft the email first, then ask for confirmation before sending
 - For personal questions: searchMemory first, then answer from context
 - Use lookupContact to resolve names to email addresses before sending
 
@@ -97,21 +94,25 @@ function getVectorizeEnv(): VectorizeEnv | null {
 }
 
 export async function POST(req: NextRequest) {
-  const elapsed = createTimer()
-  const startTime = Date.now()
-
   // 1. Auth & Size checks
   let userId: string
   try {
     userId = await getVerifiedUserId()
   } catch (e) {
     if (e instanceof AuthenticationError) return unauthorizedResponse()
-    return new Response("Unauthorized", { status: 401 })
+    throw e
   }
 
   const contentLength = req.headers.get("content-length")
   if (contentLength && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
-    return new Response(JSON.stringify({ error: "Payload too large" }), { status: 413 })
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: "Payload too large",
+        code: API_ERROR_CODES.PAYLOAD_TOO_LARGE,
+      }),
+      { status: 413, headers: { "Content-Type": "application/json" } },
+    )
   }
 
   // 2. Plan & KV setup (fail-closed)
@@ -121,7 +122,7 @@ export async function POST(req: NextRequest) {
   const isDev = process.env.NODE_ENV === "development"
   if (!kv && planId !== 'pro' && !isDev) {
     return new Response(
-      JSON.stringify({ error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" }),
+      JSON.stringify({ success: false, error: "Service temporarily unavailable", code: API_ERROR_CODES.SERVICE_UNAVAILABLE }),
       { status: 503, headers: { "Content-Type": "application/json" } }
     )
   }
@@ -146,15 +147,23 @@ export async function POST(req: NextRequest) {
 
   // 3. Body validation
   let body: unknown
-  try { body = await req.json() } catch { return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 }) }
+  try {
+    body = await req.json()
+  } catch {
+    return new Response(
+      JSON.stringify({ success: false, error: "Invalid JSON", code: API_ERROR_CODES.VALIDATION_ERROR }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    )
+  }
   const parsed = chatSchema.safeParse(body)
   if (!parsed.success) return validationErrorResponse(parsed.error)
 
   let { messages } = parsed.data
-  const { personality, voiceEnabled, voiceMode, customPrompt, aiDials, incognito, analyticsOptOut } = parsed.data
+  const { personality, voiceEnabled, voiceMode, customPrompt, aiDials, incognito } = parsed.data
   const maxOutputTokens = voiceMode ? 800 : (parsed.data.maxOutputTokens ?? 600)
   // Incognito mode drops any client-supplied memories as defence-in-depth.
   const clientMemories = incognito ? "" : (parsed.data.memories ?? "")
+
   // Client-reported voiceDurationMs is untrusted — a user could
   // send 0 on every request to avoid incrementing their daily voice quota.
   // When voiceMode is active, enforce a server-side minimum of 3 s so that
@@ -171,7 +180,13 @@ export async function POST(req: NextRequest) {
     const voiceLimit = await checkAndIncrementVoiceTime(kv, userId, planId, voiceDurationMs)
     if (!voiceLimit.allowed) {
       return new Response(
-        JSON.stringify({ error: "Daily voice limit reached", code: "USAGE_LIMIT_EXCEEDED", usedSeconds: voiceLimit.usedSeconds, limitSeconds: voiceLimit.limitSeconds }),
+        JSON.stringify({
+          success: false,
+          error: "Daily voice limit reached",
+          code: API_ERROR_CODES.USAGE_LIMIT_EXCEEDED,
+          usedSeconds: voiceLimit.usedSeconds,
+          limitSeconds: voiceLimit.limitSeconds,
+        }),
         { status: 429, headers: { "Content-Type": "application/json" } }
       )
     }
@@ -339,6 +354,21 @@ export async function POST(req: NextRequest) {
         let ws: WebSocket | null = null
         let wsOpen = false
         const sendQueue: string[] = []
+        const closeVoiceSocket = async (flush: boolean) => {
+          if (!ws) return
+          if (flush && wsOpen) {
+            try {
+              ws.send(JSON.stringify({ text: "" }))
+            } catch {}
+            await new Promise((resolve) => setTimeout(resolve, 200))
+          }
+          try {
+            if (ws.readyState === 0 || ws.readyState === 1) {
+              ws.close()
+            }
+          } catch {}
+          wsOpen = false
+        }
 
         // Try to connect WebSocket if voice is enabled
         if (voiceEnabled !== false && typeof WebSocket !== 'undefined') {
@@ -367,6 +397,7 @@ export async function POST(req: NextRequest) {
             // it may contain the wsUrl which includes the ElevenLabs API key.
             // BUG-005: Use sanitized URL in log context instead.
             logError("chat_stream.ws_error", `WebSocket connection failed: ${sanitizedWsUrl}`, userId)
+            void closeVoiceSocket(false)
           }
           ws.onclose = () => { wsOpen = false }
         }
@@ -384,22 +415,11 @@ export async function POST(req: NextRequest) {
         const agentLoopDeadline = Date.now() + REQUEST_TIMEOUT_MS
         // Track conversation contents for multi-turn tool calling
         let agentContents: any[] = [...(currentRequestBody.contents as any[])]
-        // M5 fix: maintain a running byte-count of agentContents so the guard
-        // below is O(1) per iteration instead of stringifying the entire
-        // conversation on every loop (O(N·M)). We seed it from the initial
-        // contents and increment it whenever we push a new entry.
-        const MAX_AGENT_CONTENTS_BYTES = 200_000
-        let agentContentsBytes = JSON.stringify(agentContents).length
 
         while (loopCount < MAX_AGENT_LOOPS && totalToolCalls < MAX_TOTAL_TOOL_CALLS) {
           // Timeout safety net
           if (Date.now() > agentLoopDeadline) {
             sendSSE({ text: "\n\n[Agent loop timed out — returning what I have so far.]" })
-            break
-          }
-          // BUG-007 / M5 fix: use the running byte counter instead of a per-iteration stringify.
-          if (agentContentsBytes > MAX_AGENT_CONTENTS_BYTES) {
-            sendSSE({ text: "\n\n[Context too large — wrapping up.]" })
             break
           }
           loopCount++
@@ -422,9 +442,8 @@ export async function POST(req: NextRequest) {
                 systemPrompt,
                 aiDials,
               )
-              // Update contents reference (and resync the running byte count)
+              // Update contents reference
               agentContents = [...(currentRequestBody.contents as any[])]
-              agentContentsBytes = JSON.stringify(agentContents).length
               eventStream = await streamGeminiResponse(model, currentRequestBody)
             } else {
               throw primaryErr
@@ -545,17 +564,8 @@ export async function POST(req: NextRequest) {
               },
             }],
           }
-          // M5 fix: keep the running byte counter in sync with agentContents.
-          // Add 1 byte for the comma before modelEntry (if array not empty, which it isn't here)
-          // and 1 byte for the comma before userEntry.
-          const addedBytes =
-            JSON.stringify(modelEntry).length + JSON.stringify(userEntry).length + (agentContents.length > 0 ? 2 : 1)
-
           agentContents.push(modelEntry)
           agentContents.push(userEntry)
-          // M5 fix: keep the running byte counter in sync with agentContents.
-          // Add 2 bytes for the commas that separate the new items in the JSON array.
-          agentContentsBytes += JSON.stringify(modelEntry).length + JSON.stringify(userEntry).length + 2
 
           // Rebuild the request with updated conversation
           currentRequestBody = {
@@ -568,7 +578,7 @@ export async function POST(req: NextRequest) {
         }
 
         // ── Stream Complete ──────────────────────────────────────────────
-        if (ws && wsOpen) ws.send(JSON.stringify({ text: "" }))
+        await closeVoiceSocket(true)
 
         // EDITH: Detect if the model's response is asking a follow-up question.
         // If so, tell the client to auto-restart recording so the user can answer.

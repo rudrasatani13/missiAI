@@ -191,6 +191,15 @@ export async function addOrUpdateNode(
   return results[0]
 }
 
+export async function syncLifeNodeVector(
+  vectorizeEnv: VectorizeEnv | null,
+  node: LifeNode,
+): Promise<void> {
+  if (!vectorizeEnv) return
+  const embedding = await generateEmbedding(buildEmbeddingText(node))
+  await upsertLifeNode(vectorizeEnv, node, embedding)
+}
+
 // ─── Search ───────────────────────────────────────────────────────────────────
 
 export async function searchLifeGraph(

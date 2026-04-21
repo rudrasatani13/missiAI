@@ -11,6 +11,7 @@ import type { KVStore } from "@/types"
 import { getGoogleTokens, saveGoogleTokens, getNotionTokens } from "@/lib/plugins/data-fetcher"
 import { createCalendarEvent as gcalCreateEvent } from "@/lib/plugins/calendar-plugin"
 import { lookupContact as lookupContactFromStore, saveContact as saveContactToStore } from "@/lib/contacts/contact-store"
+import { addNote, addReminder } from "@/lib/actions/store"
 import { stripHtml } from "@/lib/validation/sanitizer"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -607,20 +608,7 @@ export async function executeAgentTool(
         const time = stripHtml((args.time as string) || "unspecified")
 
         if (ctx.kv) {
-          const key = `actions:reminders:${ctx.userId}`
-          let reminders: unknown[] = []
-          try {
-            const raw = await ctx.kv.get(key)
-            if (raw) reminders = JSON.parse(raw)
-          } catch {}
-          reminders.push({
-            id: `rem_${Date.now()}`,
-            task,
-            time,
-            createdAt: Date.now(),
-          })
-          if (reminders.length > 50) reminders = reminders.slice(-50)
-          await ctx.kv.put(key, JSON.stringify(reminders))
+          await addReminder(ctx.kv, ctx.userId, { task, time })
         }
 
         return {
@@ -638,20 +626,7 @@ export async function executeAgentTool(
         const content = stripHtml((args.content as string) || "")
 
         if (ctx.kv) {
-          const key = `actions:notes:${ctx.userId}`
-          let notes: unknown[] = []
-          try {
-            const raw = await ctx.kv.get(key)
-            if (raw) notes = JSON.parse(raw)
-          } catch {}
-          notes.push({
-            id: `note_${Date.now()}`,
-            title,
-            content,
-            createdAt: Date.now(),
-          })
-          if (notes.length > 50) notes = notes.slice(-50)
-          await ctx.kv.put(key, JSON.stringify(notes))
+          await addNote(ctx.kv, ctx.userId, { title, content })
         }
 
         return {

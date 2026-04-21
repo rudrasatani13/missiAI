@@ -22,9 +22,6 @@ export function BackgroundWaves({ color = "rgba(255, 80, 0, 0.8)" }: { color?: s
     window.addEventListener("resize", resize)
     resize()
 
-    const width = canvas.width
-    const height = canvas.height
-
     interface Particle {
       x: number
       baseX: number

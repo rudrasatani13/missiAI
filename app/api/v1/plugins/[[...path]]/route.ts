@@ -4,7 +4,6 @@
 //   path=[] (base)       → GET (list), POST (connect), DELETE (disconnect), PATCH (execute)
 //   path=["refresh"]     → GET (status), POST (refresh), DELETE (disconnect plugin)
 
-import { NextRequest } from "next/server"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { createTimer, logRequest, logError } from "@/lib/server/logger"
@@ -181,7 +180,6 @@ async function handlePluginsPatch(req: Request) {
       return new Response(JSON.stringify({ success: false, error: "Plugin not connected" }), { status: 400, headers: { "Content-Type": "application/json" } })
     }
 
-    const appEnv = getEnv()
     const command = await buildPluginCommand(userMessage, pluginId as PluginId)
     const result = await executePluginCommand(command, pluginConfig)
 

@@ -41,6 +41,8 @@ next-env.d.ts
 
 # JetBrains IDE
 .idea/
+.DS_Store
+.gitconfig
 
 # VS Code
 .vscode/
@@ -56,6 +58,8 @@ next-env.d.ts
 # Re-allow the safe env template (must be AFTER all *.env.* rules)
 !.env.example
 test_dodo*
+test_*_comma_len.js
+test_json_length*.js
 
 # Google Cloud Service Account keys — NEVER commit these
 service-account*.json

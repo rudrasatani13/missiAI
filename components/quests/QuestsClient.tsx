@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuests } from '@/hooks/useQuests'
 import { QuestCreator } from './QuestCreator'
 import { QuestCompleteModal } from './QuestCompleteModal'
-import type { Quest, QuestMission, QuestCategory } from '@/types/quests'
+import type { Quest, QuestMission } from '@/types/quests'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -248,7 +248,7 @@ function MissionRow({
 
 export default function QuestsClient() {
   const {
-    quests, stats, isLoading, error, setError,
+    quests, stats, isLoading, error,
     createQuest, updateQuestStatus, completeMission, getBossToken,
     fetchQuests, fetchStats,
   } = useQuests()
@@ -269,7 +269,6 @@ export default function QuestsClient() {
     : quests.filter(q => q.status === filter)
 
   const activeCount = quests.filter(q => q.status === 'active').length
-  const completedCount = quests.filter(q => q.status === 'completed').length
 
   const handleCreate = useCallback(async (data: {
     userGoal: string; category: string; difficulty: string; targetDurationDays: number
@@ -326,7 +325,6 @@ export default function QuestsClient() {
       ? Math.round((selectedQuest.completedMissions / selectedQuest.totalMissions) * 100)
       : 0
     const isComplete = selectedQuest.status === 'completed'
-    const allMissions = selectedQuest.chapters.flatMap(c => c.missions)
 
     return (
       <div className="relative min-h-full flex flex-col items-center px-4 py-8 md:py-12"

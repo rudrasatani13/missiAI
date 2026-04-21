@@ -52,7 +52,11 @@ export async function GET() {
   })
 
   // Strip internal IDs from client response
-  const { dodoCustomerId: _dodoCustId, dodoSubscriptionId: _dodoSubId, ...safeBilling } = billingData
+  const safeBilling = {
+    ...billingData,
+    dodoCustomerId: undefined,
+    dodoSubscriptionId: undefined,
+  }
 
   return new Response(
     JSON.stringify({
@@ -137,7 +141,7 @@ export async function POST(req: Request) {
   }
 
   // Build return URL — user comes back here after Dodo checkout
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://missi.space'
   const returnUrl = `${appUrl}/pricing?success=true&plan=${planId}`
 
   let checkoutSession: { session_id: string; checkout_url: string }

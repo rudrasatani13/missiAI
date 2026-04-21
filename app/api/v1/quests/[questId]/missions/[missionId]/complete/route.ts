@@ -18,7 +18,7 @@ import { checkQuestAchievements } from '@/lib/quests/quest-achievements'
 import { getGamificationData, saveGamificationData } from '@/lib/gamification/streak'
 import { awardXP } from '@/lib/gamification/xp-engine'
 import type { KVStore } from '@/types'
-import type { Quest, QuestMission, QuestAchievementContext } from '@/types/quests'
+import type { QuestMission, QuestAchievementContext } from '@/types/quests'
 
 
 function getKV(): KVStore | null {

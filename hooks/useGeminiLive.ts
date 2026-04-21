@@ -186,16 +186,14 @@ export function useGeminiLive(config: GeminiLiveConfig) {
       // 1. Get WebSocket URL from our backend
       const tokenRes = await fetch("/api/v1/live-token", { method: "POST" })
       if (!tokenRes.ok) {
+        const errData = await tokenRes.json().catch(() => ({})) as { code?: string; error?: string }
         // Handle Pro-only gate
-        if (tokenRes.status === 403) {
-          const errData = await tokenRes.json().catch(() => ({}))
-          if (errData.code === "PRO_REQUIRED") {
-            throw new Error("PRO_REQUIRED")
-          }
+        if (tokenRes.status === 403 && errData.code === "PRO_REQUIRED") {
+          throw new Error("PRO_REQUIRED")
         }
-        throw new Error("Failed to get live token")
+        throw new Error(errData.error || "Failed to get live token")
       }
-      const { wsUrl, modelPath } = await tokenRes.json()
+      const { wsUrl, modelPath } = await tokenRes.json() as { wsUrl: string; modelPath: string }
 
       // 2. Create analyser for visualizer
       const analyser = audioCtx.createAnalyser()
@@ -287,10 +285,19 @@ export function useGeminiLive(config: GeminiLiveConfig) {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ name: fc.name, args: fc.args || {} }),
                   })
-                  const toolResult = await toolRes.json() as { output?: string; summary?: string; status?: string }
+                  const toolResult = await toolRes.json() as {
+                    output?: string
+                    summary?: string
+                    status?: string
+                    error?: string
+                    success?: boolean
+                  }
+                  const toolMessage = toolResult.success === false
+                    ? (toolResult.error || "Tool execution failed")
+                    : (toolResult.output || toolResult.summary || "Done")
                   return {
                     name: fc.name,
-                    response: { result: toolResult.output || toolResult.summary || "Done" },
+                    response: { result: toolMessage },
                   }
                 } catch (toolErr) {
                   console.error("[GeminiLive] Tool execution error:", fc.name, toolErr)
@@ -326,7 +333,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
         updateState("error")
       }
 
-      ws.onclose = (ev) => {
+      ws.onclose = (_ev) => {
         isConnectedRef.current = false
         setupCompleteRef.current = false
         updateState("disconnected")

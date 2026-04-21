@@ -94,6 +94,7 @@ export async function disconnectPlugin(
 export function stripCredentials(
   config: PluginConfig,
 ): Omit<PluginConfig, "credentials"> {
-  const { credentials: _credentials, ...safe } = config
-  return safe
+  return Object.fromEntries(
+    Object.entries(config).filter(([key]) => key !== 'credentials'),
+  ) as Omit<PluginConfig, "credentials">
 }

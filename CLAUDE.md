@@ -7,17 +7,16 @@
 - **AI:** Google Gemini 2.5 Flash/Pro via Vertex AI (`@google/genai` 1.49.0); ElevenLabs STT (`scribe_v2`) + TTS (`eleven_turbo_v2_5`)
 - **Payments:** Dodo Payments (REST + Standard Webhooks)
 - **Storage:** Cloudflare KV (`MISSI_MEMORY`), Cloudflare Vectorize (`LIFE_GRAPH`)
-- **Deployment:** Cloudflare Pages + `@cloudflare/next-on-pages`
+- **Deployment:** Cloudflare Pages + OpenNext Cloudflare (`@opennextjs/cloudflare`)
 - **Testing:** Vitest; Linting: ESLint
 
 ## Runtime Rules
-- `export const runtime = 'edge'` on every API route — no exceptions
-- Access KV/Vectorize bindings via `getRequestContext()` from `@cloudflare/next-on-pages`:
-  ```ts
-  const { env } = getRequestContext()
-  const kv = (env as any).MISSI_MEMORY
-  const lifeGraph = (env as any).LIFE_GRAPH
-  ```
+- API routes that need Cloudflare bindings access them via `getCloudflareContext()` from `@opennextjs/cloudflare`
+```ts
+const { env } = getCloudflareContext()
+const kv = (env as any).MISSI_MEMORY
+const lifeGraph = (env as any).LIFE_GRAPH
+```
 - No Node.js APIs anywhere — all code must be edge-runtime compatible
 
 ## Project Structure
@@ -284,7 +283,7 @@ await kv.put(`webhook:event:${eventId}`, '1', { expirationTtl: 86400 })
 
 ## Webhook Pattern
 **Existing webhooks:**
-- `POST /api/webhooks/dodo` — Dodo payment events (public route, no Clerk auth). Handles: `subscription.active`, `subscription.renewed`, `subscription.cancelled`, `subscription.failed`, `subscription.on_hold`, `subscription.plan_changed`. Returns 200 always (Dodo retries on non-200).
+- `POST /api/webhooks/dodo` — Dodo payment events (public route, no Clerk auth). Handles: `subscription.active`, `subscription.renewed`, `subscription.cancelled`, `subscription.failed`, `subscription.on_hold`, `subscription.plan_changed`. Returns 200 after successful verification/processing, but may return 401 or 500 on malformed or unauthenticated requests.
 
 **HMAC validation pattern to replicate for new webhooks:**
 1. `rawBody = await req.text()` — read before anything else
@@ -299,7 +298,6 @@ await kv.put(`webhook:event:${eventId}`, '1', { expirationTtl: 86400 })
 |---|---|---|
 | `services/ai.service.ts` | `buildSystemPrompt`, `generateResponse`, `callAIDirect` | Personality prompts, multi-provider AI calls (Gemini/OpenAI/Claude) |
 | `services/voice.service.ts` | `textToSpeech`, `speechToText` | ElevenLabs TTS (eleven_turbo_v2_5) + STT (scribe_v2) with edge-runtime buffer fix |
-| `services/memory.service.ts` | `extractMemories` | Legacy fact extraction via AI (plain text format) — life-graph.ts is the primary memory system |
 
 ## Environment Variables
 **AI:**
@@ -327,7 +325,7 @@ await kv.put(`webhook:event:${eventId}`, '1', { expirationTtl: 86400 })
 
 ## Deployment
 - **Platform:** Cloudflare Pages
-- **Build:** `pnpm build:cf` — uses `@cloudflare/next-on-pages`
+- **Build:** `pnpm build:cf` — uses OpenNext Cloudflare (`@opennextjs/cloudflare`)
 - **Output dir:** `.vercel/output/static` (set in `wrangler.toml`)
 - **Compatibility date:** `2024-09-23`, flags: `["nodejs_compat"]`
 - **KV binding:** `MISSI_MEMORY` (id: `ddf2e5eb21484fd1a9aecd8e4eaada74`, preview: `ed3c69b0ac8749e4ba80d58d262fd97f`)
@@ -347,7 +345,7 @@ await kv.put(`webhook:event:${eventId}`, '1', { expirationTtl: 86400 })
 - **Never add Node.js APIs** — no `fs`, `path`, `process.nextTick`, `Buffer` (only `Uint8Array`/`ArrayBuffer`)
 - **Never call `auth.protect()` for API routes in middleware** — causes HTML redirect instead of JSON 401
 - **Never log secrets or full stack traces** — `logApiError` logs sanitized message only
-- **Never return non-200 from Dodo webhook handler** — Dodo retries on non-200; always return 200
+- **Never skip Dodo webhook verification** — reject missing-secret or invalid-signature requests before processing
 - **Never commit secrets to wrangler.toml or .env files** — use `wrangler secret put` or Pages dashboard
 - **Never use `btoa`/`atob` for crypto** — use `crypto.subtle` (available in edge runtime)
 - **Never block the chat response for non-critical work** — memory extraction, analytics, mood analysis must be fire-and-forget

@@ -13,6 +13,25 @@ const roleSchema = z.object({
   role: z.enum(['user', 'admin'], { message: 'Role must be "user" or "admin"' }),
 })
 
+async function getAllUserSessions(
+  client: Awaited<ReturnType<typeof clerkClient>>,
+  userId: string,
+) {
+  const sessions = [] as Awaited<ReturnType<typeof client.sessions.getSessionList>>['data']
+  let offset = 0
+
+  while (true) {
+    const page = await client.sessions.getSessionList({ userId, limit: 500, offset })
+    sessions.push(...page.data)
+    offset += page.data.length
+    if (page.data.length === 0 || offset >= page.totalCount) {
+      break
+    }
+  }
+
+  return sessions
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -94,9 +113,9 @@ export async function POST(
     // 2. Proactively secure the application by forcing logout.
     // We must invalidate all active sessions for the user so their next login 
     // strictly mints fresh tokens reflecting the newly assigned access privileges.
-    const sessions = await client.sessions.getSessionList({ userId: targetUserId })
+    const sessions = await getAllUserSessions(client, targetUserId)
     
-    const revokePromises = sessions.data
+    const revokePromises = sessions
       .filter(session => session.status === 'active')
       .map(session => client.sessions.revokeSession(session.id))
 

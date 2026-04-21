@@ -143,7 +143,7 @@ async function callGeminiAndParse(
         .join('') ?? ''
       if (rawText.length > 0) success = true
     }
-  } catch (err) {
+  } catch {
     // We catch timeouts and return fallback
   } finally {
     clearTimeout(timer)

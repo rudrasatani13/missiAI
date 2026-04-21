@@ -150,7 +150,7 @@ function PlanCard({
   features,
   disabledFeatures,
   planId,
-  currentPlanId,
+  currentPlanId: _currentPlanId,
   isMostPopular,
   onSelect,
   isLoading,
@@ -438,14 +438,14 @@ export default function PricingPage() {
   const { isSignedIn } = useUser()
   const {
     plan, billing, isLoading, isUpgrading, isCancelling,
-    error: billingError, initiateCheckout, cancelSubscription, refreshBilling,
+    error: billingError, initiateCheckout, cancelSubscription,
   } = useBilling()
 
   const {
-    referral, isReferred, copied, getReferralLink, copyReferralLink, hasReferralDiscount,
+    referral, copied, getReferralLink, copyReferralLink, hasReferralDiscount,
   } = useReferral()
 
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [successMessage] = useState<string | null>(null)
   const prevPlanRef = useRef<string | null>(null)
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
   const [cancelPlanName, setCancelPlanName] = useState('')

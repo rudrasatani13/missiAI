@@ -16,11 +16,11 @@ import { extractLifeNodes } from "@/lib/memory/graph-extractor"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { logRequest, logError } from "@/lib/server/logger"
-import { getEnv } from "@/lib/server/env"
 import { waitUntil } from "@/lib/server/wait-until"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { getTodayDate } from "@/lib/billing/usage-tracker"
 import { awardXP } from "@/lib/gamification/xp-engine"
+import { deleteUserVectors } from "@/lib/memory/vectorize"
 import type { KVStore } from "@/types"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { MemoryCategory } from "@/types/memory"
@@ -354,6 +354,7 @@ export async function DELETE(req: NextRequest) {
       logError("memory.delete.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
       return jsonResponse({ success: false, error: "Storage unavailable", code: "INTERNAL_ERROR" }, 503)
     }
+    const vectorizeEnv = getVectorizeEnv()
 
     const graph = await getLifeGraph(kv, userId)
     const before = graph.nodes.length
@@ -361,6 +362,9 @@ export async function DELETE(req: NextRequest) {
 
     if (graph.nodes.length < before) {
       await saveLifeGraph(kv, userId, graph)
+      if (vectorizeEnv) {
+        await deleteUserVectors(vectorizeEnv, [nodeId])
+      }
       logRequest("memory.node.deleted", userId, startTime, { nodeId })
     }
 

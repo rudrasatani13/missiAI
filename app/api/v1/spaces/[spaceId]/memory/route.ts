@@ -15,6 +15,7 @@ import {
   getSpaceWriteRateLimit,
   incrementSpaceWriteRateLimit,
   isSpaceWriteLimitExceeded,
+  saveSpaceGraph,
   updateLastActive,
   verifyMembership,
 } from '@/lib/spaces/space-store'
@@ -26,6 +27,7 @@ import {
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 import { MEMORY_CATEGORIES } from '@/types/spaces'
 import type { SharedMemoryNode } from '@/types/spaces'
+import { waitUntil } from '@/lib/server/wait-until'
 
 const spaceIdSchema = z.string().min(8).max(32)
 
@@ -183,8 +185,13 @@ export async function POST(
       emotionalWeight: parsed.data.emotionalWeight,
     })
 
-    incrementSpaceWriteRateLimit(kv, userId).catch(() => {})
-    updateLastActive(kv, spaceId, userId).catch(() => {})
+    await saveSpaceGraph(kv, spaceId, await getSpaceGraph(kv, spaceId))
+
+    // Background bookkeeping — no need to delay the response.
+    waitUntil(Promise.all([
+      incrementSpaceWriteRateLimit(kv, userId),
+      updateLastActive(kv, spaceId, userId),
+    ]))
 
     logRequest('spaces.memory.post', userId, startTime, {
       spaceId,

@@ -1,11 +1,11 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
 import { createTimer, logRequest, logError } from "@/lib/server/logger"
-import { getEnv } from "@/lib/server/env"
 import { waitUntil } from "@/lib/server/wait-until"
 import { actionSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { detectIntent, isActionable } from "@/lib/actions/intent-detector"
 import { executeAction } from "@/lib/actions/action-executor"
+import { addNote, addReminder, getActionCollections } from "@/lib/actions/store"
 import { successResponse, standardErrors } from "@/types/api"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
 import { getUserPlan } from "@/lib/billing/tier-checker"
@@ -21,23 +21,6 @@ function getKV(): KVStore | null {
   } catch {
     return null
   }
-}
-
-async function kvGetArray(kv: KVStore, key: string): Promise<unknown[]> {
-  try {
-    const raw = await kv.get(key)
-    if (!raw) return []
-    return JSON.parse(raw)
-  } catch {
-    return []
-  }
-}
-
-async function kvPushItem(kv: KVStore, key: string, item: unknown, maxItems = 50): Promise<void> {
-  const arr = await kvGetArray(kv, key)
-  arr.push(item)
-  while (arr.length > maxItems) arr.shift()
-  await kv.put(key, JSON.stringify(arr))
 }
 
 export async function POST(req: Request) {
@@ -77,8 +60,6 @@ export async function POST(req: Request) {
   const { userMessage, conversationContext } = parsed.data
 
   try {
-    const appEnv = getEnv()
-
     const intent = await detectIntent(userMessage, conversationContext ?? "")
 
     if (!isActionable(intent)) {
@@ -92,15 +73,15 @@ export async function POST(req: Request) {
     const kv = getKV()
     if (kv && result.success) {
       if (result.type === "set_reminder" && result.data) {
-        await kvPushItem(kv, `actions:reminders:${userId}`, {
-          ...result.data,
-          id: `rem_${Date.now()}`,
+        await addReminder(kv, userId, {
+          task: String(result.data.task ?? ""),
+          time: String(result.data.time ?? "unspecified"),
         })
       }
       if (result.type === "take_note" && result.data) {
-        await kvPushItem(kv, `actions:notes:${userId}`, {
-          ...result.data,
-          id: `note_${Date.now()}`,
+        await addNote(kv, userId, {
+          title: String(result.data.title ?? "Quick Note"),
+          content: String(result.data.content ?? ""),
         })
       }
     }
@@ -158,8 +139,7 @@ export async function GET() {
       return successResponse({ reminders: [], notes: [] }, 200, rateLimitHeaders(rateResult))
     }
 
-    const reminders = await kvGetArray(kv, `actions:reminders:${userId}`)
-    const notes = await kvGetArray(kv, `actions:notes:${userId}`)
+    const { reminders, notes } = await getActionCollections(kv, userId)
 
     return successResponse({ reminders, notes }, 200, rateLimitHeaders(rateResult))
   } catch (e) {

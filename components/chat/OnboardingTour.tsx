@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { STEPS } from '@/lib/constants/onboarding'
 
@@ -16,7 +16,6 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
   const [step, setStep] = useState(0)
   const [cardPos, setCardPos] = useState<{ top: number; left: number } | null>(null)
   const [spotlightRect, setSpotlightRect] = useState<DOMRect | null>(null)
-  const cardRef = useRef<HTMLDivElement>(null)
 
   const current = STEPS[step]
   const isLast = step === STEPS.length - 1

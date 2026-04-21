@@ -12,7 +12,7 @@ import { buildSystemPrompt } from "@/services/ai.service"
 import { estimateRequestTokens, estimateTokens, LIMITS, truncateToTokenLimit } from "@/lib/memory/token-counter"
 import { buildCacheKey, getCachedResponse, setCachedResponse, isCacheable } from "@/lib/server/response-cache"
 import { selectGeminiModel, getFallbackModel } from "@/lib/ai/model-router"
-import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
+import { logRequest, logError, logApiError } from "@/lib/server/logger"
 import { calculateTotalCost, checkBudgetAlert } from "@/lib/server/cost-tracker"
 import { getEnv } from "@/lib/server/env"
 import { waitUntil } from "@/lib/server/wait-until"
@@ -47,7 +47,6 @@ function getVectorizeEnv(): VectorizeEnv | null {
 }
 
 export async function POST(req: NextRequest) {
-  const elapsed = createTimer()
   const startTime = Date.now()
 
   // ── 1. Auth ────────────────────────────────────────────────────────────────
@@ -260,8 +259,6 @@ export async function POST(req: NextRequest) {
 
   // ── 9. Build Gemini request & stream ──────────────────────────────────────
   try {
-    const appEnv = getEnv()
-
     let requestBody = buildGeminiRequest(messages, personality, memories, model, maxOutputTokens, undefined, customPrompt, undefined, aiDials)
     let textStream: ReadableStream<import("@/lib/ai/gemini-stream").GeminiStreamEvent>
     try {

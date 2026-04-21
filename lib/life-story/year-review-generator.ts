@@ -146,11 +146,11 @@ Emotional arc (0-10 per month): ${emotionalArc.map(n => n.toFixed(1)).join(', ')
           if (Array.isArray(parsed.highlights) && parsed.highlights.length > 0) {
             aiHighlights = parsed.highlights.map((h: string) => sanitizeNarrativeText(h, '').slice(0, 100)).filter(Boolean).slice(0, 5)
           }
-        } catch (e) {
+        } catch {
           // Pass
         }
       }
-    } catch (e) {
+    } catch {
       // Pass
     }
   } else {

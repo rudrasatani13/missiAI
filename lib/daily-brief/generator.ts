@@ -19,7 +19,6 @@ import type {
 import { getLifeGraph } from '@/lib/memory/life-graph'
 import { getGamificationData } from '@/lib/gamification/streak'
 import { getRecentEntries } from '@/lib/mood/mood-store'
-import { getGoogleTokens } from '@/lib/plugins/data-fetcher'
 import { geminiGenerate } from '@/lib/ai/vertex-client'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -416,7 +415,7 @@ Generate the daily brief JSON now. Remember: greeting must match ${timeOfDay} ti
     }
     try {
       parsed = JSON.parse(rawText)
-    } catch (jsonErr) {
+    } catch {
       console.warn('[DailyBrief] Gemini returned invalid JSON — using fallback. Raw:', rawText.slice(0, 200))
       return safeFallbackBrief(context.localHour, context)
     }

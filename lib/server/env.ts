@@ -25,13 +25,6 @@ const requiredString = z.preprocess((val) => {
   return val;
 }, z.string({ required_error: "Missing required environment variable" }));
 
-const requiredSecret = z.preprocess((val) => {
-  if (typeof val === 'string' && val.trim() === '') {
-    return undefined;
-  }
-  return val;
-}, z.string({ required_error: "Missing required environment variable" }));
-
 const envSchema = z.object({
   ELEVENLABS_API_KEY: requiredString,
   ELEVENLABS_VOICE_ID: emptyStringToUndefined,
@@ -71,7 +64,7 @@ const envSchema = z.object({
     z.string().min(32, "MISSI_KV_ENCRYPTION_SECRET must be at least 32 characters")
   ).optional(),
   APP_URL: z.preprocess(
-    (val, ctx) => {
+    (_val, _ctx) => {
       if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
       if (process.env.APP_URL) return process.env.APP_URL;
       return "http://localhost:3000";

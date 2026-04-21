@@ -11,7 +11,7 @@
 import { NextRequest } from "next/server"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
-import { executeAgentTool, AGENT_FUNCTION_DECLARATIONS, type AgentToolCall, type ToolContext } from "@/lib/ai/agent-tools"
+import { executeAgentTool, type AgentToolCall, type ToolContext } from "@/lib/ai/agent-tools"
 import { AGENT_SAFE_TOOL_NAMES, AGENT_DESTRUCTIVE_TOOL_NAMES } from "@/lib/ai/agent-tool-policy"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import { getUserPlan } from "@/lib/billing/tier-checker"
@@ -20,6 +20,7 @@ import { getEnv } from "@/lib/server/env"
 import { z } from "zod"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { KVStore } from "@/types"
+import { API_ERROR_CODES, errorResponse } from "@/types/api"
 
 
 // ── Safe-tool allowlist for the Live WebSocket path ───────────────────────────
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
     userId = await getVerifiedUserId()
   } catch (e) {
     if (e instanceof AuthenticationError) return unauthorizedResponse()
-    return new Response("Unauthorized", { status: 401 })
+    throw e
   }
 
   // ── 2. Rate limit (BUG-002 fix) ──────────────────────────────────────────
@@ -91,15 +92,16 @@ export async function POST(req: NextRequest) {
   try {
     rawBody = await req.json()
   } catch {
-    return Response.json({ error: "Invalid JSON" }, { status: 400 })
+    return errorResponse("Invalid JSON", API_ERROR_CODES.VALIDATION_ERROR, 400)
   }
 
   const parsed = toolExecuteSchema.safeParse(rawBody)
   if (!parsed.success) {
     const firstIssue = parsed.error.issues[0]
-    return Response.json(
-      { error: `Validation error: ${firstIssue?.path.join(".")} — ${firstIssue?.message}` },
-      { status: 400 },
+    return errorResponse(
+      `Validation error: ${firstIssue?.path.join(".")} — ${firstIssue?.message}`,
+      API_ERROR_CODES.VALIDATION_ERROR,
+      400,
     )
   }
 
@@ -108,16 +110,18 @@ export async function POST(req: NextRequest) {
   // ── 4. Validate tool name against safe-tool allowlist ────────────────────
   if (BLOCKED_FROM_LIVE.has(name)) {
     logRequest("tools-execute.blocked_tool", userId, startTime, { toolName: name })
-    return Response.json(
-      { error: `Tool "${name}" requires agent confirmation and cannot be called from this endpoint.` },
-      { status: 400 },
+    return errorResponse(
+      `Tool "${name}" requires agent confirmation and cannot be called from this endpoint.`,
+      API_ERROR_CODES.VALIDATION_ERROR,
+      400,
     )
   }
   if (!LIVE_SAFE_TOOL_NAMES.has(name)) {
     logRequest("tools-execute.unknown_tool", userId, startTime, { toolName: name })
-    return Response.json(
-      { error: `Unknown tool: "${name}". Available tools: ${[...LIVE_SAFE_TOOL_NAMES].join(", ")}` },
-      { status: 400 },
+    return errorResponse(
+      `Unknown tool: "${name}". Available tools: ${[...LIVE_SAFE_TOOL_NAMES].join(", ")}`,
+      API_ERROR_CODES.VALIDATION_ERROR,
+      400,
     )
   }
 
@@ -143,9 +147,10 @@ export async function POST(req: NextRequest) {
     return Response.json(result)
   } catch (err) {
     logError("tools-execute.error", err instanceof Error ? err : new Error(String(err)), userId)
-    return Response.json(
-      { toolName: name, status: "error", summary: "Execution failed", output: "Internal error executing tool." },
-      { status: 500 },
+    return errorResponse(
+      "Internal error executing tool.",
+      API_ERROR_CODES.INTERNAL_ERROR,
+      500,
     )
   }
 }

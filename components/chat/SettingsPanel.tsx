@@ -4,18 +4,9 @@ import { memo, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  LogOut,
-  Heart,
-  Briefcase,
-  Zap,
-  BrainCircuit,
-  Pencil,
-  Check,
-  X as XIcon,
   Calendar,
   BookOpen,
   RefreshCw,
-  CheckCircle2,
   Mail,
   CheckSquare,
   MessageSquare,
@@ -27,7 +18,11 @@ import {
   Sparkles,
   Wand2,
   Lock,
-  Mic2,
+  LogOut,
+  Zap,
+  Pencil,
+  Check,
+  X as XIcon,
 } from "lucide-react";
 import type { PersonalityKey } from "@/types/chat";
 import { PERSONALITY_OPTIONS } from "@/types/chat";
@@ -84,10 +79,6 @@ interface SettingsPanelProps {
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Sparkles: <Sparkles className="w-4 h-4" />,
-  Heart: <Heart className="w-4 h-4" />,
-  Briefcase: <Briefcase className="w-4 h-4" />,
-  Zap: <Zap className="w-4 h-4" />,
-  BrainCircuit: <BrainCircuit className="w-4 h-4" />,
   Wand2: <Wand2 className="w-4 h-4" />,
 };
 
@@ -719,7 +710,7 @@ function InlinePersonaPicker({
   onPersonaChange,
   onSwitchToLive,
   activePersona,
-  glassSection: gs,
+  glassSection: _gs,
   plan,
 }: {
   isLiveMode?: boolean;

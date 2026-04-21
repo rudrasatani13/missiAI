@@ -5,8 +5,8 @@
 // saving ~2 MiB of duplicated dependency overhead.
 
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { getCloudflareContext } from "@opennextjs/cloudflare"
+import { AuthenticationError, getVerifiedUserId, unauthorizedResponse } from '@/lib/server/auth'
 import { z } from 'zod'
 import { getLifeGraph } from '@/lib/memory/life-graph'
 import { detectChapters } from '@/lib/life-story/chapter-detector'
@@ -18,7 +18,6 @@ import { TimelineEvent } from '@/types/life-story'
 import { MemoryCategory } from '@/types/memory'
 import { ConstellationGrouping } from '@/types/life-story'
 import type { KVStore } from "@/types"
-
 
 function getKV(): KVStore | null {
   try {
@@ -56,7 +55,7 @@ async function handleChapters(req: Request, userId: string) {
             totalNodes: graph.nodes.length
           })
         }
-      } catch (e) {
+      } catch {
         // parse error, ignore and regenerate
       }
     }
@@ -104,7 +103,7 @@ async function handleTimeline(req: Request, userId: string) {
         chapters = cached.chapters
         needsRefresh = false
       }
-    } catch(e) {}
+    } catch {}
   }
 
   if (needsRefresh) {
@@ -189,7 +188,7 @@ function sanitizeExportText(text: string): string {
   return sanitizeMemories(text || '').replace(/<[^>]*>?/gm, '')
 }
 
-async function handleExport(_req: Request, userId: string) {
+async function handleExport(req: Request, userId: string) {
   const kv = getKV()
   if (!kv) {
     return NextResponse.json({ error: 'KV storage missing' }, { status: 500 })
@@ -212,9 +211,8 @@ async function handleExport(_req: Request, userId: string) {
   const cachedRaw = await kv.get(cacheKey)
   if (cachedRaw) {
     try {
-      const cached = JSON.parse(cachedRaw)
-      chapters = cached.chapters || []
-    } catch(e) {}
+      chapters = JSON.parse(cachedRaw).chapters || []
+    } catch {}
   }
 
   const currentYear = new Date().getFullYear()
@@ -224,7 +222,7 @@ async function handleExport(_req: Request, userId: string) {
   if (yrCachedRaw) {
     try {
       currentYearReview = JSON.parse(yrCachedRaw)
-    } catch(e) {}
+    } catch {}
   }
 
   const sanitizedNodes = graph.nodes.map(n => ({
@@ -305,9 +303,8 @@ async function handleYearReview(req: Request, userId: string) {
   const cachedRaw = await kv.get(cacheKey)
   if (cachedRaw) {
     try {
-      const cached = JSON.parse(cachedRaw)
-      return NextResponse.json(cached)
-    } catch(e) {}
+      return NextResponse.json(JSON.parse(cachedRaw))
+    } catch {}
   }
 
   const plan = await getUserPlan(userId)
@@ -334,29 +331,32 @@ async function handleYearReview(req: Request, userId: string) {
 // ─── Main Dispatcher ──────────────────────────────────────────────────────────
 
 export async function GET(
-  req: Request,
+  request: Request,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
+  let userId: string
   try {
-    const { userId } = await auth()
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    userId = await getVerifiedUserId()
+  } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return unauthorizedResponse()
     }
+    throw error
+  }
 
+  try {
     const { path } = await params
-    const segment = path[0]
-
-    switch (segment) {
+    switch (path[0]) {
       case 'chapters':
-        return handleChapters(req, userId)
+        return handleChapters(request, userId)
       case 'timeline':
-        return handleTimeline(req, userId)
+        return handleTimeline(request, userId)
       case 'constellation':
-        return handleConstellation(req, userId)
+        return handleConstellation(request, userId)
       case 'export':
-        return handleExport(req, userId)
+        return handleExport(request, userId)
       case 'year-review':
-        return handleYearReview(req, userId)
+        return handleYearReview(request, userId)
       default:
         return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }

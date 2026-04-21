@@ -7,7 +7,7 @@
 // SERVER ONLY — never import in client components.
 
 import type { GamificationData, Achievement } from '@/types/gamification'
-import type { Quest, QuestMission, QuestAchievementContext } from '@/types/quests'
+import type { Quest, QuestAchievementContext } from '@/types/quests'
 
 // ─── Quest Achievement Definitions ───────────────────────────────────────────
 

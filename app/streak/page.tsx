@@ -496,7 +496,8 @@ export default function StreakAvatarPage() {
   const { user, isLoaded } = useUser()
   const router = useRouter()
   const avatar = useAvatar()
-  const { data: streakData, checkIn, lastResult } = useStreak()
+  const avatarRefetch = avatar.refetch
+  const { checkIn, lastResult } = useStreak()
   const [checkedInToday, setCheckedInToday] = useState<Set<string>>(new Set())
   const [showMilestone, setShowMilestone] = useState(false)
   const celebrationRef = useRef<string | null>(null)
@@ -518,9 +519,9 @@ export default function StreakAvatarPage() {
 
   useEffect(() => {
     if (lastResult && !lastResult.alreadyCheckedIn) {
-      avatar.refetch()
+      avatarRefetch()
     }
-  }, [lastResult])
+  }, [lastResult, avatarRefetch])
 
   const handleCheckIn = useCallback(
     async (nodeId: string, title: string) => {

@@ -55,6 +55,19 @@ function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+async function sendTelegramReply(
+  execCtx: { waitUntil: (p: Promise<unknown>) => void } | null,
+  chatId: number,
+  text: string,
+) {
+  const replyPromise = sendTelegramMessage(chatId, text).catch(() => {})
+  if (execCtx) {
+    execCtx.waitUntil(replyPromise)
+    return
+  }
+  await replyPromise
+}
+
 // ─── POST — Incoming update processing ───────────────────────────────────────
 //
 // Security validation order (NEVER rearrange):
@@ -135,10 +148,11 @@ export async function POST(req: Request): Promise<Response> {
 
   // Welcome message for /start without a code
   if (messageText === '/start') {
-    sendTelegramMessage(
+    await sendTelegramReply(
+      execCtx,
       chatId,
       'Hi! I\'m Missi 🤖 To chat with me here, link your Telegram account at missi.space/settings/integrations — takes just 30 seconds!',
-    ).catch(() => {})
+    )
     return ok200
   }
 
@@ -149,10 +163,11 @@ export async function POST(req: Request): Promise<Response> {
       path: '/api/webhooks/telegram',
       metadata: { telegramUserId: String(telegramUserId).slice(0, 4) + '****' },
     })
-    sendTelegramMessage(
+    await sendTelegramReply(
+      execCtx,
       chatId,
       'Hey! To chat with me here, link your Telegram at missi.space/settings/integrations 🚀',
-    ).catch(() => {})
+    )
     return ok200
   }
 
@@ -164,10 +179,11 @@ export async function POST(req: Request): Promise<Response> {
       path: '/api/webhooks/telegram',
       metadata: { planId },
     })
-    sendTelegramMessage(
+    await sendTelegramReply(
+      execCtx,
       chatId,
       'Telegram access is a Pro feature. Upgrade at missi.space/pricing to chat with me here! 🚀',
-    ).catch(() => {})
+    )
     return ok200
   }
 
@@ -176,19 +192,21 @@ export async function POST(req: Request): Promise<Response> {
     kv, 'telegram', userId, today(),
   )
   if (!limitAllowed) {
-    sendTelegramMessage(
+    await sendTelegramReply(
+      execCtx,
       chatId,
       'You\'ve hit your daily message limit! Let\'s chat again tomorrow 😊',
-    ).catch(() => {})
+    )
     return ok200
   }
 
   // ── 9. Handle non-text message types ──────────────────────────────────────
   if (!messageText.trim()) {
-    sendTelegramMessage(
+    await sendTelegramReply(
+      execCtx,
       chatId,
       'I can only understand text messages for now! 🙏',
-    ).catch(() => {})
+    )
     return ok200
   }
 

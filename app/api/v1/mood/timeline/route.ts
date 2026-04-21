@@ -7,22 +7,19 @@ import {
   unauthorizedResponse,
 } from '@/lib/server/auth'
 import { validationErrorResponse } from '@/lib/validation/schemas'
-import { logError } from '@/lib/server/logger'
+import { logError, logRequest } from '@/lib/server/logger'
 import { getTodayInTimezone } from '@/lib/server/date-utils'
 import {
   getRecentEntries,
   getCachedWeeklyInsight,
   saveWeeklyInsight,
   addMoodEntry,
-  getMoodTimeline,
 } from '@/lib/mood/mood-store'
 import { generateWeeklyInsight } from '@/lib/mood/mood-analyzer'
-import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
+import { checkRateLimit, rateLimitExceededResponse } from '@/lib/rateLimiter'
 import { getUserPlan } from '@/lib/billing/tier-checker'
-import { logRequest } from '@/lib/server/logger'
 import type { KVStore } from '@/types'
 import type { MoodEntry, MoodLabel, MoodScore, WeeklyMoodInsight } from '@/types/mood'
-
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 

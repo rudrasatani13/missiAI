@@ -6,8 +6,6 @@ import type {
   HabitStreak,
   CheckInResult,
   AvatarTier,
-  Achievement,
-  AVATAR_TIERS as AvatarTiersType,
 } from '@/types/gamification'
 import { AVATAR_TIERS } from '@/types/gamification'
 import { checkAchievements } from '@/lib/gamification/achievements'

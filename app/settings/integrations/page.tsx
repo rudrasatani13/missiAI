@@ -181,7 +181,6 @@ function TelegramCard() {
   const [step, setStep] = useState<TGStep>('idle')
   const [deepLink, setDeepLink] = useState('')
   const [error, setError] = useState('')
-  const [isLinked, setIsLinked] = useState(false)
   const [statusLoaded, setStatusLoaded] = useState(false)
 
   useEffect(() => {
@@ -189,7 +188,6 @@ function TelegramCard() {
       .then((r) => r.json())
       .then((d) => {
         if (d.success && d.data?.linked) {
-          setIsLinked(true)
           setStep('linked')
         }
       })
@@ -228,7 +226,6 @@ function TelegramCard() {
       })
       const data = await res.json()
       if (data.success) {
-        setIsLinked(false)
         setDeepLink('')
         setStep('idle')
       } else {

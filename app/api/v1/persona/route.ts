@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
-import { createTimer, logRequest, logError, logApiError } from "@/lib/server/logger"
+import { logRequest, logError, logApiError } from "@/lib/server/logger"
 import { z } from "zod"
 import { getClientSafePersona } from "@/lib/personas/persona-config"
 import {
