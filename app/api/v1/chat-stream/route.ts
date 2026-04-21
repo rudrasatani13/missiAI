@@ -137,10 +137,10 @@ export async function POST(req: NextRequest) {
     waitUntil(
       kv.get(loginCooldownKey).then(existing => {
         if (!existing) {
-          awardXP(kv, userId, 'login').catch(() => {})
-          kv.put(loginCooldownKey, '1', { expirationTtl: 86400 }).catch(() => {}) // 24h cooldown
+          awardXP(kv, userId, 'login').catch(() => { })
+          kv.put(loginCooldownKey, '1', { expirationTtl: 86400 }).catch(() => { }) // 24h cooldown
         }
-      }).catch(() => {}),
+      }).catch(() => { }),
     )
   }
 
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
       const lastUserMessage = messages.filter((m) => m.role === "user").pop()
       const currentMessage = lastUserMessage?.content ?? ""
       const vectorizeEnv = getVectorizeEnv()
-      
+
       const memoryPromise = searchLifeGraph(kv, vectorizeEnv, userId, currentMessage, { topK: 5 })
       // M3 fix: aligned across chat / chat-stream / bot-pipeline to 5s.
       // Previously 3s, which was too tight under real KV + Vectorize load and
@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
         timeoutId = setTimeout(() => r(new Error("Timeout")), 5000)
       })
       try {
-        const results = await Promise.race([ memoryPromise, timeoutPromise ])
+        const results = await Promise.race([memoryPromise, timeoutPromise])
         memories = formatLifeGraphForPrompt(results)
       } finally {
         clearTimeout(timeoutId!)
@@ -324,7 +324,7 @@ export async function POST(req: NextRequest) {
     systemPrompt,  // ← CRITICAL: pass our fully-assembled prompt with EDITH mode
     aiDials,       // ← user's Settings → AI Behavior dials (maps to temp / maxTokens)
   )
-  
+
   try {
     const encoder = new TextEncoder()
     const vectorizeEnv = getVectorizeEnv()
@@ -349,7 +349,7 @@ export async function POST(req: NextRequest) {
               text: " ",
               voice_settings: { stability: 0.5, similarity_boost: 0.8 }
             }))
-            while(sendQueue.length > 0) {
+            while (sendQueue.length > 0) {
               const txt = sendQueue.shift()
               ws!.send(JSON.stringify({ text: txt }))
             }
@@ -515,7 +515,7 @@ export async function POST(req: NextRequest) {
           })
 
           // Award XP for agent tool usage
-          if (kv) waitUntil(awardXP(kv, userId, 'agent', 3).catch(() => {}))
+          if (kv) waitUntil(awardXP(kv, userId, 'agent', 3).catch(() => { }))
 
           // ── Feed tool result back to Gemini ───────────────────────────
           // Append the model's functionCall and our functionResponse
@@ -545,6 +545,12 @@ export async function POST(req: NextRequest) {
               },
             }],
           }
+          // M5 fix: keep the running byte counter in sync with agentContents.
+          // Add 1 byte for the comma before modelEntry (if array not empty, which it isn't here)
+          // and 1 byte for the comma before userEntry.
+          const addedBytes =
+            JSON.stringify(modelEntry).length + JSON.stringify(userEntry).length + (agentContents.length > 0 ? 2 : 1)
+
           agentContents.push(modelEntry)
           agentContents.push(userEntry)
           // M5 fix: keep the running byte counter in sync with agentContents.
