@@ -8,7 +8,7 @@ import {
   saveQuizSession,
   getOrCreateProfile,
   saveProfile,
-  updateWeakTopic,
+  updateWeakTopics,
   updateStudyStreak,
 } from '@/lib/exam-buddy/profile-store'
 import { awardXP } from '@/lib/gamification/xp-engine'
@@ -156,9 +156,9 @@ export async function POST(
   waitUntil(
     (async () => {
       try {
-        // Update weak topics for each wrong answer
-        for (const { topic, subject } of wrongTopics) {
-          await updateWeakTopic(kv, userId, topic, subject as any)
+        // Update weak topics for all wrong answers in a single bulk operation
+        if (wrongTopics.length > 0) {
+          await updateWeakTopics(kv, userId, wrongTopics as any)
         }
 
         // Award or deduct XP based on performance
