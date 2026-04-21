@@ -1,4 +1,3 @@
-// @ts-ignore
 import { nanoid } from 'nanoid'
 import type { SleepStory } from '@/types/sleep-sessions'
 import { geminiGenerate } from '@/lib/ai/vertex-client'

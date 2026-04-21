@@ -13,7 +13,6 @@
 // - Invite tokens are single-use: `verifyAndConsumeInvite` deletes the
 //   record before returning, so a second consumer always sees null.
 
-// @ts-ignore - nanoid types are shimmed in types/nanoid.d.ts
 import { nanoid } from 'nanoid'
 import type { KVStore } from '@/types'
 import type { LifeGraph, LifeNode, MemoryCategory } from '@/types/memory'

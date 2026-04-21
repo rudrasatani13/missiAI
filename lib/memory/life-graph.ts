@@ -1,4 +1,3 @@
-// @ts-ignore
 import { nanoid } from 'nanoid'
 import type { KVStore } from '@/types'
 import type {

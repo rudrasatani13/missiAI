@@ -7,7 +7,6 @@
 //
 // SERVER ONLY — never import in client components.
 
-// @ts-ignore
 import { nanoid } from 'nanoid'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 import { stripHtml } from '@/lib/validation/sanitizer'

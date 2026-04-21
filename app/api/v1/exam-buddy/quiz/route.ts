@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-// @ts-ignore
 import { nanoid } from 'nanoid'
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
 import { getUserPlan } from '@/lib/billing/tier-checker'
