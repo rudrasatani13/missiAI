@@ -548,7 +548,8 @@ export async function POST(req: NextRequest) {
           agentContents.push(modelEntry)
           agentContents.push(userEntry)
           // M5 fix: keep the running byte counter in sync with agentContents.
-          agentContentsBytes += JSON.stringify(modelEntry).length + JSON.stringify(userEntry).length
+          // Add 2 bytes for the commas that separate the new items in the JSON array.
+          agentContentsBytes += JSON.stringify(modelEntry).length + JSON.stringify(userEntry).length + 2
 
           // Rebuild the request with updated conversation
           currentRequestBody = {
