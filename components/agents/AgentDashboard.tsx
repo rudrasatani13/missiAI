@@ -515,7 +515,7 @@ export default function AgentDashboard() {
             >
               <AlertCircle size={16} className="shrink-0" />
               <span>{error}</span>
-              <button onClick={() => setError(null)} className="ml-auto text-red-400/60 hover:text-red-400">×</button>
+              <button aria-label="Dismiss error" onClick={() => setError(null)} className="ml-auto text-red-400/60 hover:text-red-400"><XCircle size={16} /></button>
             </motion.div>
           )}
 
