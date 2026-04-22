@@ -370,6 +370,13 @@ interface ProviderConfig {
 
 type AIProviderFn = (config: ProviderConfig) => Promise<string>
 
+// ─── Shared Utilities ─────────────────────────────────────────────────────────
+
+async function handleApiError(res: Response, providerName: string): Promise<never> {
+  const errText = await res.text()
+  throw new Error(`${providerName} API error ${res.status}: ${errText}`)
+}
+
 // ─── Gemini Provider ──────────────────────────────────────────────────────────
 
 async function geminiProvider(config: ProviderConfig): Promise<string> {
@@ -400,8 +407,7 @@ async function geminiProvider(config: ProviderConfig): Promise<string> {
     const res = await geminiGenerate(config.model, body, { signal: controller.signal })
 
     if (!res.ok) {
-      const errText = await res.text()
-      throw new Error(`Gemini API error ${res.status}: ${errText}`)
+      await handleApiError(res, "Gemini")
     }
 
     const data = await res.json()
@@ -450,8 +456,7 @@ async function openaiProvider(config: ProviderConfig): Promise<string> {
     })
 
     if (!res.ok) {
-      const errText = await res.text()
-      throw new Error(`OpenAI API error ${res.status}: ${errText}`)
+      await handleApiError(res, "OpenAI")
     }
 
     const data = await res.json()
@@ -489,8 +494,7 @@ async function claudeProvider(config: ProviderConfig): Promise<string> {
     })
 
     if (!res.ok) {
-      const errText = await res.text()
-      throw new Error(`Claude API error ${res.status}: ${errText}`)
+      await handleApiError(res, "Claude")
     }
 
     const data = await res.json()
