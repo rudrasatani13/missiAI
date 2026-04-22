@@ -83,7 +83,7 @@ export async function POST(req: Request) {
   if (!webhookSecret) {
     log({ level: 'error', event: 'billing.webhook.missing_secret', timestamp: Date.now() })
     return new Response(
-      JSON.stringify({ received: false, error: 'Internal server error' }),
+      JSON.stringify({ received: false, error: 'Webhook secret not configured' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
