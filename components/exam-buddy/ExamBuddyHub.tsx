@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { ArrowRight, BookOpen, Flame, MessageCircle, Sparkles, TrendingUp, Trophy } from 'lucide-react'
 import Link from 'next/link'
 import { QuizCreator } from './QuizCreator'
+import { FocusModeBadge } from './FocusModeBadge'
 import { WeakTopicsCard } from './WeakTopicsCard'
 import type { ExamBuddyProfile, WeakTopicRecord, ExamTarget, ExamSubject, QuizSession } from '@/types/exam-buddy'
 
@@ -71,13 +72,7 @@ function OnboardingView({ onComplete }: { onComplete: (profile: ExamBuddyProfile
             backdropFilter: 'blur(16px)',
           }}
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-5"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <Sparkles className="w-3.5 h-3.5" style={{ color: '#6D5EF5' }} />
-            <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              Focus Mode
-            </span>
-          </div>
+          <FocusModeBadge className="mb-5" />
           <BookOpen className="w-11 h-11 mb-5" style={{ color: 'rgba(255,255,255,0.95)' }} />
           <h2 className="text-3xl md:text-[3rem] font-light leading-[1.05] mb-4" style={{ color: 'rgba(255,255,255,0.96)' }}>
             Practice with more clarity.
