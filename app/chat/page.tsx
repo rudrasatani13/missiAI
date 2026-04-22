@@ -29,6 +29,7 @@ import { Magnetic } from "@/components/ui/Magnetic"
 import { DailyBriefBanner } from "@/components/chat/DailyBriefBanner"
 
 import { detectPluginCommand } from "@/lib/plugins/plugin-registry"
+import { hasCompletedSetupLocally, markSetupCompleteLocally } from "@/lib/setupCompletion"
 import type { ActionResult } from "@/types/actions"
 import type { PluginId, PluginResult } from "@/types/plugins"
 
@@ -102,7 +103,14 @@ export default function VoiceAssistantPage() {
   const router = useRouter()
   useEffect(() => {
     if (!isLoaded || !user) return
-    const setupDone = (user.publicMetadata as any)?.setupComplete
+
+    const setupDone = Boolean((user.publicMetadata as { setupComplete?: boolean } | undefined)?.setupComplete) || hasCompletedSetupLocally()
+
+    if (setupDone) {
+      markSetupCompleteLocally()
+      return
+    }
+
     if (!setupDone) {
       router.replace('/setup')
     }

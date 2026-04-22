@@ -1,17 +1,32 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 import { ArrowRight, Loader2, Sparkles } from 'lucide-react'
+import { hasCompletedSetupLocally, markSetupCompleteLocally } from '@/lib/setupCompletion'
 
 export default function SetupPage() {
   const router = useRouter()
+  const { user, isLoaded } = useUser()
   const [step, setStep] = useState(1)
   const [name, setName] = useState('')
   const [dob, setDob] = useState('')
   const [occupation, setOccupation] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isLoaded || !user) return
+
+    const metadata = (user.publicMetadata as { setupComplete?: boolean } | undefined)?.setupComplete
+    const setupDone = Boolean(metadata) || hasCompletedSetupLocally()
+
+    if (!setupDone) return
+
+    markSetupCompleteLocally()
+    router.replace('/chat')
+  }, [isLoaded, router, user])
 
   const handleNext = () => {
     if (step === 1 && name.trim().length < 2) {
@@ -40,8 +55,8 @@ export default function SetupPage() {
       const data = await res.json()
 
       if (data.success) {
-        // Redirect to chat with "new=true" to trigger hacker animation & greeting
-        router.push('/chat?new=true')
+        markSetupCompleteLocally()
+        router.replace('/chat?new=true')
       } else {
         setError(data.error ?? 'Failed to save setup data')
         setIsSubmitting(false)

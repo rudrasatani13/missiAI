@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { STEPS } from '@/lib/constants/onboarding'
 
@@ -16,9 +16,40 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
   const [step, setStep] = useState(0)
   const [cardPos, setCardPos] = useState<{ top: number; left: number } | null>(null)
   const [spotlightRect, setSpotlightRect] = useState<DOMRect | null>(null)
+  const [cardSize, setCardSize] = useState({ width: 280, height: 180 })
+  const cardRef = useRef<HTMLDivElement | null>(null)
 
   const current = STEPS[step]
   const isLast = step === STEPS.length - 1
+
+  useEffect(() => {
+    const card = cardRef.current
+    if (!card) return
+
+    const measure = () => {
+      const rect = card.getBoundingClientRect()
+      if (!rect.width || !rect.height) return
+
+      setCardSize((prev) => {
+        if (prev.width === rect.width && prev.height === rect.height) {
+          return prev
+        }
+
+        return { width: rect.width, height: rect.height }
+      })
+    }
+
+    measure()
+
+    if (typeof ResizeObserver === 'undefined') {
+      return
+    }
+
+    const observer = new ResizeObserver(() => measure())
+    observer.observe(card)
+
+    return () => observer.disconnect()
+  }, [step])
 
   // Calculate position based on target element
   useEffect(() => {
@@ -37,10 +68,16 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
       }
 
       const rect = el.getBoundingClientRect()
+      if (!rect.width || !rect.height) {
+        setCardPos(null)
+        setSpotlightRect(null)
+        return
+      }
+
       setSpotlightRect(rect)
 
-      const cardWidth = 280
-      const cardHeight = 180
+      const cardWidth = cardSize.width
+      const cardHeight = cardSize.height
       const gap = 12
 
       let top = 0
@@ -78,10 +115,28 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
     }
 
     calculate()
-    // Recalculate on resize
+    const frameId = requestAnimationFrame(calculate)
+    const timeoutId = window.setTimeout(calculate, 180)
     window.addEventListener('resize', calculate)
-    return () => window.removeEventListener('resize', calculate)
-  }, [step, current])
+    window.addEventListener('scroll', calculate, true)
+
+    const target = current.targetSelector ? document.querySelector(current.targetSelector) : null
+    const resizeObserver = typeof ResizeObserver !== 'undefined' && target instanceof HTMLElement
+      ? new ResizeObserver(() => calculate())
+      : null
+
+    if (resizeObserver && target instanceof HTMLElement) {
+      resizeObserver.observe(target)
+    }
+
+    return () => {
+      cancelAnimationFrame(frameId)
+      window.clearTimeout(timeoutId)
+      window.removeEventListener('resize', calculate)
+      window.removeEventListener('scroll', calculate, true)
+      resizeObserver?.disconnect()
+    }
+  }, [step, current, cardSize.height, cardSize.width])
 
   const handleNext = useCallback(() => {
     if (isLast) {
@@ -98,9 +153,11 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
   }, [onComplete])
 
   const isCenter = current.cardPlacement === 'center'
+  const shouldCenterCard = isCenter || (!cardPos && Boolean(current.targetSelector))
 
   const renderCard = () => (
     <div
+      ref={cardRef}
       className="rounded-2xl px-5 py-4"
       style={{
         background: 'rgba(255,255,255,0.07)',
@@ -220,7 +277,7 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
 
       {/* Card */}
       <AnimatePresence mode="wait">
-        {isCenter ? (
+        {shouldCenterCard ? (
           /* Center cards use flex wrapper — avoids Framer Motion transform conflict */
           <motion.div
             key={step}

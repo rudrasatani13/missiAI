@@ -55,11 +55,13 @@ export function checkForNudges(
     if (now - node.lastAccessedAt <= 7 * DAY_MS) continue
     if (node.emotionalWeight <= 0.5) continue
     if (isDismissed('relationship_reminder', node.id)) continue
+    const lowerTitle = node.title.trim().toLowerCase()
+    const reminderTarget = lowerTitle === "user's name" ? 'your name' : node.title
     nudges.push({
       type: 'relationship_reminder',
       priority: 'medium',
       actionable: true,
-      message: `You haven't talked about ${node.title} in a while.`,
+      message: `You haven't talked about ${reminderTarget} in a while.`,
       nodeId: node.id,
     })
   }

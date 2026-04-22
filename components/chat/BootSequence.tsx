@@ -68,10 +68,9 @@ export function BootSequence({ userName, onComplete }: BootSequenceProps) {
           transition={{ duration: 0.8, ease: "easeInOut" }}
           className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black overflow-hidden select-none pointer-events-none"
         >
-          {/* Subtle noise/grid background */}
           <div 
-            className="absolute inset-0 opacity-[0.03]" 
-            style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "40px 40px" }} 
+            className="absolute inset-0 opacity-0" 
+            style={{ backgroundImage: "none", backgroundSize: "auto" }} 
           />
           <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl px-8 flex flex-col gap-2 z-10 font-mono text-xs sm:text-sm tracking-widest text-[#00ffcc] transition-opacity duration-1000 ${showGreeting ? "opacity-0" : "opacity-70"}`}>
             {BOOT_LOGS.map((log, i) => (
@@ -99,8 +98,7 @@ export function BootSequence({ userName, onComplete }: BootSequenceProps) {
                 <div className="text-3xl sm:text-4xl md:text-5xl tracking-widest text-white font-mono uppercase mb-2 drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]">
                   Hello {userName}
                 </div>
-                <div className="w-12 h-[1px] bg-white/40 mb-3" />
-                <div className="text-xs tracking-[0.3em] text-white/50 uppercase">
+                <div className="text-xs tracking-[0.3em] text-white/50 uppercase mt-1">
                   I am ready.
                 </div>
               </motion.div>

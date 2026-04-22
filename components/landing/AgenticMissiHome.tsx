@@ -499,7 +499,7 @@ function TopNavigation({ isLoaded, isSignedIn }: { isLoaded: boolean; isSignedIn
           <Link href="/" className="flex items-center select-none">
             <div className="flex items-center gap-2">
               <Image src="/missi-m.png" alt="" width={28} height={28} className="h-6 w-auto object-contain sm:h-7" />
-              <LEDLogo className="w-[72px] sm:w-[90px] justify-start" />
+              <LEDLogo className="w-[82px] sm:w-[90px] justify-start" />
             </div>
           </Link>
 
@@ -595,12 +595,12 @@ function TopNavigation({ isLoaded, isSignedIn }: { isLoaded: boolean; isSignedIn
             className={`flex flex-col gap-3 border-t border-white/10 pt-6 transition-all duration-500 sm:flex-row sm:gap-4 sm:pt-8 ${
               isMobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             }`}
-            style={{ transitionDelay: isMobileMenuOpen ? "260ms" : "0ms" }}
+            style={{ transitionDelay: isMobileMenuOpen ? "260ms" : "0ms", paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}
           >
             <Link
               href={isLoaded && isSignedIn ? "/chat" : "/sign-in"}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="inline-flex h-16 flex-1 items-center justify-center rounded-full border-2 border-white/25 bg-white/[0.04] px-6 text-[1.05rem] font-medium text-white/90 sm:h-14 sm:border sm:border-white/20 sm:bg-white/[0.02] sm:px-5 sm:text-base"
+              className="inline-flex h-[4.5rem] flex-1 items-center justify-center rounded-full border-2 border-white/25 bg-white/[0.04] px-7 text-[1.15rem] font-medium text-white/95 shadow-[0_12px_28px_rgba(0,0,0,0.32)] sm:h-14 sm:border sm:border-white/20 sm:bg-white/[0.02] sm:px-5 sm:text-base sm:shadow-none"
               style={{ fontFamily: "'Instrument Sans', system-ui, sans-serif" }}
             >
               {isLoaded && isSignedIn ? "Open missi" : "Sign in"}
@@ -608,7 +608,7 @@ function TopNavigation({ isLoaded, isSignedIn }: { isLoaded: boolean; isSignedIn
             <Link
               href={isLoaded && isSignedIn ? "/chat" : "/sign-up"}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="inline-flex h-16 flex-1 items-center justify-center rounded-full bg-white px-6 text-[1.05rem] font-semibold text-black shadow-[0_10px_30px_rgba(255,255,255,0.08)] sm:h-14 sm:px-5 sm:text-base sm:font-medium sm:shadow-none"
+              className="inline-flex h-[4.5rem] flex-1 items-center justify-center rounded-full bg-white px-7 text-[1.18rem] font-semibold text-black shadow-[0_16px_40px_rgba(255,255,255,0.12)] sm:h-14 sm:px-5 sm:text-base sm:font-medium sm:shadow-none"
               style={{ fontFamily: "'Instrument Sans', system-ui, sans-serif" }}
             >
               {isLoaded && isSignedIn ? "Talk now" : "Start free"}
@@ -1436,7 +1436,7 @@ export function AgenticMissiHome() {
                 <div className="mb-6 inline-flex items-center select-none">
                   <div className="flex items-center gap-2">
                     <Image src="/missi-m.png" alt="" width={28} height={28} className="h-5 w-auto object-contain sm:h-6" />
-                    <LEDLogo className="w-[72px] sm:w-[90px] justify-start" />
+                    <LEDLogo className="w-[84px] sm:w-[90px] justify-start" />
                   </div>
                 </div>
                 <p className="mb-6 max-w-xs text-sm leading-relaxed text-white/50 sm:mb-8">
