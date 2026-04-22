@@ -1,3 +1,5 @@
+import { logger } from "./logger";
+
 export class AudioQueue {
   private context: AudioContext | null = null
   private analyser: AnalyserNode | null = null
@@ -94,7 +96,7 @@ export class AudioQueue {
       // Check if we need to process next immediately to queue it in time
       this.processQueue()
     } catch (e) {
-      console.error("AudioQueue decode error:", e)
+      logger.error("AudioQueue decode error:", e)
       this.processQueue() // Skip and continue
     }
   }

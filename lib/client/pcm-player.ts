@@ -1,3 +1,5 @@
+import { logger } from "./logger";
+
 export class PCMPlayer {
   private audioCtx: AudioContext | null = null;
   private nextStartTime = 0;
@@ -56,7 +58,7 @@ export class PCMPlayer {
       this.nextStartTime += buffer.duration;
       this.isPlaying = true;
     } catch (e) {
-      console.error("PCMPlayer decoding error:", e);
+      logger.error("PCMPlayer decoding error:", e);
     }
   }
 
