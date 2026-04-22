@@ -370,6 +370,15 @@ interface ProviderConfig {
 
 type AIProviderFn = (config: ProviderConfig) => Promise<string>
 
+// ─── Shared Error Handler ─────────────────────────────────────────────────────
+
+async function handleAPIError(res: Response, provider: string): Promise<void> {
+  if (!res.ok) {
+    const errText = await res.text()
+    throw new Error(`${provider} API error ${res.status}: ${errText}`)
+  }
+}
+
 // ─── Gemini Provider ──────────────────────────────────────────────────────────
 
 async function geminiProvider(config: ProviderConfig): Promise<string> {
@@ -399,10 +408,7 @@ async function geminiProvider(config: ProviderConfig): Promise<string> {
   try {
     const res = await geminiGenerate(config.model, body, { signal: controller.signal })
 
-    if (!res.ok) {
-      const errText = await res.text()
-      throw new Error(`Gemini API error ${res.status}: ${errText}`)
-    }
+    await handleAPIError(res, "Gemini")
 
     const data = await res.json()
     return extractGeminiText(data)
@@ -449,10 +455,7 @@ async function openaiProvider(config: ProviderConfig): Promise<string> {
       signal: controller.signal,
     })
 
-    if (!res.ok) {
-      const errText = await res.text()
-      throw new Error(`OpenAI API error ${res.status}: ${errText}`)
-    }
+    await handleAPIError(res, "OpenAI")
 
     const data = await res.json()
     return (data?.choices?.[0]?.message?.content as string)?.trim() ?? ""
@@ -488,10 +491,7 @@ async function claudeProvider(config: ProviderConfig): Promise<string> {
       signal: controller.signal,
     })
 
-    if (!res.ok) {
-      const errText = await res.text()
-      throw new Error(`Claude API error ${res.status}: ${errText}`)
-    }
+    await handleAPIError(res, "Claude")
 
     const data = await res.json()
     return (data?.content?.[0]?.text as string)?.trim() ?? ""
