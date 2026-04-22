@@ -92,6 +92,7 @@ export function TimelineView() {
               </span>
               <button 
                 onClick={() => setActiveChapterId(null)}
+                aria-label="Clear chapter filter"
                 className="ml-2 bg-white/5 hover:bg-white/15 p-1.5 rounded-full transition-colors text-white/60 hover:text-white"
               >
                 <X className="w-4 h-4" />
