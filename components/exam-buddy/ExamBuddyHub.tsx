@@ -105,15 +105,7 @@ function OnboardingView({ onComplete }: { onComplete: (profile: ExamBuddyProfile
           </div>
         </div>
 
-        <div
-          className="rounded-[28px] sm:rounded-[34px] p-5 sm:p-6"
-          style={{
-            background: 'rgba(10,10,14,0.82)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 30px 80px -40px rgba(0,0,0,0.92)',
-            backdropFilter: 'blur(16px)',
-          }}
-        >
+        <div className="glass-card rounded-[28px] sm:rounded-[32px] p-5 sm:p-6 md:p-7">
           <p className="text-[10px] font-semibold tracking-[0.24em] uppercase mb-2" style={{ color: 'rgba(255,255,255,0.34)' }}>
             Choose your exam
           </p>
@@ -311,15 +303,7 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
       </div>
 
       <div className="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1.02fr)_minmax(320px,0.98fr)]">
-        <div
-          className="rounded-[28px] sm:rounded-[32px] p-5 sm:p-6 md:p-7"
-          style={{
-            background: 'rgba(10,10,14,0.82)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 28px 70px -40px rgba(0,0,0,0.92)',
-            backdropFilter: 'blur(16px)',
-          }}
-        >
+        <div className="glass-card rounded-[28px] sm:rounded-[32px] p-5 sm:p-6 md:p-7">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-4 h-4" style={{ color: '#2563EB' }} />
             <p className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.34)' }}>
@@ -352,15 +336,7 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
           )}
         </div>
 
-        <div
-          className="rounded-[28px] sm:rounded-[32px] p-5 sm:p-6 md:p-7"
-          style={{
-            background: 'rgba(10,10,14,0.82)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 28px 70px -40px rgba(0,0,0,0.92)',
-            backdropFilter: 'blur(16px)',
-          }}
-        >
+        <div className="glass-card rounded-[28px] sm:rounded-[32px] p-5 sm:p-6 md:p-7">
           <div className="flex items-center gap-2 mb-3">
             <Trophy className="w-4 h-4" style={{ color: '#8B5CF6' }} />
             <p className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.34)' }}>
