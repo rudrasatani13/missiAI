@@ -14,20 +14,33 @@ if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
 
 const isProduction = process.env.NODE_ENV === 'production'
 
+const trustedScriptSources = [
+  "'self'",
+  "'unsafe-inline'",
+  ...(isProduction ? [] : ["'unsafe-eval'"]),
+  'blob:',
+  'https://static.cloudflareinsights.com',
+  'https://clerk.missi.space',
+  'https://*.clerk.com',
+  'https://*.clerk.accounts.dev',
+  'https://*.clerk.dev',
+].join(' ')
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  `script-src 'self' 'unsafe-inline'${isProduction ? '' : " 'unsafe-eval'"} blob:`,
+  `script-src ${trustedScriptSources}`,
+  `script-src-elem ${trustedScriptSources}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob:",
   "connect-src 'self' https: wss:",
   "worker-src 'self' blob:",
-  "frame-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://*.clerk.dev",
+  "frame-src 'self' https://clerk.missi.space https://*.clerk.com https://*.clerk.accounts.dev https://*.clerk.dev",
   "manifest-src 'self'",
   ...(isProduction ? ['upgrade-insecure-requests'] : []),
 ].join('; ')
