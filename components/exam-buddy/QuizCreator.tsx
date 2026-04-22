@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { ArrowRight, BookOpen, Brain, CheckCircle2, Layers3, SlidersHorizontal, Sparkles } from 'lucide-react'
+import { ArrowRight, BookOpen, Brain, CheckCircle2, Layers3, SlidersHorizontal } from 'lucide-react'
 import { QuizView } from './QuizView'
+import { FocusModeBadge } from './FocusModeBadge'
 import { useFetchBilling } from '@/hooks/useBilling'
 import { PLANS } from '@/types/billing'
 import type { PlanId } from '@/types/billing'
@@ -126,13 +127,7 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
           backdropFilter: 'blur(16px)',
         }}
       >
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <Sparkles className="w-3.5 h-3.5" style={{ color: '#6D5EF5' }} />
-          <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Focus Mode
-          </span>
-        </div>
+        <FocusModeBadge />
         <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-white/60 animate-spin" />
         <div className="text-center">
           <p className="text-lg font-light mb-1" style={{ color: 'rgba(255,255,255,0.94)' }}>
@@ -170,12 +165,8 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
           backdropFilter: 'blur(16px)',
         }}
       >
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-5"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <Sparkles className="w-3.5 h-3.5" style={{ color: '#6D5EF5' }} />
-          <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.46)' }}>
-            Focus Setup
-          </span>
+        <div className="mb-5">
+          <FocusModeBadge label="Focus Setup" />
         </div>
 
         <div className="flex flex-col gap-3 mb-6">

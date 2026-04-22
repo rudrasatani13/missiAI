@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, BookOpen, Flame, MessageCircle, Sparkles, TrendingUp, Trophy } from 'lucide-react'
+import { ArrowRight, BookOpen, Flame, MessageCircle, TrendingUp, Trophy } from 'lucide-react'
 import Link from 'next/link'
 import { QuizCreator } from './QuizCreator'
 import { WeakTopicsCard } from './WeakTopicsCard'
+import { FocusModeBadge } from './FocusModeBadge'
 import type { ExamBuddyProfile, WeakTopicRecord, ExamTarget, ExamSubject, QuizSession } from '@/types/exam-buddy'
 
 // ─── Exam display data ────────────────────────────────────────────────────────
@@ -71,12 +72,8 @@ function OnboardingView({ onComplete }: { onComplete: (profile: ExamBuddyProfile
             backdropFilter: 'blur(16px)',
           }}
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-5"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <Sparkles className="w-3.5 h-3.5" style={{ color: '#6D5EF5' }} />
-            <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              Focus Mode
-            </span>
+          <div className="mb-5">
+            <FocusModeBadge />
           </div>
           <BookOpen className="w-11 h-11 mb-5" style={{ color: 'rgba(255,255,255,0.95)' }} />
           <h2 className="text-3xl md:text-[3rem] font-light leading-[1.05] mb-4" style={{ color: 'rgba(255,255,255,0.96)' }}>
@@ -235,12 +232,8 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
       >
         <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-5"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <Sparkles className="w-3.5 h-3.5" style={{ color: '#6D5EF5' }} />
-              <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.46)' }}>
-                Exam Buddy
-              </span>
+            <div className="mb-5">
+              <FocusModeBadge label="Exam Buddy" />
             </div>
             <p className="text-sm font-medium mb-3" style={{ color: examInfo?.color ?? '#6D5EF5' }}>
               {EXAM_NAMES[profile.examTarget]}

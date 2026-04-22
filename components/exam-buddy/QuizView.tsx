@@ -6,6 +6,7 @@ import { Check, X, Zap, RotateCcw, MessageCircle, ChevronLeft, ChevronRight } fr
 import Link from 'next/link'
 import 'katex/dist/katex.min.css'
 import { MathText } from './MathText'
+import { FocusModeBadge } from './FocusModeBadge'
 import type { QuizSession } from '@/types/exam-buddy'
 
 interface QuizViewProps {
@@ -97,11 +98,8 @@ export function QuizView({ session: initialSession, onRetry, localSessionToken }
       >
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.46)' }}>
-                Focus Quiz
-              </span>
+            <div className="mb-4">
+              <FocusModeBadge label="Focus Quiz" />
             </div>
             <p className="text-xs font-medium capitalize mb-2" style={{ color: '#8B5CF6' }}>
               {initialSession.subject.replace('_', ' ')}
@@ -171,12 +169,7 @@ export function QuizView({ session: initialSession, onRetry, localSessionToken }
           }}
         >
           <div className="flex items-center justify-between gap-3 mb-5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.44)' }}>
-                Question {currentIndex + 1}
-              </span>
-            </div>
+            <FocusModeBadge label={`Question ${currentIndex + 1}`} />
             <span className="text-[11px] font-light capitalize" style={{ color: 'rgba(255,255,255,0.38)' }}>
               {currentQ.type === 'true_false' ? 'True / False' : currentQ.type.toUpperCase()}
             </span>
@@ -327,11 +320,8 @@ function ResultsView({
           backdropFilter: 'blur(16px)',
         }}
       >
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.44)' }}>
-            Quiz Review
-          </span>
+        <div className="mb-4">
+          <FocusModeBadge label="Quiz Review" />
         </div>
         <p className="text-5xl font-light mb-1" style={{ color: pctColor }}>
           {score.pct}%
