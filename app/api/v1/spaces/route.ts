@@ -56,17 +56,16 @@ export async function GET() {
 
   try {
     const spaceIds = await getUserSpaces(kv, userId)
-    const summaries: SpaceSummary[] = []
 
-    for (const spaceId of spaceIds) {
+    const spacePromises = spaceIds.map(async (spaceId) => {
       // Re-verify membership for each — the user index is eventually-consistent
       // with the authoritative member list. We self-heal stale entries here.
       const meta = await getSpace(kv, spaceId)
-      if (!meta) continue
+      if (!meta) return null
       const member = await verifyMembership(kv, spaceId, userId)
-      if (!member) continue
+      if (!member) return null
 
-      summaries.push({
+      return {
         spaceId: meta.spaceId,
         name: meta.name,
         emoji: meta.emoji,
@@ -74,8 +73,11 @@ export async function GET() {
         memberCount: meta.memberCount,
         userRole: member.role,
         recentActivity: member.lastActiveAt || meta.createdAt,
-      })
-    }
+      }
+    })
+
+    const results = await Promise.all(spacePromises)
+    const summaries = results.filter((s): s is SpaceSummary => s !== null)
 
     logRequest('spaces.list', userId, startTime, { count: summaries.length })
     return jsonResponse({ success: true, data: summaries })
