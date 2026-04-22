@@ -6,8 +6,9 @@ import {
   Zap, Calendar, FileText, Mail, TrendingUp, Target,
   Brain, Search, DollarSign, ChevronDown, ChevronUp,
   CheckCircle, XCircle, Loader2, AlertCircle, Clock,
-  Sparkles,
+  Sparkles, ArrowRight,
 } from 'lucide-react'
+import { formatMoney } from '@/lib/budget/currency'
 import type { AgentPlan, AgentPlanStep } from '@/lib/ai/agent-planner'
 import type { AgentHistoryEntry } from '@/lib/ai/agent-history'
 
@@ -769,7 +770,7 @@ export default function AgentDashboard() {
               <DollarSign size={14} className="text-white/40" />
               <span className="text-sm text-white/50">This month</span>
               <span className="ml-auto text-white/80 font-medium">
-                ₹{expenses.monthlyTotal.toLocaleString('en-IN')}
+                {formatMoney(expenses.monthlyTotal, expenses.currency || 'INR')}
               </span>
             </div>
             {Object.keys(expenses.byCategory).length > 0 && (
@@ -783,7 +784,7 @@ export default function AgentDashboard() {
                       <div key={cat} className="space-y-1">
                         <div className="flex justify-between text-xs text-white/40">
                           <span className="capitalize">{cat}</span>
-                          <span>₹{amount.toLocaleString('en-IN')}</span>
+                          <span>{formatMoney(amount, expenses.currency || 'INR')}</span>
                         </div>
                         <div className="h-1 bg-white/8 rounded-full overflow-hidden">
                           <div
@@ -796,6 +797,14 @@ export default function AgentDashboard() {
                   })}
               </div>
             )}
+            <a
+              href="/budget"
+              className="mt-3 flex items-center gap-1 text-[10px] font-medium transition-colors hover:opacity-100"
+              style={{ color: 'rgba(255,255,255,0.35)' }}
+            >
+              View full dashboard
+              <ArrowRight size={10} />
+            </a>
           </div>
         )}
 

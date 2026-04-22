@@ -12,6 +12,26 @@ if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_Y2xlcmsuZGV2ZWxvcGVycy5hcHBzZWMuY28k'
 }
 
+const isProduction = process.env.NODE_ENV === 'production'
+
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  `script-src 'self' 'unsafe-inline'${isProduction ? '' : " 'unsafe-eval'"} blob:`,
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' blob:",
+  "connect-src 'self' https: wss:",
+  "worker-src 'self' blob:",
+  "frame-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://*.clerk.dev",
+  "manifest-src 'self'",
+  ...(isProduction ? ['upgrade-insecure-requests'] : []),
+].join('; ')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
@@ -27,8 +47,13 @@ const nextConfig = {
     {
       source: '/(.*)',
       headers: [
+        { key: 'Content-Security-Policy', value: contentSecurityPolicy },
+        { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
+        { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
+        { key: 'Origin-Agent-Cluster', value: '?1' },
         { key: 'X-Content-Type-Options', value: 'nosniff' },
         { key: 'X-Frame-Options', value: 'DENY' },
+        { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         { key: 'X-DNS-Prefetch-Control', value: 'on' },
         {
@@ -37,7 +62,7 @@ const nextConfig = {
         },
         {
           key: 'Permissions-Policy',
-          value: 'camera=(), microphone=(self), geolocation=(), interest-cohort=()',
+          value: 'camera=(), microphone=(self), geolocation=(), interest-cohort=(), payment=(), usb=(), serial=(), bluetooth=()',
         },
       ],
     },

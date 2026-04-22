@@ -955,6 +955,23 @@ export async function executeAgentTool(
         totals.byCategory[category] = (totals.byCategory[category] || 0) + amount
         await ctx.kv.put(totalKey, JSON.stringify(totals), { expirationTtl: 35 * 86_400 })
 
+        // Fire-and-forget: mirror into Budget Buddy
+        import("@/lib/budget/budget-store").then(async (mod) => {
+          await mod.addExpenseEntry(ctx.kv!, ctx.userId, {
+            id: `bgt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+            userId: ctx.userId,
+            amount,
+            currency,
+            category: category as import("@/types/budget").ExpenseCategory,
+            description,
+            date,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            source: "agent",
+            note: undefined,
+          })
+        }).catch(() => {})
+
         return {
           toolName: name,
           status: "done",

@@ -21,6 +21,7 @@ import {
   MoreHorizontal,
   Plug,
   Settings,
+  Wallet,
   Sword,
   Target,
   Users,
@@ -1284,6 +1285,14 @@ function ChatSidebarInner({
               active={pathname?.startsWith("/exam-buddy")}
               showLabel={showLabels}
               testId="sidebar-exam-buddy-btn"
+            />
+            <NavRow
+              icon={<Wallet className="w-4 h-4" />}
+              label="Budget Buddy"
+              href="/budget"
+              active={pathname?.startsWith("/budget")}
+              showLabel={showLabels}
+              testId="sidebar-budget-buddy-btn"
             />
             <NavRow
               icon={<Plug className="w-4 h-4" />}

@@ -46,11 +46,11 @@ export default function ErrorPage({
         {/* Logo */}
         <div className="mb-10 select-none">
           <Image
-            src="/images/missiai-logo.png"
-            alt="missiAI"
-            width={160}
-            height={40}
-            className="h-8 md:h-10 w-auto object-contain brightness-0 invert opacity-60 pointer-events-none"
+            src="/missi-ai-logo.png"
+            alt="missi"
+            width={52}
+            height={52}
+            className="h-10 w-10 md:h-12 md:w-12 object-contain opacity-80 pointer-events-none"
             draggable={false}
             priority
           />

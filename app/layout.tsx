@@ -63,7 +63,7 @@ export default function RootLayout({
         {/* Space Grotesk — display headings (geometric, high-tech feel) */}
         {/* Space Mono — monospace elements */}
         {/* VT323 & Share Tech Mono — MISSI LED logo */}
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
       </head>
       <body className="antialiased bg-black text-white" style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Inter', system-ui, sans-serif" }}>
         <Script id="service-worker-registration">

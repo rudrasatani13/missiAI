@@ -42,7 +42,7 @@ export interface Achievement {
 
 // ─── XP Log Entry ─────────────────────────────────────────────────────────────
 
-export type XPSource = 'checkin' | 'milestone' | 'chat' | 'memory' | 'agent' | 'login' | 'achievement'
+export type XPSource = 'checkin' | 'milestone' | 'chat' | 'memory' | 'agent' | 'login' | 'achievement' | 'budget'
 
 export interface XPLogEntry {
   source: XPSource

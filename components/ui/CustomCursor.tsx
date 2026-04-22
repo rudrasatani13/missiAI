@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
+import { usePathname } from "next/navigation";
 
 export function CustomCursor() {
+  const pathname = usePathname();
   const [cursorEnabled, setCursorEnabled] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   
@@ -15,10 +17,19 @@ export function CustomCursor() {
   const cursorY = useSpring(mouseY, springConfig);
 
   useEffect(() => {
+    if (pathname === "/") {
+      setCursorEnabled(false);
+      setIsHovering(false);
+      document.body.classList.remove("custom-cursor-active");
+      return;
+    }
+
     // Only enable custom cursor on non-touch devices
     if (window.matchMedia("(pointer: fine)").matches) {
       setCursorEnabled(true);
       document.body.classList.add("custom-cursor-active");
+    } else {
+      setCursorEnabled(false);
     }
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -48,7 +59,7 @@ export function CustomCursor() {
       document.body.classList.remove("custom-cursor-active");
       window.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [mouseX, mouseY]);
+  }, [mouseX, mouseY, pathname]);
 
   if (!cursorEnabled) return null;
 

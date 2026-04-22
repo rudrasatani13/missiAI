@@ -37,6 +37,7 @@ const DAILY_CAPS: Record<XPSource, { maxGrants: number; xpPerGrant: number }> = 
   checkin:     { maxGrants: 5,  xpPerGrant: 5 },   // 25/day — managed by streak.ts
   milestone:   { maxGrants: 3,  xpPerGrant: 250 }, // managed by streak.ts
   achievement: { maxGrants: 10, xpPerGrant: 100 }, // managed by achievements.ts
+  budget:      { maxGrants: 10, xpPerGrant: 2 },   // 20/day — expense entries
 }
 
 /**

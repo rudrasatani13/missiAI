@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Privacy Policy — missiAI",
-  description: "How missiAI handles your data, voice recordings, and personal information.",
+  description: "How missiAI collects, uses, stores, and protects your information.",
 }
 
 export default function PrivacyPolicy() {
@@ -18,17 +18,18 @@ export default function PrivacyPolicy() {
         className="text-sm mb-12"
         style={{ color: "rgba(255,255,255,0.3)" }}
       >
-        Last updated: March 2026
+        Last updated: April 2026
       </p>
 
       <div className="space-y-10">
         {/* Intro */}
         <section>
           <p style={{ color: "rgba(255,255,255,0.55)" }}>
-            missiAI is a voice AI assistant built with your privacy in mind. This
-            policy explains what data we collect, how we use it, and what control
-            you have over it. We keep things simple and transparent — no walls of
-            legalese.
+            This Privacy Policy explains how missiAI collects, uses, stores, and
+            protects information when you use our website, apps, and related
+            features. We aim to keep this readable and practical so you can
+            understand what information is involved in running missiAI and what
+            choices you have.
           </p>
         </section>
 
@@ -42,36 +43,39 @@ export default function PrivacyPolicy() {
           </h2>
           <div className="space-y-4" style={{ color: "rgba(255,255,255,0.5)" }}>
             <div>
-              <p className="font-medium text-white/70 mb-1">Voice recordings</p>
+              <p className="font-medium text-white/70 mb-1">Account and profile information</p>
               <p>
-                Your voice is sent to our speech-to-text service for real-time
-                transcription. Audio is processed in-flight and is{" "}
-                <strong className="text-white/70">not stored</strong> on our
-                servers after processing.
+                When you create or use an account, we may collect basic details
+                such as your email address, account identifiers, profile data,
+                and authentication-related information needed to keep your
+                account secure and available.
               </p>
             </div>
             <div>
-              <p className="font-medium text-white/70 mb-1">Conversation text</p>
+              <p className="font-medium text-white/70 mb-1">Messages, voice, and other inputs</p>
               <p>
-                The text of your conversations is held in your browser session
-                only. It is sent to our AI service to generate responses but is
-                not persisted on our servers beyond the active session.
+                If you type, speak, or otherwise interact with missiAI, we may
+                process that content so the service can understand your request,
+                respond to you, and support product features such as memory,
+                context, and voice experiences.
               </p>
             </div>
             <div>
-              <p className="font-medium text-white/70 mb-1">Memory facts</p>
+              <p className="font-medium text-white/70 mb-1">Memory and personalization data</p>
               <p>
-                missiAI extracts key facts from your conversations (preferences,
-                habits, context) and stores them in Cloudflare KV tied to your
-                account. These memories power the personalized experience.
+                To make missiAI more useful over time, we may store preferences,
+                recurring context, saved items, and other personalization data
+                connected to your account so the product can feel consistent and
+                helpful across sessions.
               </p>
             </div>
             <div>
-              <p className="font-medium text-white/70 mb-1">Account information</p>
+              <p className="font-medium text-white/70 mb-1">Device, usage, and security data</p>
               <p>
-                We use Clerk for authentication. Clerk collects your email
-                address and basic profile information when you sign up. We do
-                not store passwords — Clerk handles authentication securely.
+                We may collect limited technical information such as device or
+                browser details, log data, timestamps, and security signals to
+                keep the service reliable, detect misuse, troubleshoot issues,
+                and protect accounts.
               </p>
             </div>
           </div>
@@ -86,11 +90,13 @@ export default function PrivacyPolicy() {
             How we use your data
           </h2>
           <p style={{ color: "rgba(255,255,255,0.5)" }}>
-            Your data is used exclusively to provide AI responses and memory
-            features within missiAI. We do not sell, share, or monetize your
-            personal data. We do not use your conversations to train AI models.
-            Your data exists to make missi work better for{" "}
-            <em>you</em> — nothing else.
+            We use information to operate missiAI, authenticate users,
+            personalize your experience, support memory and context features,
+            respond to support requests, improve stability and safety, and
+            detect abuse or unauthorized access. We do not sell your personal
+            information. When we use third-party providers to help run the
+            service, they process information only as needed to perform those
+            functions for us.
           </p>
         </section>
 
@@ -103,8 +109,9 @@ export default function PrivacyPolicy() {
             Third-party services
           </h2>
           <p className="mb-4" style={{ color: "rgba(255,255,255,0.5)" }}>
-            missiAI integrates with the following services to provide its
-            functionality:
+            We rely on external service providers to help us operate missiAI.
+            Depending on the feature you use, they may support account access,
+            infrastructure, storage, security, and AI or voice processing.
           </p>
           <div
             className="rounded-xl overflow-hidden"
@@ -112,16 +119,16 @@ export default function PrivacyPolicy() {
           >
             {[
               {
-                service: "Google Gemini API",
-                purpose: "AI chat responses and memory extraction",
+                service: "Authentication and identity providers",
+                purpose: "Secure sign-in, session management, and account protection",
               },
               {
-                service: "ElevenLabs",
-                purpose: "Speech-to-text and text-to-speech",
+                service: "Cloud infrastructure and storage providers",
+                purpose: "Hosting, storage, delivery, backups, and service reliability",
               },
               {
-                service: "Clerk",
-                purpose: "User authentication and account management",
+                service: "AI and voice processing providers",
+                purpose: "Processing your inputs and helping generate responses or voice features",
               },
             ].map((item, i) => (
               <div
@@ -144,8 +151,8 @@ export default function PrivacyPolicy() {
             ))}
           </div>
           <p className="mt-4 text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>
-            Each service has its own privacy policy. We recommend reviewing them
-            if you want full details on how they handle data.
+            These providers may handle information on our behalf only to the
+            extent reasonably necessary to deliver their services to us.
           </p>
         </section>
 
@@ -158,11 +165,12 @@ export default function PrivacyPolicy() {
             Data retention
           </h2>
           <p style={{ color: "rgba(255,255,255,0.5)" }}>
-            Memory facts are stored in Cloudflare KV and persist until you
-            delete your account. Voice recordings are never stored.
-            Conversation text exists only for the duration of your active
-            browser session. Rate-limiting data and usage logs are retained
-            temporarily for security purposes and automatically expire.
+            We keep information for as long as it is reasonably needed to run
+            the service, maintain your account, provide personalized features,
+            comply with legal obligations, and protect the platform. Some data
+            may be deleted quickly after processing, while account information,
+            memories, preferences, and security logs may be retained for longer
+            depending on operational or legal needs.
           </p>
         </section>
 
@@ -175,10 +183,10 @@ export default function PrivacyPolicy() {
             Your rights
           </h2>
           <p style={{ color: "rgba(255,255,255,0.5)" }}>
-            You can delete all of your data at any time by deleting your
-            account. This removes your memory facts from Cloudflare KV and
-            your profile from Clerk. If you need assistance with data
-            deletion, contact us at the email below.
+            Depending on where you live, you may have rights to access,
+            correct, export, restrict, or delete certain personal information.
+            You may also be able to close your account or request help with a
+            data-related request by contacting us at the email below.
           </p>
         </section>
 

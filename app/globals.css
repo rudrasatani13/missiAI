@@ -419,6 +419,33 @@ body.auth-page div[style*="mix-blend-mode"] {
   gap: 1.25rem !important;
 }
 
+.auth-clerk-shell,
+.auth-clerk-shell > div,
+.auth-clerk-shell .cl-rootBox,
+.auth-clerk-shell .cl-cardBox,
+.auth-clerk-shell .cl-card,
+.auth-clerk-shell .cl-main {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.auth-clerk-shell,
+.auth-clerk-shell > div,
+.auth-clerk-shell .cl-rootBox,
+.auth-clerk-shell .cl-cardBox {
+  overflow: hidden !important;
+}
+
+.auth-clerk-shell .cl-cardBox,
+.auth-clerk-shell .cl-card,
+.auth-clerk-shell .cl-rootBox {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
 /* Force transparent background on all card-level elements */
 .clerk-form-container .cl-rootBox,
 .clerk-form-container .cl-cardBox,

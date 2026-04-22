@@ -10,6 +10,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ClerkProvider
       appearance={{
         baseTheme: dark,
+        layout: {
+          unsafe_disableDevelopmentModeWarnings: process.env.NODE_ENV !== "production",
+        },
       }}
       signInUrl="/sign-in"
       signUpUrl="/sign-up"

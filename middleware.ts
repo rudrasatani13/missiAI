@@ -37,22 +37,25 @@ const isAPIRoute = createRouteMatcher(["/api/(.*)", "/api/v1/(.*)"])
 // Health endpoint is public — applies a separate, lower IP rate limit
 const isHealthRoute = createRouteMatcher(["/api/health"])
 
+const UNSAFE_API_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"])
+
 // ─── Security response headers (OWASP A05: Security Misconfiguration) ────────
 //
 // Applied to every API response so clients cannot interpret responses as
 // something other than JSON, and cannot be framed or sniffed.
 
 const SECURITY_HEADERS: Record<string, string> = {
-  // Prevent MIME-type sniffing — browser must honour Content-Type
-  "X-Content-Type-Options": "nosniff",
-  // Disallow embedding in iframes — prevents clickjacking
-  "X-Frame-Options": "DENY",
-  // Modern replacement for X-Frame-Options; also blocks all framing origins.
-  // SECURITY (E2): img-src allows 'self' and data: URIs (needed for html2canvas
-  // profile card capture). Blocks external image injection vectors.
-  "Content-Security-Policy": "frame-ancestors 'none'; img-src 'self' data: blob:",
-  // Emit only the origin, never the full referrer URL, on cross-origin requests
+  "Content-Security-Policy": "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'",
+  "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+  "Cross-Origin-Resource-Policy": "same-origin",
+  "Origin-Agent-Cluster": "?1",
+  "Permissions-Policy": "camera=(), microphone=(self), geolocation=(), interest-cohort=(), payment=(), usb=(), serial=(), bluetooth=()",
   "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+  "X-Content-Type-Options": "nosniff",
+  "X-DNS-Prefetch-Control": "on",
+  "X-Frame-Options": "DENY",
+  "X-Permitted-Cross-Domain-Policies": "none",
 }
 
 function applySecurityHeaders(response: NextResponse): NextResponse {
@@ -60,6 +63,24 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
     response.headers.set(key, value)
   }
   return response
+}
+
+function appendVaryHeader(response: NextResponse, value: string): NextResponse {
+  const current = response.headers.get("Vary")
+  const values = new Set((current ?? "").split(",").map((item) => item.trim()).filter(Boolean))
+  values.add(value)
+  response.headers.set("Vary", Array.from(values).join(", "))
+  return response
+}
+
+function isAllowedOrigin(origin: string, request: NextRequest | Request): boolean {
+  const allowedOrigins = new Set(ALLOWED_ORIGINS)
+
+  try {
+    allowedOrigins.add(new URL(request.url).origin)
+  } catch {}
+
+  return allowedOrigins.has(origin)
 }
 
 // ─── CORS Configuration ───────────────────────────────────────────────────────
@@ -73,15 +94,102 @@ const ALLOWED_ORIGINS = [
 
 function applyCorsHeaders(response: NextResponse, request: NextRequest | Request): NextResponse {
   const origin = request.headers.get("origin") ?? ""
-  
-  if (ALLOWED_ORIGINS.includes(origin)) {
+
+  response = appendVaryHeader(response, "Origin")
+
+  if (origin && isAllowedOrigin(origin, request)) {
     response.headers.set("Access-Control-Allow-Origin", origin)
     response.headers.set("Access-Control-Allow-Credentials", "true")
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
     response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
   }
-  
+
   return response
+}
+
+function isProtectedMediaPath(pathname: string): boolean {
+  return pathname === "/missi-m.png" || pathname.startsWith("/videos/") || pathname.startsWith("/images/landing/")
+}
+
+function applyProtectedMediaHeaders(response: NextResponse): NextResponse {
+  response.headers.set("Content-Disposition", "inline")
+  response.headers.set("Cross-Origin-Resource-Policy", "same-origin")
+  response.headers.set("Referrer-Policy", "same-origin")
+  response.headers.set("X-Content-Type-Options", "nosniff")
+  response.headers.set("X-Frame-Options", "DENY")
+  response.headers.set("X-Permitted-Cross-Domain-Policies", "none")
+  response = appendVaryHeader(response, "Origin")
+  response = appendVaryHeader(response, "Referer")
+  response = appendVaryHeader(response, "Sec-Fetch-Site")
+  return response
+}
+
+function hasAllowedRequestSource(request: NextRequest): boolean {
+  const secFetchSite = request.headers.get("sec-fetch-site")
+  if (secFetchSite === "same-origin" || secFetchSite === "same-site") {
+    return true
+  }
+
+  const origin = request.headers.get("origin")
+  if (origin && isAllowedOrigin(origin, request)) {
+    return true
+  }
+
+  const referer = request.headers.get("referer")
+  if (!referer) {
+    return false
+  }
+
+  try {
+    return isAllowedOrigin(new URL(referer).origin, request)
+  } catch {
+    return false
+  }
+}
+
+function blockedMediaResponse(): NextResponse {
+  return applyProtectedMediaHeaders(
+    new NextResponse("Forbidden", {
+      status: 403,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    }),
+  )
+}
+
+function forbiddenJsonResponse(message: string): NextResponse {
+  return applySecurityHeaders(
+    new NextResponse(JSON.stringify({ success: false, error: message }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    }),
+  )
+}
+
+function isCrossSiteMutationRequest(request: NextRequest): boolean {
+  if (!isAPIRoute(request) || !UNSAFE_API_METHODS.has(request.method) || request.nextUrl.pathname.startsWith("/api/webhooks/")) {
+    return false
+  }
+
+  const secFetchSite = request.headers.get("sec-fetch-site")
+  if (secFetchSite === "cross-site") {
+    return true
+  }
+
+  const origin = request.headers.get("origin")
+  if (origin) {
+    return !isAllowedOrigin(origin, request)
+  }
+
+  const referer = request.headers.get("referer")
+  if (!referer) {
+    return false
+  }
+
+  try {
+    return !isAllowedOrigin(new URL(referer).origin, request)
+  } catch {
+    return true
+  }
 }
 
 // ─── IP-based rate limiter (sliding window, Edge-runtime compatible) ──────────
@@ -483,12 +591,44 @@ export default async function middleware(request: NextRequest, event: NextFetchE
   // Resolve client IP once so it can appear in all log events within this request
   const clientIp = getClientIP(request)
 
+  if (isProtectedMediaPath(request.nextUrl.pathname)) {
+    if (!hasAllowedRequestSource(request)) {
+      logSecurityEvent("security.media_hotlink_blocked", {
+        ip: clientIp,
+        userAgent: request.headers.get("user-agent") ?? undefined,
+        path: request.nextUrl.pathname,
+        metadata: {
+          origin: request.headers.get("origin") ?? undefined,
+          secFetchSite: request.headers.get("sec-fetch-site") ?? undefined,
+        },
+      })
+      return blockedMediaResponse()
+    }
+
+    return applyProtectedMediaHeaders(NextResponse.next())
+  }
+
   // ── CORS Preflight Intercept ──
   if (request.method === "OPTIONS" && isAPIRoute(request)) {
     let response = new NextResponse(null, { status: 204 })
     response = applySecurityHeaders(response)
     response = applyCorsHeaders(response, request)
     return response
+  }
+
+  if (isCrossSiteMutationRequest(request)) {
+    logSecurityEvent("security.cross_site_mutation_blocked", {
+      ip: clientIp,
+      userAgent: request.headers.get("user-agent") ?? undefined,
+      path: request.nextUrl.pathname,
+      metadata: {
+        method: request.method,
+        origin: request.headers.get("origin") ?? undefined,
+        secFetchSite: request.headers.get("sec-fetch-site") ?? undefined,
+      },
+    })
+
+    return forbiddenJsonResponse("Cross-site requests are not allowed.")
   }
 
   try {
@@ -595,7 +735,10 @@ export default async function middleware(request: NextRequest, event: NextFetchE
 
 export const config = {
   matcher: [
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/videos/:path*",
+    "/images/landing/:path*",
+    "/missi-m.png",
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|mp4)).*)",
     "/(api|trpc)(.*)",
   ],
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Terms of Service — missiAI",
-  description: "Terms governing your use of missiAI voice assistant.",
+  description: "Terms governing your use of missiAI and related services.",
 }
 
 export default function TermsOfService() {
@@ -18,7 +18,7 @@ export default function TermsOfService() {
         className="text-sm mb-12"
         style={{ color: "rgba(255,255,255,0.3)" }}
       >
-        Last updated: March 2026
+        Last updated: April 2026
       </p>
 
       <div className="space-y-10">
@@ -31,10 +31,10 @@ export default function TermsOfService() {
             Acceptance of terms
           </h2>
           <p style={{ color: "rgba(255,255,255,0.5)" }}>
-            By accessing or using missiAI, you agree to be bound by these Terms
-            of Service. If you do not agree, do not use the service. We may
-            update these terms from time to time — continued use after changes
-            constitutes acceptance of the new terms.
+            By accessing or using missiAI, you agree to these Terms of Service.
+            If you do not agree, please do not use the service. We may update
+            these terms from time to time, and your continued use of missiAI
+            after an update means you accept the revised version.
           </p>
         </section>
 
@@ -47,14 +47,32 @@ export default function TermsOfService() {
             What missiAI is
           </h2>
           <p style={{ color: "rgba(255,255,255,0.5)" }}>
-            missiAI is an AI-powered voice and text assistant designed for
-            personal productivity and companionship. It is{" "}
+            missiAI is a personal AI companion designed to support everyday
+            life with memory, context, voice, and text-based assistance. It is{" "}
             <strong className="text-white/70">
               not a substitute for professional advice
             </strong>{" "}
-            — including medical, legal, financial, or mental health guidance. Do
-            not rely on missiAI for critical decisions. Always consult a
-            qualified professional when needed.
+            including medical, legal, financial, mental health, or emergency
+            guidance. Do not rely on missiAI for high-stakes or urgent
+            decisions. Use your own judgment and contact a qualified
+            professional when needed.
+          </p>
+        </section>
+
+        {/* Accounts and access */}
+        <section>
+          <h2
+            className="text-lg font-medium tracking-tight mb-4 text-white"
+            data-testid="terms-section-account"
+          >
+            Accounts and access
+          </h2>
+          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+            You may need an account to use some features of missiAI. You are
+            responsible for keeping your login details secure and for activity
+            that happens through your account. Please provide accurate
+            information and let us know if you believe your account has been
+            accessed without permission.
           </p>
         </section>
 
@@ -85,7 +103,8 @@ export default function TermsOfService() {
                 className="w-1 h-1 rounded-full mt-2 flex-shrink-0"
                 style={{ background: "rgba(255,255,255,0.25)" }}
               />
-              Abuse, overload, or reverse-engineer our API endpoints
+              Abuse, overload, probe, or interfere with the service or its
+              underlying systems
             </li>
             <li className="flex items-start gap-3">
               <span
@@ -110,6 +129,14 @@ export default function TermsOfService() {
               Use automated scripts to interact with the service in ways that
               degrade performance for other users
             </li>
+            <li className="flex items-start gap-3">
+              <span
+                className="w-1 h-1 rounded-full mt-2 flex-shrink-0"
+                style={{ background: "rgba(255,255,255,0.25)" }}
+              />
+              Upload, submit, or generate content that violates the rights,
+              privacy, or safety of others
+            </li>
           </ul>
         </section>
 
@@ -122,13 +149,12 @@ export default function TermsOfService() {
             Service availability
           </h2>
           <p style={{ color: "rgba(255,255,255,0.5)" }}>
-            missiAI is currently in beta and is provided{" "}
-            <strong className="text-white/70">as-is</strong>. We do not
-            guarantee uninterrupted availability, and the service may
-            experience downtime for maintenance, updates, or unforeseen issues.
-            We will make reasonable efforts to keep the service running
-            reliably, but no formal uptime SLA is offered during the beta
-            period.
+            We work to keep missiAI available, secure, and useful, but we do
+            not guarantee uninterrupted access or error-free operation. Features
+            may change, improve, pause, or be removed over time. The service is
+            provided <strong className="text-white/70">as-is</strong> and may
+            occasionally be unavailable because of maintenance, updates, or
+            unexpected issues.
           </p>
         </section>
 
@@ -141,11 +167,30 @@ export default function TermsOfService() {
             Intellectual property
           </h2>
           <p style={{ color: "rgba(255,255,255,0.5)" }}>
-            You retain full rights to the content of your conversations with
-            missiAI. The missiAI brand, logo, code, and service design are the
-            intellectual property of missiAI and its creator. You may not
-            reproduce, distribute, or create derivative works from our brand
-            assets without written permission.
+            You retain rights to content you submit to missiAI, subject to any
+            rights needed for us to operate the service. The missiAI brand,
+            product design, software, visual assets, and related materials are
+            owned by missiAI or its licensors and are protected by applicable
+            intellectual property laws. You may not copy, resell, or exploit
+            our service or branding without permission.
+          </p>
+        </section>
+
+        {/* User content */}
+        <section>
+          <h2
+            className="text-lg font-medium tracking-tight mb-4 text-white"
+            data-testid="terms-section-content"
+          >
+            Your content
+          </h2>
+          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+            You are responsible for the content you submit, including prompts,
+            messages, files, and any other information you provide through the
+            service. You agree not to submit content that is unlawful,
+            infringing, abusive, or harmful. We may review, restrict, or remove
+            content when reasonably necessary to enforce these terms, protect
+            users, or comply with law.
           </p>
         </section>
 
@@ -158,11 +203,11 @@ export default function TermsOfService() {
             Termination
           </h2>
           <p style={{ color: "rgba(255,255,255,0.5)" }}>
-            We reserve the right to suspend or terminate accounts that violate
-            these terms, abuse the service, or engage in activity that
-            negatively impacts other users. You may delete your account at any
-            time, which will remove your data as described in our Privacy
-            Policy.
+            We may suspend, restrict, or terminate access to missiAI if we
+            believe you have violated these terms, created risk for other
+            users, misused the service, or acted unlawfully. You may stop using
+            the service at any time. Account closure and related data handling
+            are described in our Privacy Policy.
           </p>
         </section>
 
@@ -175,10 +220,11 @@ export default function TermsOfService() {
             Limitation of liability
           </h2>
           <p style={{ color: "rgba(255,255,255,0.5)" }}>
-            To the maximum extent permitted by law, missiAI and its creator
-            shall not be liable for any indirect, incidental, special, or
-            consequential damages arising from your use of the service. The
-            service is provided without warranties of any kind, express or
+            To the maximum extent permitted by law, missiAI and its operators
+            will not be liable for any indirect, incidental, consequential,
+            special, or punitive damages arising from or related to your use of
+            the service. To the extent permitted by law, the service is
+            provided without warranties of any kind, whether express or
             implied.
           </p>
         </section>
