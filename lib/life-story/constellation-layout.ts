@@ -19,8 +19,13 @@ function processByCategory(graph: LifeGraph): ConstellationCluster[] {
     }
   })
 
+  const clusterMap = new Map<string, ConstellationCluster>()
+  for (const cluster of clusters) {
+    clusterMap.set(cluster.label, cluster)
+  }
+
   for (const node of graph.nodes) {
-    const cluster = clusters.find(c => c.label === node.category)
+    const cluster = clusterMap.get(node.category)
     if (cluster) {
       cluster.nodeIds.push(node.id)
     }
@@ -113,12 +118,18 @@ function processByPeople(graph: LifeGraph): ConstellationCluster[] {
     }
   })
 
+  // pre-compute map for O(1) lookups
+  const clusterMap = new Map<string, ConstellationCluster>()
+  for (const cluster of clusters) {
+    clusterMap.set(cluster.label, cluster)
+  }
+
   // add nodes to clusters
   for (const node of graph.nodes) {
     const matchedPeople = node.people.filter(p => topPeople.includes(p))
     if (matchedPeople.length > 0) {
       // Just add it to the first matching person cluster for simplicity of anchoring
-      const cluster = clusters.find(c => c.label === matchedPeople[0])
+      const cluster = clusterMap.get(matchedPeople[0])
       if (cluster) cluster.nodeIds.push(node.id)
     }
   }

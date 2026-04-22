@@ -87,11 +87,17 @@ export async function addOrUpdateNodes(
   // Fetch the latest graph precisely BEFORE mutating and saving to prevent Race Conditions
   const graph = await getLifeGraph(kv, userId)
 
+  // Pre-compute maps for O(1) lookups instead of O(N) Array.find calls in the loop
+  const nodeTitleMap = new Map<string, LifeNode>()
+  const nodeIdMap = new Map<string, LifeNode>()
+  for (const node of graph.nodes) {
+    nodeTitleMap.set(node.title.toLowerCase(), node)
+    nodeIdMap.set(node.id, node)
+  }
+
   for (const { nodeInput, embedding } of processedNodes) {
     const titleLower = nodeInput.title.toLowerCase()
-    let existingNode = graph.nodes.find(
-      (n) => n.title.toLowerCase() === titleLower,
-    )
+    let existingNode = nodeTitleMap.get(titleLower)
     
     if (!existingNode && vectorizeEnv && embedding) {
       const similar = await searchSimilarNodes(
@@ -101,9 +107,7 @@ export async function addOrUpdateNodes(
         { topK: 1, minScore: 0.9 },
       )
       if (similar.length > 0) {
-        existingNode = graph.nodes.find(
-          (n) => n.id === similar[0].node.id,
-        )
+        existingNode = nodeIdMap.get(similar[0].node.id)
       }
     }
 
@@ -160,6 +164,10 @@ export async function addOrUpdateNodes(
         source: nodeInput.source,
       }
       graph.nodes.push(resultNode)
+
+      // Update lookup maps to prevent duplicates in the same batch
+      nodeTitleMap.set(resultNode.title.toLowerCase(), resultNode)
+      nodeIdMap.set(resultNode.id, resultNode)
     }
 
     results.push(resultNode)
@@ -212,6 +220,11 @@ export async function searchLifeGraph(
   const graph = await getLifeGraph(kv, userId)
   let results: MemorySearchResult[] = []
 
+  const nodeMap = new Map<string, LifeNode>()
+  for (const node of graph.nodes) {
+    nodeMap.set(node.id, node)
+  }
+
   // Try Vectorize first
   if (vectorizeEnv) {
     try {
@@ -221,9 +234,9 @@ export async function searchLifeGraph(
         category: options?.category,
       })
 
-      // Enrich results with full node data from KV
+      // Enrich results with full node data from KV in O(1) time
       for (const result of results) {
-        const kvNode = graph.nodes.find((n) => n.id === result.node.id)
+        const kvNode = nodeMap.get(result.node.id)
         if (kvNode) {
           result.node = kvNode
         }
@@ -246,11 +259,6 @@ export async function searchLifeGraph(
 
   // Update access counts on matched nodes
   const now = Date.now()
-  const nodeMap = new Map()
-  for (const node of graph.nodes) {
-    nodeMap.set(node.id, node)
-  }
-
   for (const result of results) {
     const graphNode = nodeMap.get(result.node.id)
     if (graphNode) {
