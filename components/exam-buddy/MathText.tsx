@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import katex from 'katex'
+import DOMPurify from 'dompurify'
 
 type RenderPart = string | { html: string }
 
@@ -17,7 +18,7 @@ export function MathText({ text, className, style }: { text: string; className?:
       {parts.map((part, index) =>
         typeof part === 'string'
           ? part
-          : <span key={index} dangerouslySetInnerHTML={{ __html: part.html }} />,
+          : <span key={index} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(part.html) }} />,
       )}
     </span>
   )
