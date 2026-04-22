@@ -510,6 +510,13 @@ const PROVIDERS: Record<AIProviderName, AIProviderFn> = {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+function getProvider(options?: AIServiceOptions): { name: AIProviderName; fn: AIProviderFn } {
+  const name: AIProviderName = options?.provider ?? DEFAULT_PROVIDER
+  const fn = PROVIDERS[name]
+  if (!fn) throw new Error(`Unknown AI provider: ${name}`)
+  return { name, fn }
+}
+
 /**
  * Main chat generation — builds personality prompt, injects memories, calls provider.
  * Switch provider via options.provider ("gemini" | "openai" | "claude").
@@ -520,9 +527,7 @@ export async function generateResponse(
   memories: string,
   options?: AIServiceOptions
 ): Promise<string> {
-  const providerName: AIProviderName = options?.provider ?? DEFAULT_PROVIDER
-  const provider = PROVIDERS[providerName]
-  if (!provider) throw new Error(`Unknown AI provider: ${providerName}`)
+  const { name: providerName, fn: provider } = getProvider(options)
 
   return provider({
     messages,
@@ -544,9 +549,7 @@ export async function callAIDirect(
   userMessage: string,
   options?: AIServiceOptions
 ): Promise<string> {
-  const providerName: AIProviderName = options?.provider ?? DEFAULT_PROVIDER
-  const provider = PROVIDERS[providerName]
-  if (!provider) throw new Error(`Unknown AI provider: ${providerName}`)
+  const { name: providerName, fn: provider } = getProvider(options)
 
   return provider({
     messages: [{ role: "user", content: userMessage }],
