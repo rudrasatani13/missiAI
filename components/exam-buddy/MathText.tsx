@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import katex from 'katex'
+import sanitizeHtml from 'sanitize-html'
 
 type RenderPart = string | { html: string }
 
@@ -71,7 +72,14 @@ function renderMathSegment(segment: string): RenderPart {
   }
 
   try {
-    return { html: katex.renderToString(math.trim(), { displayMode, throwOnError: false }) }
+    const rawHtml = katex.renderToString(math.trim(), { displayMode, throwOnError: false })
+    const sanitizedHtml = sanitizeHtml(rawHtml, {
+      allowedTags: ['span', 'div', 'math', 'semantics', 'mrow', 'mn', 'mi', 'mo', 'ms', 'mspace', 'msqrt', 'mroot', 'mfrac', 'mi', 'munderover', 'munder', 'mover', 'msubsup', 'msub', 'msup', 'mmultiscripts', 'mprescripts', 'none', 'mlabeledtr', 'mtr', 'mtd', 'mtable', 'mphantom', 'annotation', 'annotation-xml'],
+      allowedAttributes: {
+        '*': ['class', 'style', 'mathvariant', 'mathcolor', 'mathbackground', 'mathsize', 'xmlns', 'display', 'aria-hidden', 'href', 'mathsize', 'stretchy', 'fence', 'separator', 'lspace', 'rspace', 'minsize', 'maxsize', 'symmetric', 'largeop', 'movablelimits', 'accent', 'form', 'length', 'linethickness', 'numalign', 'denomalign', 'bevelled', 'actiontype', 'selection', 'open', 'close', 'separators', 'rowalign', 'columnalign', 'groupalign', 'alignmentscope', 'columnwidth', 'width', 'rowspacing', 'columnspacing', 'rowlines', 'columnlines', 'frame', 'framespacing', 'equalrows', 'equalcolumns', 'displaystyle', 'scriptlevel', 'scriptminsize', 'background', 'color', 'height', 'depth', 'voffset']
+      },
+    })
+    return { html: sanitizedHtml }
   } catch {
     return segment
   }
