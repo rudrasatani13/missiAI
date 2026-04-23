@@ -32,6 +32,7 @@ import {
   dissolveSpace,
   getSpace,
   getSpaceGraph,
+  saveSpaceGraph,
   getSpaceMembers,
   getSpaceWriteRateLimit,
   getUserSpaces,
@@ -300,5 +301,45 @@ describe('space-store', () => {
     expect(await getSpace(kv, meta.spaceId)).toBeNull()
     expect(await getSpaceMembers(kv, meta.spaceId)).toEqual([])
     expect(await getUserSpaces(kv, 'owner')).not.toContain(meta.spaceId)
+  })
+
+  describe('saveSpaceGraph', () => {
+    it('initializes version to 1 if not present and sets lastUpdatedAt', async () => {
+      const spaceId = 'test-space-id'
+      const graph = {
+        nodes: [],
+        totalInteractions: 0,
+        lastUpdatedAt: 0,
+      } as any // Missing version initially
+
+      const beforeTime = Date.now()
+      await saveSpaceGraph(kv, spaceId, graph)
+      const afterTime = Date.now()
+
+      const savedGraph = await getSpaceGraph(kv, spaceId)
+      expect(savedGraph.version).toBe(1)
+      expect(savedGraph.lastUpdatedAt).toBeGreaterThanOrEqual(beforeTime)
+      expect(savedGraph.lastUpdatedAt).toBeLessThanOrEqual(afterTime)
+    })
+
+    it('increments existing version and updates lastUpdatedAt', async () => {
+      const spaceId = 'test-space-id-2'
+      const graph = {
+        nodes: [],
+        totalInteractions: 5,
+        lastUpdatedAt: 1000,
+        version: 42,
+      } as any
+
+      const beforeTime = Date.now()
+      await saveSpaceGraph(kv, spaceId, graph)
+      const afterTime = Date.now()
+
+      const savedGraph = await getSpaceGraph(kv, spaceId)
+      expect(savedGraph.version).toBe(43)
+      expect(savedGraph.totalInteractions).toBe(5)
+      expect(savedGraph.lastUpdatedAt).toBeGreaterThanOrEqual(beforeTime)
+      expect(savedGraph.lastUpdatedAt).toBeLessThanOrEqual(afterTime)
+    })
   })
 })
