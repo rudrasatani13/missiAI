@@ -89,6 +89,7 @@ export function useSleepSessions() {
                 storyId: story.id,
                 source,
                 text: breathingScript, // Used only if source === 'breathing'
+                story: source === 'last-generated' ? story : undefined,
                 voiceId // the env var or user preference overrides are mostly handled on backend but can be passed
             })
         })

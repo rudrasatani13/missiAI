@@ -24,6 +24,29 @@ vi.mock('@/lib/sleep-sessions/session-store', () => ({
   getHistory: vi.fn().mockResolvedValue([]),
 }))
 
+vi.mock('@/lib/sleep-sessions/story-generator', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/sleep-sessions/story-generator')>('@/lib/sleep-sessions/story-generator')
+  return {
+    ...actual,
+    generatePersonalizedStory: vi.fn().mockResolvedValue({
+      id: 'generated-personalized-story',
+      mode: 'personalized_story',
+      title: 'Tonight Story',
+      text: 'A calm and sleepy story for the night.',
+      estimatedDurationSec: 900,
+      generatedAt: Date.now(),
+    }),
+    generateCustomStory: vi.fn().mockResolvedValue({
+      id: 'generated-custom-story',
+      mode: 'custom_story',
+      title: 'Custom Story',
+      text: 'A custom calm and sleepy story for the night.',
+      estimatedDurationSec: 900,
+      generatedAt: Date.now(),
+    }),
+  }
+})
+
 vi.mock('@opennextjs/cloudflare', () => ({
   getCloudflareContext: mockCloudflareContext,
 }))
@@ -74,7 +97,7 @@ vi.mock('@/lib/rateLimiter', () => ({
 
 import { GET, POST } from '@/app/api/v1/sleep-sessions/[...path]/route'
 import { getVerifiedUserId, AuthenticationError } from '@/lib/server/auth'
-import { checkGenerationRateLimit, checkTTSRateLimit, getLastGeneratedStory } from '@/lib/sleep-sessions/session-store'
+import { cacheGeneratedStory, checkGenerationRateLimit, checkTTSRateLimit, getLastGeneratedStory, incrementGenerationRateLimit } from '@/lib/sleep-sessions/session-store'
 import { geminiTextToSpeech } from '@/services/voice.service'
 
 const kvMock = {
@@ -148,6 +171,32 @@ describe('Sleep Sessions API', () => {
             expect(res.status).toBe(200)
             const data = await res.json()
             expect(data.data.script).toContain('Hold')
+        })
+
+        it('waits for generated story caching before responding', async () => {
+            let resolveCache!: () => void
+            const cachePromise = new Promise<void>((resolve) => {
+                resolveCache = resolve
+            })
+
+            vi.mocked(cacheGeneratedStory).mockImplementationOnce(() => cachePromise)
+            vi.mocked(incrementGenerationRateLimit).mockResolvedValueOnce(undefined)
+
+            let settled = false
+            const pending = generatePost(createRequest({ mode: 'custom', prompt: 'quiet ocean cave' }))
+            pending.then(() => {
+                settled = true
+            })
+
+            await Promise.resolve()
+            await Promise.resolve()
+            expect(settled).toBe(false)
+
+            resolveCache()
+
+            const res = await pending
+            expect(res.status).toBe(200)
+            expect(cacheGeneratedStory).toHaveBeenCalled()
         })
     })
 
@@ -247,6 +296,26 @@ describe('Sleep Sessions API', () => {
             const res = await ttsPost(createRequest({ source: 'last-generated', storyId: 'correct-id' }))
 
             expect(res.status).toBe(400)
+        })
+
+        it('allows last-generated TTS with an inline story when KV is unavailable', async () => {
+            mockCloudflareContext.mockImplementation(() => { throw new Error('No context') })
+
+            const res = await ttsPost(createRequest({
+                source: 'last-generated',
+                storyId: 'inline-story-id',
+                story: {
+                    id: 'inline-story-id',
+                    mode: 'custom_story',
+                    title: 'Inline Story',
+                    text: 'A very calm inline story that is long enough for speech generation.',
+                    generatedAt: Date.now(),
+                },
+            }))
+
+            expect(res.status).toBe(200)
+            expect(res.headers.get('Content-Type')).toBe('audio/wav')
+            expect(geminiTextToSpeech).toHaveBeenCalled()
         })
     })
 

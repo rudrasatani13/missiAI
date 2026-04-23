@@ -182,8 +182,10 @@ async function handleGenerate(req: NextRequest) {
       throw new Error('Failed to generate story')
     }
 
-    cacheGeneratedStory(kv, userId, story).catch(() => {})
-    incrementGenerationRateLimit(kv, userId).catch(() => {})
+    await Promise.all([
+      cacheGeneratedStory(kv, userId, story),
+      incrementGenerationRateLimit(kv, userId),
+    ])
 
     logRequest('sleep-gen.success', userId, startTime, { mode: reqData.mode })
 
@@ -393,7 +395,14 @@ function buildSleepTtsPrompt(
 const ttsReqSchema = z.object({
   storyId: z.string().min(1).max(40),
   source: z.enum(['library', 'last-generated', 'breathing']),
-  text: z.string().optional()
+  text: z.string().optional(),
+  story: z.object({
+    id: z.string().min(1).max(40),
+    mode: z.enum(['personalized_story', 'custom_story', 'breathing', 'library']),
+    title: z.string().max(80),
+    text: z.string().min(10).max(MAX_SLEEP_STORY_CHARS),
+    category: z.enum(['nature', 'space', 'ocean', 'childhood', 'adventure', 'meditation']).optional(),
+  }).optional(),
 })
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -556,16 +565,9 @@ async function handleTts(req: NextRequest) {
     return validationErrorResponse(parsed.error)
   }
 
-  const { storyId, source, text: customText } = parsed.data
+  const { storyId, source, text: customText, story: inlineStory } = parsed.data
 
   const kv = getKV()
-
-  if (!kv && source === 'last-generated') {
-    return NextResponse.json(
-      { success: false, error: "Service temporarily unavailable" },
-      { status: 503 }
-    )
-  }
 
   if (kv) {
     const planId = await getUserPlan(userId)
@@ -589,18 +591,26 @@ async function handleTts(req: NextRequest) {
     targetText = story.text
     storyForVoice = { mode: story.mode, title: story.title, category: story.category }
   } else if (source === 'last-generated') {
-    if (!kv) {
-      return NextResponse.json(
-        { success: false, error: "Service temporarily unavailable" },
-        { status: 503 }
-      )
+    if (inlineStory) {
+      if (inlineStory.id !== storyId) {
+        return NextResponse.json({ success: false, error: "Invalid or expired story request" }, { status: 400 })
+      }
+      targetText = inlineStory.text
+      storyForVoice = { mode: inlineStory.mode, title: inlineStory.title, category: inlineStory.category }
+    } else {
+      if (!kv) {
+        return NextResponse.json(
+          { success: false, error: "Service temporarily unavailable" },
+          { status: 503 }
+        )
+      }
+      const story = await getLastGeneratedStory(kv, userId)
+      if (!story || story.id !== storyId) {
+        return NextResponse.json({ success: false, error: "Invalid or expired story request" }, { status: 400 })
+      }
+      targetText = story.text
+      storyForVoice = { mode: story.mode, title: story.title, category: story.category }
     }
-    const story = await getLastGeneratedStory(kv, userId)
-    if (!story || story.id !== storyId) {
-      return NextResponse.json({ success: false, error: "Invalid or expired story request" }, { status: 400 })
-    }
-    targetText = story.text
-    storyForVoice = { mode: story.mode, title: story.title, category: story.category }
   } else if (source === 'breathing') {
     if (!customText || customText.length < 10) {
       return NextResponse.json({ success: false, error: "Missing breathing script" }, { status: 400 })
