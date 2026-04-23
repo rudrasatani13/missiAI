@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { logClientError } from "@/app/logger-action"
 
 export default function ErrorPage({
   error,
@@ -12,7 +13,7 @@ export default function ErrorPage({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error("[missiAI] Application error:", error)
+    logClientError("client.application_error", { message: error?.message, stack: error?.stack, name: error?.name, digest: error?.digest }).catch(console.error)
 
     // Auto-recover from stale deployment chunks — reload once
     if (
