@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { ttsSchema, validationErrorResponse } from "@/lib/validation/schemas"
-import { textToSpeech } from "@/services/voice.service"
+import { geminiTextToSpeech } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
 import { logRequest, logError, logApiError } from "@/lib/server/logger"
-import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
 import { checkVoiceLimit, getTodayDate } from "@/lib/billing/usage-tracker"
 import { waitUntil } from "@/lib/server/wait-until"
 import { COST_CONSTANTS } from "@/lib/server/cost-tracker"
-import { getUserPersona } from "@/lib/personas/persona-store"
-import { getVoiceId as getPersonaVoiceId } from "@/lib/personas/persona-config"
 import type { KVStore } from "@/types"
 
 const MAX_BODY_BYTES = 1_000_000 // 1 MB
@@ -103,58 +100,16 @@ export async function POST(req: NextRequest) {
     return validationErrorResponse(parsed.error)
   }
 
-  const { text, useSleepVoice } = parsed.data
-  const stability = parsed.data.stability ?? 0.82
-  const similarityBoost = parsed.data.similarityBoost ?? 0.8
-  const style = parsed.data.style ?? 0.05
-  const speed = parsed.data.speed ?? 0.9
+  const { text } = parsed.data
   const charCount = text.length
 
-  // ── 5. Env check ──────────────────────────────────────────────────────────
-  let appEnv
-  try {
-    appEnv = getEnv()
-  } catch (e) {
-    logApiError("tts.env_error", e, { userId, httpStatus: 500 })
-    return NextResponse.json(
-      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
-      { status: 500 }
-    )
-  }
-  
-  const apiKey = appEnv.ELEVENLABS_API_KEY
-
-  // Resolve persona-specific voice_id, falling back to the default.
-  // Hardcoded fallback ensures TTS never 500s just because env var is unset.
-  const DEFAULT_VOICE_FALLBACK = "21m00Tcm4TlvDq8ikWAM" // ElevenLabs Rachel
-  let voiceId = appEnv.ELEVENLABS_VOICE_ID || DEFAULT_VOICE_FALLBACK
-
-  if (useSleepVoice) {
-    // If the sleep voice flag is explicitly requested, override the main voice
-    voiceId = appEnv.ELEVENLABS_SLEEP_VOICE_ID || "8quEMRkSpwEaWBzHvTLv"
-  } else {
-    try {
-      let kvForPersona: KVStore | null = null
-      try { const { env } = getCloudflareContext(); kvForPersona = (env as any).MISSI_MEMORY ?? null } catch {}
-      if (kvForPersona) {
-        const personaId = await getUserPersona(kvForPersona, userId)
-        const personaVoice = getPersonaVoiceId(personaId, appEnv)
-        if (personaVoice) voiceId = personaVoice
-      }
-    } catch (e) {
-      logError("tts.persona_voice_error", e, userId)
-      // Fall back to default voice — don't break TTS
-    }
-  }
-
-  // ── 6. Call ElevenLabs with retry for transient errors ────────────────────
   const MAX_TTS_RETRIES = 2
   let lastErr: unknown = null
 
   for (let attempt = 1; attempt <= MAX_TTS_RETRIES; attempt++) {
     try {
       const audioData = await withTimeout(
-        textToSpeech({ text, voiceId, apiKey, stability, similarityBoost, style, speed }),
+        geminiTextToSpeech({ text, voiceName: "Kore" }),
         TTS_TIMEOUT_MS
       )
 
@@ -180,14 +135,13 @@ export async function POST(req: NextRequest) {
 
       return new NextResponse(audioData, {
         headers: {
-          "Content-Type": "audio/mpeg",
+          "Content-Type": "audio/wav",
           "Cache-Control": "no-cache",
           ...rateLimitHeaders(rateResult),
         },
       })
     } catch (err) {
       lastErr = err
-      // Retry on transient ElevenLabs errors (500, 502, 503)
       const errStatus = (err as any)?.status
       const isTransient = errStatus === 500 || errStatus === 502 || errStatus === 503
       if (isTransient && attempt < MAX_TTS_RETRIES) {

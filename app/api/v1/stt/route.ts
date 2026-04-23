@@ -2,10 +2,9 @@ import { NextRequest } from "next/server"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
 import { sttSchema, validationErrorResponse } from "@/lib/validation/schemas"
-import { speechToText } from "@/services/voice.service"
+import { geminiSpeechToText } from "@/services/voice.service"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
 import { logRequest, logError, logApiError } from "@/lib/server/logger"
-import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
 import type { KVStore } from "@/types"
@@ -130,24 +129,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── 7. Env check ──────────────────────────────────────────────────────────
-  let apiKey: string
-  try {
-    const appEnv = getEnv()
-    apiKey = appEnv.ELEVENLABS_API_KEY
-  } catch (e) {
-    logError("stt.env_error", e, userId)
-    return jsonResponse({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }, 500)
-  }
-
-  // ── 8. Call ElevenLabs with retry for transient errors ───────────────────
   const MAX_STT_RETRIES = 2
   let lastErr: unknown = null
 
   for (let attempt = 1; attempt <= MAX_STT_RETRIES; attempt++) {
     try {
       const result = await withTimeout(
-        speechToText({ audio: audioFile, apiKey }),
+        geminiSpeechToText({ audio: audioFile }),
         STT_TIMEOUT_MS
       )
 
@@ -160,7 +148,6 @@ export async function POST(req: NextRequest) {
       return jsonResponse({ success: true, data: result }, 200, rateLimitHeaders(rateResult))
     } catch (err) {
       lastErr = err
-      // Retry on transient ElevenLabs errors (500, 502, 503)
       const errStatus = (err as any)?.status
       const isTransient = errStatus === 500 || errStatus === 502 || errStatus === 503
       if (isTransient && attempt < MAX_STT_RETRIES) {
@@ -171,9 +158,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Log the full provider detail server-side, but never surface it to the client
-  // (H2 fix): previously included `detail` in the response body which could leak
-  // ElevenLabs internals (request ids, internal paths, rate-limit hints, etc.).
   logApiError("stt.error", lastErr, { userId, httpStatus: 500 })
   return jsonResponse({ success: false, error: "Transcription failed", code: "INTERNAL_ERROR" }, 500)
 }

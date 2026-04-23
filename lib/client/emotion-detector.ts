@@ -99,10 +99,6 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
     stressed: {
       responseLength: 'short',
       tone: 'calm',
-      ttsStability: 0.8,
-      ttsSimilarityBoost: 0.6,
-      ttsStyle: 0.1,
-      ttsSpeed: 1.1,
       maxOutputTokens: 800,
       systemPromptSuffix:
         'The user sounds stressed. Keep response concise but complete (2-4 sentences). Be calm and simple. Always address what the user actually asked about.',
@@ -110,10 +106,6 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
     excited: {
       responseLength: 'normal',
       tone: 'energetic',
-      ttsStability: 0.4,
-      ttsSimilarityBoost: 0.8,
-      ttsStyle: 0.6,
-      ttsSpeed: 1.15,
       maxOutputTokens: 1000,
       systemPromptSuffix:
         'The user sounds excited. Match their energy. Be upbeat and enthusiastic in your response.',
@@ -121,10 +113,6 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
     fatigued: {
       responseLength: 'short',
       tone: 'gentle',
-      ttsStability: 0.9,
-      ttsSimilarityBoost: 0.5,
-      ttsStyle: 0.05,
-      ttsSpeed: 0.88,
       maxOutputTokens: 800,
       systemPromptSuffix:
         'The user sounds tired. Be gentle and concise but finish your thought completely. Always address what the user actually asked about.',
@@ -132,10 +120,6 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
     frustrated: {
       responseLength: 'short',
       tone: 'direct',
-      ttsStability: 0.7,
-      ttsSimilarityBoost: 0.7,
-      ttsStyle: 0.2,
-      ttsSpeed: 1.05,
       maxOutputTokens: 800,
       systemPromptSuffix:
         'The user sounds frustrated. Acknowledge briefly then give a direct helpful answer to what they actually asked. No filler. Do not use web search unless they explicitly ask for factual information.',
@@ -143,10 +127,6 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
     hesitant: {
       responseLength: 'normal',
       tone: 'encouraging',
-      ttsStability: 0.6,
-      ttsSimilarityBoost: 0.7,
-      ttsStyle: 0.3,
-      ttsSpeed: 0.92,
       maxOutputTokens: 1000,
       systemPromptSuffix:
         'The user sounds uncertain. Be encouraging. Validate their thoughts before responding.',
@@ -154,10 +134,6 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
     confident: {
       responseLength: 'detailed',
       tone: 'direct',
-      ttsStability: 0.5,
-      ttsSimilarityBoost: 0.8,
-      ttsStyle: 0.4,
-      ttsSpeed: 1.02,
       maxOutputTokens: 1200,
       systemPromptSuffix:
         'The user sounds confident. Match their energy. Give a thorough, substantive response.',
@@ -165,20 +141,12 @@ export function getEmotionAdaptation(emotion: EmotionProfile): EmotionAdaptation
     happy: {
       responseLength: 'normal',
       tone: 'energetic',
-      ttsStability: 0.4,
-      ttsSimilarityBoost: 0.8,
-      ttsStyle: 0.5,
-      ttsSpeed: 1.08,
       maxOutputTokens: 1000,
       systemPromptSuffix: 'The user sounds happy. Be warm and cheerful.',
     },
     neutral: {
       responseLength: 'normal',
       tone: 'calm',
-      ttsStability: 0.5,
-      ttsSimilarityBoost: 0.75,
-      ttsStyle: 0.3,
-      ttsSpeed: 1.0,
       maxOutputTokens: 1000,
       systemPromptSuffix: '',
     },

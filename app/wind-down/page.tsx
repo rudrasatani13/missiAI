@@ -97,7 +97,7 @@ export default function WindDownPage() {
       const res = await fetch('/api/v1/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, useSleepVoice: true }),
+        body: JSON.stringify({ text }),
       })
 
       if (!res.ok) return

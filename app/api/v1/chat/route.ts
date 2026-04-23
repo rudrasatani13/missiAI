@@ -1,26 +1,20 @@
 import { NextRequest } from "next/server"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
-import { analyzeMoodFromConversation } from "@/lib/mood/mood-analyzer"
-import { addMoodEntry } from "@/lib/mood/mood-store"
 import { chatSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
 import { searchLifeGraph, formatLifeGraphForPrompt, MEMORY_TIMEOUT_MS } from "@/lib/memory/life-graph"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import { buildGeminiRequest, streamGeminiResponse } from "@/lib/ai/gemini-stream"
 import { buildSystemPrompt } from "@/services/ai.service"
-import { estimateRequestTokens, estimateTokens, LIMITS, truncateToTokenLimit } from "@/lib/memory/token-counter"
-import { buildCacheKey, getCachedResponse, setCachedResponse, isCacheable } from "@/lib/server/response-cache"
+import { estimateRequestTokens, LIMITS, truncateToTokenLimit } from "@/lib/memory/token-counter"
+import { buildCacheKey, getCachedResponse } from "@/lib/server/response-cache"
 import { selectGeminiModel, getFallbackModel } from "@/lib/ai/model-router"
 import { logRequest, logError, logApiError } from "@/lib/server/logger"
-import { calculateTotalCost, checkBudgetAlert } from "@/lib/server/cost-tracker"
 import { getEnv } from "@/lib/server/env"
-import { waitUntil } from "@/lib/server/wait-until"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { checkAndIncrementVoiceTime, getTodayDate } from "@/lib/billing/usage-tracker"
-import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
-import { getUserPersona } from "@/lib/personas/persona-store"
-import { getPersonaConfig } from "@/lib/personas/persona-config"
+import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
+import { runChatPostResponseTasks } from "@/lib/server/chat-post-response"
 import type { KVStore } from "@/types"
 
 
@@ -194,19 +188,7 @@ export async function POST(req: NextRequest) {
     memories = memories ? memories + "\n" + clientMemories : clientMemories
   }
 
-  const systemPromptBase = buildSystemPrompt(personality, memories, customPrompt, aiDials)
-
-  // Prepend persona prompt modifier BEFORE the base prompt so it takes priority
-  let systemPrompt = systemPromptBase
-  try {
-    if (kv) {
-      const personaId = await getUserPersona(kv, userId)
-      if (personaId !== "default") {
-        const personaConfig = getPersonaConfig(personaId)
-        systemPrompt = `${personaConfig.promptModifier}\n\n---\n\n${systemPromptBase}`
-      }
-    }
-  } catch { /* persona modifier is non-critical */ }
+  const systemPrompt = buildSystemPrompt(personality, memories, customPrompt, aiDials)
 
   const estimatedTokens = estimateRequestTokens(messages, systemPrompt, memories)
 
@@ -251,7 +233,7 @@ export async function POST(req: NextRequest) {
   // ── 8. Select model dynamically ───────────────────────────────────────────
   let model = selectGeminiModel(messages, memories)
 
-  // Voice requests (ElevenLabs pipeline) use Flash for speed — Pro's thinking
+  // Voice requests use Flash for speed — Pro's thinking
   // overhead adds 5-8s latency which is unacceptable for real-time voice.
   if (voiceDurationMs && voiceDurationMs > 0) {
     model = "gemini-2.5-flash" as any
@@ -292,67 +274,23 @@ export async function POST(req: NextRequest) {
               controller.enqueue(encoder.encode("data: [DONE]\n\n"))
               controller.close()
 
-              // ── Post-stream: cost tracking + logging ───────────────────
-              const outputTokens = estimateTokens(fullResponse)
-              const costData = calculateTotalCost(model, inputTokens, outputTokens, 0)
-
-              logRequest("chat.completed", userId, startTime, {
-                model: costData.model,
-                inputTokens: costData.inputTokens,
-                outputTokens: costData.outputTokens,
-                costUsd: costData.costUsd,
-                ttsChars: costData.ttsChars,
-                ttsCostUsd: costData.ttsCostUsd,
-                totalCostUsd: costData.totalCostUsd,
+              runChatPostResponseTasks({
+                kv,
+                userId,
+                startTime,
+                logEvent: "chat.completed",
+                model,
+                inputTokens,
+                responseText: fullResponse,
+                messages,
+                incognito,
+                analyticsOptOut,
+                cache: {
+                  enabled: true,
+                  message: userMessageText,
+                  personality,
+                },
               })
-
-              // H1 fix: every background task below now uses waitUntil() so
-              // the Cloudflare worker stays alive until they settle. Without
-              // this, the isolate is killed as soon as the SSE stream closes
-              // on the client, silently dropping analytics, cache writes,
-              // mood captures, and budget alerts.
-
-              // Budget alert check (non-blocking)
-              waitUntil(checkBudgetAlert(kv, costData.totalCostUsd).catch(() => {}))
-
-              // Usage already incremented pre-response via checkAndIncrementVoice
-              if (kv && !analyticsOptOut) {
-                // Analytics: fire-and-forget. Skipped when the user opted out
-                // via Settings → Privacy → "Opt out of analytics".
-                waitUntil(
-                  recordEvent(kv, {
-                    type: 'chat',
-                    userId,
-                    costUsd: costData.totalCostUsd,
-                    metadata: { model: costData.model, tokensIn: costData.inputTokens, tokensOut: costData.outputTokens },
-                  }).catch(() => {}),
-                )
-                waitUntil(recordUserSeen(kv, userId, getTodayDate()).catch(() => {}))
-              }
-
-              if (cacheKey && isCacheable(userMessageText, fullResponse)) {
-                waitUntil(setCachedResponse(cacheKey, fullResponse).catch(() => {}))
-              }
-
-              // ── Mood capture: fire-and-forget, never blocks the response ──
-              // Only analyse if the conversation has at least 3 user messages,
-              // and skip entirely in incognito mode (user asked for a stateless turn).
-              if (kv && !incognito && messages.filter((m) => m.role === "user").length >= 3) {
-                const moodTranscript = messages
-                  .map((m) =>
-                    m.role === "user"
-                      ? `User: ${m.content}`
-                      : `Missi: ${m.content}`,
-                  )
-                  .join("\n")
-                const today = new Date().toISOString().slice(0, 10)
-                const sessionId = crypto.randomUUID().slice(0, 8)
-                waitUntil(
-                  analyzeMoodFromConversation(moodTranscript, today, sessionId)
-                    .then((entry) => addMoodEntry(kv, userId, entry))
-                    .catch(() => {}),
-                )
-              }
 
               return
             }

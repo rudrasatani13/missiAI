@@ -37,6 +37,10 @@ vi.mock("@/lib/ai/vertex-auth", () => ({
   getVertexLocation: vi.fn(),
 }))
 
+vi.mock("@/lib/ai/vertex-client", () => ({
+  getGeminiLiveWsUrl: vi.fn(),
+}))
+
 vi.mock("@/lib/ai/live-ticket", () => ({
   issueLiveTicket: vi.fn(),
   LIVE_TICKET_TTL_SECONDS: 300,
@@ -58,6 +62,7 @@ import { checkRateLimit } from "@/lib/rateLimiter"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { checkVoiceLimit } from "@/lib/billing/usage-tracker"
 import { isVertexAI, getVertexProjectId, getVertexLocation } from "@/lib/ai/vertex-auth"
+import { getGeminiLiveWsUrl } from "@/lib/ai/vertex-client"
 import { issueLiveTicket } from "@/lib/ai/live-ticket"
 import { getEnv } from "@/lib/server/env"
 
@@ -69,6 +74,7 @@ const mockCheckVoiceLimit = vi.mocked(checkVoiceLimit)
 const mockIsVertexAI = vi.mocked(isVertexAI)
 const mockGetVertexProjectId = vi.mocked(getVertexProjectId)
 const mockGetVertexLocation = vi.mocked(getVertexLocation)
+const mockGetGeminiLiveWsUrl = vi.mocked(getGeminiLiveWsUrl)
 const mockIssueLiveTicket = vi.mocked(issueLiveTicket)
 const mockGetEnv = vi.mocked(getEnv)
 
@@ -78,8 +84,13 @@ function makeReq(): NextRequest {
   return new NextRequest("https://missi.space/api/v1/live-token", { method: "POST" })
 }
 
+function makeLocalReq(): NextRequest {
+  return new NextRequest("http://localhost:3000/api/v1/live-token", { method: "POST" })
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.unstubAllEnvs()
 
   // Setup default successful state
   mockGetVerifiedUserId.mockResolvedValue("user_123")
@@ -89,6 +100,7 @@ beforeEach(() => {
   mockIsVertexAI.mockReturnValue(true)
   mockGetVertexProjectId.mockReturnValue("test-project")
   mockGetVertexLocation.mockReturnValue("us-central1")
+  mockGetGeminiLiveWsUrl.mockResolvedValue("wss://us-central1-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent?access_token=test-token")
   mockIssueLiveTicket.mockResolvedValue("ticket-abc.sig-xyz")
   mockGetEnv.mockReturnValue({
     APP_URL: "https://missi.space",
@@ -159,6 +171,19 @@ describe("POST /api/v1/live-token", () => {
     expect(body.wsUrl).not.toMatch(/access_token=/)
     expect(body.modelPath).toBe(`projects/test-project/locations/us-central1/publishers/google/models/${LIVE_MODEL}`)
     expect(body.expiresAt).toBeDefined()
+  })
+
+  it("returns a direct Gemini Live websocket URL for localhost development", async () => {
+    vi.stubEnv("NODE_ENV", "development")
+
+    const response = await POST(makeLocalReq())
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.wsUrl).toContain("aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent")
+    expect(body.wsUrl).toContain("access_token=")
+    expect(mockGetGeminiLiveWsUrl).toHaveBeenCalledTimes(1)
+    expect(mockIssueLiveTicket).not.toHaveBeenCalled()
   })
 
   it("passes the resolved userId and modelPath into the ticket", async () => {

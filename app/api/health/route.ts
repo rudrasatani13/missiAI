@@ -56,9 +56,9 @@ async function checkKV(kv: KVStore | null): Promise<"ok" | "error"> {
 function checkEnvVars(): "ok" | "missing" {
   // SECURITY (M2): Check required env vars without revealing their names
   // in the response. Prevents deployment fingerprinting by attackers.
-  const requiredCount = 3
+  const requiredCount = 2
   let present = 0
-  for (const key of ["GOOGLE_SERVICE_ACCOUNT_JSON", "ELEVENLABS_API_KEY", "CLERK_SECRET_KEY"]) {
+  for (const key of ["GOOGLE_SERVICE_ACCOUNT_JSON", "CLERK_SECRET_KEY"]) {
     if (envExists(key)) present++
   }
   return present >= requiredCount ? "ok" : "missing"

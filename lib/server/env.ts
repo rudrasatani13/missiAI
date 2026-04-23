@@ -26,14 +26,6 @@ const requiredString = z.preprocess((val) => {
 }, z.string({ required_error: "Missing required environment variable" }));
 
 const envSchema = z.object({
-  ELEVENLABS_API_KEY: requiredString,
-  ELEVENLABS_VOICE_ID: emptyStringToUndefined,
-  ELEVENLABS_VOICE_CALM: emptyStringToUndefined,
-  ELEVENLABS_VOICE_COACH: emptyStringToUndefined,
-  ELEVENLABS_VOICE_FRIEND: emptyStringToUndefined,
-  ELEVENLABS_VOICE_BOLLYWOOD: emptyStringToUndefined,
-  ELEVENLABS_VOICE_DESI_MOM: emptyStringToUndefined,
-  ELEVENLABS_SLEEP_VOICE_ID: emptyStringToUndefined,
   CLERK_SECRET_KEY: requiredString,
   DAILY_BUDGET_USD: z.preprocess(
     (val) => {

@@ -45,24 +45,6 @@ export interface KVStore {
 
 // ─── Voice ────────────────────────────────────────────────────────────────────
 
-export interface TTSOptions {
-  text: string
-  voiceId: string
-  apiKey: string
-  modelId?: string
-  stability?: number
-  similarityBoost?: number
-  style?: number
-  speed?: number
-}
-
-export interface STTOptions {
-  audio: File | Blob
-  apiKey: string
-  languageCode?: string
-  keyterms?: string[]
-}
-
 export interface STTResult {
   text: string
   language: string

@@ -7,13 +7,11 @@ import { useUser } from "@clerk/nextjs"
 import {
   Brain,
   Camera,
-  Check,
   ChevronLeft,
   Crown,
   Flame,
   Heart,
   LogOut,
-  Lock,
   Menu,
   MessageSquare,
   Mic2,
@@ -44,21 +42,11 @@ import { LEDLogo } from "@/components/ui/LEDLogo"
 // Types
 // ──────────────────────────────────────────────────────────────────────────────
 
-type PersonaInfo = {
-  personaId: string
-  displayName: string
-  accentColor: string
-  geminiVoiceName: string
-}
-
 export interface ChatSidebarProps {
   plan: "free" | "plus" | "pro" | undefined
   onLogout: () => void
   onNewChat: () => void
   isLiveMode: boolean
-  activePersona: PersonaInfo | null
-  onPersonaChange: (p: PersonaInfo) => void
-  onSwitchToLive: () => void
   onPickImage: () => void
   /** Called whenever the desktop sidebar width resolves, so the page can offset fixed children. */
   onWidthChange?: (pxWidth: number) => void
@@ -79,22 +67,6 @@ const SS_SUB_FORCED_KEY = "missi_sidebar_sub_forced"
 
 const EXPANDED_WIDTH = 240
 const COLLAPSED_WIDTH = 56
-
-const ALL_PERSONAS: PersonaInfo[] = [
-  { personaId: "calm", displayName: "Calm Therapist", accentColor: "#7DD3FC", geminiVoiceName: "Kore" },
-  { personaId: "coach", displayName: "Energetic Coach", accentColor: "#F97316", geminiVoiceName: "Fenrir" },
-  { personaId: "friend", displayName: "Sassy Friend", accentColor: "#A78BFA", geminiVoiceName: "Aoede" },
-  { personaId: "bollywood", displayName: "Bollywood Narrator", accentColor: "#FBBF24", geminiVoiceName: "Charon" },
-  { personaId: "desi-mom", displayName: "Desi Mom", accentColor: "#FB7185", geminiVoiceName: "Leda" },
-]
-
-const PERSONA_TAGLINES: Record<string, string> = {
-  calm: "Warm & validating",
-  coach: "Direct & motivating",
-  friend: "Witty, Hinglish vibes",
-  bollywood: "Dramatic & theatrical",
-  "desi-mom": "Caring, lovingly bossy",
-}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -249,78 +221,35 @@ function NavRow({
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Persona sub-panel
+// Voice sub-panel
 // ──────────────────────────────────────────────────────────────────────────────
 
-function PersonaSubPanel({
-  plan,
+function VoiceSubPanel({
   isLiveMode,
-  activePersona,
-  onPersonaChange,
-  onSwitchToLive,
+  onOpenChat,
   onClose,
 }: {
-  plan: ChatSidebarProps["plan"]
   isLiveMode: boolean
-  activePersona: PersonaInfo | null
-  onPersonaChange: (p: PersonaInfo) => void
-  onSwitchToLive: () => void
+  onOpenChat: () => void
   onClose: () => void
 }) {
-  const router = useRouter()
-  const [saving, setSaving] = useState(false)
-  const isFreePlan = !plan || plan === "free"
-  const isDefault = isLiveMode || !activePersona
-
-  const handleSelect = useCallback(
-    async (persona: PersonaInfo) => {
-      if (saving) return
-      if (isFreePlan) {
-        toast.error("Upgrade to Plus or Pro to use AI Personas!")
-        router.push("/pricing")
-        return
-      }
-      setSaving(true)
-      try {
-        const res = await fetch("/api/v1/persona", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ personaId: persona.personaId }),
-        })
-        if (res.ok) {
-          onPersonaChange(persona)
-          toast.success(`Switched to ${persona.displayName}`)
-          onClose()
-        } else if (res.status === 429) {
-          toast.error("Too many switches. Try again later.")
-        }
-      } catch {
-        toast.error("Failed to change persona.")
-      } finally {
-        setSaving(false)
-      }
-    },
-    [saving, isFreePlan, onPersonaChange, router, onClose],
-  )
-
-  const handleDefault = useCallback(() => {
-    onSwitchToLive()
-    toast.success("Switched to Missi Voice")
+  const handleOpenChat = useCallback(() => {
+    onOpenChat()
     onClose()
-  }, [onSwitchToLive, onClose])
+  }, [onOpenChat, onClose])
 
   return (
     <div className="p-3">
       <button
-        onClick={handleDefault}
-        data-testid="sidebar-switch-to-default-voice-btn"
+        onClick={handleOpenChat}
+        data-testid="sidebar-open-voice-btn"
         className="w-full flex items-center gap-3 text-left transition-colors active:scale-[0.98]"
         style={{
           padding: "9px 10px 9px 12px",
           borderRadius: 10,
-          background: isDefault ? "rgba(255,255,255,0.04)" : "transparent",
-          border: isDefault ? "1px solid rgba(255,255,255,0.07)" : "1px solid transparent",
-          borderLeft: isDefault ? "2px solid rgba(94,234,212,0.5)" : "2px solid transparent",
+          background: isLiveMode ? "rgba(255,255,255,0.04)" : "transparent",
+          border: isLiveMode ? "1px solid rgba(255,255,255,0.07)" : "1px solid transparent",
+          borderLeft: isLiveMode ? "2px solid rgba(94,234,212,0.5)" : "2px solid transparent",
           cursor: "pointer",
           color: "white",
           marginBottom: 2,
@@ -331,74 +260,19 @@ function PersonaSubPanel({
             width: 6,
             height: 6,
             borderRadius: "50%",
-            background: isDefault ? "rgba(94,234,212,0.8)" : "rgba(255,255,255,0.25)",
+            background: isLiveMode ? "rgba(94,234,212,0.8)" : "rgba(255,255,255,0.25)",
             flexShrink: 0,
           }}
         />
         <div className="flex-1 min-w-0">
-          <p style={{ fontSize: 12, fontWeight: 500, color: isDefault ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.5)", margin: 0, lineHeight: 1.3 }}>
+          <p style={{ fontSize: 12, fontWeight: 500, color: isLiveMode ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.5)", margin: 0, lineHeight: 1.3 }}>
             Missi Voice
           </p>
           <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", margin: "2px 0 0", lineHeight: 1.3 }}>
-            Real-time conversation
+            {isLiveMode ? "Real-time conversation" : "Open chat to use voice"}
           </p>
         </div>
-        {isDefault && <Check className="w-3 h-3 flex-shrink-0" style={{ color: "rgba(255,255,255,0.6)" }} strokeWidth={2.5} />}
       </button>
-
-      <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "8px 0" }} />
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {ALL_PERSONAS.map((p) => {
-          const isActive = !isDefault && activePersona?.personaId === p.personaId
-          return (
-            <button
-              key={p.personaId}
-              onClick={() => handleSelect(p)}
-              disabled={saving}
-              data-testid={`sidebar-persona-${p.personaId}-btn`}
-              className="w-full flex items-center gap-3 text-left transition-colors active:scale-[0.98]"
-              style={{
-                padding: "9px 10px 9px 12px",
-                borderRadius: 10,
-                background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
-                border: isActive ? "1px solid rgba(255,255,255,0.07)" : "1px solid transparent",
-                borderLeft: isActive ? `2px solid ${p.accentColor}70` : "2px solid transparent",
-                cursor: saving ? "default" : "pointer",
-                opacity: isFreePlan ? 0.5 : saving ? 0.5 : 1,
-                color: "white",
-              }}
-            >
-              <div
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: p.accentColor,
-                  opacity: isActive ? 1 : 0.5,
-                  flexShrink: 0,
-                }}
-              />
-              <div className="flex-1 min-w-0">
-                <p style={{ fontSize: 12, fontWeight: 500, color: isActive ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.55)", margin: 0, lineHeight: 1.3 }}>
-                  {p.displayName}
-                </p>
-                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", margin: "2px 0 0", lineHeight: 1.3 }}>
-                  {PERSONA_TAGLINES[p.personaId] ?? ""}
-                </p>
-              </div>
-              {isFreePlan ? (
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <Lock className="w-3 h-3" style={{ color: "rgba(255,255,255,0.25)" }} />
-                  <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "rgba(255,255,255,0.3)" }}>PLUS</span>
-                </div>
-              ) : isActive ? (
-                <Check className="w-3 h-3 flex-shrink-0" style={{ color: "rgba(255,255,255,0.6)" }} strokeWidth={2.5} />
-              ) : null}
-            </button>
-          )
-        })}
-      </div>
     </div>
   )
 }
@@ -748,9 +622,6 @@ function ChatSidebarInner({
   onLogout,
   onNewChat,
   isLiveMode,
-  activePersona,
-  onPersonaChange,
-  onSwitchToLive,
   onPickImage,
   onWidthChange,
 }: ChatSidebarProps) {
@@ -1240,10 +1111,9 @@ function ChatSidebarInner({
             />
             <NavRow
               icon={<Mic2 className="w-4 h-4" />}
-              label="Voice & Persona"
+              label="Voice"
               showLabel={showLabels}
               onClick={() => openSub("voice")}
-              iconColor={!isLiveMode && activePersona ? activePersona.accentColor : "white"}
               testId="sidebar-voice-btn"
             />
             <NavRow
@@ -1338,7 +1208,7 @@ function ChatSidebarInner({
               />
               <span style={{ fontSize: 12, fontWeight: 500, letterSpacing: 0.2 }}>
                 {activeSub === "voice"
-                  ? "Voice & Persona"
+                  ? "Voice"
                   : activeSub === "integrations"
                     ? "Integrations"
                     : activeSub === "more"
@@ -1349,12 +1219,9 @@ function ChatSidebarInner({
           </div>
           <div key={activeSub ?? "none"} className="missi-scroll missi-stagger flex-1 overflow-y-auto">
             {activeSub === "voice" && (
-              <PersonaSubPanel
-                plan={plan}
+              <VoiceSubPanel
                 isLiveMode={isLiveMode}
-                activePersona={activePersona}
-                onPersonaChange={onPersonaChange}
-                onSwitchToLive={onSwitchToLive}
+                onOpenChat={handleNewChatClick}
                 onClose={closeSub}
               />
             )}

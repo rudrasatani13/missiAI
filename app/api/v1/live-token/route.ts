@@ -4,6 +4,7 @@ import { getVerifiedUserId, unauthorizedResponse } from "@/lib/server/auth"
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
 import { logRequest, logError } from "@/lib/server/logger"
 import { isVertexAI, getVertexProjectId, getVertexLocation } from "@/lib/ai/vertex-auth"
+import { getGeminiLiveWsUrl } from "@/lib/ai/vertex-client"
 import { issueLiveTicket, LIVE_TICKET_TTL_SECONDS } from "@/lib/ai/live-ticket"
 import { getEnv } from "@/lib/server/env"
 import { getUserPlan } from "@/lib/billing/tier-checker"
@@ -85,6 +86,32 @@ export async function POST(req: NextRequest) {
   const project = getVertexProjectId()
   const location = getVertexLocation()
   const modelPath = `projects/${project}/locations/${location}/publishers/google/models/${LIVE_MODEL}`
+  const reqUrl = new URL(req.url)
+  const isLocalDev =
+    process.env.NODE_ENV !== "production"
+    && (reqUrl.hostname === "localhost" || reqUrl.hostname === "127.0.0.1")
+
+  if (isLocalDev) {
+    try {
+      const wsUrl = await getGeminiLiveWsUrl()
+
+      logRequest("live-token.created", userId, startTime)
+
+      return NextResponse.json({
+        success: true,
+        wsUrl,
+        modelPath,
+        expiresAt: new Date(Date.now() + 55 * 60 * 1000).toISOString(),
+      })
+    } catch (err) {
+      logError("live-token.error", err instanceof Error ? err : new Error(String(err)), userId)
+      return errorResponse(
+        "Internal server error",
+        API_ERROR_CODES.INTERNAL_ERROR,
+        500,
+      )
+    }
+  }
 
   // 6. C1 fix: issue a signed ticket and return a same-origin relay URL.
   try {
@@ -95,7 +122,6 @@ export async function POST(req: NextRequest) {
     // matches the actual deployment host. APP_URL is not reliable at runtime
     // on Cloudflare Workers because NEXT_PUBLIC_* vars are baked in at build
     // time and may resolve to localhost when built in CI without that var set.
-    const reqUrl = new URL(req.url)
     const wsScheme = reqUrl.protocol === "https:" ? "wss://" : "ws://"
     const wsUrl = `${wsScheme}${reqUrl.host}/api/v1/voice-relay?ticket=${encodeURIComponent(ticket)}`
 

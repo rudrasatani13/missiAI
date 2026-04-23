@@ -7,11 +7,12 @@ import { searchLifeGraph, formatLifeGraphForPrompt, MEMORY_TIMEOUT_MS } from "@/
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import { buildGeminiRequest, streamGeminiResponse } from "@/lib/ai/gemini-stream"
 import type { GeminiStreamEvent } from "@/lib/ai/gemini-stream"
-import { buildSystemPrompt } from "@/services/ai.service"
+import { buildSystemPrompt, buildVoiceSystemPrompt } from "@/services/ai.service"
 import { estimateRequestTokens, LIMITS, truncateToTokenLimit } from "@/lib/memory/token-counter"
 import { selectGeminiModel, getFallbackModel } from "@/lib/ai/model-router"
 import { logError } from "@/lib/server/logger"
 import { getEnv } from "@/lib/server/env"
+import { runChatPostResponseTasks } from "@/lib/server/chat-post-response"
 import { waitUntil } from "@/lib/server/wait-until"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
@@ -22,8 +23,6 @@ import { getGoogleTokens } from "@/lib/plugins/data-fetcher"
 import { awardXP } from "@/lib/gamification/xp-engine"
 import { getSpace, getSpaceGraph, getUserSpaces } from "@/lib/spaces/space-store"
 import { formatSpaceContextForPrompt } from "@/lib/spaces/space-context"
-import { getUserPersona } from "@/lib/personas/persona-store"
-import { getVoiceId as getPersonaVoiceId, getPersonaConfig } from "@/lib/personas/persona-config"
 import type { KVStore } from "@/types"
 import { getProfile } from "@/lib/exam-buddy/profile-store"
 import { buildExamBuddyModifier } from "@/lib/exam-buddy/exam-prompt"
@@ -94,6 +93,8 @@ function getVectorizeEnv(): VectorizeEnv | null {
 }
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now()
+
   // 1. Auth & Size checks
   let userId: string
   try {
@@ -159,7 +160,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return validationErrorResponse(parsed.error)
 
   let { messages } = parsed.data
-  const { personality, voiceEnabled, voiceMode, customPrompt, aiDials, incognito } = parsed.data
+  const { personality, voiceMode, customPrompt, aiDials, incognito, analyticsOptOut } = parsed.data
   const maxOutputTokens = voiceMode ? 800 : (parsed.data.maxOutputTokens ?? 600)
   // Incognito mode drops any client-supplied memories as defence-in-depth.
   const clientMemories = incognito ? "" : (parsed.data.memories ?? "")
@@ -250,19 +251,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  let systemPrompt = buildSystemPrompt(personality, memories, customPrompt, aiDials)
-
-  // Append persona prompt modifier at the very end (after memory, personality, safety)
-  // SECURITY (A1): Init to "default" — NOT "calm". On KV failure, no persona override is applied.
-  let activePersonaId: import("@/lib/personas/persona-config").PersonaId = "default"
-  try {
-    if (kv) activePersonaId = await getUserPersona(kv, userId)
-    if (activePersonaId !== "default") {
-      // SECURITY (A1): TypeScript narrows PersonaId after !== "default" check
-      const personaConfig = getPersonaConfig(activePersonaId as Exclude<import("@/lib/personas/persona-config").PersonaId, "default">)
-      systemPrompt = `${systemPrompt}\n\nVoice Persona Style: ${personaConfig.promptModifier}`
-    }
-  } catch { /* persona modifier is non-critical */ }
+  let systemPrompt = voiceMode
+    ? buildVoiceSystemPrompt(personality, memories, customPrompt, aiDials)
+    : buildSystemPrompt(personality, memories, customPrompt, aiDials)
 
   // ── EDITH Mode: Voice-first autonomous agent ──
   if (voiceMode) {
@@ -289,24 +280,10 @@ export async function POST(req: NextRequest) {
 
   const estimatedTokens = estimateRequestTokens(messages, systemPrompt, memories)
   if (estimatedTokens > LIMITS.WARN_THRESHOLD) messages = truncateToTokenLimit(messages, LIMITS.WARN_THRESHOLD)
+  const inputTokens = estimateRequestTokens(messages, systemPrompt, memories)
 
   let model = selectGeminiModel(messages, memories)
-
-  // 5. Build Streams
   const appEnv = getEnv()
-
-  // Resolve persona-specific voice_id, falling back to the default
-  let voiceId = appEnv.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM"
-  try {
-    const personaVoice = getPersonaVoiceId(activePersonaId, appEnv)
-    if (personaVoice) voiceId = personaVoice
-  } catch { /* fall back to default voice */ }
-  // SECURITY (H2): The ElevenLabs streaming WebSocket requires xi-api-key
-  // as a query parameter for authentication. This URL is constructed server-side
-  // only and MUST NEVER be logged, included in error messages, or sent to clients.
-  const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream-input?model_id=eleven_turbo_v2_5&output_format=pcm_24000&optimize_streaming_latency=3&xi-api-key=${appEnv.ELEVENLABS_API_KEY}`
-  // BUG-005 fix: Sanitized URL for safe use in error/log contexts
-  const sanitizedWsUrl = wsUrl.replace(/xi-api-key=[^&]+/, 'xi-api-key=***')
 
   // Filter tool declarations based on connected credentials and policy.
   // readCalendar and createCalendarEvent are only available when Google Calendar is connected.
@@ -326,7 +303,7 @@ export async function POST(req: NextRequest) {
   })
 
   // Build request WITH available agent tool declarations
-  // Pass the fully-assembled systemPrompt (with EDITH mode + persona) to avoid
+  // Pass the fully-assembled systemPrompt (with EDITH mode) to avoid
   // buildGeminiRequest rebuilding it from scratch and losing our modifications
   let requestBody = buildGeminiRequest(
     messages,
@@ -349,57 +326,6 @@ export async function POST(req: NextRequest) {
         // Helper to send SSE events to the client
         const sendSSE = (data: Record<string, unknown>) => {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
-        }
-
-        let ws: WebSocket | null = null
-        let wsOpen = false
-        const sendQueue: string[] = []
-        const closeVoiceSocket = async (flush: boolean) => {
-          if (!ws) return
-          if (flush && wsOpen) {
-            try {
-              ws.send(JSON.stringify({ text: "" }))
-            } catch {}
-            await new Promise((resolve) => setTimeout(resolve, 200))
-          }
-          try {
-            if (ws.readyState === 0 || ws.readyState === 1) {
-              ws.close()
-            }
-          } catch {}
-          wsOpen = false
-        }
-
-        // Try to connect WebSocket if voice is enabled
-        if (voiceEnabled !== false && typeof WebSocket !== 'undefined') {
-          ws = new WebSocket(wsUrl)
-          ws.onopen = () => {
-            wsOpen = true
-            ws!.send(JSON.stringify({
-              text: " ",
-              voice_settings: { stability: 0.5, similarity_boost: 0.8 }
-            }))
-            while (sendQueue.length > 0) {
-              const txt = sendQueue.shift()
-              ws!.send(JSON.stringify({ text: txt }))
-            }
-          }
-          ws.onmessage = (event) => {
-            try {
-              const data = JSON.parse(event.data)
-              if (data.audio) {
-                sendSSE({ audio: data.audio })
-              }
-            } catch { }
-          }
-          ws.onerror = () => {
-            // SECURITY (H2): Do NOT pass the WebSocket error event to logError —
-            // it may contain the wsUrl which includes the ElevenLabs API key.
-            // BUG-005: Use sanitized URL in log context instead.
-            logError("chat_stream.ws_error", `WebSocket connection failed: ${sanitizedWsUrl}`, userId)
-            void closeVoiceSocket(false)
-          }
-          ws.onclose = () => { wsOpen = false }
         }
 
         // ── Agentic Loop ──────────────────────────────────────────────────
@@ -464,14 +390,6 @@ export async function POST(req: NextRequest) {
               fullResponse += value.text
               // Stream text to client
               sendSSE({ text: value.text })
-              // Stream to ElevenLabs
-              if (ws) {
-                if (wsOpen) {
-                  ws.send(JSON.stringify({ text: value.text }))
-                } else {
-                  sendQueue.push(value.text)
-                }
-              }
             } else if (value.type === "functionCall") {
               pendingFunctionCall = value.call
               // Don't break — read remaining events in this chunk
@@ -578,8 +496,6 @@ export async function POST(req: NextRequest) {
         }
 
         // ── Stream Complete ──────────────────────────────────────────────
-        await closeVoiceSocket(true)
-
         // EDITH: Detect if the model's response is asking a follow-up question.
         // If so, tell the client to auto-restart recording so the user can answer.
         if (voiceMode && fullResponse.trim()) {
@@ -594,6 +510,20 @@ export async function POST(req: NextRequest) {
 
         sendSSE({ done: true })
         controller.close()
+
+        runChatPostResponseTasks({
+          kv,
+          userId,
+          startTime,
+          logEvent: "chat_stream.completed",
+          model,
+          inputTokens,
+          responseText: fullResponse,
+          messages,
+          incognito,
+          analyticsOptOut,
+          toolCalls: totalToolCalls,
+        })
 
         // Usage already incremented pre-response via checkAndIncrementVoice
       }

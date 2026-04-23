@@ -2,7 +2,7 @@
 
 // ─── Cost Tracker ─────────────────────────────────────────────────────────────
 //
-// Tracks per-request costs (Gemini tokens + ElevenLabs TTS characters) and
+// Tracks per-request costs (Gemini tokens + TTS characters) and
 // checks a daily budget threshold backed by KV.
 
 import { MODEL_COSTS } from "@/lib/ai/model-router"
@@ -26,7 +26,7 @@ export interface RequestCost {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 export const COST_CONSTANTS = {
-  /** ElevenLabs ~$0.30 per 1 000 chars → $0.0000003 per char */
+  /** Estimated TTS cost placeholder per character */
   TTS_COST_PER_CHAR: 0.0000003,
 } as const
 

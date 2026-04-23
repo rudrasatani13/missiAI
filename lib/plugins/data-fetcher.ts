@@ -2,9 +2,11 @@
 // Fetches live data from Google Calendar and Notion using stored OAuth tokens.
 // Results are cached in KV with a TTL so chat requests stay fast.
 
+import { decryptFromKV, kvPut } from "@/lib/server/kv-crypto"
 import type { KVStore } from "@/types"
 
 const CONTEXT_TTL_SECONDS = 60 * 15 // 15 min cache
+const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 90
 
 // ─── KV Key Helpers ───────────────────────────────────────────────────────────
 export function googleTokenKey(userId: string) { return `oauth:google:${userId}` }
@@ -20,16 +22,26 @@ export interface GoogleTokens {
 }
 
 export async function saveGoogleTokens(kv: KVStore, userId: string, tokens: GoogleTokens) {
-  await kv.put(googleTokenKey(userId), JSON.stringify(tokens), {
-    expirationTtl: 60 * 60 * 24 * 90, // 90 days
+  await kvPut(kv, googleTokenKey(userId), JSON.stringify(tokens), {
+    expirationTtl: TOKEN_TTL_SECONDS,
   })
 }
 
 export async function getGoogleTokens(kv: KVStore, userId: string): Promise<GoogleTokens | null> {
   try {
-    const raw = await kv.get(googleTokenKey(userId))
+    const key = googleTokenKey(userId)
+    const raw = await kv.get(key)
     if (!raw) return null
-    return JSON.parse(raw) as GoogleTokens
+    const decrypted = await decryptFromKV(raw)
+    const parsed = JSON.parse(decrypted) as GoogleTokens
+    if (raw === decrypted) {
+      try {
+        await kvPut(kv, key, JSON.stringify(parsed), {
+          expirationTtl: TOKEN_TTL_SECONDS,
+        })
+      } catch {}
+    }
+    return parsed
   } catch { return null }
 }
 
@@ -46,16 +58,26 @@ export interface NotionTokens {
 }
 
 export async function saveNotionTokens(kv: KVStore, userId: string, tokens: NotionTokens) {
-  await kv.put(notionTokenKey(userId), JSON.stringify(tokens), {
-    expirationTtl: 60 * 60 * 24 * 90, // 90 days
+  await kvPut(kv, notionTokenKey(userId), JSON.stringify(tokens), {
+    expirationTtl: TOKEN_TTL_SECONDS,
   })
 }
 
 export async function getNotionTokens(kv: KVStore, userId: string): Promise<NotionTokens | null> {
   try {
-    const raw = await kv.get(notionTokenKey(userId))
+    const key = notionTokenKey(userId)
+    const raw = await kv.get(key)
     if (!raw) return null
-    return JSON.parse(raw) as NotionTokens
+    const decrypted = await decryptFromKV(raw)
+    const parsed = JSON.parse(decrypted) as NotionTokens
+    if (raw === decrypted) {
+      try {
+        await kvPut(kv, key, JSON.stringify(parsed), {
+          expirationTtl: TOKEN_TTL_SECONDS,
+        })
+      } catch {}
+    }
+    return parsed
   } catch { return null }
 }
 

@@ -777,7 +777,6 @@ export default function PricingPage() {
               'Mood & streak tracking',
             ]}
             disabledFeatures={[
-              'AI voice personas (Calm, Coach, etc.)',
               'Extended voice (2hr/day)',
               'Full memory graph',
               'Plugin integrations',
@@ -799,7 +798,6 @@ export default function PricingPage() {
             showPaymentBadges={currentPlanId !== 'plus'}
             features={[
               '2 hours of voice per day',
-              '5 AI voice personas (Calm, Coach, Friend & more)',
               'All 4 personality profiles',
               'Full memory graph — unlimited facts',
               'Visual Memory — 50 images/day',
@@ -825,7 +823,6 @@ export default function PricingPage() {
             features={[
               'Unlimited voice interactions',
               'Everything in Plus',
-              '5 AI voice personas — unlimited usage',
               'Unlimited daily missions (10/day)',
               'Priority response speed',
               'Visual Memory — 50 images/day',
@@ -1063,10 +1060,6 @@ export default function PricingPage() {
           <FAQItem
             question="What payment methods are supported?"
             answer="We support all major payment methods including cards, UPI, net banking, and wallets — all processed securely through Dodo Payments."
-          />
-          <FAQItem
-            question="What are AI voice personas?"
-            answer="AI voice personas let you talk to Missi in different characters — like a Calm Therapist, Energetic Coach, Sassy Friend, Bollywood Narrator, or Desi Mom. Each persona has a unique voice and personality. Available on Plus and Pro plans."
           />
           <FAQItem
             question="Is my data safe?"

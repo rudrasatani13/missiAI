@@ -80,16 +80,6 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
         onLogout={handleLogout}
         onNewChat={handleNewChat}
         isLiveMode={false}
-        activePersona={null}
-        onPersonaChange={() => {
-          /* Persona switching is handled on /chat. On other pages, selecting a
-             persona persists via localStorage (through Settings sub-panel) and
-             takes effect the next time the user visits /chat. */
-        }}
-        onSwitchToLive={() => {
-          /* Live-mode toggle is meaningful only on /chat; here just navigate. */
-          router.push("/chat")
-        }}
         onPickImage={() => {
           /* No vision input outside /chat — route users there. */
           router.push("/chat")

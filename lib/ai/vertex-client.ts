@@ -33,7 +33,7 @@ function buildVertexAIUrl(model: string, method: string, queryParams?: string): 
  */
 function buildVertexAIGlobalUrl(model: string, method: string, queryParams?: string): string {
   const project = getVertexProjectId()
-  const base = `https://global-aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:${method}`
+  const base = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:${method}`
   return queryParams ? `${base}?${queryParams}` : base
 }
 
@@ -44,6 +44,7 @@ function buildVertexAIGlobalUrl(model: string, method: string, queryParams?: str
 const GLOBAL_ENDPOINT_MODELS = new Set<string>([
   'gemini-3.1-pro-preview',
   'gemini-3.1-flash-lite-preview',
+  'gemini-3.1-flash-tts-preview',
   'gemini-3-flash-preview',
 ])
 

@@ -18,7 +18,6 @@ const mockGetRequestContext = vi.mocked(getCloudflareContext)
 beforeEach(() => {
   vi.clearAllMocks()
   // Ensure env vars are set by default
-    process.env.ELEVENLABS_API_KEY = "test-elevenlabs-key"
   process.env.CLERK_SECRET_KEY = "test-clerk-secret"
   process.env.GOOGLE_SERVICE_ACCOUNT_JSON = "test-google-key"
 })

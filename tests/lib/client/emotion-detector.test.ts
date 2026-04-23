@@ -78,10 +78,9 @@ describe('getEmotionAdaptation', () => {
     detectedAt: Date.now(),
   })
 
-  it('stressed → maxOutputTokens 800, ttsStability 0.8', () => {
+  it('stressed → maxOutputTokens 800', () => {
     const adaptation = getEmotionAdaptation(makeProfile('stressed'))
     expect(adaptation.maxOutputTokens).toBe(800)
-    expect(adaptation.ttsStability).toBe(0.8)
   })
 
   it('neutral → systemPromptSuffix empty string', () => {

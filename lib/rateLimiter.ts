@@ -3,7 +3,7 @@ import { API_ERROR_CODES } from '@/types/api'
 // ─── Tier limits (requests per minute, per route type) ────────────────────────
 //
 // 'api'  — standard data endpoints (billing, memory, plugins, etc.)
-// 'ai'   — generative AI endpoints that call Gemini or ElevenLabs (chat, tts, stt, actions)
+// 'ai'   — generative AI endpoints that call Gemini or other model APIs (chat, tts, stt, actions)
 //
 // AI limits are deliberately tighter because each call fans out to an expensive
 // third-party model API; the lower cap prevents runaway costs from bots or

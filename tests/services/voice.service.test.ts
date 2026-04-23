@@ -1,189 +1,98 @@
-import { describe, it, expect, vi, beforeEach, afterEach, Mock } from "vitest"
-import { textToSpeech, speechToText } from "@/services/voice.service"
-import type { TTSOptions, STTOptions } from "@/types"
+import { describe, it, expect, vi, beforeEach } from "vitest"
 
-const TTS_ENDPOINT = "https://api.elevenlabs.io/v1/text-to-speech"
-const STT_ENDPOINT = "https://api.elevenlabs.io/v1/speech-to-text"
+vi.mock("@/lib/ai/vertex-client", () => ({
+  geminiGenerate: vi.fn(),
+}))
+
+import { geminiGenerate } from "@/lib/ai/vertex-client"
+import { geminiSpeechToText, geminiTextToSpeech } from "@/services/voice.service"
 
 describe("Voice Service", () => {
-  let fetchMock: Mock;
+  const geminiGenerateMock = vi.mocked(geminiGenerate)
 
   beforeEach(() => {
-    fetchMock = vi.fn();
-    global.fetch = fetchMock;
+    vi.clearAllMocks()
   })
 
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
+  describe("geminiTextToSpeech", () => {
+    it("wraps Gemini PCM output as a WAV buffer", async () => {
+      const pcmBytes = new Uint8Array([0, 0, 255, 127])
+      const audioBase64 = Buffer.from(pcmBytes).toString("base64")
 
-  describe("textToSpeech", () => {
-    const defaultOptions: TTSOptions = {
-      text: "Hello world",
-      voiceId: "test-voice-id",
-      apiKey: "test-api-key",
-    }
-
-    it("should successfully convert text to speech with default options", async () => {
-      const mockArrayBuffer = new ArrayBuffer(8)
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        arrayBuffer: vi.fn().mockResolvedValue(mockArrayBuffer),
-      })
-
-      const result = await textToSpeech(defaultOptions)
-
-      expect(result).toBe(mockArrayBuffer)
-      expect(fetchMock).toHaveBeenCalledTimes(1)
-      expect(fetchMock).toHaveBeenCalledWith(`${TTS_ENDPOINT}/test-voice-id`, {
-        method: "POST",
-        headers: {
-          "xi-api-key": "test-api-key",
-          "Content-Type": "application/json",
-          Accept: "audio/mpeg",
-        },
-        body: JSON.stringify({
-          text: "Hello world",
-          model_id: "eleven_turbo_v2_5",
-          voice_settings: {
-            stability: 0.82,
-            similarity_boost: 0.8,
-            style: 0.05,
-            use_speaker_boost: true,
-            speed: 1.05,
-          },
-        }),
-      })
-    })
-
-    it("should truncate text if it exceeds 4000 characters", async () => {
-      const longText = "a".repeat(5000)
-      const options = { ...defaultOptions, text: longText }
-
-      const mockArrayBuffer = new ArrayBuffer(8)
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        arrayBuffer: vi.fn().mockResolvedValue(mockArrayBuffer),
-      })
-
-      await textToSpeech(options)
-
-      const callArgs = fetchMock.mock.calls[0]
-      const body = JSON.parse(callArgs[1].body)
-      expect(body.text).toHaveLength(4000)
-      expect(body.text).toBe("a".repeat(4000))
-    })
-
-    it("should use custom options when provided", async () => {
-      const customOptions: TTSOptions = {
-        ...defaultOptions,
-        modelId: "custom_model",
-        stability: 0.9,
-        similarityBoost: 0.7,
-        style: 0.1,
-        speed: 1.2,
-      }
-
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
-      })
-
-      await textToSpeech(customOptions)
-
-      const callArgs = fetchMock.mock.calls[0]
-      const body = JSON.parse(callArgs[1].body)
-
-      expect(body.model_id).toBe("custom_model")
-      expect(body.voice_settings.stability).toBe(0.9)
-      expect(body.voice_settings.similarity_boost).toBe(0.7)
-      expect(body.voice_settings.style).toBe(0.1)
-      expect(body.voice_settings.speed).toBe(1.2)
-    })
-
-    it("should throw an error with text message on non-200 response", async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        text: vi.fn().mockResolvedValue("Unauthorized access"),
-      })
-
-      await expect(textToSpeech(defaultOptions)).rejects.toThrow(
-        "ElevenLabs TTS error 401: Unauthorized access"
+      geminiGenerateMock.mockResolvedValueOnce(
+        new Response(JSON.stringify({
+          candidates: [{
+            content: {
+              parts: [{ inlineData: { data: audioBase64 } }],
+            },
+          }],
+        }), { status: 200 }),
       )
+
+      const result = await geminiTextToSpeech({ text: "Hello world", voiceName: "Kore" })
+      const bytes = new Uint8Array(result)
+
+      expect(new TextDecoder().decode(bytes.slice(0, 4))).toBe("RIFF")
+      expect(new TextDecoder().decode(bytes.slice(8, 12))).toBe("WAVE")
+      expect(geminiGenerateMock).toHaveBeenCalledTimes(1)
+      expect(geminiGenerateMock.mock.calls[0][0]).toBe("gemini-3.1-flash-tts-preview")
+      expect((geminiGenerateMock.mock.calls[0][1] as any).contents[0].role).toBe("user")
+      expect((geminiGenerateMock.mock.calls[0][1] as any).generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName).toBe("Kore")
+      expect((geminiGenerateMock.mock.calls[0][1] as any).generationConfig.responseModalities).toEqual(["AUDIO"])
     })
 
-    it("should handle error when error body is unreadable", async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        text: vi.fn().mockRejectedValue(new Error("Cannot read body")),
-      })
+    it("throws when Gemini returns no audio data", async () => {
+      geminiGenerateMock.mockResolvedValueOnce(
+        new Response(JSON.stringify({ candidates: [{ content: { parts: [{}] } }] }), { status: 200 }),
+      )
 
-      await expect(textToSpeech(defaultOptions)).rejects.toThrow(
-        "ElevenLabs TTS error 500: (no body)"
+      await expect(geminiTextToSpeech({ text: "Hello world" })).rejects.toThrow(
+        "Gemini TTS returned no audio data",
       )
     })
   })
 
-  describe("speechToText", () => {
-    let mockFile: File;
+  describe("geminiSpeechToText", () => {
+    it("transcribes audio and returns text plus language", async () => {
+      geminiGenerateMock.mockResolvedValueOnce(
+        new Response(JSON.stringify({
+          candidates: [{
+            content: {
+              parts: [{ text: '{"text":"Hello from speech","language":"en"}' }],
+            },
+          }],
+        }), { status: 200 }),
+      )
 
-    beforeEach(() => {
-      mockFile = new File(["dummy audio content"], "test-audio.webm", {
+      const file = new File(["dummy audio content"], "test-audio.webm", {
         type: "audio/webm",
       })
-    })
 
-    const getOptions = (audio: Blob): STTOptions => ({
-      audio,
-      apiKey: "test-api-key",
-    })
-
-    it("should successfully convert speech to text", async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: vi.fn().mockResolvedValue({
-          text: "Hello from speech",
-          language_code: "en",
-          language_probability: 0.98,
-        }),
-      })
-
-      const result = await speechToText(getOptions(mockFile))
+      const result = await geminiSpeechToText({ audio: file })
 
       expect(result).toEqual({
         text: "Hello from speech",
         language: "en",
-        confidence: 0.98,
+        confidence: 0,
       })
-
-      expect(fetchMock).toHaveBeenCalledTimes(1)
-      const callArgs = fetchMock.mock.calls[0]
-      expect(callArgs[0]).toBe(STT_ENDPOINT)
-      expect(callArgs[1].method).toBe("POST")
-      expect(callArgs[1].headers).toEqual({
-        "xi-api-key": "test-api-key",
-      })
-
-      const formData = callArgs[1].body as FormData
-      expect(formData.get("model_id")).toBe("scribe_v2")
-      expect(formData.get("tag_audio_events")).toBe("false")
-      const fileInForm = formData.get("file") as File
-      expect(fileInForm).toBeDefined()
-      expect(fileInForm.name).toBe("test-audio.webm")
-      expect(fileInForm.type).toBe("audio/webm")
+      expect(geminiGenerateMock).toHaveBeenCalledTimes(1)
+      expect(geminiGenerateMock.mock.calls[0][0]).toBe("gemini-3-flash-preview")
+      expect((geminiGenerateMock.mock.calls[0][1] as any).contents[0].parts[1].inlineData.mimeType).toBe("audio/webm")
+      expect(typeof (geminiGenerateMock.mock.calls[0][1] as any).contents[0].parts[1].inlineData.data).toBe("string")
     })
 
-    it("should handle missing optional properties in API response", async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: vi.fn().mockResolvedValue({
-          text: "Hello",
-        }),
-      })
+    it("falls back to auto language when Gemini omits it", async () => {
+      geminiGenerateMock.mockResolvedValueOnce(
+        new Response(JSON.stringify({
+          candidates: [{
+            content: {
+              parts: [{ text: '{"text":"Hello"}' }],
+            },
+          }],
+        }), { status: 200 }),
+      )
 
-      const result = await speechToText(getOptions(mockFile))
+      const result = await geminiSpeechToText({ audio: new Blob(["dummy audio content"], { type: "audio/ogg" }) })
 
       expect(result).toEqual({
         text: "Hello",
@@ -192,47 +101,20 @@ describe("Voice Service", () => {
       })
     })
 
-    it("should throw an error with details on non-200 response", async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        text: vi.fn().mockResolvedValue("Bad Request"),
-      })
-
-      await expect(speechToText(getOptions(mockFile))).rejects.toThrow(
-        "ElevenLabs STT error 400: Bad Request"
+    it("throws when Gemini returns invalid JSON", async () => {
+      geminiGenerateMock.mockResolvedValueOnce(
+        new Response(JSON.stringify({
+          candidates: [{
+            content: {
+              parts: [{ text: "not-json" }],
+            },
+          }],
+        }), { status: 200 }),
       )
-    })
 
-    it("should use fallback mimeType and fileName if Blob is passed instead of File", async () => {
-      const mockBlob = new Blob(["dummy audio content"])
-
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: vi.fn().mockResolvedValue({
-          text: "Blob text",
-        }),
-      })
-
-      await speechToText(getOptions(mockBlob))
-
-      const callArgs = fetchMock.mock.calls[0]
-      const formData = callArgs[1].body as FormData
-      const fileInForm = formData.get("file") as File
-      expect(fileInForm.name).toBe("recording.webm")
-      expect(fileInForm.type).toBe("audio/webm")
-    })
-
-    it("should handle error when error body is unreadable in speechToText", async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        text: vi.fn().mockRejectedValue(new Error("Cannot read body")),
-      })
-
-      await expect(speechToText(getOptions(mockFile))).rejects.toThrow(
-        "ElevenLabs STT error 500: (no body)"
-      )
+      await expect(
+        geminiSpeechToText({ audio: new Blob(["dummy audio content"], { type: "audio/webm" }) }),
+      ).rejects.toThrow("Gemini STT returned invalid JSON: not-json")
     })
   })
 })

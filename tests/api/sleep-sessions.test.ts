@@ -3,6 +3,10 @@ import { NextRequest } from 'next/server'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
+const { mockCloudflareContext } = vi.hoisted(() => ({
+  mockCloudflareContext: vi.fn(),
+}))
+
 vi.mock('@/lib/server/auth', () => ({
   getVerifiedUserId: vi.fn(),
   AuthenticationError: class extends Error {},
@@ -21,15 +25,7 @@ vi.mock('@/lib/sleep-sessions/session-store', () => ({
 }))
 
 vi.mock('@opennextjs/cloudflare', () => ({
-  getCloudflareContext: () => ({ env: { MISSI_MEMORY: {
-    get: vi.fn().mockResolvedValue(null),
-    put: vi.fn().mockResolvedValue(undefined),
-    delete: vi.fn().mockResolvedValue(undefined),
-  } } })
-}))
-
-vi.mock('@/lib/server/env', () => ({
-  getEnv: () => ({ ELEVENLABS_API_KEY: 'test-key' })
+  getCloudflareContext: mockCloudflareContext,
 }))
 
 vi.mock('@/lib/server/logger', () => ({
@@ -55,6 +51,10 @@ vi.mock('@/lib/gamification/xp-engine', () => ({
   awardXP: vi.fn().mockResolvedValue(0),
 }))
 
+vi.mock('@/services/voice.service', () => ({
+  geminiTextToSpeech: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
+}))
+
 vi.mock('@/lib/validation/schemas', () => ({
   validationErrorResponse: vi.fn((error: any) =>
     new Response(JSON.stringify({ success: false, error: 'Validation error' }), { status: 400 })
@@ -75,6 +75,13 @@ vi.mock('@/lib/rateLimiter', () => ({
 import { GET, POST } from '@/app/api/v1/sleep-sessions/[...path]/route'
 import { getVerifiedUserId, AuthenticationError } from '@/lib/server/auth'
 import { checkGenerationRateLimit, checkTTSRateLimit, getLastGeneratedStory } from '@/lib/sleep-sessions/session-store'
+import { geminiTextToSpeech } from '@/services/voice.service'
+
+const kvMock = {
+  get: vi.fn().mockResolvedValue(null),
+  put: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
+}
 
 // Wrappers for sub-route dispatching via catch-all path params
 const generatePost = (req: NextRequest) => POST(req, { params: Promise.resolve({ path: ['generate'] }) })
@@ -92,9 +99,11 @@ function createRequest(body: any = {}): NextRequest {
 describe('Sleep Sessions API', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        mockCloudflareContext.mockReturnValue({ env: { MISSI_MEMORY: kvMock } })
         vi.mocked(getVerifiedUserId).mockResolvedValue('user_123')
         vi.mocked(checkGenerationRateLimit).mockResolvedValue({ allowed: true, remaining: 10 })
         vi.mocked(checkTTSRateLimit).mockResolvedValue({ allowed: true, remaining: 10 })
+        vi.mocked(geminiTextToSpeech).mockResolvedValue(new ArrayBuffer(8))
     })
 
     describe('POST /generate', () => {
@@ -130,6 +139,16 @@ describe('Sleep Sessions API', () => {
             const data = await res.json()
             expect(data.data.script).toContain('Breathe in slowly')
         })
+
+        it('with mode=breathing still works when Cloudflare context is unavailable locally', async () => {
+            mockCloudflareContext.mockImplementation(() => { throw new Error('No context') })
+
+            const res = await generatePost(createRequest({ mode: 'breathing', technique: 'box', cycles: 5 }))
+
+            expect(res.status).toBe(200)
+            const data = await res.json()
+            expect(data.data.script).toContain('Hold')
+        })
     })
 
     describe('POST /tts', () => {
@@ -157,6 +176,77 @@ describe('Sleep Sessions API', () => {
              // Wrong ID
              const res1 = await ttsPost(createRequest({ source: 'last-generated', storyId: 'wrong-id' }))
              expect(res1.status).toBe(400)
+        })
+
+        it('allows library TTS when KV is unavailable', async () => {
+            mockCloudflareContext.mockImplementation(() => { throw new Error('No context') })
+
+            const res = await ttsPost(createRequest({ source: 'library', storyId: 'library-ocean-tide' }))
+
+            expect(res.status).toBe(200)
+            expect(res.headers.get('Content-Type')).toBe('audio/wav')
+            expect(geminiTextToSpeech).toHaveBeenCalled()
+        })
+
+        it('passes expressive performance directions to Gemini TTS for library stories', async () => {
+            const res = await ttsPost(createRequest({ source: 'library', storyId: 'library-ocean-tide' }))
+
+            expect(res.status).toBe(200)
+            expect(geminiTextToSpeech).toHaveBeenCalledTimes(1)
+            expect(vi.mocked(geminiTextToSpeech).mock.calls[0][0]).toMatchObject({
+                text: expect.stringContaining('You are resting on a quiet, secluded beach'),
+                voiceName: 'Kore',
+            })
+            expect((vi.mocked(geminiTextToSpeech).mock.calls[0][0] as any).prompt).toContain('Base tone: wave-like, flowing, hushed, and gently hypnotic')
+            expect((vi.mocked(geminiTextToSpeech).mock.calls[0][0] as any).prompt).toContain('Shift your delivery moment by moment with the story itself')
+            expect((vi.mocked(geminiTextToSpeech).mock.calls[0][0] as any).prompt).toContain('Only speak the words from the SCRIPT section')
+        })
+
+        it('falls back to plain narration when expressive TTS synthesis fails', async () => {
+            vi.mocked(geminiTextToSpeech)
+                .mockRejectedValueOnce(Object.assign(new Error('Gemini TTS error 400'), { status: 400 }))
+                .mockResolvedValueOnce(new ArrayBuffer(8))
+
+            const res = await ttsPost(createRequest({ source: 'library', storyId: 'library-ocean-tide' }))
+
+            expect(res.status).toBe(200)
+            expect(geminiTextToSpeech).toHaveBeenCalledTimes(2)
+            expect((vi.mocked(geminiTextToSpeech).mock.calls[0][0] as any).prompt).toContain('Base tone:')
+            expect((vi.mocked(geminiTextToSpeech).mock.calls[1][0] as any).prompt).toBeUndefined()
+        })
+
+        it('splits long last-generated stories into multiple TTS chunks', async () => {
+            vi.mocked(getLastGeneratedStory).mockResolvedValue({
+                id: 'long-story',
+                mode: 'custom_story',
+                title: 'Long Story',
+                text: `Start. ${'Very sleepy sentence. '.repeat(260)}`,
+                estimatedDurationSec: 900,
+                generatedAt: Date.now(),
+            } as any)
+
+            const res = await ttsPost(createRequest({ source: 'last-generated', storyId: 'long-story' }))
+
+            expect(res.status).toBe(200)
+            expect(vi.mocked(geminiTextToSpeech).mock.calls.length).toBeGreaterThan(1)
+        })
+
+        it('returns 504 when sleep TTS times out after retries are exhausted', async () => {
+            vi.mocked(geminiTextToSpeech).mockRejectedValue(new Error('TTS request timed out'))
+
+            const res = await ttsPost(createRequest({ source: 'library', storyId: 'library-ocean-tide' }))
+
+            expect(res.status).toBe(504)
+            const data = await res.json()
+            expect(data.error).toBe('Audio generation timed out. Please try again.')
+        })
+
+        it('returns 400 for last-generated TTS without a cached story when Cloudflare context is unavailable locally', async () => {
+            mockCloudflareContext.mockImplementation(() => { throw new Error('No context') })
+
+            const res = await ttsPost(createRequest({ source: 'last-generated', storyId: 'correct-id' }))
+
+            expect(res.status).toBe(400)
         })
     })
 

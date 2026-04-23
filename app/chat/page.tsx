@@ -8,7 +8,7 @@ import { ArrowLeft, X } from "lucide-react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useVoiceStateMachine } from "@/hooks/useVoiceStateMachine"
 import { useGeminiLive } from "@/hooks/useGeminiLive"
-import { buildSystemPrompt } from "@/services/ai.service"
+import { buildVoiceSystemPrompt } from "@/services/ai.service"
 import { useChatSettings, type AIDialSettings } from "@/hooks/useChatSettings"
 import { AGENT_FUNCTION_DECLARATIONS } from "@/lib/ai/agent-tools"
 import { useProactive } from "@/hooks/useProactive"
@@ -64,7 +64,6 @@ export default function VoiceAssistantPage() {
   const { signOut } = useClerk()
   const { plan, isAtLimit, usedSeconds, limitSeconds, isLoading: billingLoading, initiateCheckout, incrementUsageLocally } = useBilling()
   const [avatarTier, setAvatarTier] = useState<import('@/types/gamification').AvatarTier>(1)
-  const [activePanel, setActivePanel] = useState<'settings' | 'plugins' | 'personas' | null>(null)
   const [personality, setPersonality] = useState<PersonalityKey>("assistant")
   const [customPrompt, setCustomPrompt] = useState("")
   const [voiceEnabled, setVoiceEnabled] = useState(true)
@@ -78,10 +77,6 @@ export default function VoiceAssistantPage() {
   const [showBootSequence, setShowBootSequence] = useState(false)
   const [bootCompleted, setBootCompleted] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
-
-  // Voice Persona state
-
-  const [activePersona, setActivePersona] = useState<{ personaId: string; displayName: string; accentColor: string; geminiVoiceName: string } | null>(null)
 
   // Read user name from localStorage (set during setup) as fallback when Clerk hasn't loaded yet
   const [localName, setLocalName] = useState('')
@@ -324,7 +319,7 @@ export default function VoiceAssistantPage() {
 
   const {
     state: voiceState, audioLevel, statusText, lastTranscript,
-    error, setError, streamingText, lastResponse, handleTap: legacyHandleTap, cancelAll, greet, saveMemoryBeacon,
+    error, setError, streamingText, lastResponse, cancelAll, greet, saveMemoryBeacon,
     currentEmotion, agentSteps, getLastRecordingDurationMs,
   } = useVoiceStateMachine({
     userId: user?.id,
@@ -340,15 +335,13 @@ export default function VoiceAssistantPage() {
   })
 
   // ── Real-time Voice Mode ──────────────────────────────────────────────────
-  // Default ON — instant, real-time voice (Missi Voice).
-  // Switches OFF only when user explicitly picks an AI persona.
-  const [liveMode, setLiveMode] = useState(true)
+  const [liveMode] = useState(true)
   const [liveTranscriptIn, setLiveTranscriptIn] = useState("")
   const [liveTranscriptOut, setLiveTranscriptOut] = useState("")
 
   const geminiLive = useGeminiLive({
-    systemPrompt: buildSystemPrompt(personalityRef.current, memoriesState, customPrompt),
-    voiceName: "Kore", // Always Kore for Gemini Live — personas only affect ElevenLabs voice
+    systemPrompt: buildVoiceSystemPrompt(personalityRef.current, memoriesState, customPrompt, sharedSettings.aiDials),
+    voiceName: "Kore",
     // EDITH: pass agent tool declarations for live voice tool calling
     toolDeclarations: AGENT_FUNCTION_DECLARATIONS,
     onTranscriptIn: (text) => {
@@ -388,11 +381,6 @@ export default function VoiceAssistantPage() {
 
   // Unified handleTap — uses Live mode or legacy
   const handleTap = useCallback(() => {
-    // Close settings/plugins panel if open
-    if (activePanel !== null) {
-      setActivePanel(null)
-      return
-    }
     if (liveMode) {
       if (geminiLive.state === "disconnected" || geminiLive.state === "error") {
         // Cancel any legacy audio that might still be playing
@@ -401,10 +389,8 @@ export default function VoiceAssistantPage() {
       } else {
         geminiLive.disconnect()
       }
-    } else {
-      legacyHandleTap()
     }
-  }, [liveMode, geminiLive, legacyHandleTap, cancelAll, activePanel])
+  }, [liveMode, geminiLive, cancelAll])
 
   // Unified status text — not used by StatusDisplay (it uses state), kept for compatibility
   const effectiveStatusText = liveMode && geminiLive.state !== "disconnected"
@@ -499,40 +485,6 @@ export default function VoiceAssistantPage() {
     fetchMemories()
   }, [isLoaded, user?.id, fetchMemories])
 
-  // Fetch active persona info on load (display only — does NOT switch off real-time voice)
-  useEffect(() => {
-    if (!isLoaded || !user?.id) return
-    let cancelled = false
-    const load = () => {
-      fetch('/api/v1/persona').then(r => r.json())
-        .then(d => {
-          if (cancelled) return
-          if (d.displayName) {
-            setActivePersona({
-              personaId: d.personaId ?? 'calm',
-              displayName: d.displayName ?? 'calm',
-              accentColor: d.accentColor ?? '#7DD3FC',
-              geminiVoiceName: d.geminiVoiceName ?? 'Kore',
-            })
-          }
-        }).catch(() => {})
-    }
-
-    if (isFullDevBootstrap) {
-      load()
-    } else {
-      const timer = setTimeout(load, 5500)
-      return () => {
-        cancelled = true
-        clearTimeout(timer)
-      }
-    }
-
-    return () => {
-      cancelled = true
-    }
-  }, [isLoaded, user?.id])
-
   // Fetch avatar data for the navbar ring
   useEffect(() => {
     if (!isLoaded || !user?.id) return
@@ -579,7 +531,7 @@ export default function VoiceAssistantPage() {
 
   // Initial greeting — skip when Live mode is ON (Gemini handles its own conversation)
   useEffect(() => {
-    if (liveMode) return // Live mode — skip legacy ElevenLabs greeting
+    if (liveMode) return // Live mode — skip legacy greeting
     if (!isLoaded || greetedRef.current || isAtLimit || billingLoading) return
     if (showBootSequence && !bootCompleted) return // wait for boot
 
@@ -643,7 +595,7 @@ export default function VoiceAssistantPage() {
   }, [voiceState])
 
   const handleLogout = useCallback(() => {
-    cancelAll(); setActivePanel(null)
+    cancelAll()
     signOut().catch(() => { }); setTimeout(() => { window.location.href = "/" }, 500)
   }, [signOut, cancelAll])
 
@@ -654,7 +606,6 @@ export default function VoiceAssistantPage() {
       geminiLive.disconnect()
     }
     conversationRef.current = []
-    setActivePanel(null)
     setLiveTranscriptIn("")
     setLiveTranscriptOut("")
     try { sessionStorage.removeItem('missi-greeted') } catch { }
@@ -728,23 +679,6 @@ export default function VoiceAssistantPage() {
         onLogout={handleLogout}
         onNewChat={handleNewChat}
         isLiveMode={liveMode}
-        activePersona={activePersona}
-        onPersonaChange={(p) => {
-          setActivePersona({
-            personaId: p.personaId,
-            displayName: p.displayName,
-            accentColor: p.accentColor,
-            geminiVoiceName: p.geminiVoiceName,
-          })
-          if (liveMode) {
-            geminiLive.disconnect()
-            setLiveMode(false)
-          }
-        }}
-        onSwitchToLive={() => {
-          setLiveMode(true)
-          setActivePersona(null)
-        }}
         onPickImage={() => fileInputRef.current?.click()}
         onWidthChange={setSidebarWidth}
       />

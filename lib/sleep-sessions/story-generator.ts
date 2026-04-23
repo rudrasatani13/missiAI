@@ -5,7 +5,9 @@ import { getRandomFallbackStory } from '@/lib/sleep-sessions/library-stories'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 
 const GEMINI_MODEL = 'gemini-2.5-pro'
-const TIMEOUT_MS = 12000
+const TIMEOUT_MS = 45000
+const GENERATED_SLEEP_STORY_WPM = 105
+export const MAX_SLEEP_STORY_CHARS = 16000
 
 export interface UserContext {
   moodLabel?: string
@@ -44,8 +46,8 @@ export function sanitizeStoryText(raw: string): string {
   result = result.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim()
 
   // 9. Trim to max 6000 chars
-  if (result.length > 6000) {
-    result = result.slice(0, 6000)
+  if (result.length > MAX_SLEEP_STORY_CHARS) {
+    result = result.slice(0, MAX_SLEEP_STORY_CHARS)
     // Try to break at last period if possible to not end mid-sentence
     const lastPeriod = result.lastIndexOf('.')
     if (lastPeriod > 0) {
@@ -61,7 +63,7 @@ export async function generatePersonalizedStory(
 ): Promise<SleepStory> {
   const systemPrompt = `You are Missi's sleep story narrator. Generate a warm, slow-paced bedtime story that helps the user drift into sleep.
 REQUIREMENTS:
-* Length: 600-900 words (approximately 4-6 minutes when read slowly)
+* Length: 1200-2200 words (approximately 10-20 minutes when read slowly)
 * Pace: slow, gentle, use short sentences
 * Content: peaceful imagery, sensory details (sounds, textures, gentle movement), no tension or conflict
 * Tone: soothing, maternal warmth, no excitement
@@ -93,7 +95,7 @@ export async function generateCustomStory(
   const systemPrompt = `The user has requested a story about: ${safePrompt}
 Generate a peaceful bedtime story around this theme. Keep all the same rules about pacing, length, and tone.
 REQUIREMENTS:
-* Length: 600-900 words
+* Length: 1200-2200 words (approximately 10-20 minutes when read slowly)
 * Pace: slow, gentle, use short sentences
 * Content: peaceful imagery, sensory details, no tension or conflict
 * Tone: soothing, maternal warmth
@@ -129,7 +131,7 @@ async function callGeminiAndParse(
         ],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 4096,
         },
       },
       { signal: controller.signal }
@@ -167,7 +169,7 @@ async function callGeminiAndParse(
   }
 
   const wordCount = cleanText.split(/\s+/).filter(Boolean).length
-  const estimatedDurationSec = Math.ceil((wordCount / 130) * 60)
+  const estimatedDurationSec = Math.ceil((wordCount / GENERATED_SLEEP_STORY_WPM) * 60)
 
   return {
     id: nanoid(10),

@@ -9,7 +9,6 @@ import {
 } from "@/lib/client/fetch-with-timeout"
 import { getBestAudioMimeType, isMobileBrowser, speakWithWebSpeechAPI } from "@/lib/client/browser-support"
 import { shouldUseTTS, truncateForTTS } from "@/lib/ai/tts-optimizer"
-import { PCMPlayer, globalPcmPlayer } from "@/lib/client/pcm-player"
 import type { VoiceState, ConversationEntry, PersonalityKey } from "@/types/chat"
 import { useEmotionDetector } from "@/hooks/useEmotionDetector"
 import type { AIDialSettings } from "@/hooks/useChatSettings"
@@ -122,7 +121,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   /** EDITH mode: always active — auto-restart recording after every response.
    *  BUG-004 fix: Defaults to false. Set to true when user explicitly enables continuous mode. */
   const edithModeRef = useRef(false)
-  const pcmPlayerRef = useRef<PCMPlayer | null>(null)
   const stateRef = useRef<VoiceState>("idle")
   
   // Keep stateRef synced so closures can read the latest state
@@ -165,8 +163,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         const AC = window.AudioContext || (window as any).webkitAudioContext
         const ctx = new AC()
         ctx.resume().then(() => ctx.close()).catch(() => {})
-        
-        globalPcmPlayer.init();
       } catch {}
       // Also play a silent audio to unlock HTMLAudioElement playback
       try {
@@ -318,16 +314,10 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
             audioPlayerRef.current.pause()
             audioPlayerRef.current = null
           }
-          // Stop PCM player if active
-          if (pcmPlayerRef.current) {
-            pcmPlayerRef.current.stop()
-            pcmPlayerRef.current = null
-          }
           stopTTSMonitorRef.current()
           cancelAbort()
-          setState("idle")
-          setStreamingText("")
-          setStatusText("Tap anywhere to speak")
+          setState("recording")
+          setStatusText("Listening...")
         }
         hasSpokenRef.current = true
         silentFrameCount = 0
@@ -443,7 +433,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         if (!ttsAnalyserRef.current) return
         ttsAnalyserRef.current.getByteFrequencyData(data)
         // Use average frequency (like mic monitor) instead of RMS of squared values.
-        // ElevenLabs audio is heavily normalized — raw RMS*4 was maxing out at 1.0
+        // Normalized TTS audio can make raw RMS*4 max out at 1.0
         // constantly, making particles go crazy. This matches the mic monitor's
         // calmer visual behavior.
         let fSum = 0
@@ -504,19 +494,12 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       }
 
       try {
-        const adaptation = getSmoothedAdaptation()
         const res = await fetchWithTimeout(
           "/api/v1/tts",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              text,
-              stability: adaptation.ttsStability,
-              similarityBoost: adaptation.ttsSimilarityBoost,
-              style: adaptation.ttsStyle,
-              speed: adaptation.ttsSpeed ?? 1.05,
-            }),
+            body: JSON.stringify({ text }),
             signal: ttsAbort.signal,
           },
           TTS_TIMEOUT,
@@ -1180,7 +1163,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
         }
 
         if (!playSucceeded) {
-          // ElevenLabs audio blocked — clean up and try Web Speech
+          // Audio playback blocked — clean up and try Web Speech
           stopTTSMonitor()
           URL.revokeObjectURL(url)
           audioPlayerRef.current = null
@@ -1197,7 +1180,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           return
         }
 
-        // ElevenLabs played successfully
+        // Audio played successfully
         conversationRef.current.push({ role: "assistant", content: text })
         await finished
 

@@ -1,5 +1,5 @@
 /**
- * Decide whether to invoke ElevenLabs TTS for a given response.
+ * Decide whether to invoke TTS for a given response.
  *
  * Returns false (skip TTS) ONLY when:
  *  - Voice is disabled
@@ -30,7 +30,7 @@ export function truncateForTTS(text: string): string {
 
   const truncated = sentences.slice(0, 4).join(" ")
   // BUG-C2 fix: only append "..." when we actually truncated something.
-  // Previously this always appended "..." causing ElevenLabs to speak or pause
+  // Previously this always appended "..." causing TTS playback to speak or pause
   // awkwardly on short responses that happened to have 4+ sentences.
   const wasTruncated = sentences.length > 4
   if (truncated.length > 800) {

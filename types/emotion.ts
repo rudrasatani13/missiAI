@@ -20,10 +20,6 @@ export interface EmotionProfile {
 export interface EmotionAdaptation {
   responseLength: 'short' | 'normal' | 'detailed'
   tone: 'gentle' | 'energetic' | 'calm' | 'direct' | 'encouraging'
-  ttsStability: number
-  ttsSimilarityBoost: number
-  ttsStyle: number
-  ttsSpeed?: number
   systemPromptSuffix: string
   maxOutputTokens: number
 }
