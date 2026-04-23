@@ -6,7 +6,9 @@ import {
     addToHistory, 
     getHistory,
     checkGenerationRateLimit,
-    incrementGenerationRateLimit
+    incrementGenerationRateLimit,
+    checkTTSRateLimit,
+    incrementTTSRateLimit
 } from '@/lib/sleep-sessions/session-store'
 import type { KVStore } from '@/types'
 
@@ -110,5 +112,24 @@ describe('Session Store', () => {
         const res3 = await checkGenerationRateLimit(kv, 'user1', 'pro')
         expect(res3.allowed).toBe(true)
         expect(res3.remaining).toBe(17) // 20 - 3
+    })
+
+    it('TTS Rate limit functions work correctly', async () => {
+        const res1 = await checkTTSRateLimit(kv, 'user1', 'free')
+        expect(res1.allowed).toBe(true)
+
+        // Simulating reaching limit of 10 for free users
+        for (let i = 0; i < 10; i++) {
+            await incrementTTSRateLimit(kv, 'user1')
+        }
+
+        const res2 = await checkTTSRateLimit(kv, 'user1', 'free')
+        expect(res2.allowed).toBe(false)
+        expect(res2.remaining).toBe(0)
+
+        // Pro user gets 100
+        const res3 = await checkTTSRateLimit(kv, 'user1', 'pro')
+        expect(res3.allowed).toBe(true)
+        expect(res3.remaining).toBe(90) // 100 - 10
     })
 })
