@@ -20,5 +20,5 @@ export default defineConfig({
       reporter: ["text", "lcov"],
     },
     setupFiles: ["tests/setup.ts"],
-  },
+  } as any,
 })
