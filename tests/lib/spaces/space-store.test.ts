@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { KVStore } from '@/types'
 
 // Passthrough crypto so tests don't depend on MISSI_KV_ENCRYPTION_SECRET or
@@ -300,5 +300,90 @@ describe('space-store', () => {
     expect(await getSpace(kv, meta.spaceId)).toBeNull()
     expect(await getSpaceMembers(kv, meta.spaceId)).toEqual([])
     expect(await getUserSpaces(kv, 'owner')).not.toContain(meta.spaceId)
+  })
+
+  describe('updateLastActive', () => {
+    let mockDateNow: ReturnType<typeof vi.spyOn>
+
+    beforeEach(() => {
+      // Mock Date.now to test lastActiveAt updating predictably
+      mockDateNow = vi.spyOn(Date, 'now').mockReturnValue(1234567890)
+    })
+
+    afterEach(() => {
+      mockDateNow.mockRestore()
+    })
+
+    it('updates lastActiveAt for an existing member', async () => {
+      const meta = await createSpace(kv, 'owner', 'Owner', {
+        name: 'Active Space',
+        description: '',
+        category: 'other',
+        emoji: '✨',
+      })
+
+      // Add a second member with an older lastActiveAt
+      await addMemberToSpace(kv, meta.spaceId, {
+        userId: 'member1',
+        role: 'member',
+        displayName: 'Member 1',
+        joinedAt: 1000000000,
+        lastActiveAt: 1000000000,
+      })
+
+      // Update the mocked date to simulate time passing
+      mockDateNow.mockReturnValue(9876543210)
+
+      const { updateLastActive } = await import('@/lib/spaces/space-store')
+      await updateLastActive(kv, meta.spaceId, 'member1')
+
+      const members = await getSpaceMembers(kv, meta.spaceId)
+      const member1 = members.find((m) => m.userId === 'member1')
+      const owner = members.find((m) => m.userId === 'owner')
+
+      expect(member1?.lastActiveAt).toBe(9876543210)
+
+      // The owner's lastActiveAt should remain unchanged (1234567890 from creation mock)
+      expect(owner?.lastActiveAt).toBe(1234567890)
+    })
+
+    it('returns early and makes no changes for non-existent member', async () => {
+      const meta = await createSpace(kv, 'owner', 'Owner', {
+        name: 'Active Space',
+        description: '',
+        category: 'other',
+        emoji: '✨',
+      })
+
+      const membersBefore = await getSpaceMembers(kv, meta.spaceId)
+
+      const { updateLastActive } = await import('@/lib/spaces/space-store')
+      await updateLastActive(kv, meta.spaceId, 'nonexistent')
+
+      const membersAfter = await getSpaceMembers(kv, meta.spaceId)
+      expect(membersAfter).toEqual(membersBefore)
+    })
+
+    it('swallows errors and does not throw', async () => {
+      const meta = await createSpace(kv, 'owner', 'Owner', {
+        name: 'Error Space',
+        description: '',
+        category: 'other',
+        emoji: '✨',
+      })
+
+      // Create a broken KV store that throws on read
+      const brokenKV: KVStore = {
+        ...kv,
+        get: vi.fn().mockRejectedValue(new Error('KV failure')),
+      }
+
+      const { updateLastActive } = await import('@/lib/spaces/space-store')
+
+      // This should not throw
+      await expect(
+        updateLastActive(brokenKV, meta.spaceId, 'owner')
+      ).resolves.toBeUndefined()
+    })
   })
 })
