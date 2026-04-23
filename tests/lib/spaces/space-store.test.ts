@@ -39,6 +39,7 @@ import {
   removeMemberFromSpace,
   verifyAndConsumeInvite,
   verifyMembership,
+  peekInvite,
 } from '@/lib/spaces/space-store'
 import { MAX_SPACE_MEMBERS, SPACE_WRITE_DAILY_LIMIT } from '@/types/spaces'
 
@@ -155,6 +156,60 @@ describe('space-store', () => {
 
     const out = await verifyAndConsumeInvite(kv, invite.token)
     expect(out).toBeNull()
+  })
+
+  it('peekInvite returns invite without consuming it', async () => {
+    const meta = await createSpace(kv, 'owner', 'O', {
+      name: 'S',
+      description: '',
+      category: 'other',
+      emoji: '✨',
+    })
+    const invite = await createInvite(
+      kv,
+      meta.spaceId,
+      'owner',
+      'test-secret-at-least-16-chars-long',
+    )
+
+    const peeked = await peekInvite(kv, invite.token)
+    expect(peeked?.token).toBe(invite.token)
+
+    // Token should still exist, so we can peek again
+    const peekedAgain = await peekInvite(kv, invite.token)
+    expect(peekedAgain?.token).toBe(invite.token)
+  })
+
+  it('peekInvite returns null for expired invite', async () => {
+    const meta = await createSpace(kv, 'owner', 'O', {
+      name: 'S',
+      description: '',
+      category: 'other',
+      emoji: '✨',
+    })
+    const invite = await createInvite(
+      kv,
+      meta.spaceId,
+      'owner',
+      'test-secret-at-least-16-chars-long',
+    )
+
+    const key = `space:invite:${invite.token}`
+    const raw = await kv.get(key)
+    expect(raw).not.toBeNull()
+    const decoded = JSON.parse(raw!.slice(4)) as {
+      expiresAt: number
+    }
+    decoded.expiresAt = Date.now() - 1000
+    await kv.put(key, `ENC:${JSON.stringify(decoded)}`)
+
+    const peeked = await peekInvite(kv, invite.token)
+    expect(peeked).toBeNull()
+  })
+
+  it('peekInvite returns null for non-existent invite', async () => {
+    const peeked = await peekInvite(kv, 'non-existent-token')
+    expect(peeked).toBeNull()
   })
 
   it('verifyAndConsumeInvite deletes token after consumption (single-use)', async () => {
