@@ -10,6 +10,9 @@ export default defineConfig({
     },
   },
   test: {
+    environmentMatchGlobs: [
+      ['tests/hooks/**', 'jsdom'],
+    ],
     environment: "node",
     include: ["tests/**/*.test.ts"],
     coverage: {
