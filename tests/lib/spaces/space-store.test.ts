@@ -36,6 +36,7 @@ import {
   getSpaceWriteRateLimit,
   getUserSpaces,
   incrementSpaceWriteRateLimit,
+  isSpaceWriteLimitExceeded,
   removeMemberFromSpace,
   verifyAndConsumeInvite,
   verifyMembership,
@@ -287,6 +288,13 @@ describe('space-store', () => {
       await incrementSpaceWriteRateLimit(kv, 'u')
     }
     expect(await getSpaceWriteRateLimit(kv, 'u')).toBe(SPACE_WRITE_DAILY_LIMIT)
+  })
+
+  it('isSpaceWriteLimitExceeded returns true when count is at or above the daily limit', () => {
+    expect(isSpaceWriteLimitExceeded(0)).toBe(false)
+    expect(isSpaceWriteLimitExceeded(SPACE_WRITE_DAILY_LIMIT - 1)).toBe(false)
+    expect(isSpaceWriteLimitExceeded(SPACE_WRITE_DAILY_LIMIT)).toBe(true)
+    expect(isSpaceWriteLimitExceeded(SPACE_WRITE_DAILY_LIMIT + 1)).toBe(true)
   })
 
   it('dissolveSpace removes all space keys', async () => {
