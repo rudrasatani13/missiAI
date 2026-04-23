@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useActionEngine } from '@/hooks/useActionEngine'
 
+// @vitest-environment jsdom
 describe('useActionEngine', () => {
   let originalFetch: typeof global.fetch
 

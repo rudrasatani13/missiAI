@@ -13,6 +13,7 @@ vi.mock('react', () => ({
 
 import { useEmotionDetector } from '@/hooks/useEmotionDetector'
 
+// @vitest-environment jsdom
 describe('useEmotionDetector', () => {
   it('same emotion twice in history → state confirmed', () => {
     const { analyzeRecording, currentEmotion } = useEmotionDetector()
