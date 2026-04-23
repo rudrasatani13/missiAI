@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest'
 import { generatePersonalizedStory, generateCustomStory, MAX_SLEEP_STORY_CHARS, sanitizeStoryText } from '@/lib/sleep-sessions/story-generator'
 import { geminiGenerate } from '@/lib/ai/vertex-client'
-import { getRandomFallbackStory } from '@/lib/sleep-sessions/library-stories'
 
 vi.mock('@/lib/ai/vertex-client', () => ({
   geminiGenerate: vi.fn()
@@ -78,7 +77,8 @@ describe('Story Generator', () => {
         it('returns fallback library story when Gemini times out / returns error', async () => {
             (geminiGenerate as Mock).mockRejectedValue(new Error("Timeout"))
             const result = await generatePersonalizedStory(mockContext)
-            expect(result.mode).toBe('library')
+            expect(result.mode).toBe('personalized_story')
+            expect(result.text.toLowerCase()).toContain('family and coding')
         })
 
         it('returns fallback when sanitization strips more than 30% of content', async () => {
@@ -92,7 +92,7 @@ describe('Story Generator', () => {
             })
             // Since most of the length is the SSML, it will get stripped, falling below 70% threshold
             const result = await generatePersonalizedStory(mockContext)
-            expect(result.mode).toBe('library')
+            expect(result.mode).toBe('personalized_story')
         })
     })
 
@@ -127,6 +127,33 @@ describe('Story Generator', () => {
             )
             const systemPrompt = ((geminiGenerate as Mock).mock.calls[0][1] as any).system_instruction.parts[0].text
             expect(systemPrompt).toContain('1200-2200 words')
+        })
+
+        it('returns a custom fallback story for franchise-style prompts when Gemini fails', async () => {
+            (geminiGenerate as Mock).mockRejectedValue(new Error('Timeout'))
+
+            const result = await generateCustomStory('Lord of the Rings')
+
+            expect(result.mode).toBe('custom_story')
+            expect(result.title).toContain('Lord of the Rings')
+            expect(result.text).toContain('Lord of the Rings')
+        })
+
+        it('replaces refusal-style model output with a custom themed fallback story', async () => {
+            (geminiGenerate as Mock).mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    candidates: [{
+                        content: { parts: [{ text: "Sorry, I can't provide a story in that copyrighted world, but I can offer something inspired by it." }] }
+                    }]
+                })
+            })
+
+            const result = await generateCustomStory('Lord of the Rings')
+
+            expect(result.mode).toBe('custom_story')
+            expect(result.text).not.toContain("Sorry, I can't provide")
+            expect(result.text).toContain('Lord of the Rings')
         })
     })
 })
