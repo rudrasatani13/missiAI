@@ -161,15 +161,16 @@ describe('usage-tracker (time-based)', () => {
         voiceInteractions: 50, voiceSecondsUsed: 598, lastUpdatedAt: Date.now(),
       }))
 
-      // 5s recording should still be allowed (598 < 600)
+      // Under increment-first, adding 5s brings us to 603.
+      // Since 603 > 600 limit, the call is blocked immediately, bounding the overshoot.
       const r1 = await checkAndIncrementVoiceTime(kv, 'user_limit', 'free', 5000)
-      expect(r1.allowed).toBe(true)
+      expect(r1.allowed).toBe(false)
       expect(r1.usedSeconds).toBe(603) // 598 + 5
 
-      // Next call should be blocked (603 >= 600)
+      // Next call should also be blocked (603 + 5 = 608)
       const r2 = await checkAndIncrementVoiceTime(kv, 'user_limit', 'free', 5000)
       expect(r2.allowed).toBe(false)
-      expect(r2.usedSeconds).toBe(603)
+      expect(r2.usedSeconds).toBe(608)
     })
 
     it('enforces minimum 3s even if client sends 0', async () => {

@@ -52,7 +52,11 @@ describe('bot-auth Telegram link attempts', () => {
 
     const result = await checkAndIncrementTgLinkAttempt(kv, 12345, '2026-04-27')
 
-    expect(result).toEqual({ allowed: false, attempts: 10 })
-    expect(kv.put).not.toHaveBeenCalled()
+    expect(result).toEqual({ allowed: false, attempts: 11 })
+    expect(kv.put).toHaveBeenCalledWith(
+      'bot:tg:link-attempts:12345:2026-04-27',
+      '11',
+      { expirationTtl: 24 * 3600 },
+    )
   })
 })
