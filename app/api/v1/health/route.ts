@@ -12,7 +12,6 @@ import {
 } from "@/lib/server/platform/bindings"
 import { envExists } from "@/lib/server/platform/env"
 
-export const runtime = "edge"
 
 interface CheckResult {
   status: "ok" | "degraded" | "not_configured" | "error" | "skipped"
