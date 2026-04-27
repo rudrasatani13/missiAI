@@ -9,7 +9,9 @@
     "workers/**/*.ts",
     "lib/ai/live/ticket.ts",
     "lib/ai/providers/vertex-auth.ts",
-    "lib/server/platform/env.ts"
+    "lib/server/platform/env.ts",
+    "tests/workers/**/*.ts",
+    "tests/mocks/**/*.ts"
   ],
   "exclude": [
     "node_modules",

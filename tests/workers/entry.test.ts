@@ -1,21 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const {
-  openNextFetchMock,
-  handleLiveWsMock,
-} = vi.hoisted(() => ({
-  openNextFetchMock: vi.fn(),
+const { handleLiveWsMock } = vi.hoisted(() => ({
   handleLiveWsMock: vi.fn(),
 }))
 
-vi.mock("../../.open-next/worker.js", () => ({
-  default: {
-    fetch: openNextFetchMock,
-  },
-  DOQueueHandler: class {},
-  DOShardedTagCache: class {},
-  BucketCachePurge: class {},
-}))
+import { openNextFetchMock } from "@/tests/mocks/open-next-worker"
 
 vi.mock("@/workers/live/handler", () => ({
   handleLiveWs: handleLiveWsMock,
@@ -28,8 +17,8 @@ describe("workers/entry", () => {
     vi.clearAllMocks()
     openNextFetchMock.mockResolvedValue(new Response("open-next", { status: 200 }))
     handleLiveWsMock.mockResolvedValue(new Response("relay", { status: 200 }))
-    process.env.MISSI_EXISTING = "existing"
-    delete process.env.MISSI_ADDED_FROM_ENV
+    process.env["MISSI_EXISTING"] = "existing"
+    delete process.env["MISSI_ADDED_FROM_ENV"]
   })
 
   it("routes voice relay requests to the live websocket handler and syncs string env bindings", async () => {
@@ -50,8 +39,8 @@ describe("workers/entry", () => {
     expect(await response.text()).toBe("relay")
     expect(handleLiveWsMock).toHaveBeenCalledWith(request, env, ctx)
     expect(openNextFetchMock).not.toHaveBeenCalled()
-    expect(process.env.MISSI_EXISTING).toBe("existing")
-    expect(process.env.MISSI_ADDED_FROM_ENV).toBe("incoming-added")
+    expect(process.env["MISSI_EXISTING"]).toBe("existing")
+    expect(process.env["MISSI_ADDED_FROM_ENV"]).toBe("incoming-added")
   })
 
   it("passes non-relay requests through to the OpenNext worker", async () => {
@@ -70,6 +59,6 @@ describe("workers/entry", () => {
     expect(await response.text()).toBe("open-next")
     expect(openNextFetchMock).toHaveBeenCalledWith(request, env, ctx)
     expect(handleLiveWsMock).not.toHaveBeenCalled()
-    expect(process.env.MISSI_ADDED_FROM_ENV).toBe("incoming-added")
+    expect(process.env["MISSI_ADDED_FROM_ENV"]).toBe("incoming-added")
   })
 })

@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      "../.open-next/worker.js": path.resolve(__dirname, "tests/mocks/open-next-worker.ts"),
     },
   },
   test: {
