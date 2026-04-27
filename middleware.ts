@@ -1,7 +1,8 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import type { NextRequest, NextFetchEvent } from "next/server"
-import { log, logAuthEvent, logSecurityEvent } from "@/lib/server/logger"
+import { log, logAuthEvent, logSecurityEvent } from "@/lib/server/observability/logger"
+import { getAdminRoleFromAuth, isAdminUser } from "@/lib/server/security/admin-auth"
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -432,8 +433,6 @@ function rateLimited429(
 
 const clerkHandler = clerkMiddleware(
   async (auth, request) => {
-  const startTime = Date.now()
-
   if (isAPIRoute(request)) {
     const ip = getClientIP(request)
 
@@ -479,12 +478,10 @@ const clerkHandler = clerkMiddleware(
 
     if (isAdminRoute(request)) {
       const authObj = await auth()
-      const rawRole = (authObj.sessionClaims?.metadata as any)?.role
-      const role = typeof rawRole === 'string' ? rawRole : undefined
-      const isRoleAdmin = role === "admin"
-      const isSuperAdminEnv = process.env.ADMIN_USER_ID ? authObj.userId === process.env.ADMIN_USER_ID : false
+      const role = getAdminRoleFromAuth(authObj)
+      const isAdminAllowed = isAdminUser(authObj)
 
-      if (!isRoleAdmin && !isSuperAdminEnv) {
+      if (!isAdminAllowed) {
         return applySecurityHeaders(
           new NextResponse(
             JSON.stringify({ error: "Forbidden: Admin access required" }),
@@ -549,21 +546,18 @@ const clerkHandler = clerkMiddleware(
 
     if (isAdminRoute(request)) {
       const authObj = await auth()
-      const rawPageRole = (authObj.sessionClaims?.metadata as any)?.role
-      const role = typeof rawPageRole === 'string' ? rawPageRole : undefined
-      const isRoleAdmin = role === "admin"
-      const adminEnv = process.env.ADMIN_USER_ID
-      const isSuperAdminEnv = adminEnv ? authObj.userId === adminEnv : false
+      const role = getAdminRoleFromAuth(authObj)
+      const isAdminAllowed = isAdminUser(authObj)
 
       log({
         level: "debug",
         event: "admin.access_check",
         userId: authObj.userId ?? undefined,
-        metadata: { role, isRoleAdmin, isSuperAdminEnv, path: request.nextUrl.pathname },
+        metadata: { role, isAdminAllowed, path: request.nextUrl.pathname },
         timestamp: Date.now(),
       })
 
-      if (!isRoleAdmin && !isSuperAdminEnv) {
+      if (!isAdminAllowed) {
         const signInUrl = new URL("/sign-in", request.url)
         signInUrl.searchParams.set("redirect_url", request.nextUrl.pathname)
         return NextResponse.redirect(signInUrl)

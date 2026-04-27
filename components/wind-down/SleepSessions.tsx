@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Moon, Play, Pause, X, SkipForward, SkipBack, Edit3, Wind, BookOpen, Stars } from 'lucide-react'
-import { useSleepSessions } from '@/hooks/useSleepSessions'
+import { useSleepSessions } from '@/hooks/wind-down/useSleepSessions'
 import type { SleepStory, BreathingTechnique } from '@/types/sleep-sessions'
 
 type ProcessingState = {

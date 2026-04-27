@@ -5,7 +5,7 @@ import { dark } from "@clerk/themes"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { LEDLogo } from "@/components/ui/LEDLogo"
+import { LEDLogo } from "@/components/brand/LEDLogo"
 
 export default function SignInPage() {
   const [mounted, setMounted] = useState(false)

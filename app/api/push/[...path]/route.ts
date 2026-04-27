@@ -3,13 +3,12 @@
 // Handles: subscribe, trigger
 
 import { NextRequest } from "next/server"
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
-import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/security/auth"
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/server/security/rate-limiter"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { getCloudflareContext } from "@opennextjs/cloudflare"
+import { getCloudflareKVBinding } from "@/lib/server/platform/bindings"
 import { z } from "zod"
-import { logError } from "@/lib/server/logger"
-import type { KVStore } from "@/types"
+import { logError } from "@/lib/server/observability/logger"
 
 
 const MAX_SUBSCRIPTION_BYTES = 16_384
@@ -22,15 +21,6 @@ const pushSubscriptionSchema = z.object({
   }),
   expirationTime: z.number().nullable().optional(),
 })
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
-  }
-}
 
 function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -74,7 +64,7 @@ async function handleSubscribe(req: NextRequest) {
     return jsonResponse({ success: false, error: "Invalid push subscription format", code: "VALIDATION_ERROR" }, 400)
   }
 
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
   if (!kv) {
     return jsonResponse({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }, 500)
   }

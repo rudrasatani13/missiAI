@@ -1,12 +1,11 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/security/auth'
 import { getBudgetKV } from '@/lib/budget/kv'
 import {
   getEntries,
   saveEntry,
-  checkRateLimit,
-  incrementRateLimit,
+  checkAndIncrementRateLimit,
 } from '@/lib/budget/budget-store'
 import { validateCurrency } from '@/lib/budget/currency'
 import { awardBudgetXP } from '@/lib/gamification/budget-xp'
@@ -128,8 +127,14 @@ export async function POST(req: NextRequest) {
 
   // Rate limit
   const today = new Date().toISOString().slice(0, 10)
-  const rateLimit = await checkRateLimit(kv, userId, today)
+  const rateLimit = await checkAndIncrementRateLimit(kv, userId, today)
   if (!rateLimit.allowed) {
+    if (rateLimit.unavailable) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Rate limit service unavailable' }),
+        { status: 503, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
     return new Response(
       JSON.stringify({ success: false, error: 'Daily entry limit reached (200/day)' }),
       { status: 429, headers: { 'Content-Type': 'application/json' } },
@@ -153,7 +158,6 @@ export async function POST(req: NextRequest) {
 
   try {
     await saveEntry(kv, userId, entry)
-    await incrementRateLimit(kv, userId, today)
     // Fire-and-forget XP
     awardBudgetXP(kv, userId).catch(() => {})
 

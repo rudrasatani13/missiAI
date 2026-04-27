@@ -10,15 +10,14 @@ import {
   getVerifiedUserId,
   AuthenticationError,
   unauthorizedResponse,
-} from '@/lib/server/auth'
+} from '@/lib/server/security/auth'
 import { validationErrorResponse } from '@/lib/validation/schemas'
-import { logError, logRequest } from '@/lib/server/logger'
-import { getLifeGraph } from '@/lib/memory/life-graph'
+import { logError, logRequest } from '@/lib/server/observability/logger'
+import { getLifeGraphReadSnapshot } from '@/lib/memory/life-graph'
 import {
   addNodeToSpace,
-  getSpaceWriteRateLimit,
-  incrementSpaceWriteRateLimit,
-  isSpaceWriteLimitExceeded,
+  releaseSpaceQuotaReservation,
+  reserveSpaceWriteQuota,
   updateLastActive,
   verifyMembership,
 } from '@/lib/spaces/space-store'
@@ -58,15 +57,6 @@ export async function POST(
   const member = await verifyMembership(kv, spaceId, userId)
   if (!member) return errorResponse('Not a member of this Space', 'FORBIDDEN', 403)
 
-  const writeCount = await getSpaceWriteRateLimit(kv, userId)
-  if (isSpaceWriteLimitExceeded(writeCount)) {
-    return errorResponse(
-      'Daily Space write limit reached. Try again tomorrow.',
-      'RATE_LIMITED',
-      429,
-    )
-  }
-
   let body: unknown
   try {
     body = await req.json()
@@ -79,33 +69,51 @@ export async function POST(
 
   try {
     // Read the USER's OWN personal graph. Any userId mismatch is impossible
-    // here because `getLifeGraph` takes userId from `getVerifiedUserId()`.
-    const personalGraph = await getLifeGraph(kv, userId)
+    // here because `getLifeGraphReadSnapshot` takes userId from `getVerifiedUserId()`.
+    const personalGraph = await getLifeGraphReadSnapshot(kv, userId)
     const source = personalGraph.nodes.find((n) => n.id === parsed.data.personalNodeId)
     if (!source) {
       return errorResponse('Personal memory not found', 'NOT_FOUND', 404)
     }
 
+    const reservation = await reserveSpaceWriteQuota(userId)
+    if (!reservation.allowed) {
+      if (reservation.unavailable) {
+        return errorResponse('Rate limit service unavailable', 'SERVICE_UNAVAILABLE', 503)
+      }
+      return errorResponse(
+        'Daily Space write limit reached. Try again tomorrow.',
+        'RATE_LIMITED',
+        429,
+      )
+    }
+
     // Build a sanitized Space-node input from the personal node. We do NOT
     // copy the personal node's id or internal timestamps — addNodeToSpace
     // generates a fresh id so the Space copy is an independent record.
-    const shared = await addNodeToSpace(kv, spaceId, userId, member.displayName, {
-      category: source.category,
-      title: sanitizeMemories(source.title).slice(0, 80),
-      detail: sanitizeMemories(source.detail).slice(0, 500),
-      tags: source.tags
-        .map((t) => sanitizeMemories(t).slice(0, 30))
-        .filter((t) => t.length > 0)
-        .slice(0, 8),
-      people: source.people
-        .map((p) => sanitizeMemories(p).slice(0, 50))
-        .filter((p) => p.length > 0)
-        .slice(0, 10),
-      emotionalWeight: source.emotionalWeight,
-    })
+    let shared
+    try {
+      shared = await addNodeToSpace(kv, spaceId, userId, member.displayName, {
+        category: source.category,
+        title: sanitizeMemories(source.title).slice(0, 80),
+        detail: sanitizeMemories(source.detail).slice(0, 500),
+        tags: source.tags
+          .map((t) => sanitizeMemories(t).slice(0, 30))
+          .filter((t) => t.length > 0)
+          .slice(0, 8),
+        people: source.people
+          .map((p) => sanitizeMemories(p).slice(0, 50))
+          .filter((p) => p.length > 0)
+          .slice(0, 10),
+        emotionalWeight: source.emotionalWeight,
+      })
+    } catch (err) {
+      const released = await releaseSpaceQuotaReservation(reservation)
+      if (!released) logError('spaces.memory.share.quota_release_error', err, userId)
+      throw err
+    }
 
-    incrementSpaceWriteRateLimit(kv, userId).catch(() => {})
-    updateLastActive(kv, spaceId, userId).catch(() => {})
+    updateLastActive(kv, spaceId, userId).catch((err) => logError('spaces.memory.share.background_error', err, userId))
 
     logRequest('spaces.memory.share', userId, startTime, {
       spaceId,

@@ -1,24 +1,12 @@
 import { NextRequest } from "next/server"
-import { getCloudflareContext } from "@opennextjs/cloudflare"
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
+import { getCloudflareKVBinding } from "@/lib/server/platform/bindings"
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/security/auth"
 import { sttSchema, validationErrorResponse } from "@/lib/validation/schemas"
-import { geminiSpeechToText } from "@/services/voice.service"
-import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
-import { logRequest, logError, logApiError } from "@/lib/server/logger"
+import { geminiSpeechToText } from "@/lib/ai/services/voice-service"
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/server/security/rate-limiter"
+import { logRequest, logError, logApiError } from "@/lib/server/observability/logger"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
-import type { KVStore } from "@/types"
-
-
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
-  }
-}
 
 const STT_TIMEOUT_MS = 15_000
 
@@ -53,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   // ── 2. Plan & KV setup (fail-closed for non-pro when KV is down) ─────────
   const planId = await getUserPlan(userId)
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
 
   if (!kv && planId !== 'pro') {
     return jsonResponse({ success: false, error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" }, 503)
@@ -117,6 +105,11 @@ export async function POST(req: NextRequest) {
   if (kv) {
     const voiceLimit = await checkAndIncrementVoiceTime(kv, userId, planId, effectiveDurationMs)
     if (!voiceLimit.allowed) {
+      if (voiceLimit.unavailable) {
+        logRequest("stt.voice_quota_unavailable", userId, startTime)
+        return jsonResponse({ success: false, error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" }, 503)
+      }
+
       logRequest("stt.voice_limit", userId, startTime)
       return jsonResponse({
         success: false,

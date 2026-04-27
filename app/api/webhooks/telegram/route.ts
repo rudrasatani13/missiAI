@@ -7,7 +7,6 @@
 //   TELEGRAM_BOT_TOKEN       — Telegram bot API token
 //   TELEGRAM_WEBHOOK_SECRET  — Secret token set when registering the webhook
 
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { verifyTelegramSecret, sendTelegramMessage } from '@/lib/bot/telegram-client'
 import {
   resolveClerkUserFromTelegramId,
@@ -17,55 +16,53 @@ import {
   isMessageDuplicate,
   markMessageProcessed,
   consumeTelegramLinkCode,
+  checkAndIncrementTgLinkAttempt,
 } from '@/lib/bot/bot-auth'
 import { processBotMessage } from '@/lib/bot/bot-pipeline'
-import { logSecurityEvent, logApiError, log } from '@/lib/server/logger'
+import {
+  getCloudflareExecutionContext,
+  getCloudflareKVBinding,
+  getCloudflareVectorizeEnv,
+} from '@/lib/server/platform/bindings'
+import { logSecurityEvent, logApiError, log } from '@/lib/server/observability/logger'
+import { getTodayUTC } from '@/lib/server/utils/date-utils'
+import { errorMessage } from '@/lib/server/security/crypto-utils'
 import type { KVStore } from '@/types'
-import type { VectorizeEnv } from '@/lib/memory/vectorize'
+import { z } from 'zod'
 
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
-  }
-}
+const telegramMessageSchema = z.object({
+  chat: z.object({ id: z.number() }).passthrough().optional(),
+  from: z.object({ id: z.number() }).passthrough().optional(),
+  text: z.string().optional(),
+}).passthrough()
 
-function getVectorizeEnv(): VectorizeEnv | null {
-  try {
-    const { env } = getCloudflareContext()
-    const lg = (env as any).LIFE_GRAPH
-    return lg ? { LIFE_GRAPH: lg } : null
-  } catch {
-    return null
-  }
-}
+const telegramUpdateSchema = z.object({
+  update_id: z.number().int().optional(),
+  message: telegramMessageSchema.optional(),
+}).passthrough()
 
-function getExecutionContext(): { waitUntil: (p: Promise<unknown>) => void } | null {
-  try {
-    const { ctx } = getCloudflareContext() as { ctx?: { waitUntil: (p: Promise<unknown>) => void } }
-    return ctx ?? null
-  } catch {
-    return null
-  }
-}
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
+// P3-2 + P3-3: today() and errorMessage() moved to shared modules.
+// Imports: getTodayUTC from date-utils, errorMessage from crypto-utils.
 
 async function sendTelegramReply(
   execCtx: { waitUntil: (p: Promise<unknown>) => void } | null,
   chatId: number,
   text: string,
-) {
-  const replyPromise = sendTelegramMessage(chatId, text).catch(() => {})
+  metadata: Record<string, unknown> = {},
+): Promise<boolean> {
+  const replyPromise = sendTelegramMessage(chatId, text).then(() => true).catch((err) => {
+    log({
+      level: 'error',
+      event: 'bot.tg.reply_failed',
+      metadata: { chatId, error: errorMessage(err), ...metadata },
+      timestamp: Date.now(),
+    })
+    return false
+  })
   if (execCtx) {
     execCtx.waitUntil(replyPromise)
-    return
   }
-  await replyPromise
+  return replyPromise
 }
 
 // ─── POST — Incoming update processing ───────────────────────────────────────
@@ -104,16 +101,26 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   // ── 2. Parse JSON body ─────────────────────────────────────────────────────
-  let update: any
+  let rawUpdate: unknown
   try {
-    update = await req.json()
+    rawUpdate = await req.json()
   } catch {
     return ok200
   }
 
-  const kv = getKV()
-  const vectorizeEnv = getVectorizeEnv()
-  const execCtx = getExecutionContext()
+  const parsedUpdate = telegramUpdateSchema.safeParse(rawUpdate)
+  if (!parsedUpdate.success) {
+    logSecurityEvent('security.bot.tg.invalid_payload', {
+      path: '/api/webhooks/telegram',
+      metadata: { issue: parsedUpdate.error.issues[0]?.message ?? 'Invalid payload' },
+    })
+    return ok200
+  }
+  const update = parsedUpdate.data
+
+  const kv = getCloudflareKVBinding()
+  const vectorizeEnv = getCloudflareVectorizeEnv()
+  const execCtx = getCloudflareExecutionContext()
   if (!kv) return ok200
 
   // ── 3. Deduplication by update_id ─────────────────────────────────────────
@@ -125,34 +132,38 @@ export async function POST(req: Request): Promise<Response> {
     log({ level: 'info', event: 'bot.tg.dedup_skipped', metadata: { updateId }, timestamp: Date.now() })
     return ok200
   }
-  await markMessageProcessed(kv, 'telegram', updateId)
 
   // ── 4. Extract message ─────────────────────────────────────────────────────
   const message = update?.message
   if (!message) return ok200 // Callback query, inline query, etc.
 
-  const chatId: number = message.chat?.id
-  const telegramUserId: number = message.from?.id
+  const chatId = message.chat?.id
+  const telegramUserId = message.from?.id
   const messageText: string = message.text ?? ''
 
-  if (!chatId || !telegramUserId) return ok200
+  if (chatId === undefined || telegramUserId === undefined) return ok200
 
   // ── 5. Handle /start {code} — Telegram account linking ────────────────────
   if (messageText.startsWith('/start ')) {
     const code = messageText.slice(7).trim()
     if (code) {
-      await handleTelegramLinking(kv, code, telegramUserId, chatId)
+      const handled = await handleTelegramLinking(kv, code, telegramUserId, chatId)
+      if (handled) {
+        await markMessageProcessed(kv, 'telegram', updateId)
+      }
       return ok200
     }
   }
 
   // Welcome message for /start without a code
   if (messageText === '/start') {
-    await sendTelegramReply(
+    const delivered = await sendTelegramReply(
       execCtx,
       chatId,
       'Hi! I\'m Missi 🤖 To chat with me here, link your Telegram account at missi.space/settings/integrations — takes just 30 seconds!',
+      { updateId, branch: 'start_without_code' },
     )
+    if (delivered) await markMessageProcessed(kv, 'telegram', updateId)
     return ok200
   }
 
@@ -163,11 +174,13 @@ export async function POST(req: Request): Promise<Response> {
       path: '/api/webhooks/telegram',
       metadata: { telegramUserId: String(telegramUserId).slice(0, 4) + '****' },
     })
-    await sendTelegramReply(
+    const delivered = await sendTelegramReply(
       execCtx,
       chatId,
       'Hey! To chat with me here, link your Telegram at missi.space/settings/integrations 🚀',
+      { updateId, branch: 'unknown_sender' },
     )
+    if (delivered) await markMessageProcessed(kv, 'telegram', updateId)
     return ok200
   }
 
@@ -179,34 +192,40 @@ export async function POST(req: Request): Promise<Response> {
       path: '/api/webhooks/telegram',
       metadata: { planId },
     })
-    await sendTelegramReply(
+    const delivered = await sendTelegramReply(
       execCtx,
       chatId,
       'Telegram access is a Pro feature. Upgrade at missi.space/pricing to chat with me here! 🚀',
+      { updateId, branch: 'plan_gate' },
     )
+    if (delivered) await markMessageProcessed(kv, 'telegram', updateId)
     return ok200
   }
 
   // ── 8. Daily message limit ─────────────────────────────────────────────────
   const { allowed: limitAllowed } = await checkAndIncrementBotDailyLimit(
-    kv, 'telegram', userId, today(),
+    kv, 'telegram', userId, getTodayUTC(),
   )
   if (!limitAllowed) {
-    await sendTelegramReply(
+    const delivered = await sendTelegramReply(
       execCtx,
       chatId,
       'You\'ve hit your daily message limit! Let\'s chat again tomorrow 😊',
+      { updateId, branch: 'daily_limit' },
     )
+    if (delivered) await markMessageProcessed(kv, 'telegram', updateId)
     return ok200
   }
 
   // ── 9. Handle non-text message types ──────────────────────────────────────
   if (!messageText.trim()) {
-    await sendTelegramReply(
+    const delivered = await sendTelegramReply(
       execCtx,
       chatId,
       'I can only understand text messages for now! 🙏',
+      { updateId, branch: 'non_text' },
     )
+    if (delivered) await markMessageProcessed(kv, 'telegram', updateId)
     return ok200
   }
 
@@ -223,11 +242,29 @@ export async function POST(req: Request): Promise<Response> {
         messageText,
         platform: 'telegram',
       })
-      await sendTelegramMessage(chatId, reply)
-      log({ level: 'info', event: 'bot.tg.message_processed', userId, timestamp: Date.now() })
+      await sendTelegramMessage(chatId, reply).catch((replyErr) => {
+        log({
+          level: 'error',
+          event: 'bot.tg.reply_failed',
+          userId,
+          metadata: { updateId, chatId, branch: 'main_reply', error: errorMessage(replyErr) },
+          timestamp: Date.now(),
+        })
+        throw replyErr
+      })
+      await markMessageProcessed(kv, 'telegram', updateId)
+      log({ level: 'info', event: 'bot.tg.message_processed', userId, metadata: { updateId }, timestamp: Date.now() })
     } catch (err) {
       logApiError('bot.tg.processing_error', err, { userId, httpStatus: 500, path: '/api/webhooks/telegram' })
-      sendTelegramMessage(chatId, 'Oops, something went wrong! Please try again in a bit 🙏').catch(() => {})
+      sendTelegramMessage(chatId, 'Oops, something went wrong! Please try again in a bit 🙏').catch((replyErr) => {
+        log({
+          level: 'error',
+          event: 'bot.tg.reply_failed',
+          userId,
+          metadata: { updateId, chatId, branch: 'processing_error_fallback', error: errorMessage(replyErr) },
+          timestamp: Date.now(),
+        })
+      })
     }
   })()
 
@@ -247,15 +284,24 @@ async function handleTelegramLinking(
   code: string,
   telegramUserId: number,
   chatId: number,
-): Promise<void> {
+): Promise<boolean> {
   try {
+    const rateResult = await checkAndIncrementTgLinkAttempt(kv, telegramUserId, getTodayUTC())
+    if (!rateResult.allowed) {
+      logSecurityEvent('security.bot.tg.link_attempts_exceeded', {
+        path: '/api/webhooks/telegram',
+        metadata: { telegramUserId: String(telegramUserId).slice(0, 4) + '****', attempts: rateResult.attempts },
+      })
+      return true
+    }
+
     const result = await consumeTelegramLinkCode(kv, code)
     if (!result) {
       await sendTelegramMessage(
         chatId,
         'This link has expired or is invalid. Please generate a new one from missi.space/settings/integrations',
       )
-      return
+      return true
     }
 
     const { clerkUserId } = result
@@ -272,8 +318,17 @@ async function handleTelegramLinking(
       chatId,
       'Connected to your Missi account! 🎉 You can now chat with me directly here. What do you need?',
     )
+    return true
   } catch (err) {
     logApiError('bot.tg.linking_error', err, { httpStatus: 500, path: '/api/webhooks/telegram' })
-    await sendTelegramMessage(chatId, 'Linking failed — please try again from missi.space').catch(() => {})
+    await sendTelegramMessage(chatId, 'Linking failed — please try again from missi.space').catch((replyErr) => {
+      log({
+        level: 'error',
+        event: 'bot.tg.reply_failed',
+        metadata: { chatId, branch: 'linking_error_fallback', error: errorMessage(replyErr) },
+        timestamp: Date.now(),
+      })
+    })
+    return false
   }
 }

@@ -1,62 +1,70 @@
 import type { KVStore } from '@/types'
-import type { SleepStory, SleepSessionHistoryEntry, SleepSession } from '@/types/sleep-sessions'
-
-export async function getActiveSleepSession(kv: KVStore, userId: string): Promise<SleepSession | null> {
-  try {
-    const session = await kv.get<SleepSession>(`sleep-session:${userId}`, { type: 'json' })
-    return session || null
-  } catch {
-    return null
-  }
-}
+import type { SleepStory, SleepSessionHistoryEntry } from '@/types/sleep-sessions'
+import {
+  deleteSleepHistoryEntryRecord,
+  getSleepDailyQuotaRecord,
+  getSleepLastStoryRecord,
+  listSleepHistoryEntries,
+  putSleepLastStoryRecord,
+  putSleepDailyQuotaRecord,
+  putSleepHistoryEntryRecord,
+  saveSleepHistoryIndex,
+  SLEEP_HISTORY_INDEX_LIMIT,
+} from '@/lib/sleep-sessions/session-record-store'
 
 export async function cacheGeneratedStory(kv: KVStore, userId: string, story: SleepStory): Promise<void> {
-  const key = `sleep-story:last:${userId}`
-  const ttl = 86400 // 24 hours
-  await kv.put(key, JSON.stringify(story), { expirationTtl: ttl })
+  await putSleepLastStoryRecord(kv, userId, story)
 }
 
 export async function getLastGeneratedStory(kv: KVStore, userId: string): Promise<SleepStory | null> {
-  const key = `sleep-story:last:${userId}`
-  const raw = await kv.get(key)
-  if (!raw) return null
-  try {
-    return JSON.parse(raw) as SleepStory
-  } catch {
-    return null
-  }
+  return getSleepLastStoryRecord(kv, userId)
+}
+
+function getHistoryEntryIds(history: SleepSessionHistoryEntry[]): string[] {
+  return history
+    .map((entry) => (typeof entry?.id === 'string' ? entry.id.trim() : ''))
+    .filter(Boolean)
 }
 
 export async function addToHistory(kv: KVStore, userId: string, entry: SleepSessionHistoryEntry): Promise<void> {
-  const key = `sleep-sessions:history:${userId}`
-  const raw = await kv.get(key)
-  let history: SleepSessionHistoryEntry[] = []
-  if (raw) {
-    try {
-      history = JSON.parse(raw)
-    } catch {
-      history = []
-    }
-  }
+  const currentHistory = await listSleepHistoryEntries(kv, userId, SLEEP_HISTORY_INDEX_LIMIT)
+  const nextHistory = [entry, ...currentHistory.filter((existingEntry) => existingEntry?.id !== entry.id)]
+    .slice(0, SLEEP_HISTORY_INDEX_LIMIT)
 
-  history.unshift(entry)
-  if (history.length > 30) {
-    history = history.slice(0, 30)
-  }
+  const storedHistory = await Promise.all(
+    nextHistory.map(async (historyEntry) => {
+      try {
+        return await putSleepHistoryEntryRecord(kv, userId, historyEntry)
+      } catch {
+        return null
+      }
+    }),
+  )
 
-  await kv.put(key, JSON.stringify(history))
+  const storedEntryIds = storedHistory
+    .filter((historyEntry): historyEntry is SleepSessionHistoryEntry => historyEntry !== null)
+    .map((historyEntry) => historyEntry.id)
+
+  await saveSleepHistoryIndex(kv, userId, storedEntryIds)
+
+  const removedEntryIds = getHistoryEntryIds(currentHistory)
+    .filter((entryId) => !storedEntryIds.includes(entryId))
+
+  await Promise.all(
+    removedEntryIds.map(async (entryId) => {
+      try {
+        await deleteSleepHistoryEntryRecord(kv, userId, entryId)
+      } catch {
+      }
+    }),
+  )
 }
 
 export async function getHistory(kv: KVStore, userId: string, limit: number = 20): Promise<SleepSessionHistoryEntry[]> {
-  const key = `sleep-sessions:history:${userId}`
-  const raw = await kv.get(key)
-  if (!raw) return []
-  try {
-    const history = JSON.parse(raw) as SleepSessionHistoryEntry[]
-    return history.slice(0, limit)
-  } catch {
-    return []
-  }
+  const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 20
+  if (safeLimit === 0) return []
+
+  return (await listSleepHistoryEntries(kv, userId, SLEEP_HISTORY_INDEX_LIMIT)).slice(0, safeLimit)
 }
 
 function getTodayStr(): string {
@@ -77,10 +85,8 @@ export async function checkGenerationRateLimit(
   planId: string
 ): Promise<{ allowed: boolean; remaining: number }> {
   const today = getTodayStr()
-  const key = `ratelimit:sleep-story-gen:${userId}:${today}`
-  const raw = await kv.get(key)
-  let count = 0
-  if (raw) count = parseInt(raw, 10)
+  const quota = await getSleepDailyQuotaRecord(kv, userId, today)
+  const count = quota?.generationCount ?? 0
 
   const limit = getGenerationLimit(planId)
   return {
@@ -95,10 +101,8 @@ export async function checkTTSRateLimit(
   planId: string
 ): Promise<{ allowed: boolean; remaining: number }> {
   const today = getTodayStr()
-  const key = `ratelimit:sleep-story-tts:${userId}:${today}`
-  const raw = await kv.get(key)
-  let count = 0
-  if (raw) count = parseInt(raw, 10)
+  const quota = await getSleepDailyQuotaRecord(kv, userId, today)
+  const count = quota?.ttsCount ?? 0
 
   const limit = getTTSLimit(planId)
   return {
@@ -109,20 +113,26 @@ export async function checkTTSRateLimit(
 
 export async function incrementGenerationRateLimit(kv: KVStore, userId: string): Promise<void> {
   const today = getTodayStr()
-  const key = `ratelimit:sleep-story-gen:${userId}:${today}`
-  const raw = await kv.get(key)
-  let count = 0
-  if (raw) count = parseInt(raw, 10)
-  
-  await kv.put(key, String(count + 1), { expirationTtl: 86400 })
+  const quota = await getSleepDailyQuotaRecord(kv, userId, today)
+
+  await putSleepDailyQuotaRecord(kv, {
+    userId,
+    date: today,
+    generationCount: (quota?.generationCount ?? 0) + 1,
+    ttsCount: quota?.ttsCount ?? 0,
+    updatedAt: Date.now(),
+  })
 }
 
 export async function incrementTTSRateLimit(kv: KVStore, userId: string): Promise<void> {
   const today = getTodayStr()
-  const key = `ratelimit:sleep-story-tts:${userId}:${today}`
-  const raw = await kv.get(key)
-  let count = 0
-  if (raw) count = parseInt(raw, 10)
+  const quota = await getSleepDailyQuotaRecord(kv, userId, today)
 
-  await kv.put(key, String(count + 1), { expirationTtl: 86400 })
+  await putSleepDailyQuotaRecord(kv, {
+    userId,
+    date: today,
+    generationCount: quota?.generationCount ?? 0,
+    ttsCount: (quota?.ttsCount ?? 0) + 1,
+    updatedAt: Date.now(),
+  })
 }

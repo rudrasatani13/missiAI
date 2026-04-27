@@ -15,13 +15,37 @@ import {
   generateEmbedding,
   buildEmbeddingText,
 } from '@/lib/memory/embeddings'
-
-const KV_PREFIX = 'lifegraph:'
+import {
+  buildLifeGraphSnapshot,
+  deleteLifeNodeRecord,
+  deleteLifeNodeTitleIndex,
+  getLifeGraphMeta,
+  getLifeNodeTitleIndex,
+  getLifeNodesByIds,
+  listLifeNodes,
+  normalizeLifeGraphTitle,
+  putLifeNode,
+  recordNodeAccessBatch,
+  saveLifeGraphMeta,
+  saveLifeGraphIndex,
+  setLifeNodeTitleIndex,
+  type LifeGraphReadOptions,
+} from '@/lib/memory/life-graph-store'
 
 // ─── Empty graph factory ──────────────────────────────────────────────────────
 
 function emptyGraph(): LifeGraph {
   return { nodes: [], totalInteractions: 0, lastUpdatedAt: 0, version: 1 }
+}
+
+function touchLifeGraph(graph: LifeGraph, touchedAt = Date.now()): LifeGraph {
+  graph.version = Math.max(graph.version || 0, 1) + 1
+  graph.lastUpdatedAt = Math.max(graph.lastUpdatedAt || 0, touchedAt)
+  return graph
+}
+
+function graphNodesForUser(userId: string, graph: LifeGraph): LifeNode[] {
+  return graph.nodes.map((node) => ({ ...node, userId }))
 }
 
 // ─── Read / Write ─────────────────────────────────────────────────────────────
@@ -30,16 +54,15 @@ export async function getLifeGraph(
   kv: KVStore,
   userId: string,
 ): Promise<LifeGraph> {
-  const raw = await kv.get(`${KV_PREFIX}${userId}`)
-  if (!raw) return emptyGraph()
+  return buildLifeGraphSnapshot(kv, userId)
+}
 
-  try {
-    const parsed = JSON.parse(raw) as LifeGraph
-    if (!Array.isArray(parsed.nodes)) return emptyGraph()
-    return parsed
-  } catch {
-    return emptyGraph()
-  }
+function assertSettledWritesSucceeded(results: PromiseSettledResult<unknown>[], operation: string): void {
+  const rejected = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+  if (rejected.length === 0) return
+  const firstReason = rejected[0].reason
+  const detail = firstReason instanceof Error ? firstReason.message : String(firstReason)
+  throw new Error(`${operation} failed for ${rejected.length} write(s): ${detail}`)
 }
 
 export async function saveLifeGraph(
@@ -47,9 +70,138 @@ export async function saveLifeGraph(
   userId: string,
   graph: LifeGraph,
 ): Promise<void> {
-  graph.version = (graph.version || 0) + 1
-  graph.lastUpdatedAt = Date.now()
-  await kv.put(`${KV_PREFIX}${userId}`, JSON.stringify(graph))
+  touchLifeGraph(graph)
+
+  const [existingMeta, existingNodes] = await Promise.all([
+    getLifeGraphMeta(kv, userId),
+    listLifeNodes(kv, userId),
+  ])
+  const nextNodes = graphNodesForUser(userId, graph)
+  const sortedNodeIdsForIndex = sortNodesForIndex(nextNodes).map((node) => node.id)
+  const nextNodeMap = new Map(nextNodes.map((node) => [node.id, node]))
+  const titleIndexesToDelete = existingNodes
+    .map((existingNode) => {
+      const nextNode = nextNodeMap.get(existingNode.id)
+      const previousTitle = normalizeLifeGraphTitle(existingNode.title)
+      const nextTitle = nextNode ? normalizeLifeGraphTitle(nextNode.title) : ''
+      if (!previousTitle || previousTitle === nextTitle) return null
+      return { normalizedTitle: previousTitle, nodeId: existingNode.id }
+    })
+    .filter((entry): entry is { normalizedTitle: string; nodeId: string } => entry !== null)
+
+  const results = await Promise.allSettled([
+    ...existingNodes
+      .filter((node) => !nextNodeMap.has(node.id))
+      .map((node) => deleteLifeNodeRecord(kv, userId, node.id)),
+    ...titleIndexesToDelete.map(async ({ normalizedTitle, nodeId }) => {
+      const existingTitleIndex = await getLifeNodeTitleIndex(kv, userId, normalizedTitle)
+      if (existingTitleIndex?.nodeId === nodeId) {
+        await deleteLifeNodeTitleIndex(kv, userId, normalizedTitle)
+      }
+    }),
+    ...nextNodes.map((node) => putLifeNode(kv, node)),
+    saveLifeGraphIndex(kv, userId, {
+      nodeIds: sortedNodeIdsForIndex,
+      updatedAt: graph.lastUpdatedAt,
+    }),
+    saveLifeGraphMeta(kv, {
+      userId,
+      storageVersion: 2,
+      totalInteractions: graph.totalInteractions,
+      nodeCount: nextNodes.length,
+      lastUpdatedAt: graph.lastUpdatedAt,
+      version: Math.max(graph.version || 2, existingMeta.version, 2),
+      migratedAt: existingMeta.migratedAt,
+    }),
+    ...nextNodes.map((node) => {
+      const normalizedTitle = normalizeLifeGraphTitle(node.title)
+      if (!normalizedTitle) return Promise.resolve(null)
+      return setLifeNodeTitleIndex(kv, userId, normalizedTitle, node.id)
+    }),
+  ])
+  assertSettledWritesSucceeded(results, 'saveLifeGraph')
+}
+
+async function saveV2LifeGraphMetaFromGraph(
+  kv: KVStore,
+  userId: string,
+  graph: LifeGraph,
+): Promise<void> {
+  const existingMeta = await getLifeGraphMeta(kv, userId)
+  await saveLifeGraphMeta(kv, {
+    userId,
+    storageVersion: 2,
+    totalInteractions: graph.totalInteractions,
+    nodeCount: graph.nodes.length,
+    lastUpdatedAt: Math.max(graph.lastUpdatedAt, existingMeta.lastUpdatedAt),
+    version: Math.max(graph.version || 2, existingMeta.version, 2),
+    migratedAt: existingMeta.migratedAt,
+  })
+}
+
+export async function syncLifeGraphMetaToV2(
+  kv: KVStore,
+  userId: string,
+  graph: LifeGraph,
+): Promise<void> {
+  touchLifeGraph(graph)
+  await saveV2LifeGraphMetaFromGraph(kv, userId, graph)
+}
+
+async function syncV2LifeGraphWrites(
+  kv: KVStore,
+  userId: string,
+  graph: LifeGraph,
+  nodes: LifeNode[],
+): Promise<void> {
+  const writes: Promise<unknown>[] = nodes.flatMap((node) => {
+    const normalizedTitle = normalizeLifeGraphTitle(node.title)
+    const nodeWrites: Promise<unknown>[] = [putLifeNode(kv, node)]
+    if (normalizedTitle) {
+      nodeWrites.push(setLifeNodeTitleIndex(kv, userId, normalizedTitle, node.id))
+    }
+    return nodeWrites
+  })
+
+  writes.push(saveV2LifeGraphMetaFromGraph(kv, userId, graph))
+
+  const results = await Promise.allSettled(writes)
+  assertSettledWritesSucceeded(results, 'syncV2LifeGraphWrites')
+}
+
+export async function syncLifeNodeToV2(
+  kv: KVStore,
+  userId: string,
+  graph: LifeGraph,
+  node: LifeNode,
+): Promise<void> {
+  touchLifeGraph(graph)
+  const writes: Promise<unknown>[] = [putLifeNode(kv, node), saveV2LifeGraphMetaFromGraph(kv, userId, graph)]
+  const normalizedTitle = normalizeLifeGraphTitle(node.title)
+  if (normalizedTitle) {
+    writes.push(setLifeNodeTitleIndex(kv, userId, normalizedTitle, node.id))
+  }
+  const results = await Promise.allSettled(writes)
+  assertSettledWritesSucceeded(results, 'syncLifeNodeToV2')
+}
+
+export async function deleteLifeNodeFromV2(
+  kv: KVStore,
+  userId: string,
+  graph: LifeGraph,
+  node: LifeNode,
+): Promise<void> {
+  touchLifeGraph(graph)
+  const writes: Promise<unknown>[] = [
+    deleteLifeNodeRecord(kv, userId, node.id),
+    saveV2LifeGraphMetaFromGraph(kv, userId, graph),
+  ]
+  const normalizedTitle = normalizeLifeGraphTitle(node.title)
+  if (normalizedTitle) {
+    writes.push(deleteLifeNodeTitleIndex(kv, userId, normalizedTitle))
+  }
+  const results = await Promise.allSettled(writes)
+  assertSettledWritesSucceeded(results, 'deleteLifeNodeFromV2')
 }
 
 // ─── Add or Update Node ───────────────────────────────────────────────────────
@@ -168,13 +320,14 @@ export async function addOrUpdateNodes(
     if (vectorizeEnv && finalEmbedding) {
       try {
         await upsertLifeNode(vectorizeEnv, resultNode, finalEmbedding)
-      } catch {
-        // Vectorize upsert failed — node is still persisted in KV
+      } catch (err) {
+        throw new Error(`Vectorize upsert failed for life node ${resultNode.id}`, { cause: err })
       }
     }
   }
 
-  await saveLifeGraph(kv, userId, graph)
+  touchLifeGraph(graph, now)
+  await syncV2LifeGraphWrites(kv, userId, graph, results)
   return results
 }
 
@@ -200,6 +353,124 @@ export async function syncLifeNodeVector(
   await upsertLifeNode(vectorizeEnv, node, embedding)
 }
 
+function buildNodeMap(graph: LifeGraph): Map<string, LifeNode> {
+  return new Map(graph.nodes.map((node) => [node.id, node]))
+}
+
+function enrichResultsWithNodeMap(
+  results: MemorySearchResult[],
+  nodeMap: Map<string, LifeNode>,
+): string[] {
+  const missingIds: string[] = []
+
+  for (const result of results) {
+    const graphNode = nodeMap.get(result.node.id)
+    if (graphNode) {
+      result.node = graphNode
+    } else {
+      missingIds.push(result.node.id)
+    }
+  }
+
+  return [...new Set(missingIds)]
+}
+
+function updateAccessCountsInGraph(
+  graph: LifeGraph,
+  nodeIds: string[],
+  accessedAt: number,
+): boolean {
+  if (nodeIds.length === 0) return false
+
+  const targetIds = new Set(nodeIds)
+  let updated = false
+
+  for (const node of graph.nodes) {
+    if (!targetIds.has(node.id)) continue
+    node.accessCount += 1
+    node.lastAccessedAt = accessedAt
+    updated = true
+  }
+
+  return updated
+}
+
+function filterNodesByCategories(
+  nodes: LifeNode[],
+  categories?: MemoryCategory[],
+): LifeNode[] {
+  if (!categories || categories.length === 0) return nodes
+  const categorySet = new Set(categories)
+  return nodes.filter((node) => categorySet.has(node.category))
+}
+
+export async function getLifeGraphReadSnapshot(
+  kv: KVStore,
+  userId: string,
+  options?: LifeGraphReadOptions,
+): Promise<LifeGraph> {
+  return buildLifeGraphSnapshot(kv, userId, options)
+}
+
+export async function listLifeNodesForRead(
+  kv: KVStore,
+  userId: string,
+  options?: LifeGraphReadOptions,
+): Promise<LifeNode[]> {
+  const graph = await getLifeGraphReadSnapshot(kv, userId, options)
+  return graph.nodes
+}
+
+export async function getTopLifeNodesByAccess(
+  kv: KVStore,
+  userId: string,
+  options?: { categories?: MemoryCategory[]; limit?: number; readLimit?: number },
+): Promise<LifeNode[]> {
+  const nodes = filterNodesByCategories(
+    await listLifeNodesForRead(
+      kv,
+      userId,
+      options?.readLimit ? { limit: options.readLimit, newestFirst: true } : undefined,
+    ),
+    options?.categories,
+  )
+  return [...nodes]
+    .sort((a, b) => {
+      if (b.accessCount !== a.accessCount) return b.accessCount - a.accessCount
+      return b.updatedAt - a.updatedAt
+    })
+    .slice(0, options?.limit ?? 10)
+}
+
+export async function getTopLifeNodesByEmotionalWeight(
+  kv: KVStore,
+  userId: string,
+  options?: { categories?: MemoryCategory[]; limit?: number; readLimit?: number },
+): Promise<LifeNode[]> {
+  const nodes = filterNodesByCategories(
+    await listLifeNodesForRead(
+      kv,
+      userId,
+      options?.readLimit ? { limit: options.readLimit, newestFirst: true } : undefined,
+    ),
+    options?.categories,
+  )
+  return [...nodes]
+    .sort((a, b) => {
+      if (b.emotionalWeight !== a.emotionalWeight) return b.emotionalWeight - a.emotionalWeight
+      return b.updatedAt - a.updatedAt
+    })
+    .slice(0, options?.limit ?? 10)
+}
+
+function sortNodesForIndex(nodes: LifeNode[]): LifeNode[] {
+  return [...nodes].sort((a, b) => {
+    if (a.createdAt !== b.createdAt) return a.createdAt - b.createdAt
+    if (a.updatedAt !== b.updatedAt) return a.updatedAt - b.updatedAt
+    return a.id.localeCompare(b.id)
+  })
+}
+
 // ─── Search ───────────────────────────────────────────────────────────────────
 
 export async function searchLifeGraph(
@@ -209,7 +480,8 @@ export async function searchLifeGraph(
   query: string,
   options?: { topK?: number; category?: MemoryCategory },
 ): Promise<MemorySearchResult[]> {
-  const graph = await getLifeGraph(kv, userId)
+  let graph: LifeGraph | null = null
+  let graphNodeMap: Map<string, LifeNode> | null = null
   let results: MemorySearchResult[] = []
 
   // Try Vectorize first
@@ -221,12 +493,16 @@ export async function searchLifeGraph(
         category: options?.category,
       })
 
-      // Enrich results with full node data from KV
-      for (const result of results) {
-        const kvNode = graph.nodes.find((n) => n.id === result.node.id)
-        if (kvNode) {
-          result.node = kvNode
-        }
+      if (results.length > 0) {
+        const matchedNodes = await getLifeNodesByIds(
+          kv,
+          userId,
+          results.map((result) => result.node.id),
+        )
+        const matchedNodeMap = new Map(matchedNodes.map((node) => [node.id, node]))
+        graphNodeMap = matchedNodeMap
+        enrichResultsWithNodeMap(results, matchedNodeMap)
+        results = results.filter((result) => matchedNodeMap.has(result.node.id))
       }
     } catch {
       // Vectorize failed — fall back to KV scoring
@@ -235,7 +511,12 @@ export async function searchLifeGraph(
   }
 
   // Fallback: enhanced KV scoring when Vectorize unavailable or returned nothing
-  if (results.length === 0 && graph.nodes.length > 0) {
+  if (results.length === 0) {
+    graph = await getLifeGraph(kv, userId)
+    graphNodeMap = buildNodeMap(graph)
+  }
+
+  if (results.length === 0 && graph && graph.nodes.length > 0) {
     results = kvFallbackSearch(
       graph,
       query,
@@ -244,21 +525,22 @@ export async function searchLifeGraph(
     )
   }
 
-  // Update access counts on matched nodes
   const now = Date.now()
-  const nodeMap = new Map()
-  for (const node of graph.nodes) {
-    nodeMap.set(node.id, node)
-  }
+  const resultIds = [...new Set(results.map((result) => result.node.id))]
 
-  for (const result of results) {
-    const graphNode = nodeMap.get(result.node.id)
-    if (graphNode) {
-      graphNode.accessCount += 1
-      graphNode.lastAccessedAt = now
+  if (resultIds.length > 0) {
+    await recordNodeAccessBatch(kv, userId, resultIds, now).catch(() => {})
+    if (graph) {
+      updateAccessCountsInGraph(graph, resultIds, now)
+    } else if (graphNodeMap) {
+      for (const nodeId of resultIds) {
+        const node = graphNodeMap.get(nodeId)
+        if (!node) continue
+        node.accessCount += 1
+        node.lastAccessedAt = now
+      }
     }
   }
-  await saveLifeGraph(kv, userId, graph)
 
   return results
 }

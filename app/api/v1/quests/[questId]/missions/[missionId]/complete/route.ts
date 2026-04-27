@@ -1,13 +1,13 @@
 // ─── Mission Complete API Route ────────────────────────────────────────────────
 
 import { NextRequest } from 'next/server'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getCloudflareKVBinding, getCloudflareVectorizeEnv } from '@/lib/server/platform/bindings'
 import {
   getVerifiedUserId,
   AuthenticationError,
   unauthorizedResponse,
-} from '@/lib/server/auth'
-import { logRequest, logError } from '@/lib/server/logger'
+} from '@/lib/server/security/auth'
+import { logRequest, logError } from '@/lib/server/observability/logger'
 import {
   getQuest,
   getQuests,
@@ -17,18 +17,7 @@ import {
 import { checkQuestAchievements } from '@/lib/quests/quest-achievements'
 import { getGamificationData, saveGamificationData } from '@/lib/gamification/streak'
 import { awardXP } from '@/lib/gamification/xp-engine'
-import type { KVStore } from '@/types'
 import type { QuestMission, QuestAchievementContext } from '@/types/quests'
-
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as Record<string, unknown>).MISSI_MEMORY as KVStore ?? null
-  } catch {
-    return null
-  }
-}
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -60,7 +49,7 @@ export async function POST(
     throw e
   }
 
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
   if (!kv) return jsonResponse({ success: false, error: 'Storage unavailable' }, 503)
 
   // Parse optional body (bossToken)
@@ -233,13 +222,7 @@ export async function POST(
     if (questCompleted && quest.goalNodeId) {
       try {
         const { addOrUpdateNode } = await import('@/lib/memory/life-graph')
-        const vectorizeEnv = (() => {
-          try {
-            const { env } = getCloudflareContext()
-            const e = env as Record<string, unknown>
-            return e.VECTORIZE_INDEX ? (env as unknown) : null
-          } catch { return null }
-        })()
+        const vectorizeEnv = getCloudflareVectorizeEnv()
         await addOrUpdateNode(
           kv, vectorizeEnv as import('@/lib/memory/vectorize').VectorizeEnv | null, userId,
           {

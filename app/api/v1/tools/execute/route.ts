@@ -9,62 +9,13 @@
  */
 
 import { NextRequest } from "next/server"
-import { getCloudflareContext } from "@opennextjs/cloudflare"
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
-import { executeAgentTool, type AgentToolCall, type ToolContext } from "@/lib/ai/agent-tools"
-import { AGENT_SAFE_TOOL_NAMES, AGENT_DESTRUCTIVE_TOOL_NAMES } from "@/lib/ai/agent-tool-policy"
-import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rateLimiter"
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/security/auth"
+import { executeToolGuarded } from "@/lib/ai/agents/tools/execution"
+import { checkRateLimit, rateLimitExceededResponse } from "@/lib/server/security/rate-limiter"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { logRequest, logError } from "@/lib/server/logger"
-import { getEnv } from "@/lib/server/env"
-import { z } from "zod"
-import type { VectorizeEnv } from "@/lib/memory/vectorize"
-import type { KVStore } from "@/types"
+import { logRequest } from "@/lib/server/observability/logger"
+import { prepareLiveToolExecutionRequest } from "@/lib/server/routes/tools/execute-helpers"
 import { API_ERROR_CODES, errorResponse } from "@/types/api"
-
-
-// ── Safe-tool allowlist for the Live WebSocket path ───────────────────────────
-//
-// This endpoint is called by the Gemini Live client and must NOT allow tools
-// that send outbound messages or destructively mutate external services without
-// a server-issued confirmation token (the agent-confirm flow).
-//
-// Threat: any authenticated user (or prompt-injection in a Live session) could
-// call POST /api/v1/tools/execute with name="confirmSendEmail" and arbitrary
-// recipient/body to send real email via Resend, or calendar write tools to
-// mutate the user's calendar, without any server-side step-up.
-//
-// C2 fix: the allowlist is now shared from `@/lib/ai/agent-tool-policy` so the
-// chat-stream agent loop enforces the exact same policy. Do NOT inline a
-// divergent list here.
-const LIVE_SAFE_TOOL_NAMES = AGENT_SAFE_TOOL_NAMES
-const BLOCKED_FROM_LIVE = AGENT_DESTRUCTIVE_TOOL_NAMES
-
-// ── Zod schema for request body (BUG-003 fix) ────────────────────────────────
-const toolExecuteSchema = z.object({
-  name: z.string().min(1, "Tool name required").max(50, "Tool name too long"),
-  args: z.record(z.unknown()).optional().default({}),
-})
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
-  }
-}
-
-function getVectorizeEnv(): VectorizeEnv | null {
-  try {
-    const { env } = getCloudflareContext()
-    const lifeGraph = (env as any).LIFE_GRAPH
-    if (!lifeGraph) return null
-    return { LIFE_GRAPH: lifeGraph }
-  } catch {
-    return null
-  }
-}
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now()
@@ -87,70 +38,42 @@ export async function POST(req: NextRequest) {
     return rateLimitExceededResponse(rateResult)
   }
 
-  // ── 3. Parse & Validate body (BUG-003 fix) ───────────────────────────────
-  let rawBody: unknown
-  try {
-    rawBody = await req.json()
-  } catch {
-    return errorResponse("Invalid JSON", API_ERROR_CODES.VALIDATION_ERROR, 400)
+  // ── 3. Parse / Validate / Build execution context ────────────────────────
+  const prepared = await prepareLiveToolExecutionRequest(req, userId)
+  if (!prepared.ok && prepared.kind === "blocked") {
+    logRequest("tools-execute.blocked_tool", userId, startTime, { toolName: prepared.toolName })
+    return prepared.response
+  }
+  if (!prepared.ok && prepared.kind === "unknown") {
+    logRequest("tools-execute.unknown_tool", userId, startTime, { toolName: prepared.toolName })
+    return prepared.response
+  }
+  if (!prepared.ok) {
+    return prepared.response
   }
 
-  const parsed = toolExecuteSchema.safeParse(rawBody)
-  if (!parsed.success) {
-    const firstIssue = parsed.error.issues[0]
-    return errorResponse(
-      `Validation error: ${firstIssue?.path.join(".")} — ${firstIssue?.message}`,
-      API_ERROR_CODES.VALIDATION_ERROR,
-      400,
-    )
-  }
+  // ── 4. Execute ───────────────────────────────────────────────────────────
+  const { toolCall, ctx } = prepared.data
 
-  const { name, args } = parsed.data
-
-  // ── 4. Validate tool name against safe-tool allowlist ────────────────────
-  if (BLOCKED_FROM_LIVE.has(name)) {
-    logRequest("tools-execute.blocked_tool", userId, startTime, { toolName: name })
-    return errorResponse(
-      `Tool "${name}" requires agent confirmation and cannot be called from this endpoint.`,
-      API_ERROR_CODES.VALIDATION_ERROR,
-      400,
-    )
-  }
-  if (!LIVE_SAFE_TOOL_NAMES.has(name)) {
-    logRequest("tools-execute.unknown_tool", userId, startTime, { toolName: name })
-    return errorResponse(
-      `Unknown tool: "${name}". Available tools: ${[...LIVE_SAFE_TOOL_NAMES].join(", ")}`,
-      API_ERROR_CODES.VALIDATION_ERROR,
-      400,
-    )
-  }
-
-  // ── 5. Execute ───────────────────────────────────────────────────────────
-  const appEnv = getEnv()
-  const kv = getKV()
-  const vectorizeEnv = getVectorizeEnv()
-
-  const toolCall: AgentToolCall = { name, args }
-
-  const ctx: ToolContext = {
-    kv,
-    vectorizeEnv,
+  const guardedResult = await executeToolGuarded(toolCall, ctx, {
     userId,
-    googleClientId: appEnv.GOOGLE_CLIENT_ID,
-    googleClientSecret: appEnv.GOOGLE_CLIENT_SECRET,
-    resendApiKey: appEnv.RESEND_API_KEY,
-  }
+    logPrefix: "tools-execute",
+    executionSurface: "live_execute",
+  })
 
-  try {
-    const result = await executeAgentTool(toolCall, ctx)
-    logRequest("tools-execute.completed", userId, startTime, { toolName: name, status: result.status })
-    return Response.json(result)
-  } catch (err) {
-    logError("tools-execute.error", err instanceof Error ? err : new Error(String(err)), userId)
+  if (guardedResult.metadata.threw) {
     return errorResponse(
       "Internal error executing tool.",
       API_ERROR_CODES.INTERNAL_ERROR,
       500,
     )
   }
+
+  logRequest("tools-execute.completed", userId, startTime, {
+    toolName: toolCall.name,
+    status: guardedResult.result.status,
+    outcome: guardedResult.outcome,
+  })
+
+  return Response.json(guardedResult.result)
 }

@@ -6,21 +6,11 @@
 // Consuming the token only happens when the user clicks "Join" (Clerk auth +
 // plan gate enforced by /api/v1/spaces/join).
 
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { auth } from '@clerk/nextjs/server'
 import { peekInvite, getSpace, verifyMembership } from '@/lib/spaces/space-store'
-import type { KVStore } from '@/types'
+import { getKV } from '@/lib/spaces/space-api-helpers'
 import type { SpaceMetadata } from '@/types/spaces'
-import JoinActions from './JoinActions'
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return ((env as Record<string, unknown>).MISSI_MEMORY as KVStore) ?? null
-  } catch {
-    return null
-  }
-}
+import JoinActions from '@/components/join/JoinActions'
 
 interface PageProps {
   params: Promise<{ token: string }>

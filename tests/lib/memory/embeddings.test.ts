@@ -3,16 +3,21 @@ import { generateEmbedding, cosineSimilarity, buildEmbeddingText } from "@/lib/m
 import type { LifeNode } from "@/types/memory"
 
 // Mock vertex-client so we can control geminiEmbed without real Vertex AI auth
-vi.mock("@/lib/ai/vertex-client", () => ({
+vi.mock("@/lib/ai/providers/vertex-client", () => ({
   geminiEmbed: vi.fn(),
 }))
 
-import { geminiEmbed } from "@/lib/ai/vertex-client"
+vi.mock("@/lib/server/observability/logger", () => ({
+  logError: vi.fn(),
+}))
+
+import { geminiEmbed } from "@/lib/ai/providers/vertex-client"
 const mockGeminiEmbed = vi.mocked(geminiEmbed)
 
 describe("embeddings", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    delete (process.env as any).OPENAI_API_KEY
   })
 
   describe("generateEmbedding", () => {
@@ -36,7 +41,7 @@ describe("embeddings", () => {
       )
     })
 
-    it("should throw error on API failure", async () => {
+    it("should throw error on API failure when no OpenAI key", async () => {
       mockGeminiEmbed.mockResolvedValueOnce(
         new Response("Error", { status: 500 })
       )
@@ -46,7 +51,7 @@ describe("embeddings", () => {
       )
     })
 
-    it("should throw error on invalid response", async () => {
+    it("should throw error on invalid response when no OpenAI key", async () => {
       mockGeminiEmbed.mockResolvedValueOnce(
         new Response(JSON.stringify({ invalid: "response" }), { status: 200 })
       )
@@ -56,13 +61,72 @@ describe("embeddings", () => {
       )
     })
 
-    it("should handle timeout", async () => {
+    it("should handle timeout when no OpenAI key", async () => {
       mockGeminiEmbed.mockImplementationOnce(
         () => new Promise((resolve) => setTimeout(resolve, 12000))
       )
 
       await expect(generateEmbedding("test")).rejects.toThrow()
     }, 15000)
+
+    it("should fall back to OpenAI on Vertex 500 when key is present", async () => {
+      process.env.OPENAI_API_KEY = "sk-test"
+      mockGeminiEmbed.mockResolvedValueOnce(
+        new Response("Error", { status: 500 })
+      )
+
+      const openaiResponse = {
+        data: [{ embedding: new Array(768).fill(0.01) }],
+      }
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(
+        new Response(JSON.stringify(openaiResponse), { status: 200 })
+      ))
+
+      const result = await generateEmbedding("test")
+      expect(result).toHaveLength(768)
+      expect(result[0]).toBe(0.01)
+
+      const fetchCalls = (fetch as any).mock.calls
+      expect(fetchCalls.length).toBe(1)
+      expect(fetchCalls[0][0]).toBe("https://api.openai.com/v1/embeddings")
+
+      vi.unstubAllGlobals()
+    })
+
+    it("should fall back to OpenAI on Vertex network error when key is present", async () => {
+      process.env.OPENAI_API_KEY = "sk-test"
+      mockGeminiEmbed.mockRejectedValueOnce(new Error("Network error"))
+
+      const openaiResponse = {
+        data: [{ embedding: new Array(768).fill(0.02) }],
+      }
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(
+        new Response(JSON.stringify(openaiResponse), { status: 200 })
+      ))
+
+      const result = await generateEmbedding("test")
+      expect(result).toHaveLength(768)
+      expect(result[0]).toBe(0.02)
+
+      vi.unstubAllGlobals()
+    })
+
+    it("should throw when OpenAI fallback also fails", async () => {
+      process.env.OPENAI_API_KEY = "sk-test"
+      mockGeminiEmbed.mockResolvedValueOnce(
+        new Response("Error", { status: 503 })
+      )
+
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(
+        new Response("Rate limited", { status: 429 })
+      ))
+
+      await expect(generateEmbedding("test")).rejects.toThrow(
+        "OpenAI embedding failed 429"
+      )
+
+      vi.unstubAllGlobals()
+    })
   })
 
   describe("cosineSimilarity", () => {

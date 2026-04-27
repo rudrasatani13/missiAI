@@ -1,4 +1,4 @@
-import { geminiGenerate } from '@/lib/ai/vertex-client'
+import { geminiGenerate } from '@/lib/ai/providers/vertex-client'
 import type { MoodEntry, MoodLabel, MoodScore } from '@/types/mood'
 
 const VALID_LABELS = new Set<MoodLabel>([

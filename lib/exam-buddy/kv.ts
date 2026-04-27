@@ -1,4 +1,4 @@
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getCloudflareKVBinding } from '@/lib/server/platform/bindings'
 import type { KVStore } from '@/types'
 
 type GlobalWithExamBuddyKV = typeof globalThis & {
@@ -35,12 +35,8 @@ const localKV = {
 } as KVStore
 
 export function getExamBuddyKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    const kv = (env as any).MISSI_MEMORY ?? null
-    if (kv) return kv as KVStore
-  } catch {
-  }
+  const kv = getCloudflareKVBinding()
+  if (kv) return kv
   if (process.env.NODE_ENV !== 'production') return localKV
   return null
 }

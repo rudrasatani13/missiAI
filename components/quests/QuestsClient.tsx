@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { ArrowLeft, Plus, Sword, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useQuests } from '@/hooks/useQuests'
+import { useQuests } from '@/hooks/quests/useQuests'
 import { QuestCreator } from './QuestCreator'
 import { QuestCompleteModal } from './QuestCompleteModal'
 import type { Quest, QuestMission } from '@/types/quests'

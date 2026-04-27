@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid'
 import { LifeGraph, LifeNode, MemoryCategory } from '@/types/memory'
 import { LifeChapter } from '@/types/life-story'
-import { geminiGenerate } from '@/lib/ai/vertex-client'
+import { geminiGenerate } from '@/lib/ai/providers/vertex-client'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 
 export function sanitizeNarrativeText(text: string, fallback: string): string {

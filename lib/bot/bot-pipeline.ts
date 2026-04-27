@@ -10,9 +10,10 @@
 //   4. Fire-and-forget: extract life nodes from the exchange and persist
 
 import { searchLifeGraph, formatLifeGraphForPrompt, addOrUpdateNodes, MEMORY_TIMEOUT_MS } from '@/lib/memory/life-graph'
-import { buildSystemPrompt, callAIDirect } from '@/services/ai.service'
+import { buildSystemPrompt, callAIDirect } from '@/lib/ai/services/ai-service'
 import { extractLifeNodes } from '@/lib/memory/graph-extractor'
 import { sanitizeInput } from '@/lib/validation/sanitizer'
+import { waitUntil } from '@/lib/server/platform/wait-until'
 import type { KVStore } from '@/types'
 import type { VectorizeEnv } from '@/lib/memory/vectorize'
 import type { BotPlatform } from '@/lib/bot/bot-auth'
@@ -90,17 +91,21 @@ export async function processBotMessage(opts: BotProcessOptions): Promise<string
 
 // ─── Memory extraction (non-blocking) ────────────────────────────────────────
 
+// P2-4 fix: wrapped in runInBackground() so the Cloudflare Worker isolate
+// stays alive until memory persistence completes. Previously, the fire-and-
+// forget IIFE could be terminated mid-execution when the isolate shut down,
+// silently dropping bot-originated memories from the Life Graph.
 function fireAndForgetMemoryExtraction(
   kv: KVStore,
   vectorizeEnv: VectorizeEnv | null,
   userId: string,
   conversation: ConversationEntry[],
 ): void {
-  ;(async () => {
+  const task = (async () => {
     try {
       // Need existing graph for dedup — load it inline (graph-extractor needs it)
-      const { getLifeGraph } = await import('@/lib/memory/life-graph')
-      const existingGraph = await getLifeGraph(kv, userId)
+      const { getLifeGraphReadSnapshot } = await import('@/lib/memory/life-graph')
+      const existingGraph = await getLifeGraphReadSnapshot(kv, userId)
       const extracted = await extractLifeNodes(conversation, existingGraph)
 
       if (extracted.length === 0) return
@@ -114,5 +119,8 @@ function fireAndForgetMemoryExtraction(
     } catch {
       // Never let memory errors surface — this is purely additive
     }
-  })().catch(() => {})
+  })()
+
+  // Keep the worker alive until memory extraction settles
+  waitUntil(task.catch(() => {}))
 }

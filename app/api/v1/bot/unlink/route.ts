@@ -3,22 +3,12 @@
 // POST { platform: "whatsapp" | "telegram" }
 // Deletes all KV mappings for the authenticated user on the given platform.
 
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getCloudflareKVBinding } from '@/lib/server/platform/bindings'
 import { z } from 'zod'
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/security/auth'
 import { clearWhatsAppMapping, clearTelegramMapping } from '@/lib/bot/bot-auth'
 import { validationErrorResponse } from '@/lib/validation/schemas'
-import { logApiError, log } from '@/lib/server/logger'
-import type { KVStore } from '@/types'
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
-  }
-}
+import { logApiError, log } from '@/lib/server/observability/logger'
 
 const unlinkSchema = z.object({
   platform: z.enum(['whatsapp', 'telegram']),
@@ -48,7 +38,7 @@ export async function POST(req: Request): Promise<Response> {
   const parsed = unlinkSchema.safeParse(body)
   if (!parsed.success) return validationErrorResponse(parsed.error)
 
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
   if (!kv) {
     return new Response(
       JSON.stringify({ success: false, error: 'Service temporarily unavailable', code: 'SERVICE_UNAVAILABLE' }),

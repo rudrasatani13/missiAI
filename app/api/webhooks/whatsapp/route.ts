@@ -9,7 +9,6 @@
 //   WHATSAPP_APP_SECRET       — HMAC-SHA256 signature key
 //   WHATSAPP_VERIFY_TOKEN     — Webhook GET verification token
 
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { verifyWhatsAppSignature, sendWhatsAppMessage } from '@/lib/bot/whatsapp-client'
 import {
   resolveClerkUserFromPhone,
@@ -22,53 +21,56 @@ import {
   checkAndIncrementWaLinkAttempt,
 } from '@/lib/bot/bot-auth'
 import { processBotMessage } from '@/lib/bot/bot-pipeline'
-import { logSecurityEvent, logApiError, log } from '@/lib/server/logger'
-import type { KVStore } from '@/types'
-import type { VectorizeEnv } from '@/lib/memory/vectorize'
+import {
+  getCloudflareExecutionContext,
+  getCloudflareKVBinding,
+  getCloudflareVectorizeEnv,
+} from '@/lib/server/platform/bindings'
+import { logSecurityEvent, logApiError, log } from '@/lib/server/observability/logger'
+import { getTodayUTC } from '@/lib/server/utils/date-utils'
+import { errorMessage } from '@/lib/server/security/crypto-utils'
+import { z } from 'zod'
 
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
-  }
-}
+const whatsappMessageSchema = z.object({
+  id: z.string().min(1),
+  from: z.string().min(1),
+  timestamp: z.string().min(1),
+  type: z.string().min(1),
+  text: z.object({ body: z.string().optional() }).optional(),
+}).passthrough()
 
-function getVectorizeEnv(): VectorizeEnv | null {
-  try {
-    const { env } = getCloudflareContext()
-    const lg = (env as any).LIFE_GRAPH
-    return lg ? { LIFE_GRAPH: lg } : null
-  } catch {
-    return null
-  }
-}
+const whatsappWebhookSchema = z.object({
+  entry: z.array(z.object({
+    changes: z.array(z.object({
+      value: z.object({
+        messages: z.array(whatsappMessageSchema).optional(),
+      }).passthrough(),
+    }).passthrough()).optional(),
+  }).passthrough()).optional(),
+}).passthrough()
 
-function getExecutionContext(): { waitUntil: (p: Promise<unknown>) => void } | null {
-  try {
-    const { ctx } = getCloudflareContext() as { ctx?: { waitUntil: (p: Promise<unknown>) => void } }
-    return ctx ?? null
-  } catch {
-    return null
-  }
-}
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
+// P3-2 + P3-3: today() and errorMessage() moved to shared modules.
+// Imports: getTodayUTC from date-utils, errorMessage from crypto-utils.
 
 async function sendWhatsAppReply(
   execCtx: { waitUntil: (p: Promise<unknown>) => void } | null,
   phoneNumber: string,
   text: string,
-) {
-  const replyPromise = sendWhatsAppMessage(phoneNumber, text).catch(() => {})
+  metadata: Record<string, unknown> = {},
+): Promise<boolean> {
+  const replyPromise = sendWhatsAppMessage(phoneNumber, text).then(() => true).catch((err) => {
+    log({
+      level: 'error',
+      event: 'bot.wa.reply_failed',
+      metadata: { phoneNumber: phoneNumber.slice(0, 4) + '****', error: errorMessage(err), ...metadata },
+      timestamp: Date.now(),
+    })
+    return false
+  })
   if (execCtx) {
     execCtx.waitUntil(replyPromise)
-    return
   }
-  await replyPromise
+  return replyPromise
 }
 
 // ─── GET — Meta webhook verification challenge ────────────────────────────────
@@ -142,16 +144,26 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   // ── 3. Parse JSON ──────────────────────────────────────────────────────────
-  let payload: any
+  let rawPayload: unknown
   try {
-    payload = JSON.parse(rawBody)
+    rawPayload = JSON.parse(rawBody)
   } catch {
     return ok200
   }
 
-  const kv = getKV()
-  const vectorizeEnv = getVectorizeEnv()
-  const execCtx = getExecutionContext()
+  const parsedPayload = whatsappWebhookSchema.safeParse(rawPayload)
+  if (!parsedPayload.success) {
+    logSecurityEvent('security.bot.wa.invalid_payload', {
+      path: '/api/webhooks/whatsapp',
+      metadata: { issue: parsedPayload.error.issues[0]?.message ?? 'Invalid payload' },
+    })
+    return ok200
+  }
+  const payload = parsedPayload.data
+
+  const kv = getCloudflareKVBinding()
+  const vectorizeEnv = getCloudflareVectorizeEnv()
+  const execCtx = getCloudflareExecutionContext()
 
   // ── 4. Extract message entry ───────────────────────────────────────────────
   const entry = payload?.entry?.[0]
@@ -160,7 +172,7 @@ export async function POST(req: Request): Promise<Response> {
 
   if (!value) return ok200 // Not a message update — status update etc.
 
-  const messages: any[] = value.messages ?? []
+  const messages = value.messages ?? []
   if (messages.length === 0) return ok200 // Delivery receipt or read status
 
   // Process each inbound message concurrently
@@ -191,7 +203,6 @@ export async function POST(req: Request): Promise<Response> {
         log({ level: 'info', event: 'bot.wa.dedup_skipped', metadata: { messageId }, timestamp: Date.now() })
         return
       }
-      await markMessageProcessed(kv, 'whatsapp', messageId)
 
       // ── 7. Resolve Clerk userId from sender phone ──────────────────────────
       const userId = await resolveClerkUserFromPhone(kv, senderPhone)
@@ -201,7 +212,7 @@ export async function POST(req: Request): Promise<Response> {
         // the 1M-combination space within the 15-minute code TTL.
         const msgText = (message.text?.body ?? '').trim()
         if (/^\d{6}$/.test(msgText)) {
-          const linkRateResult = await checkAndIncrementWaLinkAttempt(kv, senderPhone, today())
+          const linkRateResult = await checkAndIncrementWaLinkAttempt(kv, senderPhone, getTodayUTC())
           if (!linkRateResult.allowed) {
             logSecurityEvent('security.bot.wa.link_attempts_exceeded', {
               path: '/api/webhooks/whatsapp',
@@ -213,11 +224,13 @@ export async function POST(req: Request): Promise<Response> {
           const pendingUserId = await consumePendingWhatsAppLink(kv, msgText)
           if (pendingUserId) {
             await storeWhatsAppMapping(kv, senderPhone, pendingUserId)
-            await sendWhatsAppReply(
+            const delivered = await sendWhatsAppReply(
               execCtx,
               senderPhone,
               'WhatsApp linked to your Missi account! 🎉 You can now chat with me directly here. What do you need?',
+              { messageId, branch: 'linked_via_code' },
             )
+            if (delivered) await markMessageProcessed(kv, 'whatsapp', messageId)
             log({ level: 'info', event: 'bot.wa.linked_via_code', userId: pendingUserId, timestamp: Date.now() })
             return
           }
@@ -226,11 +239,13 @@ export async function POST(req: Request): Promise<Response> {
           path: '/api/webhooks/whatsapp',
           metadata: { senderPhone: senderPhone.slice(0, 4) + '****' },
         })
-        await sendWhatsAppReply(
+        const delivered = await sendWhatsAppReply(
           execCtx,
           senderPhone,
           'Hey! I\'m Missi 🤖 To chat with me here, link your WhatsApp number at missi.space/settings/integrations — takes just 1 minute!',
+          { messageId, branch: 'unknown_sender' },
         )
+        if (delivered) await markMessageProcessed(kv, 'whatsapp', messageId)
         return
       }
 
@@ -249,34 +264,40 @@ export async function POST(req: Request): Promise<Response> {
           path: '/api/webhooks/whatsapp',
           metadata: { planId },
         })
-        await sendWhatsAppReply(
+        const delivered = await sendWhatsAppReply(
           execCtx,
           senderPhone,
           'WhatsApp access is a Pro feature. Upgrade at missi.space/pricing to keep chatting with me here! 🚀',
+          { messageId, branch: 'plan_gate' },
         )
+        if (delivered) await markMessageProcessed(kv, 'whatsapp', messageId)
         return
       }
 
       // ── 9. Daily message limit ─────────────────────────────────────────────
       const { allowed: limitAllowed } = await checkAndIncrementBotDailyLimit(
-        kv, 'whatsapp', userId, today(),
+        kv, 'whatsapp', userId, getTodayUTC(),
       )
       if (!limitAllowed) {
-        await sendWhatsAppReply(
+        const delivered = await sendWhatsAppReply(
           execCtx,
           senderPhone,
           'You\'ve hit your daily message limit! Let\'s chat again tomorrow 😊',
+          { messageId, branch: 'daily_limit' },
         )
+        if (delivered) await markMessageProcessed(kv, 'whatsapp', messageId)
         return
       }
 
       // ── 10. Handle non-text message types ─────────────────────────────────
       if (message.type !== 'text') {
-        await sendWhatsAppReply(
+        const delivered = await sendWhatsAppReply(
           execCtx,
           senderPhone,
           'I can only understand text messages for now! 🙏',
+          { messageId, branch: 'non_text' },
         )
+        if (delivered) await markMessageProcessed(kv, 'whatsapp', messageId)
         return
       }
 
@@ -296,11 +317,22 @@ export async function POST(req: Request): Promise<Response> {
             messageText: userText,
             platform: 'whatsapp',
           })
-          await sendWhatsAppMessage(senderPhone, reply)
+          await sendWhatsAppMessage(senderPhone, reply).catch((replyErr) => {
+            log({
+              level: 'error',
+              event: 'bot.wa.reply_failed',
+              userId,
+              metadata: { messageId, phoneNumber: senderPhone.slice(0, 4) + '****', branch: 'main_reply', error: errorMessage(replyErr) },
+              timestamp: Date.now(),
+            })
+            throw replyErr
+          })
+          await markMessageProcessed(kv, 'whatsapp', messageId)
           log({
             level: 'info',
             event: 'bot.wa.message_processed',
             userId,
+            metadata: { messageId },
             timestamp: Date.now(),
           })
         } catch (err) {
@@ -308,7 +340,15 @@ export async function POST(req: Request): Promise<Response> {
           sendWhatsAppMessage(
             senderPhone,
             'Oops, something went wrong! Please try again in a bit 🙏',
-          ).catch(() => {})
+          ).catch((replyErr) => {
+            log({
+              level: 'error',
+              event: 'bot.wa.reply_failed',
+              userId,
+              metadata: { messageId, phoneNumber: senderPhone.slice(0, 4) + '****', branch: 'processing_error_fallback', error: errorMessage(replyErr) },
+              timestamp: Date.now(),
+            })
+          })
         }
       })()
 

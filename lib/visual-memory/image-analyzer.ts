@@ -11,7 +11,7 @@
 import type { VisualExtraction, VisualMemoryCategory } from '@/types/visual-memory'
 import type { MemoryCategory } from '@/types/memory'
 import type { LifeNode } from '@/types/memory'
-import { geminiGenerate } from '@/lib/ai/vertex-client'
+import { geminiGenerate } from '@/lib/ai/providers/vertex-client'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

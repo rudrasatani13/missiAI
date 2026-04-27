@@ -7,11 +7,11 @@ import type { MoodEntry } from '@/types/mood'
 
 // ─── Mock vertex-client ───────────────────────────────────────────────────────
 
-vi.mock('@/lib/ai/vertex-client', () => ({
+vi.mock('@/lib/ai/providers/vertex-client', () => ({
   geminiGenerate: vi.fn(),
 }))
 
-import { geminiGenerate } from '@/lib/ai/vertex-client'
+import { geminiGenerate } from '@/lib/ai/providers/vertex-client'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

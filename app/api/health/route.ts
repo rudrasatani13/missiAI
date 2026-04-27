@@ -4,9 +4,9 @@
 // Returns system status with KV and env checks.
 // No versioning on health endpoint.
 
-import { getCloudflareContext } from "@opennextjs/cloudflare"
-import { envExists } from "@/lib/server/env"
-import { log } from "@/lib/server/logger"
+import { envExists } from "@/lib/server/platform/env"
+import { getCloudflareKVBinding } from "@/lib/server/platform/bindings"
+import { log } from "@/lib/server/observability/logger"
 import type { KVStore } from "@/types"
 
 
@@ -18,15 +18,6 @@ interface HealthResponse {
     env: "ok" | "missing"
   }
   timestamp: number
-}
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
-  }
 }
 
 async function checkKV(kv: KVStore | null): Promise<"ok" | "error"> {
@@ -65,7 +56,7 @@ function checkEnvVars(): "ok" | "missing" {
 }
 
 export async function GET() {
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
   const kvStatus = await checkKV(kv)
   const envStatus = checkEnvVars()
 

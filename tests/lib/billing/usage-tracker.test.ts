@@ -1,4 +1,18 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+
+const {
+  checkVoiceUsageAtomicMock,
+  checkAndIncrementVoiceUsageAtomicMock,
+} = vi.hoisted(() => ({
+  checkVoiceUsageAtomicMock: vi.fn(),
+  checkAndIncrementVoiceUsageAtomicMock: vi.fn(),
+}))
+
+vi.mock('@/lib/server/platform/atomic-quota', () => ({
+  checkVoiceUsageAtomic: checkVoiceUsageAtomicMock,
+  checkAndIncrementVoiceUsageAtomic: checkAndIncrementVoiceUsageAtomicMock,
+}))
+
 import { getDailyUsage, checkVoiceLimit, checkAndIncrementVoiceTime, sanitizeDuration, getTodayDate } from '@/lib/billing/usage-tracker'
 import type { KVStore } from '@/types'
 
@@ -17,6 +31,15 @@ describe('usage-tracker (time-based)', () => {
 
   beforeEach(() => {
     kv = createMockKV()
+    vi.unstubAllEnvs()
+    checkVoiceUsageAtomicMock.mockReset()
+    checkAndIncrementVoiceUsageAtomicMock.mockReset()
+    checkVoiceUsageAtomicMock.mockResolvedValue(null)
+    checkAndIncrementVoiceUsageAtomicMock.mockResolvedValue(null)
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   describe('getTodayDate', () => {
@@ -105,6 +128,20 @@ describe('usage-tracker (time-based)', () => {
       expect(result.allowed).toBe(true)
       expect(result.remainingSeconds).toBe(999999)
     })
+
+    it('free user fails closed in production when the atomic voice quota service is unavailable', async () => {
+      vi.stubEnv('NODE_ENV', 'production')
+
+      const result = await checkVoiceLimit(kv, 'user_voice_unavailable', 'free')
+
+      expect(result).toMatchObject({
+        allowed: false,
+        usedSeconds: 0,
+        limitSeconds: 600,
+        remainingSeconds: 0,
+        unavailable: true,
+      })
+    })
   })
 
   describe('checkAndIncrementVoiceTime', () => {
@@ -152,6 +189,24 @@ describe('usage-tracker (time-based)', () => {
       expect(result.allowed).toBe(true)
       expect(result.usedSeconds).toBe(60)
       expect(result.remainingSeconds).toBe(999999)
+    })
+
+    it('free user fails closed in production when the atomic voice quota service is unavailable', async () => {
+      vi.stubEnv('NODE_ENV', 'production')
+
+      const result = await checkAndIncrementVoiceTime(kv, 'user_voice_unavailable', 'free', 10000)
+
+      expect(result).toMatchObject({
+        allowed: false,
+        usedSeconds: 0,
+        limitSeconds: 600,
+        remainingSeconds: 0,
+        unavailable: true,
+      })
+
+      const usage = await getDailyUsage(kv, 'user_voice_unavailable')
+      expect(usage.voiceSecondsUsed).toBe(0)
+      expect(usage.voiceInteractions).toBe(0)
     })
   })
 })

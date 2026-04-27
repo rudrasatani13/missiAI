@@ -1,6 +1,6 @@
 import { LifeGraph, LifeNode, MemoryCategory } from '@/types/memory'
 import { YearInReview } from '@/types/life-story'
-import { geminiGenerate } from '@/lib/ai/vertex-client'
+import { geminiGenerate } from '@/lib/ai/providers/vertex-client'
 import { sanitizeNarrativeText } from './chapter-detector'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 

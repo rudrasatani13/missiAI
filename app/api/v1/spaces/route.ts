@@ -6,15 +6,18 @@ import {
   getVerifiedUserId,
   AuthenticationError,
   unauthorizedResponse,
-} from '@/lib/server/auth'
+} from '@/lib/server/security/auth'
 import { validationErrorResponse } from '@/lib/validation/schemas'
-import { logError, logRequest } from '@/lib/server/logger'
+import { logError, logRequest } from '@/lib/server/observability/logger'
+import { invalidateChatContext } from '@/lib/server/chat/context-cache'
 import { getUserPlan } from '@/lib/billing/tier-checker'
 import { canAccessSpaces, proRequiredResponse } from '@/lib/spaces/plan-gate'
 import {
   createSpace,
   getSpace,
   getUserSpaces,
+  releaseSpaceQuotaReservation,
+  reserveSpaceCreateQuota,
   verifyMembership,
 } from '@/lib/spaces/space-store'
 import {
@@ -25,10 +28,7 @@ import {
   jsonResponse,
 } from '@/lib/spaces/space-api-helpers'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
-import {
-  SPACE_CATEGORIES,
-  SPACE_CREATE_WEEKLY_LIMIT,
-} from '@/types/spaces'
+import { SPACE_CATEGORIES } from '@/types/spaces'
 import type { SpaceSummary } from '@/types/spaces'
 
 const createSchema = z.object({
@@ -104,19 +104,6 @@ export async function POST(req: NextRequest) {
   const planId = await getUserPlan(userId)
   if (!canAccessSpaces(planId)) return proRequiredResponse()
 
-  // Weekly creation rate limit (5/week).
-  const week = getIsoWeek()
-  const rlKey = `ratelimit:space-create:${userId}:${week}`
-  const rlRaw = await kv.get(rlKey)
-  const rlCount = rlRaw ? parseInt(rlRaw, 10) || 0 : 0
-  if (rlCount >= SPACE_CREATE_WEEKLY_LIMIT) {
-    return errorResponse(
-      'Space creation limit reached for this week',
-      'RATE_LIMITED',
-      429,
-    )
-  }
-
   let body: unknown
   try {
     body = await req.json()
@@ -136,6 +123,18 @@ export async function POST(req: NextRequest) {
     return errorResponse('Name is too short', 'VALIDATION_ERROR', 400)
   }
 
+  const reservation = await reserveSpaceCreateQuota(userId, getIsoWeek())
+  if (!reservation.allowed) {
+    if (reservation.unavailable) {
+      return errorResponse('Rate limit service unavailable', 'SERVICE_UNAVAILABLE', 503)
+    }
+    return errorResponse(
+      'Space creation limit reached for this week',
+      'RATE_LIMITED',
+      429,
+    )
+  }
+
   try {
     const displayName = await fetchDisplayName(userId)
     const meta = await createSpace(kv, userId, displayName, {
@@ -145,15 +144,14 @@ export async function POST(req: NextRequest) {
       emoji: parsed.data.emoji,
     })
 
-    // Bump weekly counter fire-and-forget. Use 8-day TTL so it survives week
-    // rollover cleanly.
-    kv.put(rlKey, String(rlCount + 1), { expirationTtl: 8 * 86_400 }).catch(
-      () => {},
-    )
+    // Context cache invalidation — new space changes the context window.
+    invalidateChatContext(kv, userId).catch((err) => logError('spaces.create.invalidate_error', err, userId))
 
     logRequest('spaces.create', userId, startTime, { spaceId: meta.spaceId })
     return jsonResponse({ success: true, data: meta })
   } catch (err) {
+    const released = await releaseSpaceQuotaReservation(reservation)
+    if (!released) logError('spaces.create.quota_release_error', err, userId)
     logError('spaces.create.error', err, userId)
     return errorResponse('Failed to create Space', 'INTERNAL_ERROR', 500)
   }

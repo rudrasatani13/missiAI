@@ -1,4 +1,4 @@
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getCloudflareKVBinding } from '@/lib/server/platform/bindings'
 import type { KVStore } from '@/types'
 
 type GlobalWithBudgetKV = typeof globalThis & {
@@ -35,13 +35,8 @@ const localKV = {
 } as KVStore
 
 export function getBudgetKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    const kv = (env as Record<string, unknown>).MISSI_MEMORY ?? null
-    if (kv) return kv as KVStore
-  } catch {
-    // Cloudflare context unavailable (local dev / tests)
-  }
+  const kv = getCloudflareKVBinding()
+  if (kv) return kv
   if (process.env.NODE_ENV !== 'production') return localKV
   return null
 }

@@ -13,7 +13,7 @@
 
 import type { KVStore } from '@/types'
 import type { VisualMemoryRecord } from '@/types/visual-memory'
-import { getTodayUTC } from '@/lib/server/date-utils'
+import { getTodayUTC } from '@/lib/server/utils/date-utils'
 
 // ─── KV Key Helpers ───────────────────────────────────────────────────────────
 

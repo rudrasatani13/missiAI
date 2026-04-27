@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock callAIDirect from ai.service
-vi.mock('@/services/ai.service', () => ({
-  callAIDirect: vi.fn(),
+// Mock callGeminiDirect from ai.service
+vi.mock('@/lib/ai/services/ai-service', () => ({
+  callGeminiDirect: vi.fn(),
 }))
 
 vi.mock('nanoid', () => ({
@@ -10,7 +10,7 @@ vi.mock('nanoid', () => ({
 }))
 
 import { generateQuiz } from '@/lib/exam-buddy/quiz-generator'
-import { callAIDirect } from '@/services/ai.service'
+import { callGeminiDirect as callAIDirect } from '@/lib/ai/services/ai-service'
 
 const mockCallAIDirect = vi.mocked(callAIDirect)
 

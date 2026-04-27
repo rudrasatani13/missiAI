@@ -2,7 +2,7 @@
 
 import type { KVStore } from '@/types'
 import type { SpendingInsight, ExpenseCategory } from '@/types/budget'
-import { callAIDirect } from '@/services/ai.service'
+import { callGeminiDirect } from '@/lib/ai/services/ai-service'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 import { buildMonthlyReport, cacheInsight, getCachedInsight } from './budget-store'
 
@@ -132,7 +132,7 @@ export async function generateSpendingInsight(
 
   try {
     const prompt = buildInsightPrompt(analysis, currency)
-    const raw = await callAIDirect(SYSTEM_PROMPT, prompt, {
+    const raw = await callGeminiDirect(SYSTEM_PROMPT, prompt, {
       model: 'gemini-2.5-flash',
       temperature: 0.5,
       maxOutputTokens: 512,

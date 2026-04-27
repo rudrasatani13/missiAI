@@ -6,8 +6,8 @@ import {
   getVerifiedUserId,
   AuthenticationError,
   unauthorizedResponse,
-} from '@/lib/server/auth'
-import { logError, logRequest } from '@/lib/server/logger'
+} from '@/lib/server/security/auth'
+import { logError, logRequest } from '@/lib/server/observability/logger'
 import {
   deleteNodeFromSpace,
   verifyMembership,

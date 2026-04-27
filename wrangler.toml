@@ -1,8 +1,8 @@
 name = "missiai"
-# Custom entry wraps the OpenNext worker so we can handle /api/v1/live-ws
+# Custom entry wraps the OpenNext worker so we can handle /api/v1/voice-relay
 # on the raw Cloudflare runtime. OpenNext 1.x strips Response.webSocket,
 # which prevents native WebSocket upgrades from Next.js API routes. See
-# workers/entry.ts and workers/live-ws-handler.ts for details.
+# workers/entry.ts and workers/live/handler.ts for details.
 main = "workers/entry.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
@@ -25,20 +25,18 @@ head_sampling_rate = 1
 directory = ".open-next/assets"
 binding = "ASSETS"
 
-# Required secrets — set via `wrangler secret put <NAME>` or Cloudflare Pages
-# dashboard (Settings → Environment variables → Encrypted). NEVER put real
-# values in this file or any .env.*.local file that could be committed.
+# Required secrets/config — set via `wrangler secret put <NAME>` or the
+# Cloudflare dashboard environment settings. NEVER put real values in this
+# file or any .env.*.local file that could be committed.
 #
-# AI providers
-# - ELEVENLABS_API_KEY
-# - ELEVENLABS_VOICE_ID
-#
-# Voice Persona IDs (optional — feature degrades gracefully if not set)
-# - ELEVENLABS_VOICE_CALM       # Calm Therapist persona
-# - ELEVENLABS_VOICE_COACH      # Energetic Coach persona
-# - ELEVENLABS_VOICE_FRIEND     # Sassy Friend persona
-# - ELEVENLABS_VOICE_BOLLYWOOD  # Bollywood Narrator persona
-# - ELEVENLABS_VOICE_DESI_MOM   # Desi Mom persona
+# AI / Vertex
+# - GOOGLE_SERVICE_ACCOUNT_JSON
+# - VERTEX_AI_PROJECT_ID
+# - VERTEX_AI_LOCATION      # Optional; defaults to us-central1
+# - AI_BACKEND              # Optional; currently must remain "vertex"
+# - OPENAI_API_KEY          # Optional fallback
+# - ENABLE_OPENAI_FALLBACK  # Optional fallback toggle
+# - ANTHROPIC_API_KEY       # Optional fallback
 #
 # Auth
 # - CLERK_SECRET_KEY
@@ -48,12 +46,14 @@ binding = "ASSETS"
 # Payments (Dodo)
 # - DODO_PAYMENTS_API_KEY
 # - DODO_WEBHOOK_SECRET
+# - DODO_PLUS_PRODUCT_ID
 # - DODO_PRO_PRODUCT_ID
-# - DODO_BUSINESS_PRODUCT_ID
+#
+# KV encryption / confirmation tokens / live relay tickets
+# - MISSI_KV_ENCRYPTION_SECRET
 #
 # Web Push (VAPID)
 # - VAPID_PRIVATE_KEY
-
 
 [vars]
 DAILY_BUDGET_USD = "5.0"

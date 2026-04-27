@@ -24,8 +24,20 @@
 
 import type { KVStore } from '@/types'
 import type { XPSource } from '@/types/gamification'
-import { getGamificationData, saveGamificationData } from '@/lib/gamification/streak'
-import { getTodayUTC } from '@/lib/server/date-utils'
+import {
+  calculateAvatarTier,
+  calculateLevel,
+  ensureGamificationRecordBackfill,
+  getGamificationData,
+} from '@/lib/gamification/streak'
+import {
+  getGamificationStateRecord,
+  saveGamificationStateRecord,
+  saveGrantRecord,
+  supportsGamificationList,
+} from '@/lib/gamification/gamification-record-store'
+import { checkAndIncrementAtomicCounter } from '@/lib/server/platform/atomic-quota'
+import { getTodayUTC } from '@/lib/server/utils/date-utils'
 
 // ─── Daily Caps per Source ────────────────────────────────────────────────────
 
@@ -47,6 +59,19 @@ const DAILY_CAPS: Record<XPSource, { maxGrants: number; xpPerGrant: number }> = 
  * This is designed to be called fire-and-forget from API routes:
  *   awardXP(kv, userId, 'chat', 3).catch(() => {})
  */
+async function saveLegacyGamificationSnapshot(kv: KVStore, userId: string, data: Awaited<ReturnType<typeof getGamificationData>>): Promise<void> {
+  const today = getTodayUTC()
+  const snapshot = {
+    ...data,
+    lastUpdatedAt: Date.now(),
+    level: calculateLevel(data.totalXP),
+    avatarTier: calculateAvatarTier(data.totalXP),
+    xpLog: data.xpLogDate === today ? data.xpLog : [],
+    xpLogDate: today,
+  }
+  await kv.put(`gamification:${userId}`, JSON.stringify(snapshot))
+}
+
 export async function awardXP(
   kv: KVStore,
   userId: string,
@@ -54,25 +79,14 @@ export async function awardXP(
   amount?: number,
 ): Promise<number> {
   try {
-    // SECURITY (A6): KV-based mutex to prevent double-award race conditions.
-    // If two concurrent requests try to award XP simultaneously, only one wins.
-    // The lock auto-expires via TTL — no manual cleanup needed.
-    const lockKey = `xp-lock:${userId}`
-    const hasLock = await kv.get(lockKey)
-    if (hasLock) return 0 // Another request is processing — skip
-    await kv.put(lockKey, '1', { expirationTtl: 60 }) // 60-second lock (KV minimum TTL)
-
     const data = await getGamificationData(kv, userId)
-    // BUGFIX (B4): Use centralized date utility instead of raw UTC slicing
     const today = getTodayUTC()
 
-    // Ensure xpLog is for today
     if (data.xpLogDate !== today) {
       data.xpLog = []
       data.xpLogDate = today
     }
 
-    // Check daily cap for this source
     const cap = DAILY_CAPS[source]
     if (!cap) return 0
 
@@ -80,16 +94,63 @@ export async function awardXP(
     if (todayGrants >= cap.maxGrants) return 0
 
     const xp = amount ?? cap.xpPerGrant
+    await ensureGamificationRecordBackfill(kv, userId)
+    const remainingGrants = cap.maxGrants - todayGrants
+    const atomicGrant = await checkAndIncrementAtomicCounter(
+      `xp-grant:${userId}:${today}:${source}`,
+      remainingGrants,
+      86_400,
+    )
+    if (atomicGrant && !atomicGrant.allowed) return 0
+
+    const timestamp = Date.now()
+    const sequence = todayGrants + (atomicGrant?.count ?? 1)
+    await saveGrantRecord(kv, {
+      userId,
+      date: today,
+      source,
+      amount: xp,
+      timestamp,
+    }, `${source}:${sequence}`)
 
     data.totalXP += xp
-    data.xpLog.push({ source, amount: xp, timestamp: Date.now() })
+    data.xpLog.push({ source, amount: xp, timestamp })
 
-    // Track login streak
     if (source === 'login' || source === 'chat') {
-      updateLoginStreak(data, today)
+      const loginTouch = data.lastLoginDate === today
+        ? null
+        : await checkAndIncrementAtomicCounter(`login-touch:${userId}:${today}`, 1, 86_400)
+
+      if (!loginTouch || loginTouch.allowed) {
+        updateLoginStreak(data, today)
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 25))
+        const freshData = await getGamificationData(kv, userId)
+        data.loginStreak = freshData.loginStreak
+        data.lastLoginDate = freshData.lastLoginDate
+      }
     }
 
-    await saveGamificationData(kv, userId, data)
+    const currentState = await getGamificationStateRecord(kv, userId)
+    await saveGamificationStateRecord(kv, {
+      ...(currentState ?? {
+        userId,
+        totalXPBaseline: 0,
+        loginStreak: 0,
+        lastLoginDate: '',
+        legacyTodayXPLogDate: '',
+        legacyTodayXPLog: [],
+        lastUpdatedAt: 0,
+      }),
+      userId,
+      loginStreak: data.loginStreak,
+      lastLoginDate: data.lastLoginDate,
+      lastUpdatedAt: Date.now(),
+    })
+
+    if (!supportsGamificationList(kv)) {
+      await saveLegacyGamificationSnapshot(kv, userId, data)
+    }
     console.log(`[XP] Awarded ${xp} XP to ${userId} (source: ${source}, total: ${data.totalXP})`)
     return xp
   } catch (err) {

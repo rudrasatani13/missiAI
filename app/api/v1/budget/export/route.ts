@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/security/auth'
 import { getBudgetKV } from '@/lib/budget/kv'
 import { getEntries, getOrCreateSettings } from '@/lib/budget/budget-store'
 import type { ExpenseEntry } from '@/types/budget'

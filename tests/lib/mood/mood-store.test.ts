@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   getMoodTimeline,
   saveMoodTimeline,
@@ -17,6 +17,26 @@ function makeMockKV(): KVStore {
     get: vi.fn(),
     put: vi.fn(),
     delete: vi.fn(),
+  }
+}
+
+function makeListBackedKV(): KVStore {
+  const store = new Map<string, string>()
+  return {
+    get: async (key: string) => store.get(key) ?? null,
+    put: async (key: string, value: string) => { store.set(key, value) },
+    delete: async (key: string) => { store.delete(key) },
+    list: async ({ prefix = '', cursor, limit = 1000 } = {}) => {
+      const keys = [...store.keys()].filter((key) => key.startsWith(prefix)).sort()
+      const start = cursor ? Number(cursor) : 0
+      const slice = keys.slice(start, start + limit)
+      const next = start + slice.length
+      return {
+        keys: slice.map((name) => ({ name })),
+        list_complete: next >= keys.length,
+        cursor: next >= keys.length ? undefined : String(next),
+      }
+    },
   }
 }
 
@@ -97,10 +117,9 @@ describe('saveMoodTimeline', () => {
 
     expect(timeline.version).toBe(5)
     expect(timeline.lastUpdatedAt).toBeGreaterThanOrEqual(before)
-    expect(kv.put).toHaveBeenCalledWith(
-      'mood:timeline:user-1',
-      JSON.stringify(timeline),
-    )
+    expect(kv.put).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(kv.put).mock.calls[0]?.[0]).toBe('mood:timeline:user-1')
+    expect(JSON.parse(vi.mocked(kv.put).mock.calls[0]?.[1] ?? '{}')).toEqual(timeline)
   })
 })
 
@@ -123,6 +142,27 @@ describe('addMoodEntry', () => {
 
     expect(result.entries).toHaveLength(1)
     expect(result.entries[0].date).toBe('2025-04-12')
+  })
+
+  it('ignores legacy mood lock keys and still upserts the entry', async () => {
+    const kv = makeMockKV()
+    const existing: MoodTimeline = {
+      userId: 'user-1',
+      entries: [],
+      lastUpdatedAt: 0,
+      version: 1,
+    }
+    vi.mocked(kv.get).mockImplementation(async (key: string) => {
+      if (key === 'mood-lock:user-1') return '1'
+      if (key === 'mood:timeline:user-1') return JSON.stringify(existing)
+      return null
+    })
+    vi.mocked(kv.put).mockResolvedValue()
+
+    const result = await addMoodEntry(kv, 'user-1', makeEntry('2025-04-12', 8))
+
+    expect(result.entries).toHaveLength(1)
+    expect(result.entries[0].score).toBe(8)
   })
 
   it('replaces an existing entry for the same date (deduplication)', async () => {
@@ -188,6 +228,20 @@ describe('addMoodEntry', () => {
       '2025-04-11',
       '2025-04-12',
     ])
+  })
+
+  it('preserves both entries after parallel record-backed writes for different dates', async () => {
+    const kv = makeListBackedKV()
+
+    await Promise.all([
+      addMoodEntry(kv, 'user-1', makeEntry('2025-04-12', 4)),
+      addMoodEntry(kv, 'user-1', makeEntry('2025-04-13', 8)),
+    ])
+
+    const timeline = await getMoodTimeline(kv, 'user-1')
+
+    expect(timeline.entries.map((entry) => entry.date)).toEqual(['2025-04-12', '2025-04-13'])
+    expect(timeline.entries.map((entry) => entry.score)).toEqual([4, 8])
   })
 })
 

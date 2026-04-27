@@ -105,7 +105,7 @@ async function callGeminiForQuest(
   missionsPerChapter: number,
 ): Promise<GeminiQuestResponse | null> {
   try {
-    const { geminiGenerate } = await import('@/lib/ai/vertex-client')
+    const { geminiGenerate } = await import('@/lib/ai/providers/vertex-client')
 
     const userName = input.userName || 'friend'
     const memoryContext = input.existingMemoryContext

@@ -6,9 +6,9 @@ import {
   getVerifiedUserId,
   AuthenticationError,
   unauthorizedResponse,
-} from '@/lib/server/auth'
+} from '@/lib/server/security/auth'
 import { validationErrorResponse } from '@/lib/validation/schemas'
-import { logError, logRequest } from '@/lib/server/logger'
+import { logError, logRequest } from '@/lib/server/observability/logger'
 import { getUserPlan } from '@/lib/billing/tier-checker'
 import { canAccessSpaces, proRequiredResponse } from '@/lib/spaces/plan-gate'
 import {
@@ -61,12 +61,14 @@ export async function POST(req: NextRequest) {
   const parsed = joinSchema.safeParse(body)
   if (!parsed.success) return validationErrorResponse(parsed.error)
 
+  let consumedInvite: { spaceId: string; token: string } | null = null
   try {
     // Single-use: token is consumed (KV deleted) before we return.
     const invite = await verifyAndConsumeInvite(kv, parsed.data.token)
     if (!invite) {
       return errorResponse(INVITE_ERROR, 'INVITE_INVALID', 400)
     }
+    consumedInvite = { spaceId: invite.spaceId, token: invite.token }
 
     const spaceId = invite.spaceId
     const [space, members] = await Promise.all([
@@ -79,12 +81,13 @@ export async function POST(req: NextRequest) {
 
     // Idempotent: already a member → return success without mutating.
     if (members.some((m) => m.userId === userId)) {
-      // Still remove the token from the Space's active list since we consumed it.
-      unregisterInviteFromSpace(kv, spaceId, invite.token).catch(() => {})
+      await unregisterInviteFromSpace(kv, spaceId, invite.token).catch(() => {})
+      consumedInvite = null
+      const updatedSpace = await getSpace(kv, spaceId)
       return jsonResponse({
         success: true,
         data: {
-          space,
+          space: updatedSpace ?? space,
           message: `You're already a member of ${space.name}.`,
         },
       })
@@ -108,19 +111,28 @@ export async function POST(req: NextRequest) {
       return errorResponse('This Space is full', 'SPACE_FULL', 400)
     }
 
-    // Remove consumed token from the Space's active invite list.
-    unregisterInviteFromSpace(kv, spaceId, invite.token).catch(() => {})
+    await unregisterInviteFromSpace(kv, spaceId, invite.token).catch(() => {})
+    consumedInvite = null
+    const updatedSpace = await getSpace(kv, spaceId)
 
     logRequest('spaces.join', userId, startTime, { spaceId })
     return jsonResponse({
       success: true,
       data: {
-        space,
+        space: updatedSpace ?? space,
         message: `You've joined ${space.name}!`,
       },
     })
   } catch (err) {
     logError('spaces.join.error', err, userId)
     return errorResponse('Failed to join Space', 'INTERNAL_ERROR', 500)
+  } finally {
+    if (consumedInvite) {
+      await unregisterInviteFromSpace(
+        kv,
+        consumedInvite.spaceId,
+        consumedInvite.token,
+      ).catch(() => {})
+    }
   }
 }

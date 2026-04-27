@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
-import { getEnv } from "@/lib/server/env"
-import { getCloudflareContext } from "@opennextjs/cloudflare"
+import { getVerifiedUserId, AuthenticationError } from "@/lib/server/security/auth"
+import { getEnv } from "@/lib/server/platform/env"
+import { getCloudflareKVBinding } from "@/lib/server/platform/bindings"
 import { randomHex } from "@/lib/bot/bot-crypto"
-import type { KVStore } from "@/types"
 
 
 // ─── Notion OAuth Connect ─────────────────────────────────────────────────────
@@ -12,15 +11,6 @@ import type { KVStore } from "@/types"
 
 // OAuth state token TTL — 10 minutes max for the user to complete consent
 const STATE_TTL_SECONDS = 600
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
-  }
-}
 
 export async function GET(req: NextRequest) {
   let userId: string
@@ -48,7 +38,7 @@ export async function GET(req: NextRequest) {
   // the userId mapping in KV. This prevents CSRF attacks where an attacker
   // forges a state parameter to bind their OAuth tokens to a victim's account.
   const stateToken = randomHex(32)
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
   if (kv) {
     await kv.put(
       `oauth:state:${stateToken}`,

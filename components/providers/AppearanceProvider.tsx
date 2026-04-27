@@ -20,7 +20,7 @@ import { useEffect } from "react"
 import {
   DEFAULT_APPEARANCE,
   type AppearanceSettings,
-} from "@/hooks/useChatSettings"
+} from "@/hooks/chat/useChatSettings"
 
 const LS_KEY = "missi-appearance"
 

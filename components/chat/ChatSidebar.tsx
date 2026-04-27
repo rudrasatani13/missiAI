@@ -36,7 +36,7 @@ import {
   Github,
 } from "lucide-react"
 import { toast } from "sonner"
-import { LEDLogo } from "@/components/ui/LEDLogo"
+import { LEDLogo } from "@/components/brand/LEDLogo"
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Types
@@ -281,9 +281,14 @@ function VoiceSubPanel({
 // Integrations sub-panel
 // ──────────────────────────────────────────────────────────────────────────────
 
+interface PluginConnectionState {
+  connected: boolean
+  errorCode?: string
+}
+
 interface PluginStatus {
-  google: { connected: boolean; expiresAt?: number } | null
-  notion: { connected: boolean; workspaceName?: string } | null
+  google: (PluginConnectionState & { expiresAt?: number }) | null
+  notion: (PluginConnectionState & { workspaceName?: string }) | null
   kvAvailable: boolean
 }
 
@@ -330,8 +335,10 @@ function IntegrationsSubPanel() {
           notion: d.notion ?? (local.notion ? { connected: true, workspaceName: "Notion" } : null),
         }
         setStatus(merged)
-        if (d.google) saveConnectionsToLS({ google: true })
-        if (d.notion) saveConnectionsToLS({ notion: true })
+        if (d.google?.connected) saveConnectionsToLS({ google: true })
+        if (d.notion?.connected) saveConnectionsToLS({ notion: true })
+        if (d.google?.errorCode) clearConnectionFromLS("google")
+        if (d.notion?.errorCode) clearConnectionFromLS("notion")
       })
       .catch(() => {})
   }, [])
@@ -374,8 +381,18 @@ function IntegrationsSubPanel() {
   async function handleRefresh() {
     setRefreshing(true)
     try {
-      await fetch("/api/v1/plugins/refresh", { method: "POST" })
-      toast.success("Context refreshed!")
+      const res = await fetch("/api/v1/plugins/refresh", { method: "POST" })
+      const data = await res.json().catch(() => null) as { success?: boolean; results?: Record<string, string> } | null
+      if (!res.ok || !data?.success) {
+        throw new Error("refresh_failed")
+      }
+      const hasError = Object.values(data.results ?? {}).includes("error")
+      if (hasError) {
+        toast.error("Some integrations need reconnect")
+      } else {
+        toast.success("Context refreshed!")
+      }
+      loadStatus()
     } catch {
       toast.error("Refresh failed")
     } finally {
@@ -480,10 +497,10 @@ function IntegrationsSubPanel() {
               {icon}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={nameStyle}>{name}</p>
-                <p style={metaStyle}>Not connected</p>
+                <p style={metaStyle}>{status?.[id]?.errorCode ? "Reconnect required" : "Not connected"}</p>
               </div>
               <a href={`/api/auth/connect/${id}`} style={connectBtnStyle}>
-                Connect
+                {status?.[id]?.errorCode ? "Reconnect" : "Connect"}
               </a>
             </div>
           ))}

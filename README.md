@@ -24,33 +24,29 @@
 
 | Layer | Technology |
 |--------------|----------------------------------------------|
-| Framework | Next.js 16 (App Router), React 19, TypeScript 5 |
+| Framework | Next.js 15 (App Router), React 19, TypeScript 5 |
 | Styling | Tailwind CSS 3.4, Framer Motion |
 | Visualization | Three.js, react-force-graph-3d |
 | AI (Chat) | Google Gemini 2.5 Flash, Gemini Live (real-time voice) |
 | AI (Memory) | Gemini Flash Lite (fact extraction) |
-| Voice | ElevenLabs STT + TTS |
+| Voice | Gemini STT + Gemini TTS via Vertex AI |
 | Auth | Clerk |
-| Payments | Dodo Payments (Pro & Business tiers) |
+| Payments | Dodo Payments (Plus & Pro tiers) |
 | Storage | Cloudflare KV (memory), Cloudflare Vectorize (embeddings) |
-| Deployment | Cloudflare Pages + @cloudflare/next-on-pages |
+| Deployment | OpenNext Cloudflare + custom worker entry |
 | Testing | Vitest, ESLint, TypeScript strict mode |
 
 ---
 
 ## Architecture
 
-missiAI is an edge-first Next.js application deployed on Cloudflare Pages.
+missiAI is an edge-first Next.js application deployed on Cloudflare with OpenNext Cloudflare and a custom worker entrypoint for live voice relay.
 
-**Voice flow:** User speaks → ElevenLabs STT transcribes → transcript sent to Gemini with memory context + personality → response streams back via SSE → ElevenLabs TTS speaks it aloud. For real-time conversations, Gemini Live handles bidirectional audio streaming.
+**Voice flow:** User audio is transcribed with Gemini STT via Vertex AI → transcript is sent to Gemini with memory context + personality → response streams back via SSE → audio responses are generated with Gemini TTS via Vertex AI. For real-time conversations, Gemini Live runs through the app's same-origin `/api/v1/voice-relay` path.
 
 **Memory system:** Every few interactions, Gemini Flash Lite extracts key facts from the conversation and persists them as nodes in a knowledge graph stored in Cloudflare KV (keyed by Clerk user ID). Cloudflare Vectorize provides semantic search over stored memories. The memory graph is visualized as an interactive 3D force-directed graph.
 
 **Plugin system:** OAuth-based integrations (Google Calendar, Notion) fetch context that gets injected into the AI prompt. An action engine lets the AI draft emails, create calendar events, and execute tasks on the user's behalf.
-
-**Gamification:** Daily streaks, XP from various sources (conversations, check-ins, achievements), tier-based avatar evolution (Spark → Ember → Flame → Blaze → Nova → Aura), and an achievement system.
-
-**Security:** Clerk middleware on all non-public routes, dual-layer rate limiting (IP burst + KV-backed per-user), Zod validation on all API inputs, memory sanitization, HSTS with preload, and Standard Webhooks verification for payment events.
 
 ---
 
@@ -88,34 +84,37 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 | Variable | Description |
 |--------------------------------------|------------------------------------------------|
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | Vertex AI service account JSON |
-| `ELEVENLABS_API_KEY` | ElevenLabs API key for STT and TTS |
-| `ELEVENLABS_VOICE_ID` | ElevenLabs voice character ID |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Vertex AI service account JSON for chat, STT/TTS, and live relay auth |
+| `VERTEX_AI_PROJECT_ID` | Google Cloud project ID used to build Vertex model paths |
 | `CLERK_SECRET_KEY` | Clerk secret key (server-side auth) |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (client-side auth) |
 | `DODO_PAYMENTS_API_KEY` | Dodo Payments API key |
 | `DODO_WEBHOOK_SECRET` | Dodo webhook signature secret |
+| `DODO_PLUS_PRODUCT_ID` | Dodo product ID for Plus plan checkout |
 | `DODO_PRO_PRODUCT_ID` | Dodo product ID for Pro plan |
-| `DODO_BUSINESS_PRODUCT_ID` | Dodo product ID for Business plan |
+| `MISSI_KV_ENCRYPTION_SECRET` | Required in production for encrypted KV, confirmation tokens, boss tokens, and live relay tickets |
 
 ### Optional
 
 | Variable | Description |
 |--------------------------------------|------------------------------------------------|
+| `VERTEX_AI_LOCATION` | Vertex AI region (defaults to `us-central1`) |
+| `AI_BACKEND` | Backend selector; currently must remain `vertex` |
+| `OPENAI_API_KEY` / `ENABLE_OPENAI_FALLBACK` | Optional OpenAI fallback provider configuration |
+| `ANTHROPIC_API_KEY` | Optional Anthropic/Claude fallback provider configuration |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Calendar OAuth credentials |
 | `NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET` | Notion OAuth credentials |
 | `NOTION_API_KEY` | Notion internal integration (alternative to OAuth) |
 | `VAPID_PRIVATE_KEY` | Web push notification signing key |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web push public key (client-side) |
-| `VERTEX_AI_PROJECT_ID` / `VERTEX_AI_LOCATION` | Vertex AI backend (alternative to AI Studio) |
-| `AI_BACKEND` | `"vertex"` or `"google-ai"` (default) |
+| `NEXT_PUBLIC_APP_URL` | Public app origin used in billing return URLs and OAuth redirects |
 | `ADMIN_USER_ID` | Clerk user ID for admin dashboard access |
 | `DAILY_BUDGET_USD` | Max daily API spend in USD (default: 5.0) |
 | `DODO_PAYMENTS_MODE` | `"test_mode"` or `"live_mode"` |
 
 ### WhatsApp & Telegram Bot (Feature 10)
 
-Set via `wrangler secret put <NAME>` or Cloudflare Pages → Settings → Environment variables. **Never commit values.**
+Set via `wrangler secret put <NAME>` or the Cloudflare dashboard → Settings → Environment variables. **Never commit values.**
 
 | Variable | Description |
 |--------------------------------------|------------------------------------------------|
@@ -126,6 +125,37 @@ Set via `wrangler secret put <NAME>` or Cloudflare Pages → Settings → Enviro
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot API token (format: `123456:ABC-…`) |
 | `TELEGRAM_WEBHOOK_SECRET` | Secret token set when registering the Telegram webhook |
 | `TELEGRAM_BOT_USERNAME` | Telegram bot username (without @), used for deep-link URLs |
+
+---
+
+## KV Key Schema (MISSI_MEMORY namespace)
+
+### Current core keys
+
+| Key pattern | Value | TTL |
+|---|---|---|
+| `lifegraph:v2:meta:{userId}` | JSON `LifeGraphMeta` | none |
+| `lifegraph:v2:index:{userId}` | JSON `LifeGraphIndex` | none |
+| `lifegraph:v2:node:{userId}:{nodeId}` | JSON `LifeNode` | none |
+| `dodo:sub:{subscriptionId}` | userId string | none |
+| `webhook:event:{type}:{webhookId}` | `"1"` | 86400 s (24 h) |
+| `usage:{userId}:{date}` | JSON `DailyUsage` | ~48 h |
+
+### Bot integrations (Feature 10)
+
+| Key pattern | Value | TTL |
+|---|---|---|
+| `bot:wa:{e164Phone}` | Clerk userId | none |
+| `bot:wa:user:{clerkUserId}` | e164Phone | none |
+| `bot:tg:{telegramUserId}` | Clerk userId | none |
+| `bot:tg:user:{clerkUserId}` | telegramUserId | none |
+| `bot:otp:{clerkUserId}` | JSON `{ otp, expiresAt }` | 600 s (10 min) |
+| `bot:otp:attempts:{userId}:{date}` | attempt count | 86400 s (24 h) |
+| `bot:tglink:{code}` | JSON `{ clerkUserId, expiresAt }` | 900 s (15 min) |
+| `bot:dedup:wa:{messageId}` | `"1"` | 604800 s (7 days) |
+| `bot:dedup:tg:{updateId}` | `"1"` | 604800 s (7 days) |
+| `bot:daily:wa:{clerkUserId}:{date}` | message count | 172800 s (48 h) |
+| `bot:daily:tg:{clerkUserId}:{date}` | message count | 172800 s (48 h) |
 
 ---
 
@@ -200,35 +230,6 @@ All `/api/v1/*` routes require Clerk authentication unless noted otherwise.
 
 ---
 
-## KV Key Schema (MISSI_MEMORY namespace)
-
-### Existing
-
-| Key pattern | Value | TTL |
-|---|---|---|
-| `lifegraph:{userId}` | JSON `LifeGraph` | none |
-| `dodo:sub:{subscriptionId}` | userId string | none |
-| `webhook:event:{type}:{webhookId}` | `"1"` | 86400 s (24 h) |
-| `usage:{userId}:{date}` | JSON `DailyUsage` | ~48 h |
-
-### Bot integrations (Feature 10)
-
-| Key pattern | Value | TTL |
-|---|---|---|
-| `bot:wa:{e164Phone}` | Clerk userId | none |
-| `bot:wa:user:{clerkUserId}` | e164Phone | none |
-| `bot:tg:{telegramUserId}` | Clerk userId | none |
-| `bot:tg:user:{clerkUserId}` | telegramUserId | none |
-| `bot:otp:{clerkUserId}` | JSON `{ otp, expiresAt }` | 600 s (10 min) |
-| `bot:otp:attempts:{userId}:{date}` | attempt count | 86400 s (24 h) |
-| `bot:tglink:{code}` | JSON `{ clerkUserId, expiresAt }` | 900 s (15 min) |
-| `bot:dedup:wa:{messageId}` | `"1"` | 604800 s (7 days) |
-| `bot:dedup:tg:{updateId}` | `"1"` | 604800 s (7 days) |
-| `bot:daily:wa:{clerkUserId}:{date}` | message count | 172800 s (48 h) |
-| `bot:daily:tg:{clerkUserId}:{date}` | message count | 172800 s (48 h) |
-
----
-
 ## Project Structure
 
 ```
@@ -251,12 +252,12 @@ missi-web/
 │   └── ui/                 # Shared UI primitives (Radix-based)
 ├── hooks/                  # Custom React hooks (16+)
 ├── lib/
+│   ├── ai/                 # Providers, live transport, and AI services
 │   ├── memory/             # KV storage, graph extraction, vectorize
 │   ├── plugins/            # Plugin registry & executors
 │   ├── billing/            # Dodo client & tier checking
 │   ├── gamification/       # Streaks, XP engine, achievements
-│   └── server/             # Auth helpers, env loader
-├── services/               # AI, voice, memory service layer
+│   └── server/             # Platform, security, observability, chat, route helpers
 ├── types/                  # TypeScript type definitions
 ├── middleware.ts            # Clerk auth + rate limiting
 └── wrangler.toml           # Cloudflare Workers config
@@ -269,7 +270,8 @@ missi-web/
 ```bash
 pnpm dev              # Start dev server
 pnpm build            # Production build
-pnpm build:cf         # Build for Cloudflare Pages
+pnpm build:cf         # Build OpenNext output for Cloudflare
+pnpm deploy:cf        # Deploy the Cloudflare worker bundle
 pnpm test             # Run all tests
 pnpm test:watch       # Watch mode
 pnpm test:coverage    # Coverage report
@@ -281,11 +283,12 @@ pnpm lint             # ESLint
 
 ## Deployment
 
-missiAI is deployed on **Cloudflare Pages** using the `@cloudflare/next-on-pages` adapter.
+missiAI is deployed on Cloudflare using **OpenNext Cloudflare**. `workers/entry.ts` wraps the OpenNext worker so `/api/v1/voice-relay` can upgrade WebSockets on the raw runtime.
 
 ```bash
-# Build for Cloudflare
+# Build and deploy for Cloudflare
 pnpm build:cf
+pnpm deploy:cf
 ```
 
 **Required Cloudflare bindings:**
@@ -293,9 +296,10 @@ pnpm build:cf
 | Binding | Type | ID |
 |---------|------|------|
 | `MISSI_MEMORY` | KV Namespace | `ddf2e5eb21484fd1a9aecd8e4eaada74` |
-| `missiai-life-graph` | Vectorize Index | Semantic memory search |
+| `LIFE_GRAPH` | Vectorize Index | `missiai-life-graph` |
+| `ATOMIC_COUNTER` | Durable Object | `AtomicCounterDO` |
 
-Set all environment variables in the Cloudflare Pages dashboard under **Settings > Environment variables** (encrypt sensitive values). See [SECURITY.md](SECURITY.md) for the full secrets management guide.
+Set secrets via `wrangler secret put <NAME>` or the Cloudflare dashboard environment settings. See [SECURITY.md](SECURITY.md) for the full secrets management guide.
 
 ---
 

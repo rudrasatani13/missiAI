@@ -5,7 +5,7 @@
 
 import type { KVStore } from '@/types'
 import type { DailyBrief } from '@/types/daily-brief'
-import { getTodayUTC } from '@/lib/server/date-utils'
+import { getTodayUTC } from '@/lib/server/utils/date-utils'
 
 // ─── KV Key Helpers ───────────────────────────────────────────────────────────
 

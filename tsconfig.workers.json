@@ -7,9 +7,9 @@
   },
   "include": [
     "workers/**/*.ts",
-    "lib/ai/live-ticket.ts",
-    "lib/ai/vertex-auth.ts",
-    "lib/server/env.ts"
+    "lib/ai/live/ticket.ts",
+    "lib/ai/providers/vertex-auth.ts",
+    "lib/server/platform/env.ts"
   ],
   "exclude": [
     "node_modules",

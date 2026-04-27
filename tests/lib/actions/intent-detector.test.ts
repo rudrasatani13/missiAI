@@ -2,11 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { detectIntent, isActionable } from "@/lib/actions/intent-detector"
 
 // Mock callAIDirect
-vi.mock("@/services/ai.service", () => ({
-  callAIDirect: vi.fn(),
+vi.mock("@/lib/ai/services/ai-service", () => ({
+  callGeminiDirect: vi.fn(),
 }))
 
-import { callAIDirect } from "@/services/ai.service"
+import { callGeminiDirect as callAIDirect } from "@/lib/ai/services/ai-service"
 
 const mockedCallAIDirect = vi.mocked(callAIDirect)
 

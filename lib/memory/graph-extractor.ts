@@ -1,6 +1,6 @@
 import type { ConversationEntry } from '@/types/chat'
 import type { LifeNode, LifeGraph, MemoryCategory } from '@/types/memory'
-import { geminiGenerate } from '@/lib/ai/vertex-client'
+import { geminiGenerate } from '@/lib/ai/providers/vertex-client'
 
 const GEMINI_FLASH_MODEL = 'gemini-2.5-pro'
 const EXTRACTION_TIMEOUT_MS = 15_000

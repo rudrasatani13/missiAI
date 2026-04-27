@@ -18,9 +18,9 @@ import {
   Wallet,
   X,
 } from "lucide-react"
-import { LEDLogo } from "@/components/ui/LEDLogo"
+import { LEDLogo } from "@/components/brand/LEDLogo"
 import Image from "next/image"
-import { CookieConsent } from "@/components/ui/CookieConsent"
+import { CookieConsent } from "@/components/feedback/CookieConsent"
 import { ProductShowcase } from "./ProductShowcase"
 
 const heroWords = ["remembers", "gets it", "listens", "helps"]
@@ -483,8 +483,6 @@ function TopNavigation({ isLoaded, isSignedIn }: { isLoaded: boolean; isSignedIn
     { name: "Tools", href: "#tools" },
     { name: "Trust", href: "#trust" },
   ]
-
-  const brandWidth = isScrolled ? "w-[86px] sm:w-[112px]" : "w-[96px] sm:w-[126px]"
 
   return (
     <header className={`fixed z-50 transition-all duration-500 ${isScrolled ? "left-2 right-2 top-2 sm:left-4 sm:right-4 sm:top-4" : "top-0 left-0 right-0"}`}>

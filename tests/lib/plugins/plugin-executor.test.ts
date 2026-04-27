@@ -19,14 +19,14 @@ vi.mock("@/lib/plugins/webhook-plugin", () => ({
   triggerWebhook: vi.fn(),
 }))
 
-vi.mock("@/services/ai.service", () => ({
-  callAIDirect: vi.fn(),
+vi.mock("@/lib/ai/services/ai-service", () => ({
+  callGeminiDirect: vi.fn(),
 }))
 
 import { createNotionPage, addToNotionDatabase, appendToNotionPage } from "@/lib/plugins/notion-plugin"
 import { parseEventFromCommand, createCalendarEvent } from "@/lib/plugins/calendar-plugin"
 import { triggerWebhook } from "@/lib/plugins/webhook-plugin"
-import { callAIDirect } from "@/services/ai.service"
+import { callGeminiDirect as callAIDirect } from "@/lib/ai/services/ai-service"
 
 const mockedCreateNotionPage = vi.mocked(createNotionPage)
 const mockedAddToNotionDatabase = vi.mocked(addToNotionDatabase)
@@ -287,14 +287,6 @@ describe("executePluginCommand", () => {
     })
 
     it("returns error result for unknown pluginId", async () => {
-      const config: PluginConfig = {
-        id: "notion", // mismatched — command has unknown id
-        name: "Unknown",
-        status: "connected",
-        credentials: {},
-        settings: {},
-        connectedAt: Date.now(),
-      }
       const command: PluginCommand = {
         pluginId: "webhook" as any,
         action: "trigger_webhook",
@@ -365,6 +357,16 @@ describe("buildPluginCommand", () => {
 
   it("uses default title/content when AI returns invalid JSON for notion", async () => {
     mockedCallAIDirect.mockResolvedValueOnce("not valid json at all")
+
+    const command = await buildPluginCommand("save my notes", "notion")
+
+    expect(command.pluginId).toBe("notion")
+    expect(command.parameters.title).toBe("New Note")
+    expect(command.parameters.content).toBe("save my notes")
+  })
+
+  it("uses default title/content when AI returns JSON with an invalid shape for notion", async () => {
+    mockedCallAIDirect.mockResolvedValueOnce(JSON.stringify(["bad-payload"]))
 
     const command = await buildPluginCommand("save my notes", "notion")
 

@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/security/auth'
 import { getBudgetKV } from '@/lib/budget/kv'
 import {
-  getEntryById,
+  getEntryByIdWithMonth,
   saveEntry,
   deleteEntry,
 } from '@/lib/budget/budget-store'
@@ -70,18 +70,14 @@ export async function PATCH(
     )
   }
 
-  // Determine month from date or fall back to current month
-  const yearMonth = parsed.data.date
-    ? parsed.data.date.slice(0, 7)
-    : new Date().toISOString().slice(0, 7)
-
-  const entry = await getEntryById(kv, userId, entryId, yearMonth)
-  if (!entry) {
+  const entryLookup = await getEntryByIdWithMonth(kv, userId, entryId)
+  if (!entryLookup) {
     return new Response(
       JSON.stringify({ success: false, error: 'Entry not found' }),
       { status: 404, headers: { 'Content-Type': 'application/json' } },
     )
   }
+  const entry = { ...entryLookup.entry }
 
   // Ownership check
   if (entry.userId !== userId) {
@@ -95,7 +91,13 @@ export async function PATCH(
   if (parsed.data.amount !== undefined) entry.amount = parsed.data.amount
   if (parsed.data.currency !== undefined) {
     const curr = validateCurrency(parsed.data.currency)
-    if (curr) entry.currency = curr
+    if (!curr) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unsupported currency', code: 'VALIDATION_ERROR' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+    entry.currency = curr
   }
   if (parsed.data.category !== undefined) {
     const raw = String(parsed.data.category).toLowerCase()
@@ -148,25 +150,14 @@ export async function DELETE(
 
   const { entryId } = await Promise.resolve(params)
 
-  // Try current and previous month
-  const now = new Date()
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`
-
-  let entry = await getEntryById(kv, userId, entryId, thisMonth)
-  let yearMonth = thisMonth
-  if (!entry) {
-    entry = await getEntryById(kv, userId, entryId, prevMonth)
-    yearMonth = prevMonth
-  }
-
-  if (!entry) {
+  const entryLookup = await getEntryByIdWithMonth(kv, userId, entryId)
+  if (!entryLookup) {
     return new Response(
       JSON.stringify({ success: false, error: 'Entry not found' }),
       { status: 404, headers: { 'Content-Type': 'application/json' } },
     )
   }
+  const entry = entryLookup.entry
 
   // Ownership check
   if (entry.userId !== userId) {
@@ -177,7 +168,7 @@ export async function DELETE(
   }
 
   try {
-    await deleteEntry(kv, userId, entryId, yearMonth)
+    await deleteEntry(kv, userId, entryId, entryLookup.yearMonth)
     return new Response(
       JSON.stringify({ success: true }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },

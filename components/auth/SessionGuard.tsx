@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuth } from "@clerk/nextjs"
-import { useSessionTimeout } from "@/hooks/useSessionTimeout"
+import { useSessionTimeout } from "@/hooks/auth/useSessionTimeout"
 import { ReactNode } from "react"
 
 export function SessionGuard({ children }: { children: ReactNode }) {

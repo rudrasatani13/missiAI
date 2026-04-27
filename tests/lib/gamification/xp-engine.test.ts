@@ -3,7 +3,15 @@ import { awardXP } from '@/lib/gamification/xp-engine'
 import type { KVStore } from '@/types'
 import type { GamificationData } from '@/types/gamification'
 import { getGamificationData } from '@/lib/gamification/streak'
-import * as dateUtils from '@/lib/server/date-utils'
+import * as dateUtils from '@/lib/server/utils/date-utils'
+
+const { checkAndIncrementAtomicCounterMock } = vi.hoisted(() => ({
+  checkAndIncrementAtomicCounterMock: vi.fn(),
+}))
+
+vi.mock('@/lib/server/platform/atomic-quota', () => ({
+  checkAndIncrementAtomicCounter: checkAndIncrementAtomicCounterMock,
+}))
 
 // In-memory KV mock
 function createMockKV(): KVStore {
@@ -12,6 +20,17 @@ function createMockKV(): KVStore {
     get: async (key: string) => store.get(key) ?? null,
     put: async (key: string, value: string) => { store.set(key, value) },
     delete: async (key: string) => { store.delete(key) },
+    list: async ({ prefix = '', cursor, limit = 1000 } = {}) => {
+      const keys = Array.from(store.keys()).filter((key) => key.startsWith(prefix)).sort()
+      const start = cursor ? Number(cursor) : 0
+      const slice = keys.slice(start, start + limit)
+      const next = start + slice.length
+      return {
+        keys: slice.map((name) => ({ name })),
+        list_complete: next >= keys.length,
+        cursor: next >= keys.length ? undefined : String(next),
+      }
+    },
   }
 }
 
@@ -49,7 +68,8 @@ describe('xp-engine', () => {
     vi.spyOn(dateUtils, 'getTodayUTC').mockReturnValue(TODAY)
     // getGamificationData also uses today's date from new Date(). Mock global Date to prevent mismatch.
     vi.setSystemTime(new Date(`${TODAY}T00:00:00.000Z`))
-    // Clear lock
+    checkAndIncrementAtomicCounterMock.mockReset()
+    checkAndIncrementAtomicCounterMock.mockResolvedValue(null)
   })
 
   afterEach(() => {
@@ -68,6 +88,17 @@ describe('xp-engine', () => {
     expect(data.xpLog[0].amount).toBe(3)
   })
 
+  it('awardXP does not recreate the legacy snapshot when list-backed v2 records are available', async () => {
+    const xp = await awardXP(kv, 'user1', 'chat')
+
+    expect(xp).toBe(3)
+    await expect(kv.get('gamification:user1')).resolves.toBeNull()
+
+    const data = await getGamificationData(kv, 'user1')
+    expect(data.totalXP).toBe(3)
+    expect(data.xpLog).toHaveLength(1)
+  })
+
   it('awardXP uses custom amount if provided', async () => {
     const xp = await awardXP(kv, 'user1', 'chat', 10)
     expect(xp).toBe(10)
@@ -81,12 +112,8 @@ describe('xp-engine', () => {
     // 'chat' maxGrants is 3
     let totalAwarded = 0
     totalAwarded += await awardXP(kv, 'user1', 'chat')
-    // simulate lock expiry
-    await kv.delete('xp-lock:user1')
     totalAwarded += await awardXP(kv, 'user1', 'chat')
-    await kv.delete('xp-lock:user1')
     totalAwarded += await awardXP(kv, 'user1', 'chat')
-    await kv.delete('xp-lock:user1')
 
     const capReached = await awardXP(kv, 'user1', 'chat')
     expect(totalAwarded).toBe(9) // 3 * 3
@@ -95,6 +122,35 @@ describe('xp-engine', () => {
     const data = await getGamificationData(kv, 'user1')
     expect(data.totalXP).toBe(9)
     expect(data.xpLog).toHaveLength(3)
+  })
+
+  it('awardXP keeps only capped grants when multiple chat awards race in parallel', async () => {
+    let chatGrantCount = 0
+    checkAndIncrementAtomicCounterMock.mockImplementation(async (name: string) => {
+      if (!name.startsWith('xp-grant:user1:')) {
+        return null
+      }
+      chatGrantCount += 1
+      if (chatGrantCount <= 3) {
+        return { allowed: true, count: chatGrantCount, remaining: 3 - chatGrantCount }
+      }
+      return { allowed: false, count: 3, remaining: 0 }
+    })
+
+    const grants = await Promise.all([
+      awardXP(kv, 'user1', 'chat'),
+      awardXP(kv, 'user1', 'chat'),
+      awardXP(kv, 'user1', 'chat'),
+      awardXP(kv, 'user1', 'chat'),
+      awardXP(kv, 'user1', 'chat'),
+    ])
+
+    expect(grants.filter((amount) => amount === 3)).toHaveLength(3)
+    expect(grants.filter((amount) => amount === 0)).toHaveLength(2)
+
+    const data = await getGamificationData(kv, 'user1')
+    expect(data.totalXP).toBe(9)
+    expect(data.xpLog.filter((entry) => entry.source === 'chat')).toHaveLength(3)
   })
 
   it('awardXP resets xpLog if xpLogDate is not today', async () => {
@@ -119,15 +175,15 @@ describe('xp-engine', () => {
     expect(data.totalXP).toBe(53)
   })
 
-  it('awardXP returns 0 if KV lock is active (race condition prevention)', async () => {
-    // Manually set lock
+  it('awardXP ignores legacy xp-lock keys and still records the grant', async () => {
     await kv.put('xp-lock:user1', '1')
 
     const xp = await awardXP(kv, 'user1', 'chat')
-    expect(xp).toBe(0)
+    expect(xp).toBe(3)
 
     const data = await getGamificationData(kv, 'user1')
-    expect(data.totalXP).toBe(0)
+    expect(data.totalXP).toBe(3)
+    expect(data.xpLog).toHaveLength(1)
   })
 
   it('awardXP returns 0 for unknown source without crashing', async () => {

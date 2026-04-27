@@ -3,8 +3,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/sonner";
 import Link from "next/link";
-import { SmoothScrollProvider } from "@/components/ui/SmoothScrollProvider";
-import { CustomCursor } from "@/components/ui/CustomCursor";
+import { SmoothScrollProvider } from "@/components/effects/SmoothScrollProvider";
+import { CustomCursor } from "@/components/effects/CustomCursor";
 import Script from "next/script";
 
 export const metadata: Metadata = {

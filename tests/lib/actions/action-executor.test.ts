@@ -3,11 +3,11 @@ import { executeAction } from "@/lib/actions/action-executor"
 import type { ActionIntent } from "@/types/actions"
 
 // Mock callAIDirect
-vi.mock("@/services/ai.service", () => ({
-  callAIDirect: vi.fn(),
+vi.mock("@/lib/ai/services/ai-service", () => ({
+  callGeminiDirect: vi.fn(),
 }))
 
-import { callAIDirect } from "@/services/ai.service"
+import { callGeminiDirect as callAIDirect } from "@/lib/ai/services/ai-service"
 
 const mockedCallAIDirect = vi.mocked(callAIDirect)
 

@@ -28,18 +28,51 @@ import {
   INVITE_TTL_SECONDS,
   MAX_ACTIVE_INVITES,
   MAX_SPACE_MEMBERS,
+  SPACE_CREATE_WEEKLY_LIMIT,
   SPACE_WRITE_DAILY_LIMIT,
 } from '@/types/spaces'
-import { encryptKVValue, decryptKVValue } from '@/lib/server/kv-crypto'
+import {
+  buildSpaceGraphSnapshot,
+  buildSpaceMembersSnapshot,
+  deleteSpaceInviteRecord,
+  deleteSpaceInviteLink,
+  deleteSpaceGraphMetaRecord,
+  deleteSpaceMemberRecord,
+  deleteSpaceMetaRecord,
+  deleteSpaceNodeRecord,
+  deleteSpaceNodeTitleIndex,
+  deleteUserSpaceLink,
+  findSpaceNodeByNormalizedTitle,
+  getSpaceGraphMetaRecord,
+  getSpaceInviteRecord,
+  getSpaceMemberRecord,
+  getSpaceMetaRecord,
+  getSpaceNodeRecord,
+  listActiveSpaceInviteTokens,
+  listSpaceMemberRecords,
+  listSpaceNodeRecords,
+  listUserSpaceIds,
+  normalizeSpaceNodeTitle,
+  putSpaceInviteLink,
+  putSpaceInviteRecord,
+  putSpaceMemberRecord,
+  putSpaceNodeRecord,
+  putUserSpaceLink,
+  saveSpaceGraphMetaRecord,
+  saveSpaceMetaRecord,
+  setSpaceNodeTitleIndex,
+  toSpaceMetadata,
+  type SpaceGraphReadOptions,
+  type SpaceGraphMetaRecord,
+  type SpaceMetaRecord,
+} from '@/lib/spaces/space-record-store'
+import { checkAndIncrementAtomicCounter, decrementAtomicCounter } from '@/lib/server/platform/atomic-quota'
 
 // ─── Key builders ────────────────────────────────────────────────────────────
 
 const K = {
-  meta: (spaceId: string) => `space:meta:${spaceId}`,
-  members: (spaceId: string) => `space:members:${spaceId}`,
-  graph: (spaceId: string) => `space:graph:${spaceId}`,
-  index: (userId: string) => `space:index:${userId}`,
-  invite: (token: string) => `space:invite:${token}`,
+  createLimit: (userId: string, week: string) =>
+    `ratelimit:space-create:${userId}:${week}`,
   writeLimit: (userId: string, date: string) =>
     `ratelimit:space-write:${userId}:${date}`,
 }
@@ -52,39 +85,239 @@ function emptyGraph(): LifeGraph {
   return { nodes: [], totalInteractions: 0, lastUpdatedAt: 0, version: 1 }
 }
 
-// ─── Low-level encrypted JSON helpers ────────────────────────────────────────
-
-async function putEncryptedJSON(
-  kv: KVStore,
-  key: string,
-  salt: string,
-  value: unknown,
-  options?: { expirationTtl?: number },
-): Promise<void> {
-  const ciphertext = await encryptKVValue(JSON.stringify(value), salt)
-  await kv.put(key, ciphertext, options)
+export interface SpaceQuotaReservation {
+  allowed: boolean
+  remaining: number
+  current: number
+  unavailable?: boolean
+  counterName: string
+  limit: number
 }
 
-async function getEncryptedJSON<T>(
+async function bestEffort(...operations: Promise<unknown>[]): Promise<void> {
+  await Promise.allSettled(operations)
+}
+
+async function bestEffortSequence(
+  operations: Array<() => Promise<unknown>>,
+): Promise<void> {
+  for (const operation of operations) {
+    try {
+      await operation()
+    } catch {
+      // best-effort by design
+    }
+  }
+}
+
+function buildSpaceMetaRecord(meta: SpaceMetadata) {
+  return {
+    spaceId: meta.spaceId,
+    name: meta.name,
+    description: meta.description,
+    category: meta.category,
+    emoji: meta.emoji,
+    createdAt: meta.createdAt,
+    ownerUserId: meta.ownerUserId,
+    memberCount: meta.memberCount,
+    activeInviteCount: meta.activeInviteTokens.length,
+    storageVersion: 2 as const,
+    updatedAt: Date.now(),
+  }
+}
+
+function buildSpaceGraphMetaRecord(spaceId: string, graph: LifeGraph) {
+  return {
+    spaceId,
+    nodeCount: Array.isArray(graph.nodes) ? graph.nodes.length : 0,
+    totalInteractions: graph.totalInteractions || 0,
+    lastUpdatedAt: graph.lastUpdatedAt || 0,
+    version: Math.max(2, graph.version || 2),
+    storageVersion: 2 as const,
+  }
+}
+
+function compareSpaceMembers(a: SpaceMember, b: SpaceMember): number {
+  return a.joinedAt - b.joinedAt || a.userId.localeCompare(b.userId)
+}
+
+function buildSpaceMetadataSnapshot(
+  record: SpaceMetaRecord,
+  members: SpaceMember[],
+  activeInviteTokens: string[],
+): SpaceMetadata {
+  return {
+    ...toSpaceMetadata(record, activeInviteTokens),
+    memberCount: members.length,
+    activeInviteTokens,
+  }
+}
+
+function emptySpaceGraphMetaRecord(spaceId: string): SpaceGraphMetaRecord {
+  return {
+    spaceId,
+    nodeCount: 0,
+    totalInteractions: 0,
+    lastUpdatedAt: 0,
+    version: 2,
+    storageVersion: 2,
+  }
+}
+
+async function refreshSpaceDerivedMeta(
   kv: KVStore,
-  key: string,
-  salt: string,
-): Promise<T | null> {
-  const raw = await kv.get(key)
-  if (!raw) return null
-  const plaintext = await decryptKVValue(raw, salt)
-  if (plaintext === null) {
-    // Decrypt failure: treat as "no data" per spec Rule 4. A warn log keeps
-    // the signal visible without leaking ciphertext.
-    console.warn(`[spaces] decrypt failed for key=${key}`)
-    return null
-  }
-  try {
-    return JSON.parse(plaintext) as T
-  } catch {
-    console.warn(`[spaces] JSON parse failed for key=${key}`)
-    return null
-  }
+  spaceId: string,
+  overrides?: Partial<Pick<SpaceMetaRecord, 'ownerUserId'>>,
+): Promise<SpaceMetaRecord | null> {
+  const current = await getSpaceMetaRecord(kv, spaceId)
+  if (!current) return null
+
+  const [members, activeInviteTokens] = await Promise.all([
+    listSpaceMemberRecords(kv, spaceId),
+    listActiveSpaceInviteTokens(kv, spaceId).catch((): string[] => []),
+  ])
+
+  return saveSpaceMetaRecord(kv, {
+    ...current,
+    ...overrides,
+    memberCount: members.length,
+    activeInviteCount: activeInviteTokens.length,
+    updatedAt: Date.now(),
+  })
+}
+
+async function refreshSpaceGraphMeta(
+  kv: KVStore,
+  spaceId: string,
+  options?: {
+    totalInteractions?: number
+    lastUpdatedAt?: number
+    incrementVersion?: boolean
+  },
+): Promise<SpaceGraphMetaRecord> {
+  const current = await getSpaceGraphMetaRecord(kv, spaceId) ?? emptySpaceGraphMetaRecord(spaceId)
+  const nodes = await listSpaceNodeRecords(kv, spaceId)
+  const lastNodeUpdatedAt = nodes.reduce(
+    (max, node) => Math.max(max, node.updatedAt, node.lastAccessedAt),
+    0,
+  )
+
+  return saveSpaceGraphMetaRecord(kv, {
+    ...current,
+    nodeCount: nodes.length,
+    totalInteractions: options?.totalInteractions ?? current.totalInteractions,
+    lastUpdatedAt: Math.max(
+      options?.lastUpdatedAt ?? 0,
+      lastNodeUpdatedAt,
+      current.lastUpdatedAt,
+    ),
+    version: options?.incrementVersion === false
+      ? current.version
+      : Math.max(2, current.version + 1),
+    storageVersion: 2,
+  })
+}
+
+async function upsertSpaceMembership(
+  kv: KVStore,
+  spaceId: string,
+  member: SpaceMember,
+): Promise<void> {
+  await Promise.all([
+    putSpaceMemberRecord(kv, spaceId, member),
+    putUserSpaceLink(kv, {
+      userId: member.userId,
+      spaceId,
+      joinedAt: member.joinedAt,
+    }),
+  ])
+}
+
+async function removeSpaceMembership(
+  kv: KVStore,
+  spaceId: string,
+  userId: string,
+): Promise<void> {
+  await Promise.all([
+    deleteSpaceMemberRecord(kv, spaceId, userId),
+    deleteUserSpaceLink(kv, userId, spaceId),
+  ])
+}
+
+function isSharedMemoryNode(node: LifeNode): node is SharedMemoryNode {
+  const candidate = node as Partial<SharedMemoryNode>
+  return (
+    typeof node.id === 'string' &&
+    typeof node.title === 'string' &&
+    typeof candidate.spaceId === 'string' &&
+    typeof candidate.contributorId === 'string'
+  )
+}
+
+function getSharedNodesForV2(graph: LifeGraph, spaceId: string): SharedMemoryNode[] {
+  if (!Array.isArray(graph.nodes)) return []
+  return graph.nodes
+    .filter(isSharedMemoryNode)
+    .map((node) => ({
+      ...node,
+      spaceId,
+      visibility: 'space',
+    }))
+}
+
+async function syncSpaceMembersToV2(
+  kv: KVStore,
+  spaceId: string,
+  members: SpaceMember[],
+): Promise<void> {
+  const existingMembers = await listSpaceMemberRecords(kv, spaceId)
+  const nextUserIds = new Set(members.map((member) => member.userId))
+  await bestEffortSequence([
+    ...existingMembers
+      .filter((member) => !nextUserIds.has(member.userId))
+      .map((member) => () => deleteSpaceMemberRecord(kv, spaceId, member.userId)),
+    ...members.map((member) => () => putSpaceMemberRecord(kv, spaceId, member)),
+  ])
+}
+
+async function syncSpaceGraphToV2(
+  kv: KVStore,
+  spaceId: string,
+  graph: LifeGraph,
+): Promise<void> {
+  const existingNodes = await listSpaceNodeRecords(kv, spaceId)
+  const nextNodes = getSharedNodesForV2(graph, spaceId)
+  const nextNodeIds = new Set(nextNodes.map((node) => node.id))
+  const nextTitlesByNodeId = new Map(
+    nextNodes.map((node) => [node.id, normalizeSpaceNodeTitle(node.title)]),
+  )
+
+  await bestEffort(
+    saveSpaceGraphMetaRecord(kv, buildSpaceGraphMetaRecord(spaceId, graph)),
+  )
+  await bestEffortSequence([
+    ...existingNodes.flatMap((node) => {
+      const oldTitle = normalizeSpaceNodeTitle(node.title)
+      const nextTitle = nextTitlesByNodeId.get(node.id)
+      if (!nextNodeIds.has(node.id)) {
+        return [
+          () => deleteSpaceNodeRecord(kv, spaceId, node.id),
+          () => deleteSpaceNodeTitleIndex(kv, spaceId, oldTitle),
+        ]
+      }
+      if (nextTitle && nextTitle !== oldTitle) {
+        return [() => deleteSpaceNodeTitleIndex(kv, spaceId, oldTitle)]
+      }
+      return []
+    }),
+    ...nextNodes.flatMap((node) => {
+      const title = normalizeSpaceNodeTitle(node.title)
+      return [
+        () => putSpaceNodeRecord(kv, node),
+        ...(!title ? [] : [() => setSpaceNodeTitleIndex(kv, spaceId, title, node.id)]),
+      ]
+    }),
+  ])
 }
 
 // ─── Space metadata ──────────────────────────────────────────────────────────
@@ -93,11 +326,17 @@ export async function getSpace(
   kv: KVStore,
   spaceId: string,
 ): Promise<SpaceMetadata | null> {
-  return getEncryptedJSON<SpaceMetadata>(kv, K.meta(spaceId), spaceId)
+  const v2Meta = await getSpaceMetaRecord(kv, spaceId)
+  if (!v2Meta) return null
+  const [members, activeInviteTokens] = await Promise.all([
+    listSpaceMemberRecords(kv, spaceId),
+    listActiveSpaceInviteTokens(kv, spaceId).catch((): string[] => []),
+  ])
+  return buildSpaceMetadataSnapshot(v2Meta, members, activeInviteTokens)
 }
 
 async function saveSpace(kv: KVStore, meta: SpaceMetadata): Promise<void> {
-  await putEncryptedJSON(kv, K.meta(meta.spaceId), meta.spaceId, meta)
+  await saveSpaceMetaRecord(kv, buildSpaceMetaRecord(meta))
 }
 
 // ─── Members ─────────────────────────────────────────────────────────────────
@@ -106,12 +345,9 @@ export async function getSpaceMembers(
   kv: KVStore,
   spaceId: string,
 ): Promise<SpaceMember[]> {
-  const members = await getEncryptedJSON<SpaceMember[]>(
-    kv,
-    K.members(spaceId),
-    spaceId,
-  )
-  return Array.isArray(members) ? members : []
+  const v2Meta = await getSpaceMetaRecord(kv, spaceId)
+  if (!v2Meta) return []
+  return buildSpaceMembersSnapshot(kv, spaceId)
 }
 
 async function saveSpaceMembers(
@@ -119,7 +355,7 @@ async function saveSpaceMembers(
   spaceId: string,
   members: SpaceMember[],
 ): Promise<void> {
-  await putEncryptedJSON(kv, K.members(spaceId), spaceId, members)
+  await syncSpaceMembersToV2(kv, spaceId, members)
 }
 
 export async function verifyMembership(
@@ -127,8 +363,9 @@ export async function verifyMembership(
   spaceId: string,
   userId: string,
 ): Promise<SpaceMember | null> {
-  const members = await getSpaceMembers(kv, spaceId)
-  return members.find((m) => m.userId === userId) ?? null
+  const v2Meta = await getSpaceMetaRecord(kv, spaceId)
+  if (!v2Meta) return null
+  return getSpaceMemberRecord(kv, spaceId, userId)
 }
 
 // ─── Per-user index ──────────────────────────────────────────────────────────
@@ -137,28 +374,16 @@ export async function getUserSpaces(
   kv: KVStore,
   userId: string,
 ): Promise<string[]> {
-  const ids = await getEncryptedJSON<string[]>(kv, K.index(userId), userId)
-  return Array.isArray(ids) ? ids : []
-}
-
-async function saveUserSpaces(
-  kv: KVStore,
-  userId: string,
-  spaceIds: string[],
-): Promise<void> {
-  await putEncryptedJSON(kv, K.index(userId), userId, spaceIds)
+  return listUserSpaceIds(kv, userId)
 }
 
 async function addSpaceToUserIndex(
   kv: KVStore,
   userId: string,
   spaceId: string,
+  joinedAt = Date.now(),
 ): Promise<void> {
-  const current = await getUserSpaces(kv, userId)
-  if (!current.includes(spaceId)) {
-    current.push(spaceId)
-    await saveUserSpaces(kv, userId, current)
-  }
+  await putUserSpaceLink(kv, { userId, spaceId, joinedAt })
 }
 
 async function removeSpaceFromUserIndex(
@@ -166,11 +391,7 @@ async function removeSpaceFromUserIndex(
   userId: string,
   spaceId: string,
 ): Promise<void> {
-  const current = await getUserSpaces(kv, userId)
-  const next = current.filter((id) => id !== spaceId)
-  if (next.length !== current.length) {
-    await saveUserSpaces(kv, userId, next)
-  }
+  await deleteUserSpaceLink(kv, userId, spaceId)
 }
 
 // ─── Space graph ─────────────────────────────────────────────────────────────
@@ -178,10 +399,11 @@ async function removeSpaceFromUserIndex(
 export async function getSpaceGraph(
   kv: KVStore,
   spaceId: string,
+  options?: SpaceGraphReadOptions,
 ): Promise<LifeGraph> {
-  const graph = await getEncryptedJSON<LifeGraph>(kv, K.graph(spaceId), spaceId)
-  if (!graph || !Array.isArray(graph.nodes)) return emptyGraph()
-  return graph
+  const v2Meta = await getSpaceGraphMetaRecord(kv, spaceId)
+  if (!v2Meta) return emptyGraph()
+  return buildSpaceGraphSnapshot(kv, spaceId, options)
 }
 
 export async function saveSpaceGraph(
@@ -189,9 +411,10 @@ export async function saveSpaceGraph(
   spaceId: string,
   graph: LifeGraph,
 ): Promise<void> {
+  if (!(await getSpaceMetaRecord(kv, spaceId))) return
   graph.version = (graph.version || 0) + 1
   graph.lastUpdatedAt = Date.now()
-  await putEncryptedJSON(kv, K.graph(spaceId), spaceId, graph)
+  await syncSpaceGraphToV2(kv, spaceId, graph)
 }
 
 // ─── Create a Space ──────────────────────────────────────────────────────────
@@ -237,8 +460,15 @@ export async function createSpace(
   await Promise.all([
     saveSpace(kv, meta),
     saveSpaceMembers(kv, spaceId, [owner]),
-    putEncryptedJSON(kv, K.graph(spaceId), spaceId, emptyGraph()),
-    addSpaceToUserIndex(kv, ownerUserId, spaceId),
+    addSpaceToUserIndex(kv, ownerUserId, spaceId, now),
+    saveSpaceGraphMetaRecord(kv, {
+      spaceId,
+      nodeCount: 0,
+      totalInteractions: 0,
+      lastUpdatedAt: 0,
+      version: 2,
+      storageVersion: 2,
+    }),
   ])
 
   return meta
@@ -255,6 +485,29 @@ export interface AddNodeInput {
   emotionalWeight: number
 }
 
+function mergeSpaceNode(
+  existing: SharedMemoryNode,
+  contributorId: string,
+  contributorDisplayName: string,
+  nodeInput: AddNodeInput,
+  now: number,
+): SharedMemoryNode {
+  return {
+    ...existing,
+    detail: nodeInput.detail.length > existing.detail.length
+      ? nodeInput.detail
+      : `${existing.detail} ${nodeInput.detail}`.slice(0, 500),
+    tags: [...new Set([...existing.tags, ...nodeInput.tags])].slice(0, 8),
+    people: [...new Set([...existing.people, ...nodeInput.people])],
+    emotionalWeight: Math.max(existing.emotionalWeight, nodeInput.emotionalWeight),
+    confidence: Math.min(1, existing.confidence + 0.1),
+    updatedAt: now,
+    category: nodeInput.category,
+    contributorId,
+    contributorDisplayName: contributorDisplayName.slice(0, 50),
+  }
+}
+
 export async function addNodeToSpace(
   kv: KVStore,
   spaceId: string,
@@ -262,63 +515,84 @@ export async function addNodeToSpace(
   contributorDisplayName: string,
   nodeInput: AddNodeInput,
 ): Promise<SharedMemoryNode> {
-  const graph = await getSpaceGraph(kv, spaceId)
+  const meta = await getSpaceMetaRecord(kv, spaceId)
+  if (!meta) throw new Error('space not found')
   const now = Date.now()
-  const titleLower = nodeInput.title.toLowerCase().trim()
+  const normalizedTitle = normalizeSpaceNodeTitle(nodeInput.title)
 
   // Deduplication / merge — mirrors lib/memory/life-graph.ts behaviour but
   // without Vectorize (Space graphs stay KV-only for now).
-  const existing = graph.nodes.find(
-    (n) => n.title.toLowerCase().trim() === titleLower,
-  ) as SharedMemoryNode | undefined
-
-  let node: SharedMemoryNode
-  if (existing) {
-    existing.detail =
-      nodeInput.detail.length > existing.detail.length
-        ? nodeInput.detail
-        : `${existing.detail} ${nodeInput.detail}`.slice(0, 500)
-    existing.tags = [...new Set([...existing.tags, ...nodeInput.tags])].slice(0, 8)
-    existing.people = [...new Set([...existing.people, ...nodeInput.people])]
-    existing.emotionalWeight = Math.max(
-      existing.emotionalWeight,
-      nodeInput.emotionalWeight,
+  let existing = await findSpaceNodeByNormalizedTitle(kv, spaceId, normalizedTitle)
+  if (!existing && normalizedTitle) {
+    const createGate = await checkAndIncrementAtomicCounter(
+      `space-node-create:${spaceId}:${normalizedTitle}`,
+      1,
+      5,
     )
-    existing.confidence = Math.min(1, existing.confidence + 0.1)
-    existing.updatedAt = now
-    existing.category = nodeInput.category
-    // Attribution: the person who re-added is now listed as contributor so
-    // they can edit/delete. Original author attribution is NOT retained — the
-    // Space is a shared record and we don't want phantom access via old ids.
-    existing.contributorId = contributorId
-    existing.contributorDisplayName = contributorDisplayName.slice(0, 50)
-    node = existing
-  } else {
-    node = {
-      id: nanoid(12),
-      userId: contributorId, // base LifeNode field — historical compat
-      category: nodeInput.category,
-      title: nodeInput.title.slice(0, 80),
-      detail: nodeInput.detail.slice(0, 500),
-      tags: nodeInput.tags.slice(0, 8),
-      people: [...nodeInput.people],
-      emotionalWeight: nodeInput.emotionalWeight,
-      confidence: 0.8,
-      createdAt: now,
-      updatedAt: now,
-      accessCount: 0,
-      lastAccessedAt: 0,
-      source: 'explicit',
-      // Space fields
-      spaceId,
-      contributorId,
-      contributorDisplayName: contributorDisplayName.slice(0, 50),
-      visibility: 'space',
+    if (createGate && !createGate.allowed) {
+      await new Promise((resolve) => setTimeout(resolve, 25))
+      existing = await findSpaceNodeByNormalizedTitle(kv, spaceId, normalizedTitle)
     }
-    graph.nodes.push(node)
   }
 
-  await saveSpaceGraph(kv, spaceId, graph)
+  if (existing) {
+    const merged = mergeSpaceNode(
+      existing,
+      contributorId,
+      contributorDisplayName,
+      nodeInput,
+      now,
+    )
+    await Promise.all([
+      putSpaceNodeRecord(kv, merged),
+      normalizedTitle
+        ? setSpaceNodeTitleIndex(kv, spaceId, normalizedTitle, merged.id)
+        : Promise.resolve(),
+    ])
+    await refreshSpaceGraphMeta(kv, spaceId, { lastUpdatedAt: now })
+    return merged
+  }
+
+  let node: SharedMemoryNode = {
+    id: nanoid(12),
+    userId: contributorId,
+    category: nodeInput.category,
+    title: nodeInput.title.slice(0, 80),
+    detail: nodeInput.detail.slice(0, 500),
+    tags: nodeInput.tags.slice(0, 8),
+    people: [...nodeInput.people],
+    emotionalWeight: nodeInput.emotionalWeight,
+    confidence: 0.8,
+    createdAt: now,
+    updatedAt: now,
+    accessCount: 0,
+    lastAccessedAt: 0,
+    source: 'explicit',
+    spaceId,
+    contributorId,
+    contributorDisplayName: contributorDisplayName.slice(0, 50),
+    visibility: 'space',
+  }
+
+  await putSpaceNodeRecord(kv, node)
+  if (normalizedTitle) {
+    await setSpaceNodeTitleIndex(kv, spaceId, normalizedTitle, node.id)
+    const canonical = await findSpaceNodeByNormalizedTitle(kv, spaceId, normalizedTitle)
+    if (canonical && canonical.id !== node.id) {
+      const merged = mergeSpaceNode(
+        canonical,
+        contributorId,
+        contributorDisplayName,
+        nodeInput,
+        now,
+      )
+      await putSpaceNodeRecord(kv, merged)
+      await deleteSpaceNodeRecord(kv, spaceId, node.id)
+      node = merged
+    }
+  }
+
+  await refreshSpaceGraphMeta(kv, spaceId, { lastUpdatedAt: now })
   return node
 }
 
@@ -328,22 +602,28 @@ export async function deleteNodeFromSpace(
   nodeId: string,
   requestingUserId: string,
 ): Promise<boolean> {
-  const [graph, meta] = await Promise.all([
-    getSpaceGraph(kv, spaceId),
-    getSpace(kv, spaceId),
+  const [node, meta] = await Promise.all([
+    getSpaceNodeRecord(kv, spaceId, nodeId),
+    getSpaceMetaRecord(kv, spaceId),
   ])
   if (!meta) return false
-
-  const idx = graph.nodes.findIndex((n) => n.id === nodeId)
-  if (idx === -1) return false
-
-  const node = graph.nodes[idx] as SharedMemoryNode
+  if (!node) return false
   const isContributor = node.contributorId === requestingUserId
   const isOwner = meta.ownerUserId === requestingUserId
   if (!isContributor && !isOwner) return false
 
-  graph.nodes.splice(idx, 1)
-  await saveSpaceGraph(kv, spaceId, graph)
+  const normalizedTitle = normalizeSpaceNodeTitle(node.title)
+  await Promise.all([
+    deleteSpaceNodeRecord(kv, spaceId, node.id),
+    deleteSpaceNodeTitleIndex(kv, spaceId, normalizedTitle),
+  ])
+  const replacement = (await listSpaceNodeRecords(kv, spaceId)).find(
+    (candidate) => normalizeSpaceNodeTitle(candidate.title) === normalizedTitle,
+  )
+  if (replacement && normalizedTitle) {
+    await setSpaceNodeTitleIndex(kv, spaceId, normalizedTitle, replacement.id)
+  }
+  await refreshSpaceGraphMeta(kv, spaceId, { lastUpdatedAt: Date.now() })
   return true
 }
 
@@ -396,11 +676,18 @@ export async function createInvite(
     used: false,
   }
 
-  await putEncryptedJSON(kv, K.invite(token), token, invite, {
+  await putSpaceInviteRecord(kv, invite, {
     expirationTtl: INVITE_TTL_SECONDS,
   })
 
   return invite
+}
+
+export async function deleteInviteToken(
+  kv: KVStore,
+  token: string,
+): Promise<void> {
+  await deleteSpaceInviteRecord(kv, token)
 }
 
 /**
@@ -412,19 +699,11 @@ export async function verifyAndConsumeInvite(
   kv: KVStore,
   token: string,
 ): Promise<SpaceInvite | null> {
-  const invite = await getEncryptedJSON<SpaceInvite>(
-    kv,
-    K.invite(token),
-    token,
-  )
-  if (!invite) return null
-
-  // Delete immediately — single-use contract. Fire-and-forget style but we
-  // await to ensure the delete lands before we return the token to the caller.
-  await kv.delete(K.invite(token)).catch(() => {})
-
-  if (invite.expiresAt < Date.now()) return null
-  return invite
+  const v2Invite = await getSpaceInviteRecord(kv, token)
+  if (!v2Invite) return null
+  await deleteInviteToken(kv, token)
+  if (v2Invite.expiresAt < Date.now()) return null
+  return v2Invite
 }
 
 /**
@@ -436,14 +715,10 @@ export async function peekInvite(
   kv: KVStore,
   token: string,
 ): Promise<SpaceInvite | null> {
-  const invite = await getEncryptedJSON<SpaceInvite>(
-    kv,
-    K.invite(token),
-    token,
-  )
-  if (!invite) return null
-  if (invite.expiresAt < Date.now()) return null
-  return invite
+  const v2Invite = await getSpaceInviteRecord(kv, token)
+  if (!v2Invite) return null
+  if (v2Invite.expiresAt < Date.now()) return null
+  return v2Invite
 }
 
 // ─── Membership mutations ────────────────────────────────────────────────────
@@ -453,25 +728,37 @@ export async function addMemberToSpace(
   spaceId: string,
   newMember: SpaceMember,
 ): Promise<boolean> {
-  const [members, meta] = await Promise.all([
-    getSpaceMembers(kv, spaceId),
-    getSpace(kv, spaceId),
-  ])
+  const meta = await getSpaceMetaRecord(kv, spaceId)
   if (!meta) return false
-  if (members.length >= MAX_SPACE_MEMBERS) return false
-  if (members.some((m) => m.userId === newMember.userId)) {
+
+  const existingMember = await getSpaceMemberRecord(kv, spaceId, newMember.userId)
+  if (existingMember) {
     // Idempotent: already a member → treat as success without duplicating.
+    await upsertSpaceMembership(kv, spaceId, existingMember)
+    await refreshSpaceDerivedMeta(kv, spaceId)
     return true
   }
 
-  members.push(newMember)
-  meta.memberCount = members.length
+  const members = await listSpaceMemberRecords(kv, spaceId)
+  if (members.length >= MAX_SPACE_MEMBERS) return false
 
-  await Promise.all([
-    saveSpaceMembers(kv, spaceId, members),
-    saveSpace(kv, meta),
-    addSpaceToUserIndex(kv, newMember.userId, spaceId),
-  ])
+  await upsertSpaceMembership(kv, spaceId, newMember)
+  const nextMembers = await listSpaceMemberRecords(kv, spaceId)
+  if (nextMembers.length > MAX_SPACE_MEMBERS) {
+    const keepIds = new Set(
+      [...nextMembers]
+        .sort(compareSpaceMembers)
+        .slice(0, MAX_SPACE_MEMBERS)
+        .map((member) => member.userId),
+    )
+    if (!keepIds.has(newMember.userId)) {
+      await removeSpaceMembership(kv, spaceId, newMember.userId)
+      await refreshSpaceDerivedMeta(kv, spaceId)
+      return false
+    }
+  }
+
+  await refreshSpaceDerivedMeta(kv, spaceId)
   return true
 }
 
@@ -486,13 +773,12 @@ export async function removeMemberFromSpace(
   userId: string,
   requestedBy: string,
 ): Promise<RemoveMemberResult> {
-  const [members, meta] = await Promise.all([
-    getSpaceMembers(kv, spaceId),
-    getSpace(kv, spaceId),
+  const [meta, target, members] = await Promise.all([
+    getSpaceMetaRecord(kv, spaceId),
+    getSpaceMemberRecord(kv, spaceId, userId),
+    listSpaceMemberRecords(kv, spaceId),
   ])
   if (!meta) return { dissolved: false, removed: false }
-
-  const target = members.find((m) => m.userId === userId)
   if (!target) return { dissolved: false, removed: false }
 
   // Only the user themselves or the owner can remove.
@@ -504,24 +790,24 @@ export async function removeMemberFromSpace(
 
   // Dissolve if no members left.
   if (remaining.length === 0) {
-    await dissolveSpace(kv, spaceId, [userId])
+    await dissolveSpace(kv, spaceId, members.map((member) => member.userId))
     return { dissolved: true, removed: true }
   }
 
   // Transfer ownership if owner left.
+  let nextOwnerUserId = meta.ownerUserId
+  let promotedMember: SpaceMember | null = null
   if (meta.ownerUserId === userId) {
-    const earliest = [...remaining].sort((a, b) => a.joinedAt - b.joinedAt)[0]
-    earliest.role = 'owner'
-    meta.ownerUserId = earliest.userId
+    const earliest = [...remaining].sort(compareSpaceMembers)[0]
+    nextOwnerUserId = earliest.userId
+    promotedMember = earliest.role === 'owner' ? earliest : { ...earliest, role: 'owner' }
   }
 
-  meta.memberCount = remaining.length
-
   await Promise.all([
-    saveSpaceMembers(kv, spaceId, remaining),
-    saveSpace(kv, meta),
-    removeSpaceFromUserIndex(kv, userId, spaceId),
+    removeSpaceMembership(kv, spaceId, userId),
+    promotedMember ? putSpaceMemberRecord(kv, spaceId, promotedMember) : Promise.resolve(),
   ])
+  await refreshSpaceDerivedMeta(kv, spaceId, { ownerUserId: nextOwnerUserId })
   return { dissolved: false, removed: true }
 }
 
@@ -530,21 +816,32 @@ export async function dissolveSpace(
   spaceId: string,
   memberUserIds: string[],
 ): Promise<void> {
-  // Best-effort read metadata to know which invite tokens to clean up.
-  const meta = await getSpace(kv, spaceId)
+  const activeInviteTokens = await listActiveSpaceInviteTokens(kv, spaceId).catch((): string[] => [])
+  const v2Members = await listSpaceMemberRecords(kv, spaceId).catch((): SpaceMember[] => [])
+  const v2Nodes = await listSpaceNodeRecords(kv, spaceId).catch((): SharedMemoryNode[] => [])
+  const allMemberUserIds = [...new Set([...memberUserIds, ...v2Members.map((member) => member.userId)])]
   const tokenDeletes: Promise<void>[] = []
-  if (meta?.activeInviteTokens?.length) {
-    for (const token of meta.activeInviteTokens) {
-      tokenDeletes.push(kv.delete(K.invite(token)).catch(() => {}))
-    }
+  const inviteLinkDeletes: Promise<void>[] = []
+  for (const token of activeInviteTokens) {
+    tokenDeletes.push(deleteInviteToken(kv, token).catch(() => {}))
+    inviteLinkDeletes.push(deleteSpaceInviteLink(kv, spaceId, token).catch(() => {}))
   }
 
   await Promise.all([
-    kv.delete(K.meta(spaceId)).catch(() => {}),
-    kv.delete(K.members(spaceId)).catch(() => {}),
-    kv.delete(K.graph(spaceId)).catch(() => {}),
+    deleteSpaceMetaRecord(kv, spaceId).catch(() => {}),
+    deleteSpaceGraphMetaRecord(kv, spaceId).catch(() => {}),
+    ...v2Members.map((member) =>
+      deleteSpaceMemberRecord(kv, spaceId, member.userId).catch(() => {}),
+    ),
+    ...v2Nodes.flatMap((node) => [
+      deleteSpaceNodeRecord(kv, spaceId, node.id).catch(() => {}),
+      deleteSpaceNodeTitleIndex(kv, spaceId, normalizeSpaceNodeTitle(node.title)).catch(
+        () => {},
+      ),
+    ]),
     ...tokenDeletes,
-    ...memberUserIds.map((uid) =>
+    ...inviteLinkDeletes,
+    ...allMemberUserIds.map((uid) =>
       removeSpaceFromUserIndex(kv, uid, spaceId).catch(() => {}),
     ),
   ])
@@ -558,11 +855,10 @@ export async function updateLastActive(
   userId: string,
 ): Promise<void> {
   try {
-    const members = await getSpaceMembers(kv, spaceId)
-    const member = members.find((m) => m.userId === userId)
+    const member = await getSpaceMemberRecord(kv, spaceId, userId)
     if (!member) return
     member.lastActiveAt = Date.now()
-    await saveSpaceMembers(kv, spaceId, members)
+    await putSpaceMemberRecord(kv, spaceId, member)
   } catch {
     /* fire-and-forget */
   }
@@ -587,6 +883,43 @@ export async function incrementSpaceWriteRateLimit(
   await kv.put(key, String(current + 1), { expirationTtl: 86_400 })
 }
 
+async function reserveSpaceQuota(
+  counterName: string,
+  limit: number,
+  ttlSeconds: number,
+): Promise<SpaceQuotaReservation> {
+  const atomic = await checkAndIncrementAtomicCounter(counterName, limit, ttlSeconds)
+  if (!atomic) {
+    return { allowed: false, remaining: 0, current: 0, unavailable: true, counterName, limit }
+  }
+  return {
+    allowed: atomic.allowed,
+    remaining: atomic.remaining,
+    current: atomic.count,
+    counterName,
+    limit,
+  }
+}
+
+export async function reserveSpaceCreateQuota(
+  userId: string,
+  week: string,
+): Promise<SpaceQuotaReservation> {
+  return reserveSpaceQuota(K.createLimit(userId, week), SPACE_CREATE_WEEKLY_LIMIT, 8 * 86_400)
+}
+
+export async function reserveSpaceWriteQuota(userId: string): Promise<SpaceQuotaReservation> {
+  return reserveSpaceQuota(K.writeLimit(userId, todayUTC()), SPACE_WRITE_DAILY_LIMIT, 86_400)
+}
+
+export async function releaseSpaceQuotaReservation(
+  reservation: SpaceQuotaReservation,
+): Promise<boolean> {
+  if (!reservation.allowed || reservation.unavailable) return true
+  const released = await decrementAtomicCounter(reservation.counterName, reservation.limit, 1)
+  return released !== null
+}
+
 export function isSpaceWriteLimitExceeded(count: number): boolean {
   return count >= SPACE_WRITE_DAILY_LIMIT
 }
@@ -598,13 +931,49 @@ export async function registerInviteOnSpace(
   spaceId: string,
   token: string,
 ): Promise<boolean> {
-  const meta = await getSpace(kv, spaceId)
+  const meta = await getSpaceMetaRecord(kv, spaceId)
   if (!meta) return false
-  const active = meta.activeInviteTokens ?? []
+
+  const active = await listActiveSpaceInviteTokens(kv, spaceId).catch((): string[] => [])
+  if (active.includes(token)) {
+    await refreshSpaceDerivedMeta(kv, spaceId)
+    return true
+  }
   if (active.length >= MAX_ACTIVE_INVITES) return false
-  active.push(token)
-  meta.activeInviteTokens = active
-  await saveSpace(kv, meta)
+
+  const invite = await getSpaceInviteRecord(kv, token)
+  if (!invite || invite.spaceId !== spaceId) return false
+
+  await putSpaceInviteLink(kv, {
+    spaceId,
+    token,
+    createdAt: invite.createdAt,
+    expiresAt: invite.expiresAt,
+  })
+  const activeAfterWrite = await listActiveSpaceInviteTokens(kv, spaceId).catch((): string[] => [])
+  if (activeAfterWrite.length > MAX_ACTIVE_INVITES) {
+    const keepTokens = new Set(
+      (await Promise.all(
+        activeAfterWrite.map(async (activeToken) => ({
+          token: activeToken,
+          invite: await getSpaceInviteRecord(kv, activeToken),
+        })),
+      ))
+        .sort((a, b) => {
+          const createdAtA = a.invite?.createdAt ?? 0
+          const createdAtB = b.invite?.createdAt ?? 0
+          return createdAtA - createdAtB || a.token.localeCompare(b.token)
+        })
+        .slice(0, MAX_ACTIVE_INVITES)
+        .map((entry) => entry.token),
+    )
+    if (!keepTokens.has(token)) {
+      await deleteSpaceInviteLink(kv, spaceId, token)
+      await refreshSpaceDerivedMeta(kv, spaceId)
+      return false
+    }
+  }
+  await refreshSpaceDerivedMeta(kv, spaceId)
   return true
 }
 
@@ -613,13 +982,8 @@ export async function unregisterInviteFromSpace(
   spaceId: string,
   token: string,
 ): Promise<void> {
-  const meta = await getSpace(kv, spaceId)
-  if (!meta) return
-  const next = (meta.activeInviteTokens ?? []).filter((t) => t !== token)
-  if (next.length !== (meta.activeInviteTokens?.length ?? 0)) {
-    meta.activeInviteTokens = next
-    await saveSpace(kv, meta)
-  }
+  await deleteSpaceInviteLink(kv, spaceId, token)
+  await refreshSpaceDerivedMeta(kv, spaceId)
 }
 
 // ─── Metadata mutations ──────────────────────────────────────────────────────

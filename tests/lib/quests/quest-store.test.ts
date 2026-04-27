@@ -8,11 +8,20 @@ import {
   deleteQuest,
   getActiveQuestCount,
   checkQuestGenRateLimit,
-  incrementQuestGenRateLimit,
+  checkAndIncrementQuestGenRateLimit,
   verifyAndConsumeBossToken,
   storeBossToken,
 } from '@/lib/quests/quest-store'
+import { buildQuestIndexKey, buildQuestRecordKey } from '@/lib/quests/quest-record-store'
 import type { Quest } from '@/types/quests'
+
+const { checkAndIncrementAtomicCounterMock } = vi.hoisted(() => ({
+  checkAndIncrementAtomicCounterMock: vi.fn(),
+}))
+
+vi.mock('@/lib/server/platform/atomic-quota', () => ({
+  checkAndIncrementAtomicCounter: checkAndIncrementAtomicCounterMock,
+}))
 
 // ─── Mock KV Store ────────────────────────────────────────────────────────────
 
@@ -78,12 +87,23 @@ describe('Quest Store', () => {
       expect(result).toEqual([])
     })
 
+    it('should ignore legacy blob-only quest state once v2 is authoritative', async () => {
+      await kv.put('quests:user-123', JSON.stringify([createTestQuest()]))
+
+      const result = await getQuests(kv, 'user-123')
+
+      expect(result).toEqual([])
+    })
+
     it('should save and retrieve quests', async () => {
       const quest = createTestQuest()
       await saveQuests(kv, 'user-123', [quest])
       const result = await getQuests(kv, 'user-123')
       expect(result).toHaveLength(1)
       expect(result[0].title).toBe('Test Quest')
+      expect(kv._store.has(buildQuestRecordKey('user-123', quest.id))).toBe(true)
+      expect(kv._store.has(buildQuestIndexKey('user-123'))).toBe(true)
+      expect(kv._store.has('quests:user-123')).toBe(false)
     })
 
     it('should throw if quest userId does not match', async () => {
@@ -95,6 +115,14 @@ describe('Quest Store', () => {
   describe('getQuest', () => {
     it('should return null for non-existent quest', async () => {
       const result = await getQuest(kv, 'user-123', 'nonexistent')
+      expect(result).toBeNull()
+    })
+
+    it('should ignore legacy blob-only quest lookups once fallback is retired', async () => {
+      await kv.put('quests:user-123', JSON.stringify([createTestQuest()]))
+
+      const result = await getQuest(kv, 'user-123', 'test-quest-1')
+
       expect(result).toBeNull()
     })
 
@@ -190,6 +218,78 @@ describe('Quest Store', () => {
       const result = await checkQuestGenRateLimit(kv, 'user-123', 'free')
       expect(result.allowed).toBe(false)
       expect(result.remaining).toBe(0)
+    })
+  })
+
+  describe('checkAndIncrementQuestGenRateLimit', () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
+      checkAndIncrementAtomicCounterMock.mockResolvedValue(null)
+    })
+
+    it('uses atomic counter when available (allowed)', async () => {
+      checkAndIncrementAtomicCounterMock.mockResolvedValue({ allowed: true, count: 1, remaining: 2 })
+
+      const result = await checkAndIncrementQuestGenRateLimit(kv, 'user-123', 'free')
+      expect(result.allowed).toBe(true)
+      expect(result.remaining).toBe(2)
+      expect(checkAndIncrementAtomicCounterMock).toHaveBeenCalledWith(
+        expect.stringContaining('ratelimit:quest-gen:user-123:'),
+        3,
+        604800,
+      )
+    })
+
+    it('uses atomic counter when available (blocked)', async () => {
+      checkAndIncrementAtomicCounterMock.mockResolvedValue({ allowed: false, count: 3, remaining: 0 })
+
+      const result = await checkAndIncrementQuestGenRateLimit(kv, 'user-123', 'free')
+      expect(result.allowed).toBe(false)
+      expect(result.remaining).toBe(0)
+    })
+
+    it('falls back to KV when atomic counter is unavailable', async () => {
+      const result = await checkAndIncrementQuestGenRateLimit(kv, 'user-123', 'free')
+      expect(result.allowed).toBe(true)
+      expect(result.remaining).toBe(3)
+    })
+
+    it('falls back to KV and respects existing counter', async () => {
+      const isoWeek = (() => {
+        const now = new Date()
+        const yearStart = new Date(Date.UTC(now.getUTCFullYear(), 0, 1))
+        const dayOfYear = Math.floor((now.getTime() - yearStart.getTime()) / 86400000) + 1
+        const weekNumber = Math.ceil((dayOfYear + yearStart.getUTCDay()) / 7)
+        return `${now.getUTCFullYear()}-W${String(weekNumber).padStart(2, '0')}`
+      })()
+      await kv.put(`ratelimit:quest-gen:user-123:${isoWeek}`, '2')
+
+      const result = await checkAndIncrementQuestGenRateLimit(kv, 'user-123', 'free')
+      expect(result.allowed).toBe(true)
+      expect(result.remaining).toBe(1)
+
+      // Verify counter was incremented
+      const updated = await kv.get(`ratelimit:quest-gen:user-123:${isoWeek}`)
+      expect(updated).toBe('3')
+    })
+
+    it('falls back to KV and blocks at limit', async () => {
+      const isoWeek = (() => {
+        const now = new Date()
+        const yearStart = new Date(Date.UTC(now.getUTCFullYear(), 0, 1))
+        const dayOfYear = Math.floor((now.getTime() - yearStart.getTime()) / 86400000) + 1
+        const weekNumber = Math.ceil((dayOfYear + yearStart.getUTCDay()) / 7)
+        return `${now.getUTCFullYear()}-W${String(weekNumber).padStart(2, '0')}`
+      })()
+      await kv.put(`ratelimit:quest-gen:user-123:${isoWeek}`, '3')
+
+      const result = await checkAndIncrementQuestGenRateLimit(kv, 'user-123', 'free')
+      expect(result.allowed).toBe(false)
+      expect(result.remaining).toBe(0)
+
+      // Verify counter was NOT incremented (blocked)
+      const updated = await kv.get(`ratelimit:quest-gen:user-123:${isoWeek}`)
+      expect(updated).toBe('3')
     })
   })
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { getVerifiedUserId, AuthenticationError } from '@/lib/server/auth'
+import { getVerifiedUserId, AuthenticationError } from '@/lib/server/security/auth'
+import { isAdminUser } from '@/lib/server/security/admin-auth'
 import { getUserPlan, setUserPlan } from '@/lib/billing/tier-checker'
 import { z } from 'zod'
 import type { PlanId } from '@/types/billing'
@@ -29,8 +30,7 @@ export async function POST(
   }
 
   const clerkAuth = await auth()
-  const role = (clerkAuth.sessionClaims?.metadata as any)?.role
-  const isAdmin = role === 'admin' || (process.env.ADMIN_USER_ID ? userId === process.env.ADMIN_USER_ID : false)
+  const isAdmin = isAdminUser(clerkAuth, userId)
 
   if (!isAdmin) {
     console.warn(JSON.stringify({ event: 'admin.plan_change.forbidden', userId, targetUserId, timestamp: Date.now() }))

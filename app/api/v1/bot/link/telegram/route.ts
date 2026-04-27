@@ -6,21 +6,11 @@
 // The user opens the link → Telegram sends /start {code} to the bot webhook →
 // the webhook resolves the code to a Clerk userId and stores the mapping.
 
-import { getCloudflareContext } from '@opennextjs/cloudflare'
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
+import { getCloudflareKVBinding } from '@/lib/server/platform/bindings'
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/security/auth'
 import { storeTelegramLinkCode, getLinkedTelegram } from '@/lib/bot/bot-auth'
 import { randomHex } from '@/lib/bot/bot-crypto'
-import { logApiError, log } from '@/lib/server/logger'
-import type { KVStore } from '@/types'
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
-  }
-}
+import { logApiError, log } from '@/lib/server/observability/logger'
 
 function getTelegramBotUsername(): string {
   // Derive bot username from token: "123456:ABC…" → fetch getMe, but that's an
@@ -39,7 +29,7 @@ export async function GET(): Promise<Response> {
     throw e
   }
 
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
   if (!kv) {
     return new Response(
       JSON.stringify({ success: false, error: 'Service temporarily unavailable', code: 'SERVICE_UNAVAILABLE' }),
@@ -66,7 +56,7 @@ export async function POST(): Promise<Response> {
     throw e
   }
 
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
   if (!kv) {
     return new Response(
       JSON.stringify({ success: false, error: 'Service temporarily unavailable', code: 'SERVICE_UNAVAILABLE' }),

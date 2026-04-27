@@ -58,14 +58,14 @@ import {
 import { toast } from "sonner"
 
 import { ChatShell } from "@/components/shell/ChatShell"
-import { useBilling } from "@/hooks/useBilling"
+import { useBilling } from "@/hooks/billing/useBilling"
 import {
   DEFAULT_AI_DIALS,
   useChatSettings,
   type AccentColor,
   type FontScale,
   type ThemeMode,
-} from "@/hooks/useChatSettings"
+} from "@/hooks/chat/useChatSettings"
 import { PERSONALITY_OPTIONS, type PersonalityKey } from "@/types/chat"
 
 // ──────────────────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { callAIDirect } from "@/services/ai.service"
+import { callGeminiDirect } from "@/lib/ai/services/ai-service"
 import type { ActionIntent, ActionResult } from "@/types/actions"
 
 function truncate(str: string, max: number): string {
@@ -123,7 +123,7 @@ function parseExpression(expr: string): number {
 
 async function handleWebSearch(intent: ActionIntent): Promise<ActionResult> {
   const query = intent.parameters.query || intent.rawUserMessage
-  const output = await callAIDirect(
+  const output = await callGeminiDirect(
     "You are a search assistant. Search for the query and return a concise 2-3 sentence summary of the most relevant results. No markdown, no lists, plain sentences only.",
     query,
     { useGoogleSearch: true, maxOutputTokens: 300 },
@@ -154,7 +154,7 @@ async function handleDraftEmail(intent: ActionIntent): Promise<ActionResult> {
     }
   }
 
-  const fullDraft = await callAIDirect(
+  const fullDraft = await callGeminiDirect(
     `You are an email writing assistant. Write a complete, ready-to-send email based on the given details.
 Rules:
 - Write the FULL email: greeting, body paragraphs, closing, and sign-off
@@ -179,7 +179,7 @@ Rules:
 
 async function handleDraftMessage(intent: ActionIntent): Promise<ActionResult> {
   const { to = "", tone = "casual", keyPoints = "" } = intent.parameters
-  const fullDraft = await callAIDirect(
+  const fullDraft = await callGeminiDirect(
     "Write a WhatsApp/text message based on parameters. Short, conversational, natural. No markdown.",
     `Write message to: ${to}, tone: ${tone}, key points: ${keyPoints}`,
     { useGoogleSearch: false, maxOutputTokens: 300 },
@@ -241,7 +241,7 @@ async function handleCalculate(intent: ActionIntent): Promise<ActionResult> {
   }
 
   // Fallback to AI for complex expressions
-  const aiResult = await callAIDirect(
+  const aiResult = await callGeminiDirect(
     "You are a math calculator. Evaluate the given math expression and return ONLY the numeric result. No explanation, no steps, just the number.",
     expression,
     { useGoogleSearch: false, maxOutputTokens: 100 },
@@ -259,7 +259,7 @@ async function handleCalculate(intent: ActionIntent): Promise<ActionResult> {
 
 async function handleTranslate(intent: ActionIntent): Promise<ActionResult> {
   const { text = "", targetLanguage = "" } = intent.parameters
-  const translated = await callAIDirect(
+  const translated = await callGeminiDirect(
     "You are a translator. Translate the given text to the target language. Return ONLY the translation, nothing else.",
     `Translate to ${targetLanguage}: ${text}`,
     { useGoogleSearch: false, maxOutputTokens: 300 },
@@ -277,7 +277,7 @@ async function handleTranslate(intent: ActionIntent): Promise<ActionResult> {
 
 async function handleSummarize(intent: ActionIntent): Promise<ActionResult> {
   const content = intent.parameters.content || intent.rawUserMessage
-  const summary = await callAIDirect(
+  const summary = await callGeminiDirect(
     "Summarize the given content in 2-3 sentences. Plain text only.",
     content,
     { useGoogleSearch: false, maxOutputTokens: 200 },

@@ -2,20 +2,21 @@
 # Auto-generated from full codebase scan. Update manually when patterns change.
 
 ## Stack
-- **Framework:** Next.js 16.1.7 (App Router), React 19, TypeScript 5 strict
+- **Framework:** Next.js 15.5.15 (App Router), React 19, TypeScript 5 strict
 - **Auth:** Clerk (`@clerk/nextjs` 6.39.0)
-- **AI:** Google Gemini 2.5 Flash/Pro via Vertex AI (`@google/genai` 1.49.0); ElevenLabs STT (`scribe_v2`) + TTS (`eleven_turbo_v2_5`)
+- **AI:** Google Gemini 2.5 Flash/Pro via Vertex AI (`@google/genai` 1.49.0); Gemini STT/TTS via Vertex AI; optional OpenAI/Claude fallback providers
 - **Payments:** Dodo Payments (REST + Standard Webhooks)
 - **Storage:** Cloudflare KV (`MISSI_MEMORY`), Cloudflare Vectorize (`LIFE_GRAPH`)
-- **Deployment:** Cloudflare Pages + OpenNext Cloudflare (`@opennextjs/cloudflare`)
+- **Deployment:** OpenNext Cloudflare (`@opennextjs/cloudflare`) with a custom worker entry for live relay traffic
 - **Testing:** Vitest; Linting: ESLint
 
 ## Runtime Rules
-- API routes that need Cloudflare bindings access them via `getCloudflareContext()` from `@opennextjs/cloudflare`
+- API routes that need Cloudflare bindings should prefer the centralized helpers in `lib/server/platform/bindings.ts`
 ```ts
-const { env } = getCloudflareContext()
-const kv = (env as any).MISSI_MEMORY
-const lifeGraph = (env as any).LIFE_GRAPH
+import { getCloudflareKVBinding, getCloudflareVectorizeEnv } from "@/lib/server/platform/bindings"
+
+const kv = getCloudflareKVBinding()
+const lifeGraph = getCloudflareVectorizeEnv()
 ```
 - No Node.js APIs anywhere — all code must be edge-runtime compatible
 
@@ -24,14 +25,14 @@ const lifeGraph = (env as any).LIFE_GRAPH
 app/api/v1/          # Versioned API routes (chat, tts, stt, memory, billing, streak, plugins, etc.)
 app/api/webhooks/    # dodo/route.ts — Dodo payment webhook handler
 app/                 # Pages: chat, memory, streak, wind-down, pricing, admin, setup
-lib/server/          # auth.ts, logger.ts, env.ts, cost-tracker.ts, response-cache.ts
+lib/server/          # platform/, security/, observability/, chat/, cache/, routes/
 lib/billing/         # tier-checker.ts, dodo-client.ts, usage-tracker.ts
-lib/memory/          # life-graph.ts, vectorize.ts, embeddings.ts, graph-extractor.ts, token-counter.ts
-lib/ai/              # gemini-stream.ts, vertex-client.ts, model-router.ts
-lib/validation/      # schemas.ts (all Zod schemas), sanitizer.ts
+lib/memory/          # life-graph.ts, life-graph-store.ts, vectorize.ts, embeddings.ts
+lib/ai/              # providers/, live/, services/, agents/
+lib/validation/      # schemas.ts, billing-schemas.ts, sanitizer.ts
 lib/gamification/    # XP engine, streaks, achievements
 lib/plugins/         # Plugin registry + Google Calendar/Notion executors
-services/            # ai.service.ts, voice.service.ts, memory.service.ts
+workers/            # entry.ts, runtime.ts, live relay handlers, durable objects
 types/               # billing.ts, memory.ts, gamification.ts, chat.ts, quests.ts, etc.
 middleware.ts        # Clerk auth + IP rate limiting + security headers
 wrangler.toml        # Cloudflare Workers config + KV/Vectorize bindings
@@ -39,7 +40,7 @@ wrangler.toml        # Cloudflare Workers config + KV/Vectorize bindings
 
 ## Auth Pattern
 ```ts
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/security/auth"
 
 // In every protected route handler:
 let userId: string
@@ -80,7 +81,7 @@ Verification details: timestamp ±5 min check, strip `whsec_` prefix, HMAC-SHA25
 
 ### logSecurityEvent
 ```ts
-import { logSecurityEvent } from "@/lib/server/logger"
+import { logSecurityEvent } from "@/lib/server/observability/logger"
 
 logSecurityEvent("security.bot_ua_detected", {
   ip,
@@ -92,8 +93,8 @@ logSecurityEvent("security.bot_ua_detected", {
 Call for: bot UA detection, rate-limit escalation, webhook replay attempts, any unusual traffic pattern.
 
 ### Other Security Utilities
-- `logAuthEvent(event, { userId?, ip?, userAgent?, path?, outcome, reason? })` — `@/lib/server/logger` — for sign-in, sign-out, 401, admin checks
-- `logApiError(event, error, { userId?, httpStatus, path?, ip? })` — `@/lib/server/logger` — for all API error responses with HTTP status
+- `logAuthEvent(event, { userId?, ip?, userAgent?, path?, outcome, reason? })` — `@/lib/server/observability/logger` — for sign-in, sign-out, 401, admin checks
+- `logApiError(event, error, { userId?, httpStatus, path?, ip? })` — `@/lib/server/observability/logger` — for all API error responses with HTTP status
 - `sanitizeInput` from `@/lib/validation/sanitizer` — applied via Zod `.transform(sanitizeInput)` on all string inputs
 - Security headers applied in `middleware.ts` to every API response: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'; img-src 'self' data: blob:`, `Referrer-Policy: strict-origin-when-cross-origin`
 
@@ -150,27 +151,26 @@ data: [DONE]\n\n
 ## AI / Gemini Pipeline
 1. Route (`app/api/v1/chat/route.ts`) authenticates, validates, checks plan + rate limit
 2. Fetches `searchLifeGraph()` for relevant memory (6s timeout, topK=5)
-3. Calls `buildSystemPrompt(personality, memories, customPrompt)` from `services/ai.service.ts`
-4. `selectGeminiModel(messages, memories)` from `lib/ai/model-router.ts` picks model; voice requests always use `gemini-2.5-flash`
-5. `buildGeminiRequest()` + `streamGeminiResponse()` from `lib/ai/gemini-stream.ts` streams to client as SSE
+3. Calls `buildSystemPrompt(personality, memories, customPrompt)` from `lib/ai/services/ai-service.ts`
+4. `selectGeminiModel(messages, memories)` from `lib/ai/providers/model-router.ts` picks model; voice requests always use `gemini-2.5-flash`
+5. `buildGeminiRequest()` + `streamGeminiResponse()` from `lib/ai/providers/gemini-stream.ts` streams to client as SSE
 6. Post-stream: cost tracking, analytics, mood capture, response cache write — all fire-and-forget
 
-**Personality system prompt location:** `services/ai.service.ts` — `PERSONALITIES` record (lines 6–240). Five built-in: `assistant`, `bestfriend`, `professional`, `playful`, `mentor`. Custom injects `customPrompt` + `CORE_RULES_FOR_CUSTOM`.
+**Personality system prompt location:** `lib/ai/services/ai-service.ts` — `PERSONALITIES` record. Five built-in: `assistant`, `bestfriend`, `professional`, `playful`, `mentor`. Custom injects `customPrompt` + `CORE_RULES_FOR_CUSTOM`.
 
 **Core trait (all personalities):** Brutally honest, never sugarcoat. Always respond in English regardless of input language.
 
-**Non-streaming (internal use):** `generateResponse()` and `callAIDirect()` from `services/ai.service.ts` return `Promise<string>`.
+**Non-streaming (internal use):** `generateResponse()` and `callAIDirect()` from `lib/ai/services/ai-service.ts` return `Promise<string>`.
 
 ## Memory System
 
 ### Life Graph
 ```ts
-import { getLifeGraph, saveLifeGraph, addOrUpdateNode, searchLifeGraph, formatLifeGraphForPrompt } from "@/lib/memory/life-graph"
+import { getLifeGraphReadSnapshot, addOrUpdateNode, searchLifeGraph, formatLifeGraphForPrompt } from "@/lib/memory/life-graph"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 
-// KV key: `lifegraph:{userId}`
-const graph = await getLifeGraph(kv, userId)               // read
-await saveLifeGraph(kv, userId, graph)                     // write
+// v2 storage is managed by lib/memory/life-graph-store.ts key builders
+const graph = await getLifeGraphReadSnapshot(kv, userId)   // read
 const node = await addOrUpdateNode(kv, vectorizeEnv, userId, nodeInput)  // upsert single node
 const results = await searchLifeGraph(kv, vectorizeEnv, userId, query, { topK: 5 })
 const prompt = formatLifeGraphForPrompt(results)           // format for system prompt (max 8 nodes)
@@ -253,7 +253,9 @@ await kv.put(`webhook:event:${eventId}`, '1', { expirationTtl: 86400 })
 ## Existing KV Key Schema
 | Key pattern | Value shape | TTL |
 |---|---|---|
-| `lifegraph:{userId}` | JSON `LifeGraph` | none |
+| `lifegraph:v2:meta:{userId}` | JSON `LifeGraphMeta` | none |
+| `lifegraph:v2:index:{userId}` | JSON `LifeGraphIndex` | none |
+| `lifegraph:v2:node:{userId}:{nodeId}` | JSON `LifeNode` | none |
 | `dodo:sub:{subscriptionId}` | `userId` string | none |
 | `webhook:event:{type}:{webhookId}` | `"1"` (processed flag) | 86400s (24h) |
 | `usage:{userId}:{date}` | JSON `DailyUsage` (voice seconds) | ~48h |
@@ -296,14 +298,14 @@ await kv.put(`webhook:event:${eventId}`, '1', { expirationTtl: 86400 })
 ## Services Layer
 | File | Exports | Purpose |
 |---|---|---|
-| `services/ai.service.ts` | `buildSystemPrompt`, `generateResponse`, `callAIDirect` | Personality prompts, multi-provider AI calls (Gemini/OpenAI/Claude) |
-| `services/voice.service.ts` | `textToSpeech`, `speechToText` | ElevenLabs TTS (eleven_turbo_v2_5) + STT (scribe_v2) with edge-runtime buffer fix |
+| `lib/ai/services/ai-service.ts` | `buildSystemPrompt`, `generateResponse`, `callAIDirect` | Personality prompts and non-streaming AI calls |
+| `lib/ai/services/voice-service.ts` | `geminiTextToSpeech`, `geminiSpeechToText` | Gemini TTS/STT via Vertex AI |
 
 ## Environment Variables
 **AI:**
-- `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`
-- `ELEVENLABS_VOICE_CALM`, `ELEVENLABS_VOICE_COACH`, `ELEVENLABS_VOICE_FRIEND`, `ELEVENLABS_VOICE_BOLLYWOOD`, `ELEVENLABS_VOICE_DESI_MOM` (optional voice personas)
-- Google Vertex AI credentials (via `GOOGLE_SERVICE_ACCOUNT_JSON` or ADC)
+- `GOOGLE_SERVICE_ACCOUNT_JSON`, `VERTEX_AI_PROJECT_ID`, `VERTEX_AI_LOCATION`
+- `AI_BACKEND` — currently must remain `"vertex"`
+- `OPENAI_API_KEY`, `ENABLE_OPENAI_FALLBACK`, `ANTHROPIC_API_KEY` (optional provider fallbacks)
 
 **Auth:**
 - `CLERK_SECRET_KEY`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `ADMIN_USER_ID`
@@ -318,21 +320,24 @@ await kv.put(`webhook:event:${eventId}`, '1', { expirationTtl: 86400 })
 - `VAPID_PRIVATE_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (Web Push)
 
 **App:**
+- `MISSI_KV_ENCRYPTION_SECRET` — required in production for encrypted KV, confirmation tokens, boss tokens, and live relay tickets
 - `NEXT_PUBLIC_APP_URL` — defaults to `"https://missi.space"`
 - `DAILY_BUDGET_USD` — set in `wrangler.toml` vars (default `"5.0"`)
 
-**Secrets set via:** `wrangler secret put <NAME>` or Cloudflare Pages dashboard → Settings → Environment variables (encrypted). Never commit values.
+**Secrets set via:** `wrangler secret put <NAME>` or Cloudflare dashboard environment settings (encrypted). Never commit values.
 
 ## Deployment
-- **Platform:** Cloudflare Pages
+- **Platform:** Cloudflare via OpenNext Cloudflare + `workers/entry.ts`
 - **Build:** `pnpm build:cf` — uses OpenNext Cloudflare (`@opennextjs/cloudflare`)
-- **Output dir:** `.vercel/output/static` (set in `wrangler.toml`)
+- **Deploy:** `pnpm deploy:cf`
+- **Output dir:** `.open-next/assets` (set in `wrangler.toml`)
 - **Compatibility date:** `2024-09-23`, flags: `["nodejs_compat"]`
 - **KV binding:** `MISSI_MEMORY` (id: `ddf2e5eb21484fd1a9aecd8e4eaada74`, preview: `ed3c69b0ac8749e4ba80d58d262fd97f`)
 - **Vectorize binding:** `LIFE_GRAPH` (index: `missiai-life-graph`)
+- **Durable Object binding:** `ATOMIC_COUNTER` (`AtomicCounterDO`)
 
 ## Coding Conventions
-- **Imports:** Absolute paths via `@/` alias (e.g. `@/lib/server/auth`, `@/types/billing`)
+- **Imports:** Absolute paths via `@/` alias (e.g. `@/lib/server/security/auth`, `@/types/billing`)
 - **Async:** `async/await` throughout; `Promise.race()` for timeouts; fire-and-forget with `.catch(() => {})`
 - **Error handling:** `try/catch` in route handlers; never let unknown errors reach the client; always log with appropriate logger function before returning error response
 - **Zod:** `safeParse()` (not `parse()`) — handle failure before destructuring data

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/security/auth'
 import { getUserPlan } from '@/lib/billing/tier-checker'
 import { getExamBuddyKV } from '@/lib/exam-buddy/kv'
 import { checkAndIncrementQuizGenerationLimit, getExamBuddyPlanLimits } from '@/lib/exam-buddy/limits'

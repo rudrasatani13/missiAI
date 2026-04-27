@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import nextDynamic from 'next/dynamic'
 import Link from 'next/link'
 import { ArrowLeft, Brain, X, Calendar, Tag, Activity } from 'lucide-react'
-import { useMemoryDashboard } from '@/hooks/useMemoryDashboard'
+import { useMemoryDashboard } from '@/hooks/memory/useMemoryDashboard'
 import { LifeNode } from '@/types/memory'
 import { motion, AnimatePresence } from 'framer-motion'
 

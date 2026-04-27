@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { checkQuestAchievements } from '@/lib/quests/quest-achievements'
 import type { GamificationData } from '@/types/gamification'
 import type { Quest, QuestAchievementContext } from '@/types/quests'

@@ -4,11 +4,11 @@ import type { LifeGraph, LifeNode } from "@/types/memory"
 import type { ProactiveConfig } from "@/types/proactive"
 
 // Mock vertex-client to avoid real Vertex AI auth in tests
-vi.mock("@/lib/ai/vertex-client", () => ({
+vi.mock("@/lib/ai/providers/vertex-client", () => ({
   geminiGenerate: vi.fn(),
 }))
 
-import { geminiGenerate } from "@/lib/ai/vertex-client"
+import { geminiGenerate } from "@/lib/ai/providers/vertex-client"
 const mockGeminiGenerate = vi.mocked(geminiGenerate)
 
 const DAY_MS = 24 * 60 * 60 * 1000

@@ -1,0 +1,117 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { NextRequest } from 'next/server'
+
+const {
+  authMock,
+  getVerifiedUserIdMock,
+  getUserPlanMock,
+  setUserPlanMock,
+  AuthenticationErrorMock,
+} = vi.hoisted(() => {
+  class AuthenticationErrorMock extends Error {
+    constructor() {
+      super('Unauthorized')
+      this.name = 'AuthenticationError'
+    }
+  }
+
+  return {
+    authMock: vi.fn(),
+    getVerifiedUserIdMock: vi.fn(),
+    getUserPlanMock: vi.fn(),
+    setUserPlanMock: vi.fn(),
+    AuthenticationErrorMock,
+  }
+})
+
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: authMock,
+}))
+
+vi.mock('@/lib/server/security/auth', () => ({
+  getVerifiedUserId: getVerifiedUserIdMock,
+  AuthenticationError: AuthenticationErrorMock,
+}))
+
+vi.mock('@/lib/billing/tier-checker', () => ({
+  getUserPlan: getUserPlanMock,
+  setUserPlan: setUserPlanMock,
+}))
+
+import { auth } from '@clerk/nextjs/server'
+import { POST } from '@/app/api/v1/admin/users/[id]/plan/route'
+
+type ClerkAuthState = Awaited<ReturnType<typeof auth>>
+
+function makeClerkAuthState(userId: string, role: unknown): ClerkAuthState {
+  return {
+    userId,
+    sessionClaims: { metadata: { role } },
+  } as unknown as ClerkAuthState
+}
+
+function makeReq(body: unknown): NextRequest {
+  return new NextRequest('http://localhost/api/v1/admin/users/target_user/plan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+describe('POST /api/v1/admin/users/[id]/plan', () => {
+  const mockAuth = vi.mocked(auth)
+  const originalAdminUserId = process.env.ADMIN_USER_ID
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    delete process.env.ADMIN_USER_ID
+    getVerifiedUserIdMock.mockResolvedValue('admin_user')
+    mockAuth.mockResolvedValue(makeClerkAuthState('admin_user', 'admin'))
+    getUserPlanMock.mockResolvedValue('free')
+    setUserPlanMock.mockResolvedValue(undefined)
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.spyOn(console, 'info').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    if (originalAdminUserId === undefined) {
+      delete process.env.ADMIN_USER_ID
+    } else {
+      process.env.ADMIN_USER_ID = originalAdminUserId
+    }
+  })
+
+  it('returns 403 for malformed metadata when ADMIN_USER_ID fallback is absent', async () => {
+    mockAuth.mockResolvedValueOnce(makeClerkAuthState('admin_user', ['admin']))
+
+    const res = await POST(makeReq({ plan: 'pro' }), {
+      params: Promise.resolve({ id: 'target_user' }),
+    })
+
+    expect(res.status).toBe(403)
+    await expect(res.json()).resolves.toEqual({
+      success: false,
+      error: 'Forbidden',
+      code: 'FORBIDDEN',
+    })
+    expect(setUserPlanMock).not.toHaveBeenCalled()
+  })
+
+  it('allows ADMIN_USER_ID fallback even when metadata is malformed', async () => {
+    process.env.ADMIN_USER_ID = 'admin_user'
+    mockAuth.mockResolvedValueOnce(makeClerkAuthState('admin_user', ['admin']))
+
+    const res = await POST(makeReq({ plan: 'pro' }), {
+      params: Promise.resolve({ id: 'target_user' }),
+    })
+
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toEqual({
+      success: true,
+      data: { userId: 'target_user', plan: 'pro' },
+    })
+    expect(setUserPlanMock).toHaveBeenCalledWith('target_user', 'pro')
+  })
+})

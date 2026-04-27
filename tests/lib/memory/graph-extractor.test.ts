@@ -4,11 +4,11 @@ import type { ConversationEntry } from "@/types/chat"
 import type { LifeGraph } from "@/types/memory"
 
 // Mock vertex-client to avoid real Vertex AI auth in tests
-vi.mock("@/lib/ai/vertex-client", () => ({
+vi.mock("@/lib/ai/providers/vertex-client", () => ({
   geminiGenerate: vi.fn(),
 }))
 
-import { geminiGenerate } from "@/lib/ai/vertex-client"
+import { geminiGenerate } from "@/lib/ai/providers/vertex-client"
 const mockGeminiGenerate = vi.mocked(geminiGenerate)
 
 function makeGeminiResponse(text: string, status = 200) {

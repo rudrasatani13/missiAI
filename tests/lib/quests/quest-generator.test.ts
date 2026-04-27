@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { sanitizeQuestText } from '@/lib/quests/quest-generator'
 
 describe('Quest Generator', () => {

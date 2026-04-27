@@ -38,7 +38,7 @@ const ACHIEVEMENT_REGISTRY: AchievementDef[] = [
     title: 'Memory Keeper',
     description: 'Have 10 memories saved',
     xpBonus: 10,
-    check: (data, ctx) => (ctx.memoryCount ?? 0) >= 10,
+    check: (_data, ctx) => (ctx.memoryCount ?? 0) >= 10,
   },
   {
     id: 'habit_builder',

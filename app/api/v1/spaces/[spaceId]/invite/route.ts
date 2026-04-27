@@ -6,13 +6,14 @@ import {
   getVerifiedUserId,
   AuthenticationError,
   unauthorizedResponse,
-} from '@/lib/server/auth'
+} from '@/lib/server/security/auth'
 import { validationErrorResponse } from '@/lib/validation/schemas'
-import { logError, logRequest } from '@/lib/server/logger'
+import { logError, logRequest } from '@/lib/server/observability/logger'
 import { getUserPlan } from '@/lib/billing/tier-checker'
 import { canAccessSpaces, proRequiredResponse } from '@/lib/spaces/plan-gate'
 import {
   createInvite,
+  deleteInviteToken,
   getSpace,
   registerInviteOnSpace,
   unregisterInviteFromSpace,
@@ -23,7 +24,7 @@ import {
   getKV,
   jsonResponse,
 } from '@/lib/spaces/space-api-helpers'
-import { getEnv } from '@/lib/server/env'
+import { getEnv } from '@/lib/server/platform/env'
 import { MAX_ACTIVE_INVITES } from '@/types/spaces'
 
 const spaceIdSchema = z.string().min(8).max(32)
@@ -87,7 +88,7 @@ export async function POST(
     const registered = await registerInviteOnSpace(kv, spaceId, invite.token)
     if (!registered) {
       // Rare race — try to clean up the orphan invite record.
-      kv.delete(`space:invite:${invite.token}`).catch(() => {})
+      deleteInviteToken(kv, invite.token).catch(() => {})
       return errorResponse(
         'This Space already has the maximum number of active invites',
         'INVITE_LIMIT',
@@ -155,7 +156,7 @@ export async function DELETE(
   try {
     await Promise.all([
       unregisterInviteFromSpace(kv, spaceId, token),
-      kv.delete(`space:invite:${token}`).catch(() => {}),
+      deleteInviteToken(kv, token),
     ])
     logRequest('spaces.invite.revoke', userId, startTime, { spaceId })
     return jsonResponse({ success: true, data: { revoked: true } })

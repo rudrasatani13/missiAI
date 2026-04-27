@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/security/auth'
 import { getExamBuddyKV } from '@/lib/exam-buddy/kv'
 import { readLocalSessionToken } from '@/lib/exam-buddy/session-token'
 import {
@@ -13,7 +13,7 @@ import {
 } from '@/lib/exam-buddy/profile-store'
 import { awardXP } from '@/lib/gamification/xp-engine'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
-import { waitUntil } from '@/lib/server/wait-until'
+import { waitUntil } from '@/lib/server/platform/wait-until'
 
 const submitSchema = z.object({
   answers: z.record(z.string().max(100)).refine(

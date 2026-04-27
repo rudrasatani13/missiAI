@@ -7,26 +7,16 @@
 //     The webhook receives it, resolves the pending code, and stores the mapping.
 //     UI polls GET until linked: true.
 
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { z } from 'zod'
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/security/auth'
 import {
   storePendingWhatsAppLink,
   getLinkedWhatsApp,
 } from '@/lib/bot/bot-auth'
+import { getCloudflareKVBinding } from '@/lib/server/platform/bindings'
 import { validationErrorResponse } from '@/lib/validation/schemas'
-import { logApiError, log } from '@/lib/server/logger'
-import type { KVStore } from '@/types'
+import { logApiError, log } from '@/lib/server/observability/logger'
 import { generateOTP } from '@/lib/bot/bot-crypto'
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
-  }
-}
 
 // ─── GET — return current link status ────────────────────────────────────────
 
@@ -39,7 +29,7 @@ export async function GET(): Promise<Response> {
     throw e
   }
 
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
   if (!kv) {
     return new Response(
       JSON.stringify({ success: false, error: 'Service temporarily unavailable', code: 'SERVICE_UNAVAILABLE' }),
@@ -82,7 +72,7 @@ export async function POST(req: Request): Promise<Response> {
   const parsed = initiateSchema.safeParse(body)
   if (!parsed.success) return validationErrorResponse(parsed.error)
 
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
   if (!kv) {
     return new Response(
       JSON.stringify({ success: false, error: 'Service temporarily unavailable', code: 'SERVICE_UNAVAILABLE' }),

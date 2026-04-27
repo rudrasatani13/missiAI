@@ -4,7 +4,7 @@ import { useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useClerk } from "@clerk/nextjs"
 import { ChatSidebar } from "@/components/chat/ChatSidebar"
-import { useBilling } from "@/hooks/useBilling"
+import { useBilling } from "@/hooks/billing/useBilling"
 
 /**
  * Floating rounded chrome used on every non-/chat page (Memory, Mood, Streaks, etc.).

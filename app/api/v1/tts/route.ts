@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/auth"
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/lib/server/security/auth"
 import { ttsSchema, validationErrorResponse } from "@/lib/validation/schemas"
-import { geminiTextToSpeech } from "@/services/voice.service"
-import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
-import { logRequest, logError, logApiError } from "@/lib/server/logger"
+import { geminiTextToSpeech } from "@/lib/ai/services/voice-service"
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/server/security/rate-limiter"
+import { logRequest, logError, logApiError } from "@/lib/server/observability/logger"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { getCloudflareContext } from "@opennextjs/cloudflare"
-import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
-import { checkVoiceLimit, getTodayDate } from "@/lib/billing/usage-tracker"
-import { waitUntil } from "@/lib/server/wait-until"
-import { COST_CONSTANTS } from "@/lib/server/cost-tracker"
-import type { KVStore } from "@/types"
+import { getCloudflareKVBinding } from "@/lib/server/platform/bindings"
+import { recordAnalyticsUsage } from "@/lib/analytics/event-store"
+import { checkVoiceLimit } from "@/lib/billing/usage-tracker"
+import { waitUntil } from "@/lib/server/platform/wait-until"
+import { COST_CONSTANTS } from "@/lib/server/observability/cost-tracker"
 
 const MAX_BODY_BYTES = 1_000_000 // 1 MB
 const TTS_TIMEOUT_MS = 15_000
@@ -52,11 +51,7 @@ export async function POST(req: NextRequest) {
 
   // Fail-closed: block non-pro users if KV unavailable
   {
-    let kvCheck: KVStore | null = null
-    try {
-      const { env } = getCloudflareContext()
-      kvCheck = (env as any).MISSI_MEMORY ?? null
-    } catch {}
+    const kvCheck = getCloudflareKVBinding()
 
     if (!kvCheck && planId !== 'pro') {
       return NextResponse.json(
@@ -68,6 +63,14 @@ export async function POST(req: NextRequest) {
     if (kvCheck && planId !== 'pro') {
       const voiceLimit = await checkVoiceLimit(kvCheck, userId, planId)
       if (!voiceLimit.allowed) {
+        if (voiceLimit.unavailable) {
+          logRequest("tts.voice_quota_unavailable", userId, startTime)
+          return NextResponse.json(
+            { success: false, error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" },
+            { status: 503 }
+          )
+        }
+
         logRequest("tts.voice_limit", userId, startTime)
         return NextResponse.json(
           { success: false, error: "Daily voice limit reached", code: "USAGE_LIMIT_EXCEEDED", upgrade: "/pricing", usedSeconds: voiceLimit.usedSeconds, limitSeconds: voiceLimit.limitSeconds },
@@ -85,7 +88,7 @@ export async function POST(req: NextRequest) {
     return rateLimitExceededResponse(rateResult)
   }
 
-  // ── 4. Parse & validate ───────────────────────────────────────────────────
+  // ── 5. Parse & validate ───────────────────────────────────────────────────
   let body: unknown
   try {
     body = await req.json()
@@ -116,21 +119,15 @@ export async function POST(req: NextRequest) {
       logRequest("tts.completed", userId, startTime, { charCount, attempt })
 
       // Analytics: fire-and-forget
-      try {
-        const { env } = getCloudflareContext()
-        const kv = (env as any).MISSI_MEMORY as KVStore | null
-        if (kv) {
-          waitUntil(
-            recordEvent(kv, {
-              type: 'tts',
-              userId,
-              costUsd: charCount * COST_CONSTANTS.TTS_COST_PER_CHAR,
-            }).catch(() => {}),
-          )
-          waitUntil(recordUserSeen(kv, userId, getTodayDate()).catch(() => {}))
-        }
-      } catch {
-        // KV unavailable, skip analytics
+      const kv = getCloudflareKVBinding()
+      if (kv) {
+        waitUntil(
+          recordAnalyticsUsage(kv, {
+            type: 'tts',
+            userId,
+            costUsd: charCount * COST_CONSTANTS.TTS_COST_PER_CHAR,
+          }).catch((err) => logError('tts.analytics_error', err, userId)),
+        )
       }
 
       return new NextResponse(audioData, {

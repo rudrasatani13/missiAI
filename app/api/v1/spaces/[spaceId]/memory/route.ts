@@ -6,16 +6,14 @@ import {
   getVerifiedUserId,
   AuthenticationError,
   unauthorizedResponse,
-} from '@/lib/server/auth'
+} from '@/lib/server/security/auth'
 import { validationErrorResponse } from '@/lib/validation/schemas'
-import { logError, logRequest } from '@/lib/server/logger'
+import { logError, logRequest } from '@/lib/server/observability/logger'
 import {
   addNodeToSpace,
   getSpaceGraph,
-  getSpaceWriteRateLimit,
-  incrementSpaceWriteRateLimit,
-  isSpaceWriteLimitExceeded,
-  saveSpaceGraph,
+  releaseSpaceQuotaReservation,
+  reserveSpaceWriteQuota,
   updateLastActive,
   verifyMembership,
 } from '@/lib/spaces/space-store'
@@ -27,7 +25,8 @@ import {
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 import { MEMORY_CATEGORIES } from '@/types/spaces'
 import type { SharedMemoryNode } from '@/types/spaces'
-import { waitUntil } from '@/lib/server/wait-until'
+import { waitUntil } from '@/lib/server/platform/wait-until'
+import { invalidateChatContext } from '@/lib/server/chat/context-cache'
 
 const spaceIdSchema = z.string().min(8).max(32)
 
@@ -143,15 +142,6 @@ export async function POST(
   const member = await verifyMembership(kv, spaceId, userId)
   if (!member) return errorResponse('Not a member of this Space', 'FORBIDDEN', 403)
 
-  const writeCount = await getSpaceWriteRateLimit(kv, userId)
-  if (isSpaceWriteLimitExceeded(writeCount)) {
-    return errorResponse(
-      'Daily Space write limit reached. Try again tomorrow.',
-      'RATE_LIMITED',
-      429,
-    )
-  }
-
   let body: unknown
   try {
     body = await req.json()
@@ -175,6 +165,18 @@ export async function POST(
     return errorResponse('Title is required', 'VALIDATION_ERROR', 400)
   }
 
+  const reservation = await reserveSpaceWriteQuota(userId)
+  if (!reservation.allowed) {
+    if (reservation.unavailable) {
+      return errorResponse('Rate limit service unavailable', 'SERVICE_UNAVAILABLE', 503)
+    }
+    return errorResponse(
+      'Daily Space write limit reached. Try again tomorrow.',
+      'RATE_LIMITED',
+      429,
+    )
+  }
+
   try {
     const node = await addNodeToSpace(kv, spaceId, userId, member.displayName, {
       category: parsed.data.category as SharedMemoryNode['category'],
@@ -185,13 +187,11 @@ export async function POST(
       emotionalWeight: parsed.data.emotionalWeight,
     })
 
-    await saveSpaceGraph(kv, spaceId, await getSpaceGraph(kv, spaceId))
-
     // Background bookkeeping — no need to delay the response.
     waitUntil(Promise.all([
-      incrementSpaceWriteRateLimit(kv, userId),
       updateLastActive(kv, spaceId, userId),
-    ]))
+      invalidateChatContext(kv, userId),
+    ]).catch((err) => logError('spaces.memory.post.background_error', err, userId)))
 
     logRequest('spaces.memory.post', userId, startTime, {
       spaceId,
@@ -200,6 +200,8 @@ export async function POST(
 
     return jsonResponse({ success: true, data: node })
   } catch (err) {
+    const released = await releaseSpaceQuotaReservation(reservation)
+    if (!released) logError('spaces.memory.post.quota_release_error', err, userId)
     logError('spaces.memory.post.error', err, userId)
     return errorResponse('Failed to save memory', 'INTERNAL_ERROR', 500)
   }

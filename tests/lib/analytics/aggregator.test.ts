@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type { KVStore } from '@/types'
 import { buildAnalyticsSnapshot, calculateGrowthRate, formatCostUsd } from '@/lib/analytics/aggregator'
+import { appendAnalyticsEventRecord, enqueueAnalyticsPendingEvent, putAnalyticsSnapshotCache } from '@/lib/analytics/analytics-record-store'
 import { recordEvent } from '@/lib/analytics/event-store'
 
 // ─── In-memory KV mock ────────────────────────────────────────────────────────
@@ -116,6 +117,121 @@ describe('aggregator', () => {
 
       // Should return same generatedAt (cached)
       expect(snapshot2.generatedAt).toBe(snapshot1.generatedAt)
+    })
+
+    it('returns the v2 snapshot cache when it is still fresh', async () => {
+      const freshSnapshot = {
+        today: {
+          date: '2026-04-24',
+          totalRequests: 5,
+          uniqueUsers: 2,
+          voiceInteractions: 1,
+          chatRequests: 1,
+          ttsRequests: 1,
+          memoryReads: 1,
+          memoryWrites: 1,
+          actionsExecuted: 1,
+          totalCostUsd: 0.25,
+          errorCount: 0,
+          newSignups: 0,
+          updatedAt: 100,
+        },
+        yesterday: {
+          date: '2026-04-23',
+          totalRequests: 1,
+          uniqueUsers: 1,
+          voiceInteractions: 0,
+          chatRequests: 0,
+          ttsRequests: 0,
+          memoryReads: 0,
+          memoryWrites: 0,
+          actionsExecuted: 1,
+          totalCostUsd: 0,
+          errorCount: 0,
+          newSignups: 0,
+          updatedAt: 90,
+        },
+        last7Days: [],
+        lifetime: {
+          totalUsers: 9,
+          totalInteractions: 30,
+          totalCostUsd: 4,
+          totalRevenue: 7,
+          planBreakdown: { free: 6, plus: 2, pro: 1 },
+          lastUpdatedAt: 110,
+        },
+        generatedAt: Date.now(),
+      }
+
+      await putAnalyticsSnapshotCache(kv, freshSnapshot)
+
+      expect(await buildAnalyticsSnapshot(kv)).toEqual(freshSnapshot)
+    })
+
+    it('bypasses a fresh snapshot cache when append-log aggregation is not caught up', async () => {
+      const today = new Date().toISOString().split('T')[0]
+      const freshSnapshot = {
+        today: {
+          date: today,
+          totalRequests: 99,
+          uniqueUsers: 99,
+          voiceInteractions: 99,
+          chatRequests: 99,
+          ttsRequests: 0,
+          memoryReads: 0,
+          memoryWrites: 0,
+          actionsExecuted: 0,
+          totalCostUsd: 9.9,
+          errorCount: 0,
+          newSignups: 0,
+          updatedAt: 100,
+        },
+        yesterday: {
+          date: '2026-04-23',
+          totalRequests: 0,
+          uniqueUsers: 0,
+          voiceInteractions: 0,
+          chatRequests: 0,
+          ttsRequests: 0,
+          memoryReads: 0,
+          memoryWrites: 0,
+          actionsExecuted: 0,
+          totalCostUsd: 0,
+          errorCount: 0,
+          newSignups: 0,
+          updatedAt: 90,
+        },
+        last7Days: [],
+        lifetime: {
+          totalUsers: 99,
+          totalInteractions: 99,
+          totalCostUsd: 9.9,
+          totalRevenue: 0,
+          planBreakdown: { free: 99, plus: 0, pro: 0 },
+          lastUpdatedAt: 100,
+        },
+        generatedAt: Date.now(),
+      }
+
+      await putAnalyticsSnapshotCache(kv, freshSnapshot)
+      const eventKey = await appendAnalyticsEventRecord(kv, {
+        eventId: 'evt_backlog',
+        userId: 'user1',
+        date: today,
+        type: 'chat',
+        costUsd: 0.01,
+        markSeen: true,
+        metadata: {},
+        createdAt: Date.now(),
+      })
+      await enqueueAnalyticsPendingEvent(kv, eventKey, today)
+
+      const snapshot = await buildAnalyticsSnapshot(kv)
+
+      expect(snapshot.today.totalRequests).toBe(1)
+      expect(snapshot.today.chatRequests).toBe(1)
+      expect(snapshot.lifetime.totalInteractions).toBe(1)
+      expect(snapshot.generatedAt).not.toBe(freshSnapshot.generatedAt)
     })
   })
 })

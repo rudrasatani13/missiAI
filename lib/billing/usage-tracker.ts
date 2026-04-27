@@ -14,22 +14,46 @@ import { PLANS } from '@/types/billing'
 import {
   checkAndIncrementVoiceUsageAtomic,
   checkVoiceUsageAtomic,
-} from '@/lib/server/atomic-quota'
+} from '@/lib/server/platform/atomic-quota'
 
 /** Minimum seconds counted per voice interaction (anti-cheat) */
 const MIN_SECONDS_PER_CALL = 3
 /** Maximum seconds counted per voice interaction (sanity cap) */
 const MAX_SECONDS_PER_CALL = 120
 
-export function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0]
+export interface VoiceLimitResult {
+  allowed: boolean
+  usedSeconds: number
+  limitSeconds: number
+  remainingSeconds: number
+  unavailable?: boolean
 }
+
+function shouldUseVoiceQuotaFallback(): boolean {
+  return process.env.NODE_ENV !== 'production'
+}
+
+function buildVoiceQuotaUnavailableResult(limitSeconds: number): VoiceLimitResult {
+  return {
+    allowed: false,
+    usedSeconds: 0,
+    limitSeconds,
+    remainingSeconds: 0,
+    unavailable: true,
+  }
+}
+
+// P3-2: delegates to the canonical getTodayUTC from date-utils.
+// Re-exported as getTodayDate for backward compatibility with existing importers.
+// Local usage within this file uses getTodayUTC directly.
+import { getTodayUTC } from '@/lib/server/utils/date-utils'
+export { getTodayUTC as getTodayDate } from '@/lib/server/utils/date-utils'
 
 export async function getDailyUsage(
   kv: KVStore,
   userId: string
 ): Promise<DailyUsage> {
-  const date = getTodayDate()
+  const date = getTodayUTC()
   const key = `usage:${userId}:${date}`
 
   const raw = await kv.get(key)
@@ -79,10 +103,9 @@ export async function checkVoiceLimit(
   kv: KVStore,
   userId: string,
   planId: PlanId
-): Promise<{ allowed: boolean; usedSeconds: number; limitSeconds: number; remainingSeconds: number }> {
-  const usage = await getDailyUsage(kv, userId)
+): Promise<VoiceLimitResult> {
   const limitSeconds = getLimitSeconds(planId)
-  const atomicUsage = await checkVoiceUsageAtomic(userId, getTodayDate(), planId, limitSeconds)
+  const atomicUsage = await checkVoiceUsageAtomic(userId, getTodayUTC(), planId, limitSeconds)
   if (atomicUsage) {
     return {
       allowed: atomicUsage.allowed,
@@ -91,6 +114,12 @@ export async function checkVoiceLimit(
       remainingSeconds: atomicUsage.remainingSeconds,
     }
   }
+
+  if (planId !== 'pro' && !shouldUseVoiceQuotaFallback()) {
+    return buildVoiceQuotaUnavailableResult(limitSeconds)
+  }
+
+  const usage = await getDailyUsage(kv, userId)
 
   if (planId === 'pro') {
     return { allowed: true, usedSeconds: usage.voiceSecondsUsed, limitSeconds, remainingSeconds: 999999 }
@@ -115,13 +144,13 @@ export async function checkAndIncrementVoiceTime(
   kv: KVStore,
   userId: string,
   planId: PlanId,
-  durationMs: number | undefined
-): Promise<{ allowed: boolean; usedSeconds: number; limitSeconds: number; remainingSeconds: number }> {
+  durationMs: number
+): Promise<VoiceLimitResult> {
   const limitSeconds = getLimitSeconds(planId)
   const addSeconds = sanitizeDuration(durationMs)
   const atomicUsage = await checkAndIncrementVoiceUsageAtomic(
     userId,
-    getTodayDate(),
+    getTodayUTC(),
     planId,
     limitSeconds,
     addSeconds,
@@ -136,6 +165,10 @@ export async function checkAndIncrementVoiceTime(
     }
   }
 
+  if (planId !== 'pro' && !shouldUseVoiceQuotaFallback()) {
+    return buildVoiceQuotaUnavailableResult(limitSeconds)
+  }
+
   // Pro: always allowed, still track for analytics
   if (planId === 'pro') {
     const usage = await getDailyUsage(kv, userId)
@@ -146,11 +179,19 @@ export async function checkAndIncrementVoiceTime(
     return { allowed: true, usedSeconds: usage.voiceSecondsUsed, limitSeconds, remainingSeconds: 999999 }
   }
 
-  // Read current usage
+  // P2-2 fix: KV fallback — increment-first pattern.
+  // Write the incremented usage BEFORE checking the limit so concurrent
+  // requests always advance the counter monotonically, bounding overshoot
+  // to at most 1 extra interaction per race window.
   const usage = await getDailyUsage(kv, userId)
+  usage.voiceInteractions += 1
+  usage.voiceSecondsUsed += addSeconds
+  usage.lastUpdatedAt = Date.now()
+  await saveUsage(kv, userId, usage)
 
-  // Already at or over the limit — reject
-  if (usage.voiceSecondsUsed >= limitSeconds) {
+  // Check AFTER increment — if over limit, the counter is already advanced
+  // so subsequent requests will also be denied correctly.
+  if (usage.voiceSecondsUsed > limitSeconds) {
     return {
       allowed: false,
       usedSeconds: usage.voiceSecondsUsed,
@@ -158,12 +199,6 @@ export async function checkAndIncrementVoiceTime(
       remainingSeconds: 0,
     }
   }
-
-  // Under the limit — increment and serve
-  usage.voiceInteractions += 1
-  usage.voiceSecondsUsed += addSeconds
-  usage.lastUpdatedAt = Date.now()
-  await saveUsage(kv, userId, usage)
 
   return {
     allowed: true,

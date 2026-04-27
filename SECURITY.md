@@ -1,7 +1,7 @@
 # Security Runbook — missiAI Production
 
 This document is the authoritative security checklist for deploying and operating
-missiAI in production (Cloudflare Pages + Workers KV + Vectorize).
+missiAI in production on Cloudflare (OpenNext runtime + Workers KV + Vectorize).
 
 **Domain:** [missi.space](https://missi.space)
 
@@ -73,7 +73,7 @@ subdomains support HTTPS. Preloading is a one-way commitment.
 ### Principle
 
 All secrets belong **only** in:
-- Cloudflare Pages dashboard > Settings > Environment variables (encrypted)
+- Cloudflare dashboard > Settings > Environment variables (encrypted)
 - `wrangler secret put <NAME>` for Worker secrets
 - Local `.env.*.local` files (**never committed**, listed in `.gitignore`)
 
@@ -82,13 +82,11 @@ All secrets belong **only** in:
 - `next.config.mjs` or any committed source file
 - Client-side code (only `NEXT_PUBLIC_*` variables are safe for the browser)
 
-### Required Secrets
+### Required Secrets & Protected Runtime Values
 
 ```bash
 # AI & Voice
 wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON
-wrangler secret put ELEVENLABS_API_KEY
-wrangler secret put ELEVENLABS_VOICE_ID
 
 # Authentication
 wrangler secret put CLERK_SECRET_KEY
@@ -97,8 +95,8 @@ wrangler secret put NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 # Payments
 wrangler secret put DODO_PAYMENTS_API_KEY
 wrangler secret put DODO_WEBHOOK_SECRET
+wrangler secret put DODO_PLUS_PRODUCT_ID
 wrangler secret put DODO_PRO_PRODUCT_ID
-wrangler secret put DODO_BUSINESS_PRODUCT_ID
 
 # Admin
 wrangler secret put ADMIN_USER_ID
@@ -119,9 +117,11 @@ wrangler secret put NOTION_CLIENT_SECRET
 wrangler secret list
 ```
 
+Also set `VERTEX_AI_PROJECT_ID` as a runtime environment variable. `VERTEX_AI_LOCATION` is optional and defaults to `us-central1`.
+
 ### Runtime behavior
 
-- `MISSI_KV_ENCRYPTION_SECRET` is required in production for KV encryption, agent confirmation tokens, and boss tokens.
+- `MISSI_KV_ENCRYPTION_SECRET` is required in production for KV encryption, agent confirmation tokens, boss tokens, and live relay tickets.
 - Missing or empty `MISSI_KV_ENCRYPTION_SECRET` now fails closed with a 503 on routes that need it.
 - Confirmation tokens are single-use and are not generated with fallback secrets.
 - The live tools endpoint does not allow direct outbound email; confirmation is required for any send.
@@ -143,7 +143,7 @@ id = "ddf2e5eb21484fd1a9aecd8e4eaada74"
 ```
 
 **Access model:**
-- Code accesses KV only via `getCloudflareContext().env.MISSI_MEMORY`
+- Code accesses KV through the centralized Cloudflare binding helpers (for example, `getCloudflareKVBinding()` in `lib/server/platform/bindings.ts`)
 - No HTTP API is exposed — the binding is the only access path
 - The KV namespace ID is a resource identifier, not a credential
 - Only the deployed Worker with the binding can read/write the namespace
@@ -165,7 +165,7 @@ There is no cross-user data access path.
 
 ### API Input Validation
 
-All API request bodies are validated using **Zod schemas** (`lib/validation.ts`).
+All API request bodies are validated using **Zod schemas** (`lib/validation/schemas.ts`).
 Invalid payloads are rejected with 400 responses before reaching business logic.
 
 **Additional guards:**
@@ -201,7 +201,7 @@ missiAI uses **dual-layer rate limiting**:
 ### Budget Controls
 
 A daily API spend tracker (`DAILY_BUDGET_USD`, default: $5.00) monitors
-Gemini and ElevenLabs API costs. When the budget threshold is approached,
+Gemini model usage and text-to-speech spend. When the budget threshold is approached,
 the system throttles non-essential API calls.
 
 ---
@@ -291,12 +291,13 @@ If a secret is suspected to be compromised, follow the steps below.
 1. Rotate key in Google Cloud Console > IAM & Admin > Service Accounts
 2. Download new JSON key
 3. `wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON`
-4. Update in Cloudflare Pages dashboard (Production + Preview)
+4. Update in Cloudflare dashboard environment settings (Production + Preview)
 
-### ElevenLabs API Key
-1. Delete at https://elevenlabs.io/app/settings/api-keys
-2. Create a new key
-3. `wrangler secret put ELEVENLABS_API_KEY`
+### MISSI_KV_ENCRYPTION_SECRET
+1. Generate a fresh random secret with at least 32 characters
+2. `wrangler secret put MISSI_KV_ENCRYPTION_SECRET`
+3. Update in Cloudflare dashboard environment settings (Production + Preview)
+4. **Impact:** Existing confirmation, boss-token, and live relay tickets signed with the old secret will stop validating
 
 ### Dodo Payments API Key
 1. Revoke at https://app.dodopayments.com > Developer > API

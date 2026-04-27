@@ -1,7 +1,7 @@
 // ─── Missi Spaces — Shared API helpers ──────────────────────────────────────
 
 import { clerkClient } from '@clerk/nextjs/server'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getCloudflareKVBinding } from '@/lib/server/platform/bindings'
 import type { KVStore } from '@/types'
 
 export function jsonResponse(body: unknown, status = 200): Response {
@@ -20,12 +20,7 @@ export function errorResponse(
 }
 
 export function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return ((env as Record<string, unknown>).MISSI_MEMORY as KVStore) ?? null
-  } catch {
-    return null
-  }
+  return getCloudflareKVBinding()
 }
 
 /**

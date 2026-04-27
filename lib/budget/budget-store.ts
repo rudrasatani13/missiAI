@@ -10,6 +10,24 @@ import type {
   VALID_EXPENSE_CATEGORIES,
 } from '@/types/budget'
 import { validateCurrency, DEFAULT_CURRENCY } from './currency'
+import {
+  addBudgetRecentIndexEntryId,
+  buildBudgetMonthLinkRecord,
+  buildBudgetMonthSnapshot,
+  buildBudgetRecentEntriesSnapshot,
+  deleteBudgetEntryRecord,
+  deleteBudgetMonthLink,
+  getBudgetEntryRecord,
+  getBudgetInsightRecord,
+  getBudgetSettingsRecord,
+  getYearMonthFromDate,
+  putBudgetEntryRecord,
+  putBudgetInsightRecord,
+  putBudgetMonthLink,
+  removeBudgetRecentIndexEntryId,
+  saveBudgetSettingsRecord,
+} from './budget-record-store'
+import { checkAndIncrementAtomicCounter } from '@/lib/server/platform/atomic-quota'
 
 // Re-export for consumption by other modules
 export { VALID_EXPENSE_CATEGORIES }
@@ -17,20 +35,8 @@ export type { ExpenseCategory }
 
 // ─── Key Schema ───────────────────────────────────────────────────────────────
 
-function settingsKey(userId: string) {
-  return `budget:settings:${userId}`
-}
-
-function entriesKey(userId: string, yearMonth: string) {
-  return `budget:entries:${userId}:${yearMonth}`
-}
-
 function rateLimitKey(userId: string, date: string) {
   return `budget:ratelimit:${userId}:${date}`
-}
-
-function insightKey(userId: string, yearMonth: string) {
-  return `budget:insight:${userId}:${yearMonth}`
 }
 
 // ─── TTL ──────────────────────────────────────────────────────────────────────
@@ -38,19 +44,37 @@ function insightKey(userId: string, yearMonth: string) {
 const ENTRIES_TTL_SECONDS = 395 * 86_400 // 395 days
 const INSIGHT_TTL_SECONDS = 395 * 86_400
 
+async function saveBudgetEntryRecordSet(kv: KVStore, userId: string, entry: ExpenseEntry): Promise<void> {
+  const nextEntry: ExpenseEntry = { ...entry, userId }
+  const existingV2Entry = await getBudgetEntryRecord(kv, userId, entry.id)
+  const previousYearMonth = existingV2Entry ? getYearMonthFromDate(existingV2Entry.date) : null
+  const nextYearMonth = getYearMonthFromDate(nextEntry.date)
+  const monthLink = buildBudgetMonthLinkRecord(nextEntry)
+
+  await putBudgetEntryRecord(kv, nextEntry, { expirationTtl: ENTRIES_TTL_SECONDS })
+  if (monthLink) {
+    await putBudgetMonthLink(kv, monthLink, { expirationTtl: ENTRIES_TTL_SECONDS })
+  }
+  if (previousYearMonth && nextYearMonth && previousYearMonth !== nextYearMonth) {
+    await deleteBudgetMonthLink(kv, userId, previousYearMonth, entry.id)
+  }
+  await addBudgetRecentIndexEntryId(kv, userId, entry.id)
+}
+
+async function deleteBudgetEntryRecordSet(kv: KVStore, userId: string, entry: ExpenseEntry): Promise<void> {
+  const deletedYearMonth = getYearMonthFromDate(entry.date) ?? entry.date.slice(0, 7)
+  await deleteBudgetMonthLink(kv, userId, deletedYearMonth, entry.id)
+  await deleteBudgetEntryRecord(kv, userId, entry.id)
+  await removeBudgetRecentIndexEntryId(kv, userId, entry.id)
+}
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export async function getSettings(
   kv: KVStore,
   userId: string,
 ): Promise<BudgetSettings | null> {
-  try {
-    const raw = await kv.get(settingsKey(userId))
-    if (!raw) return null
-    return JSON.parse(raw) as BudgetSettings
-  } catch {
-    return null
-  }
+  return getBudgetSettingsRecord(kv, userId).catch(() => null)
 }
 
 export async function saveSettings(
@@ -72,8 +96,7 @@ export async function saveSettings(
       })) ?? [],
     updatedAt: now,
   }
-  await kv.put(settingsKey(userId), JSON.stringify(normalized))
-  return normalized
+  return saveBudgetSettingsRecord(kv, normalized)
 }
 
 export async function getOrCreateSettings(
@@ -96,14 +119,25 @@ export async function getEntries(
   userId: string,
   yearMonth: string,
 ): Promise<ExpenseEntry[]> {
+  return buildBudgetMonthSnapshot(kv, userId, yearMonth).catch(() => [])
+}
+
+export async function getEntryByIdWithMonth(
+  kv: KVStore,
+  userId: string,
+  entryId: string,
+): Promise<{ entry: ExpenseEntry; yearMonth: string } | null> {
   try {
-    const raw = await kv.get(entriesKey(userId, yearMonth))
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as ExpenseEntry[]
-    return Array.isArray(parsed) ? parsed : []
+    const v2Entry = await getBudgetEntryRecord(kv, userId, entryId)
+    const yearMonth = v2Entry ? getYearMonthFromDate(v2Entry.date) : null
+    if (v2Entry && yearMonth) {
+      return { entry: v2Entry, yearMonth }
+    }
   } catch {
-    return []
+    return null
   }
+
+  return null
 }
 
 export async function getEntryById(
@@ -112,8 +146,9 @@ export async function getEntryById(
   entryId: string,
   yearMonth: string,
 ): Promise<ExpenseEntry | null> {
-  const entries = await getEntries(kv, userId, yearMonth)
-  return entries.find((e) => e.id === entryId) ?? null
+  const locatedEntry = await getEntryByIdWithMonth(kv, userId, entryId)
+  if (!locatedEntry) return null
+  return locatedEntry.yearMonth === yearMonth ? locatedEntry.entry : null
 }
 
 export async function saveEntry(
@@ -121,24 +156,7 @@ export async function saveEntry(
   userId: string,
   entry: ExpenseEntry,
 ): Promise<ExpenseEntry> {
-  const yearMonth = entry.date.slice(0, 7)
-  const entries = await getEntries(kv, userId, yearMonth)
-  const idx = entries.findIndex((e) => e.id === entry.id)
-  if (idx >= 0) {
-    entries[idx] = entry
-  } else {
-    entries.push(entry)
-  }
-  // Sort by date descending, then by createdAt descending
-  entries.sort((a, b) => {
-    if (a.date !== b.date) return b.date.localeCompare(a.date)
-    return b.createdAt - a.createdAt
-  })
-  await kv.put(
-    entriesKey(userId, yearMonth),
-    JSON.stringify(entries),
-    { expirationTtl: ENTRIES_TTL_SECONDS },
-  )
+  await saveBudgetEntryRecordSet(kv, userId, entry)
   return entry
 }
 
@@ -150,14 +168,11 @@ export async function deleteEntry(
   entryId: string,
   yearMonth: string,
 ): Promise<boolean> {
-  const entries = await getEntries(kv, userId, yearMonth)
-  const filtered = entries.filter((e) => e.id !== entryId)
-  if (filtered.length === entries.length) return false
-  await kv.put(
-    entriesKey(userId, yearMonth),
-    JSON.stringify(filtered),
-    { expirationTtl: ENTRIES_TTL_SECONDS },
-  )
+  void yearMonth
+  const existingV2Entry = await getBudgetEntryRecord(kv, userId, entryId)
+  if (!existingV2Entry) return false
+
+  await deleteBudgetEntryRecordSet(kv, userId, existingV2Entry)
   return true
 }
 
@@ -194,7 +209,68 @@ export async function incrementRateLimit(
   await kv.put(key, String(next), { expirationTtl: ttl })
 }
 
+/**
+ * Atomically check and increment the daily budget entry rate limit.
+ *
+ * Tries the ATOMIC_COUNTER Durable Object first for race-free check+increment.
+ * Falls back to the legacy KV read-modify-write if the DO binding is unavailable.
+ *
+ * The counter is consumed at the preflight point. If entry saving fails afterward,
+ * the consumed quota is NOT rolled back.
+ */
+export async function checkAndIncrementRateLimit(
+  kv: KVStore,
+  userId: string,
+  date: string,
+): Promise<{ allowed: boolean; remaining: number; current: number; unavailable?: boolean }> {
+  const MAX_PER_DAY = 200
+  const counterName = rateLimitKey(userId, date)
+  const ttl = 24 * 60 * 60 + 60 // 24 hours + 1 minute safety
+
+  const atomic = await checkAndIncrementAtomicCounter(counterName, MAX_PER_DAY, ttl)
+  if (atomic) {
+    return {
+      allowed: atomic.allowed,
+      remaining: Math.max(0, MAX_PER_DAY - atomic.count),
+      current: atomic.count,
+    }
+  }
+
+  void kv
+  return { allowed: false, remaining: 0, current: 0, unavailable: true }
+}
+
 // ─── Monthly Report ───────────────────────────────────────────────────────────
+
+export interface BudgetMonthlyTotals {
+  month: string
+  total: number
+  byCategory: Record<ExpenseCategory, number>
+  entryCount: number
+}
+
+export async function buildMonthlyTotals(
+  kv: KVStore,
+  userId: string,
+  yearMonth: string,
+): Promise<BudgetMonthlyTotals> {
+  const entries = await getEntries(kv, userId, yearMonth)
+  let total = 0
+  const byCategory: Record<string, number> = {}
+
+  for (const entry of entries) {
+    const amount = entry.amount || 0
+    total += amount
+    byCategory[entry.category] = (byCategory[entry.category] || 0) + amount
+  }
+
+  return {
+    month: yearMonth,
+    total,
+    byCategory: byCategory as Record<ExpenseCategory, number>,
+    entryCount: entries.length,
+  }
+}
 
 export async function buildMonthlyReport(
   kv: KVStore,
@@ -202,24 +278,16 @@ export async function buildMonthlyReport(
   yearMonth: string,
 ): Promise<MonthlyReport> {
   const settings = await getOrCreateSettings(kv, userId)
-  const entries = await getEntries(kv, userId, yearMonth)
+  const currentTotals = await buildMonthlyTotals(kv, userId, yearMonth)
   const currency = settings.preferredCurrency
-
-  let total = 0
-  const byCategory: Record<string, number> = {}
-
-  for (const entry of entries) {
-    const amt = entry.amount || 0
-    total += amt
-    byCategory[entry.category] = (byCategory[entry.category] || 0) + amt
-  }
+  const total = currentTotals.total
+  const byCategory = currentTotals.byCategory as Record<string, number>
 
   // Previous month
   const prevMonth = getPreviousMonth(yearMonth)
   let previousMonthTotal: number | null = null
   if (prevMonth) {
-    const prevEntries = await getEntries(kv, userId, prevMonth)
-    previousMonthTotal = prevEntries.reduce((sum, e) => sum + (e.amount || 0), 0)
+    previousMonthTotal = (await buildMonthlyTotals(kv, userId, prevMonth)).total
   }
 
   // Top categories
@@ -251,8 +319,8 @@ export async function buildMonthlyReport(
     previousMonthTotal,
     byCategory: byCategory as Record<ExpenseCategory, number>,
     topCategories,
-    entryCount: entries.length,
-    averagePerEntry: entries.length > 0 ? total / entries.length : 0,
+    entryCount: currentTotals.entryCount,
+    averagePerEntry: currentTotals.entryCount > 0 ? total / currentTotals.entryCount : 0,
     budgetVsActual,
   }
 }
@@ -273,13 +341,7 @@ export async function getCachedInsight(
   userId: string,
   yearMonth: string,
 ): Promise<SpendingInsight | null> {
-  try {
-    const raw = await kv.get(insightKey(userId, yearMonth))
-    if (!raw) return null
-    return JSON.parse(raw) as SpendingInsight
-  } catch {
-    return null
-  }
+  return getBudgetInsightRecord(kv, userId, yearMonth).catch(() => null)
 }
 
 export async function cacheInsight(
@@ -287,11 +349,7 @@ export async function cacheInsight(
   userId: string,
   insight: SpendingInsight,
 ): Promise<void> {
-  await kv.put(
-    insightKey(userId, insight.month),
-    JSON.stringify(insight),
-    { expirationTtl: INSIGHT_TTL_SECONDS },
-  )
+  await putBudgetInsightRecord(kv, userId, insight, { expirationTtl: INSIGHT_TTL_SECONDS })
 }
 
 // ─── Convenience: find entries across months ──────────────────────────────────
@@ -316,13 +374,5 @@ export async function getRecentEntries(
   userId: string,
   count = 10,
 ): Promise<ExpenseEntry[]> {
-  const now = new Date()
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const prevMonth = getPreviousMonth(thisMonth) ?? thisMonth
-  const entries = [
-    ...(await getEntries(kv, userId, thisMonth)),
-    ...(await getEntries(kv, userId, prevMonth)),
-  ]
-  entries.sort((a, b) => b.createdAt - a.createdAt)
-  return entries.slice(0, count)
+  return buildBudgetRecentEntriesSnapshot(kv, userId, count).catch(() => [])
 }

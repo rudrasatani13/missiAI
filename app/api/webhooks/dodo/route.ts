@@ -3,21 +3,11 @@
 // Dodo Payments sends subscription lifecycle events via Standard Webhooks.
 // This handler verifies signatures, deduplicates events, and updates user plans.
 
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getCloudflareKVBinding } from '@/lib/server/platform/bindings'
 import { verifyDodoWebhook, determinePlanFromDodoProduct } from '@/lib/billing/dodo-client'
 import { setUserPlan } from '@/lib/billing/tier-checker'
-import { log, logSecurityEvent } from '@/lib/server/logger'
+import { log, logSecurityEvent } from '@/lib/server/observability/logger'
 import type { KVStore } from '@/types'
-
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
-  }
-}
 
 // ─── KV helpers for subscription→user mapping & idempotency ──────────────────
 
@@ -40,29 +30,22 @@ async function lookupUserBySubscription(kv: KVStore | null, subscriptionId: stri
 }
 
 async function isEventProcessed(kv: KVStore | null, eventId: string): Promise<boolean> {
-  if (!kv || !eventId) return false
-  try {
-    const existing = await kv.get(`webhook:event:${eventId}`)
-    return existing !== null
-  } catch {
-    return false
-  }
+  if (!kv) throw new Error('Dodo webhook idempotency storage unavailable')
+  if (!eventId) throw new Error('Dodo webhook event id missing')
+  const existing = await kv.get(`webhook:event:${eventId}`)
+  return existing !== null
 }
 
 async function markEventProcessed(kv: KVStore | null, eventId: string): Promise<void> {
-  if (!kv || !eventId) return
-  try {
-    // TTL of 24 hours — Dodo retries within a few hours
-    await kv.put(`webhook:event:${eventId}`, '1', { expirationTtl: 86400 })
-  } catch {
-    // Non-critical
-  }
+  if (!kv) throw new Error('Dodo webhook idempotency storage unavailable')
+  if (!eventId) throw new Error('Dodo webhook event id missing')
+  await kv.put(`webhook:event:${eventId}`, '1', { expirationTtl: 86400 })
 }
 
 // ─── Webhook Handler ─────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
 
   let rawBody: string
   try {
@@ -120,9 +103,30 @@ export async function POST(req: Request) {
     )
   }
 
-  let event: any
+  // P2-5 fix: typed webhook event replaces previous `any` to catch shape
+  // mismatches at compile time and prevent runtime crashes from unexpected payloads.
+  interface DodoWebhookEvent {
+    type?: string
+    event_type?: string
+    data?: DodoWebhookEventData
+    [key: string]: unknown
+  }
+
+  interface DodoWebhookEventData {
+    subscription_id?: string
+    id?: string
+    product_id?: string
+    customer_id?: string
+    customer?: { customer_id?: string; email?: string }
+    metadata?: { userId?: string; [key: string]: unknown }
+    items?: Array<{ product_id?: string }>
+    current_period_end?: string | number
+    [key: string]: unknown
+  }
+
+  let event: DodoWebhookEvent
   try {
-    event = JSON.parse(rawBody)
+    event = JSON.parse(rawBody) as DodoWebhookEvent
   } catch {
     return new Response(
       JSON.stringify({ received: true }),
@@ -135,22 +139,23 @@ export async function POST(req: Request) {
   const eventType = event.type ?? event.event_type ?? ''
   const eventKey = `${eventType}:${eventId}`
 
-  if (await isEventProcessed(kv, eventKey)) {
-    log({ level: 'info', event: 'billing.webhook.duplicate_skipped', metadata: { eventType, eventId }, timestamp: Date.now() })
-    return new Response(
-      JSON.stringify({ received: true, duplicate: true }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    )
-  }
-
   try {
-    const data = event.data ?? event
+    if (await isEventProcessed(kv, eventKey)) {
+      log({ level: 'info', event: 'billing.webhook.duplicate_skipped', metadata: { eventType, eventId }, timestamp: Date.now() })
+      return new Response(
+        JSON.stringify({ received: true, duplicate: true }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const data: DodoWebhookEventData = (event.data ?? event) as DodoWebhookEventData
 
     switch (eventType) {
       // ─── Subscription activated / renewed ────────────────────────────
       case 'subscription.active':
       case 'subscription.renewed': {
-        const subscriptionId = data.subscription_id ?? data.id
+        const subscriptionId = data.subscription_id ?? data.id ?? ''
+        if (!subscriptionId) break
         const userId = data.metadata?.userId
           ?? await lookupUserBySubscription(kv, subscriptionId)
 
@@ -191,7 +196,8 @@ export async function POST(req: Request) {
       // ─── Subscription cancelled / failed ─────────────────────────────
       case 'subscription.cancelled':
       case 'subscription.failed': {
-        const subscriptionId = data.subscription_id ?? data.id
+        const subscriptionId = data.subscription_id ?? data.id ?? ''
+        if (!subscriptionId) break
         const userId = data.metadata?.userId
           ?? await lookupUserBySubscription(kv, subscriptionId)
 
@@ -213,7 +219,8 @@ export async function POST(req: Request) {
 
       // ─── Subscription on hold (payment issue) ────────────────────────
       case 'subscription.on_hold': {
-        const subscriptionId = data.subscription_id ?? data.id
+        const subscriptionId = data.subscription_id ?? data.id ?? ''
+        if (!subscriptionId) break
         const userId = data.metadata?.userId
           ?? await lookupUserBySubscription(kv, subscriptionId)
 
@@ -236,7 +243,8 @@ export async function POST(req: Request) {
 
       // ─── Plan change ─────────────────────────────────────────────────
       case 'subscription.plan_changed': {
-        const subscriptionId = data.subscription_id ?? data.id
+        const subscriptionId = data.subscription_id ?? data.id ?? ''
+        if (!subscriptionId) break
         const userId = data.metadata?.userId
           ?? await lookupUserBySubscription(kv, subscriptionId)
 

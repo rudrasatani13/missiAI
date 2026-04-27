@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/security/auth'
 import { getExamBuddyKV } from '@/lib/exam-buddy/kv'
 import { getRecentSessions } from '@/lib/exam-buddy/profile-store'
 

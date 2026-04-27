@@ -1,4 +1,4 @@
-import { callAIDirect } from "@/services/ai.service"
+import { callGeminiDirect } from "@/lib/ai/services/ai-service"
 import type { PluginResult } from "@/types/plugins"
 
 // ─── Google Calendar Plugin ───────────────────────────────────────────────────
@@ -11,6 +11,47 @@ interface EventDetails {
   startDateTime: string
   endDateTime: string
   description: string
+}
+
+interface GoogleCalendarCreateEventResponse {
+  htmlLink?: string
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function readString(value: unknown): string {
+  return typeof value === "string" ? value : ""
+}
+
+function isOptionalString(value: unknown): value is string | undefined {
+  return value === undefined || typeof value === "string"
+}
+
+function parseEventDetails(value: unknown): EventDetails {
+  if (!isRecord(value)) {
+    return { title: "", startDateTime: "", endDateTime: "", description: "" }
+  }
+
+  return {
+    title: readString(value.title),
+    startDateTime: readString(value.startDateTime),
+    endDateTime: readString(value.endDateTime),
+    description: readString(value.description),
+  }
+}
+
+function isGoogleCalendarCreateEventResponse(value: unknown): value is GoogleCalendarCreateEventResponse {
+  return isRecord(value) && isOptionalString(value.htmlLink)
+}
+
+function parseGoogleCalendarCreateEventResponse(value: unknown): GoogleCalendarCreateEventResponse {
+  if (!isGoogleCalendarCreateEventResponse(value)) {
+    throw new Error("Invalid Google Calendar create-event response")
+  }
+
+  return value
 }
 
 /**
@@ -28,7 +69,7 @@ Duration default: 1 hour if not specified.
 Return empty strings if not determinable.`
 
   try {
-    const raw = await callAIDirect(system, userMessage, {
+    const raw = await callGeminiDirect(system, userMessage, {
       temperature: 0.1,
       maxOutputTokens: 200,
       useGoogleSearch: false,
@@ -36,14 +77,9 @@ Return empty strings if not determinable.`
 
     // Strip markdown code fences if present
     const cleaned = raw.replace(/```(?:json)?/gi, "").trim()
-    const parsed = JSON.parse(cleaned)
+    const parsed: unknown = JSON.parse(cleaned)
 
-    return {
-      title: typeof parsed.title === "string" ? parsed.title : "",
-      startDateTime: typeof parsed.startDateTime === "string" ? parsed.startDateTime : "",
-      endDateTime: typeof parsed.endDateTime === "string" ? parsed.endDateTime : "",
-      description: typeof parsed.description === "string" ? parsed.description : "",
-    }
+    return parseEventDetails(parsed)
   } catch {
     return { title: "", startDateTime: "", endDateTime: "", description: "" }
   }
@@ -57,8 +93,15 @@ export async function createCalendarEvent(
   accessToken: string,
   calendarId: string,
   eventDetails: EventDetails,
+  signal?: AbortSignal,
 ): Promise<PluginResult> {
   const controller = new AbortController()
+  const abortFromParent = () => controller.abort()
+  if (signal?.aborted) {
+    controller.abort()
+  } else {
+    signal?.addEventListener("abort", abortFromParent, { once: true })
+  }
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
   try {
@@ -100,13 +143,13 @@ export async function createCalendarEvent(
       }
     }
 
-    const data = await res.json()
+    const data = parseGoogleCalendarCreateEventResponse(await res.json())
     return {
       success: true,
       pluginId: "google_calendar",
       action: "create_event",
       output: `Event "${eventDetails.title}" added to your calendar`,
-      url: (data as any).htmlLink,
+      url: data.htmlLink,
       executedAt: Date.now(),
     }
   } catch {
@@ -119,5 +162,6 @@ export async function createCalendarEvent(
     }
   } finally {
     clearTimeout(timer)
+    signal?.removeEventListener("abort", abortFromParent)
   }
 }

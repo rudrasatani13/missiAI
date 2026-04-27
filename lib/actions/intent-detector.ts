@@ -1,4 +1,4 @@
-import { callAIDirect } from "@/services/ai.service"
+import { callGeminiDirect } from "@/lib/ai/services/ai-service"
 import type { ActionIntent } from "@/types/actions"
 
 const INTENT_SYSTEM_PROMPT = `You are an intent detector. Analyze the user message and determine if it is requesting an executable action.
@@ -46,8 +46,7 @@ export async function detectIntent(
       ? `User message: "${userMessage}"\n\nConversation context:\n${conversationContext}`
       : `User message: "${userMessage}"`
 
-    const raw = await callAIDirect(INTENT_SYSTEM_PROMPT, userPrompt, {
-      provider: "gemini",
+    const raw = await callGeminiDirect(INTENT_SYSTEM_PROMPT, userPrompt, {
       model: "gemini-3-flash-preview",
       temperature: 0.1,
       maxOutputTokens: 200,

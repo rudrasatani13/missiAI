@@ -2,10 +2,10 @@
 
 import type { KVStore } from '@/types'
 import type { AnalyticsSnapshot } from '@/types/analytics'
-import { getDailyStats, getLifetimeTotals } from '@/lib/analytics/event-store'
+import { getAnalyticsSnapshotCache, putAnalyticsSnapshotCache } from '@/lib/analytics/analytics-record-store'
+import { getAnalyticsAggregationStatus, getDailyStats, getLifetimeTotals } from '@/lib/analytics/event-store'
 import { getTodayDate } from '@/lib/billing/usage-tracker'
 
-const SNAPSHOT_KEY = 'analytics:snapshot'
 const SNAPSHOT_TTL = 300 // 5 minutes
 
 // ─── Build Analytics Snapshot ─────────────────────────────────────────────────
@@ -13,11 +13,17 @@ const SNAPSHOT_TTL = 300 // 5 minutes
 export async function buildAnalyticsSnapshot(
   kv: KVStore
 ): Promise<AnalyticsSnapshot> {
+  let aggregationCaughtUp = true
+  try {
+    aggregationCaughtUp = (await getAnalyticsAggregationStatus(kv)).isCaughtUp
+  } catch {
+    aggregationCaughtUp = true
+  }
+
   // Check cache first
   try {
-    const cached = await kv.get(SNAPSHOT_KEY)
-    if (cached) {
-      const snapshot = JSON.parse(cached) as AnalyticsSnapshot
+    const snapshot = await getAnalyticsSnapshotCache(kv)
+    if (snapshot && aggregationCaughtUp) {
       const age = Date.now() - snapshot.generatedAt
       if (age < SNAPSHOT_TTL * 1000) {
         return snapshot
@@ -50,7 +56,7 @@ export async function buildAnalyticsSnapshot(
 
   // Cache the snapshot
   try {
-    await kv.put(SNAPSHOT_KEY, JSON.stringify(snapshot), { expirationTtl: SNAPSHOT_TTL })
+    await putAnalyticsSnapshotCache(kv, snapshot, { expirationTtl: SNAPSHOT_TTL })
   } catch {
     // Non-critical
   }

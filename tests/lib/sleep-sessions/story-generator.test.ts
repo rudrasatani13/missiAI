@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest'
 import { generatePersonalizedStory, generateCustomStory, MAX_SLEEP_STORY_CHARS, sanitizeStoryText } from '@/lib/sleep-sessions/story-generator'
-import { geminiGenerate } from '@/lib/ai/vertex-client'
+import { geminiGenerate } from '@/lib/ai/providers/vertex-client'
 
-vi.mock('@/lib/ai/vertex-client', () => ({
+vi.mock('@/lib/ai/providers/vertex-client', () => ({
   geminiGenerate: vi.fn()
 }))
 

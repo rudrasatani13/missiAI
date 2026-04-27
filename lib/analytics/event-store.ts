@@ -3,80 +3,221 @@
 import type { KVStore } from '@/types'
 import type { DailyStats, LifetimeTotals } from '@/types/analytics'
 import { emptyDailyStats, emptyLifetimeTotals } from '@/types/analytics'
+import {
+  addAnalyticsDayIndexUserId,
+  addAnalyticsUserIndexUserId,
+  appendAnalyticsEventRecord,
+  buildAnalyticsDailyStatsFromEventRecords,
+  buildAnalyticsDailyStatsFromV2,
+  buildAnalyticsLifetimeTotalsFromAppendLog,
+  buildAnalyticsLifetimeTotalsFromV2,
+  deleteAnalyticsDaySummary,
+  deleteAnalyticsSnapshotCache,
+  emptyAnalyticsUserDayRecord,
+  emptyAnalyticsUserLifetimeRecord,
+  enqueueAnalyticsPendingEvent,
+  getAnalyticsAggregationState,
+  getAnalyticsDaySummary,
+  getAnalyticsEventRecordByKey,
+  getAnalyticsUserDayRecord,
+  getAnalyticsUserLifetimeRecord,
+  listAnalyticsDayUserIds,
+  listAnalyticsEventDates,
+  listAnalyticsEventRecordsForDate,
+  markAnalyticsPendingEventsProcessed,
+  putAnalyticsDaySummary,
+  putAnalyticsUserDayRecord,
+  putAnalyticsUserLifetimeRecord,
+  type AnalyticsEventRecord,
+} from '@/lib/analytics/analytics-record-store'
 import { getTodayDate } from '@/lib/billing/usage-tracker'
+import { logError } from '@/lib/server/observability/logger'
 
-// ─── KV Key Patterns ──────────────────────────────────────────────────────────
-// Daily stats:   analytics:daily:{YYYY-MM-DD}
-// Lifetime:      analytics:totals
-// Seen users:    analytics:users:{YYYY-MM-DD}
+function applyEventCounters(
+  target: Pick<DailyStats, 'totalRequests' | 'voiceInteractions' | 'chatRequests' | 'ttsRequests' | 'memoryReads' | 'memoryWrites' | 'actionsExecuted' | 'errorCount' | 'newSignups'>,
+  type: EventType,
+): void {
+  target.totalRequests += 1
 
-const DAILY_KEY = (date: string) => `analytics:daily:${date}`
-const TOTALS_KEY = 'analytics:totals'
-const USERS_KEY = (date: string) => `analytics:users:${date}`
+  switch (type) {
+    case 'chat':
+      target.chatRequests += 1
+      target.voiceInteractions += 1
+      break
+    case 'tts':
+      target.ttsRequests += 1
+      break
+    case 'memory_read':
+      target.memoryReads += 1
+      break
+    case 'memory_write':
+      target.memoryWrites += 1
+      break
+    case 'action':
+      target.actionsExecuted += 1
+      break
+    case 'error':
+      target.errorCount += 1
+      break
+    case 'signup':
+      target.newSignups += 1
+      break
+  }
+}
 
-const DAILY_TTL = 7776000   // 90 days in seconds
-const USERS_TTL = 691200    // 8 days in seconds
-const MAX_USERS_PER_DAY = 10000
+function createAnalyticsEventId(now: number): string {
+  return `${now}_${crypto.randomUUID().replace(/-/g, '')}`.slice(0, 120)
+}
+
+async function appendRawAnalyticsEvent(
+  kv: KVStore,
+  event: RawAnalyticsAppendEvent,
+): Promise<AnalyticsEventRecord> {
+  const now = event.createdAt ?? Date.now()
+  const rawEvent: AnalyticsEventRecord = {
+    eventId: createAnalyticsEventId(now),
+    userId: event.userId,
+    date: event.date,
+    type: event.type,
+    costUsd: event.costUsd ?? 0,
+    markSeen: event.markSeen,
+    metadata: event.metadata ?? {},
+    createdAt: now,
+  }
+  const eventKey = await appendAnalyticsEventRecord(kv, rawEvent)
+  await enqueueAnalyticsPendingEvent(kv, eventKey, rawEvent.date, now)
+  return rawEvent
+}
+
+async function applyRawAnalyticsEventToDerivedViews(
+  kv: KVStore,
+  event: AnalyticsEventRecord,
+): Promise<void> {
+  const existingDayRecord = await getAnalyticsUserDayRecord(kv, event.userId, event.date)
+  const nextDayRecord = existingDayRecord
+    ? { ...existingDayRecord }
+    : emptyAnalyticsUserDayRecord(event.userId, event.date)
+
+  if (event.markSeen) {
+    nextDayRecord.seenToday = true
+    nextDayRecord.uniqueUsers = 1
+  }
+
+  if (event.type !== 'seen') {
+    applyEventCounters(nextDayRecord, event.type)
+    nextDayRecord.totalCostUsd += event.costUsd
+  }
+  nextDayRecord.updatedAt = Math.max(nextDayRecord.updatedAt, event.createdAt)
+
+  const existingLifetimeRecord = await getAnalyticsUserLifetimeRecord(kv, event.userId)
+  const nextLifetimeRecord = existingLifetimeRecord
+    ? { ...existingLifetimeRecord }
+    : emptyAnalyticsUserLifetimeRecord(event.userId)
+
+  if (event.type !== 'seen') {
+    nextLifetimeRecord.totalInteractions += 1
+    nextLifetimeRecord.totalCostUsd += event.costUsd
+    if (event.type === 'signup') {
+      nextLifetimeRecord.totalSignups += 1
+    }
+  }
+  if (nextLifetimeRecord.firstSeenAt === 0) {
+    nextLifetimeRecord.firstSeenAt = event.createdAt
+  }
+  if (event.markSeen) {
+    nextLifetimeRecord.countsTowardTotalUsers = true
+  }
+  nextLifetimeRecord.lastSeenAt = Math.max(nextLifetimeRecord.lastSeenAt, event.createdAt)
+  nextLifetimeRecord.updatedAt = Math.max(nextLifetimeRecord.updatedAt, event.createdAt)
+
+  await putAnalyticsUserDayRecord(kv, nextDayRecord)
+  await putAnalyticsUserLifetimeRecord(kv, nextLifetimeRecord)
+  await addAnalyticsDayIndexUserId(kv, event.date, event.userId)
+  await addAnalyticsUserIndexUserId(kv, event.userId)
+}
+
+async function processAnalyticsAggregationBacklog(
+  kv: KVStore,
+  maxEvents = 500,
+): Promise<void> {
+  const state = await getAnalyticsAggregationState(kv)
+  if (state.pendingEventKeys.length === 0) return
+
+  const processedKeys: string[] = []
+  const touchedDates = new Set<string>()
+  for (const eventKey of state.pendingEventKeys.slice(0, maxEvents)) {
+    const event = await getAnalyticsEventRecordByKey(kv, eventKey)
+    processedKeys.push(eventKey)
+    if (!event) continue
+    await applyRawAnalyticsEventToDerivedViews(kv, event)
+    touchedDates.add(event.date)
+  }
+
+  if (touchedDates.size > 0) {
+    await Promise.all([
+      ...[...touchedDates].map((date) =>
+        deleteAnalyticsDaySummary(kv, date).catch((err) => logError('analytics.backlog.summary_delete_error', err)),
+      ),
+      deleteAnalyticsSnapshotCache(kv).catch((err) => logError('analytics.backlog.snapshot_delete_error', err)),
+    ])
+  }
+
+  await markAnalyticsPendingEventsProcessed(kv, processedKeys)
+}
 
 // ─── Record Event ─────────────────────────────────────────────────────────────
 
 export type EventType = 'chat' | 'tts' | 'memory_read' | 'memory_write' | 'action' | 'error' | 'signup'
 
+export interface AnalyticsUsageEvent {
+  type: EventType
+  userId: string
+  costUsd?: number
+  metadata?: Record<string, unknown>
+}
+
+interface RawAnalyticsAppendEvent {
+  type: EventType | 'seen'
+  userId: string
+  costUsd?: number
+  metadata?: Record<string, unknown>
+  date: string
+  markSeen: boolean
+  createdAt?: number
+}
+
 export async function recordEvent(
   kv: KVStore,
-  event: {
-    type: EventType
-    userId: string
-    costUsd?: number
-    metadata?: Record<string, unknown>
-  }
+  event: AnalyticsUsageEvent
 ): Promise<void> {
+  const date = getTodayDate()
+
   try {
-    const date = getTodayDate()
-    const stats = await getDailyStats(kv, date)
+    await appendRawAnalyticsEvent(kv, { ...event, date, markSeen: false, type: event.type })
+    await processAnalyticsAggregationBacklog(kv)
+  } catch (err) {
+    logError('analytics.record_event.error', err, event.userId)
+    throw err
+  }
+}
 
-    stats.totalRequests += 1
+export async function recordAnalyticsUsage(
+  kv: KVStore,
+  event: AnalyticsUsageEvent & { date?: string }
+): Promise<void> {
+  const date = event.date ?? getTodayDate()
 
-    switch (event.type) {
-      case 'chat':
-        stats.chatRequests += 1
-        stats.voiceInteractions += 1
-        break
-      case 'tts':
-        stats.ttsRequests += 1
-        break
-      case 'memory_read':
-        stats.memoryReads += 1
-        break
-      case 'memory_write':
-        stats.memoryWrites += 1
-        break
-      case 'action':
-        stats.actionsExecuted += 1
-        break
-      case 'error':
-        stats.errorCount += 1
-        break
-      case 'signup':
-        stats.newSignups += 1
-        break
-    }
-
-    if (event.costUsd) {
-      stats.totalCostUsd += event.costUsd
-    }
-
-    stats.updatedAt = Date.now()
-
-    await kv.put(DAILY_KEY(date), JSON.stringify(stats), { expirationTtl: DAILY_TTL })
-
-    // Update lifetime totals
-    await updateLifetimeTotals(kv, {
-      totalInteractions: 1,
-      totalCostUsd: event.costUsd ?? 0,
+  try {
+    await appendRawAnalyticsEvent(kv, {
+      ...event,
+      date,
+      markSeen: true,
+      type: event.type,
     })
-  } catch {
-    // Analytics must not block main request flow — silently swallow errors
+    await processAnalyticsAggregationBacklog(kv)
+  } catch (err) {
+    logError('analytics.record_usage.error', err, event.userId)
+    throw err
   }
 }
 
@@ -87,13 +228,40 @@ export async function getDailyStats(
   date: string
 ): Promise<DailyStats> {
   try {
-    const raw = await kv.get(DAILY_KEY(date))
-    if (!raw) return emptyDailyStats(date)
+    await processAnalyticsAggregationBacklog(kv)
+  } catch (err) {
+    logError('analytics.daily_stats.backlog_error', err)
+  }
 
-    const parsed = JSON.parse(raw) as DailyStats
-    // uniqueUsers stored as number (count) in daily stats
-    return parsed
-  } catch {
+  try {
+    const rawEvents = await listAnalyticsEventRecordsForDate(kv, date)
+    if (rawEvents.length > 0) {
+      const stats = buildAnalyticsDailyStatsFromEventRecords(date, rawEvents)
+      try {
+        await putAnalyticsDaySummary(kv, stats)
+      } catch (err) {
+        logError('analytics.daily_stats.summary_write_error', err)
+      }
+      return stats
+    }
+
+    const cachedV2Stats = await getAnalyticsDaySummary(kv, date)
+    if (cachedV2Stats) return cachedV2Stats
+
+    const v2UserIds = await listAnalyticsDayUserIds(kv, date)
+    if (v2UserIds.length > 0) {
+      const stats = await buildAnalyticsDailyStatsFromV2(kv, date)
+      try {
+        await putAnalyticsDaySummary(kv, stats)
+      } catch (err) {
+        logError('analytics.daily_stats.summary_write_error', err)
+      }
+      return stats
+    }
+
+    return emptyDailyStats(date)
+  } catch (err) {
+    logError('analytics.daily_stats.error', err)
     return emptyDailyStats(date)
   }
 }
@@ -104,44 +272,20 @@ export async function getLifetimeTotals(
   kv: KVStore
 ): Promise<LifetimeTotals> {
   try {
-    const raw = await kv.get(TOTALS_KEY)
-    if (!raw) return emptyLifetimeTotals()
-    return JSON.parse(raw) as LifetimeTotals
-  } catch {
-    return emptyLifetimeTotals()
+    await processAnalyticsAggregationBacklog(kv)
+  } catch (err) {
+    logError('analytics.lifetime.backlog_error', err)
   }
-}
 
-export async function updateLifetimeTotals(
-  kv: KVStore,
-  updates: Partial<LifetimeTotals> & { totalInteractions?: number; totalCostUsd?: number }
-): Promise<void> {
   try {
-    const existing = await getLifetimeTotals(kv)
-
-    // Incrementally merge numeric fields
-    if (updates.totalInteractions) {
-      existing.totalInteractions += updates.totalInteractions
+    const rawEventDates = await listAnalyticsEventDates(kv)
+    if (rawEventDates.length > 0) {
+      return buildAnalyticsLifetimeTotalsFromAppendLog(kv)
     }
-    if (updates.totalCostUsd) {
-      existing.totalCostUsd += updates.totalCostUsd
-    }
-    if (updates.totalUsers !== undefined) {
-      existing.totalUsers = updates.totalUsers
-    }
-    if (updates.totalRevenue !== undefined) {
-      existing.totalRevenue = updates.totalRevenue
-    }
-    if (updates.planBreakdown) {
-      existing.planBreakdown = updates.planBreakdown
-    }
-
-    existing.lastUpdatedAt = Date.now()
-
-    // No TTL — permanent
-    await kv.put(TOTALS_KEY, JSON.stringify(existing))
-  } catch {
-    // Non-critical
+    return buildAnalyticsLifetimeTotalsFromV2(kv)
+  } catch (err) {
+    logError('analytics.lifetime.error', err)
+    return emptyLifetimeTotals()
   }
 }
 
@@ -152,11 +296,9 @@ export async function getUniqueUserCount(
   date: string
 ): Promise<number> {
   try {
-    const raw = await kv.get(USERS_KEY(date))
-    if (!raw) return 0
-    const users = JSON.parse(raw) as string[]
-    return users.length
-  } catch {
+    return (await getDailyStats(kv, date)).uniqueUsers
+  } catch (err) {
+    logError('analytics.unique_users.error', err)
     return 0
   }
 }
@@ -167,29 +309,43 @@ export async function recordUserSeen(
   date: string
 ): Promise<void> {
   try {
-    const raw = await kv.get(USERS_KEY(date))
-    let users: string[] = raw ? JSON.parse(raw) : []
+    await appendRawAnalyticsEvent(kv, {
+      type: 'seen',
+      userId,
+      date,
+      markSeen: true,
+      costUsd: 0,
+      metadata: {},
+    })
+    await processAnalyticsAggregationBacklog(kv)
+  } catch (err) {
+    logError('analytics.record_seen.error', err, userId)
+    throw err
+  }
+}
 
-    if (users.includes(userId)) return // Already seen today
+export interface AnalyticsAggregationStatus {
+  pendingEventCount: number
+  pendingDates: string[]
+  lastAppendedAt: number
+  lastProcessedAt: number
+  lagMs: number
+  isCaughtUp: boolean
+}
 
-    // Cap array size
-    if (users.length >= MAX_USERS_PER_DAY) return
-
-    users.push(userId)
-    await kv.put(USERS_KEY(date), JSON.stringify(users), { expirationTtl: USERS_TTL })
-
-    // Update daily stats uniqueUsers count
-    const stats = await getDailyStats(kv, date)
-    stats.uniqueUsers = users.length
-    stats.updatedAt = Date.now()
-    await kv.put(DAILY_KEY(date), JSON.stringify(stats), { expirationTtl: DAILY_TTL })
-
-    // Check if this is a new user ever (update lifetime totals)
-    const totals = await getLifetimeTotals(kv)
-    // Simple heuristic: if today's unique count grew, bump lifetime
-    // (not perfectly accurate but good enough for analytics)
-    await updateLifetimeTotals(kv, { totalUsers: totals.totalUsers + 1 })
-  } catch {
-    // Non-critical
+export async function getAnalyticsAggregationStatus(
+  kv: KVStore,
+): Promise<AnalyticsAggregationStatus> {
+  const state = await getAnalyticsAggregationState(kv)
+  const pendingEventCount = state.pendingEventKeys.length
+  return {
+    pendingEventCount,
+    pendingDates: state.pendingDates,
+    lastAppendedAt: state.lastAppendedAt,
+    lastProcessedAt: state.lastProcessedAt,
+    lagMs: pendingEventCount === 0
+      ? 0
+      : Math.max(0, Date.now() - (state.lastProcessedAt || state.lastAppendedAt || Date.now())),
+    isCaughtUp: pendingEventCount === 0,
   }
 }

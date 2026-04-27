@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest"
+import { describe, it, expect } from "vitest"
 import { checkForNudges } from "@/lib/proactive/nudge-engine"
 import type { LifeGraph, LifeNode } from "@/types/memory"
 import type { BriefingItem } from "@/types/proactive"

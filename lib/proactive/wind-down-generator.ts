@@ -1,6 +1,6 @@
 import type { LifeGraph } from '@/types/memory'
 import type { BriefingItem, EveningReflection, ProactiveConfig } from '@/types/proactive'
-import { geminiGenerate } from '@/lib/ai/vertex-client'
+import { geminiGenerate } from '@/lib/ai/providers/vertex-client'
 
 const GEMINI_MODEL = 'gemini-2.5-pro'
 const WIND_DOWN_TIMEOUT_MS = 15_000

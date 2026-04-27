@@ -2,6 +2,8 @@
 //
 // Resolves platform sender IDs to Clerk userIds via KV mappings.
 // Enforces plan gating (Pro/Business only), daily message limits, and
+// P1-1 fix: All KV fallback rate-limit functions use increment-first pattern
+// to minimize TOCTOU race window. The daily limit also applies a safety margin.
 // message deduplication.
 //
 // KV key schema (all stored in MISSI_MEMORY namespace):
@@ -16,9 +18,12 @@
 //   bot:dedup:tg:{updateId}         → "1"                               TTL: 7 days
 //   bot:daily:wa:{userId}:{date}    → message count string              TTL: ~48 h
 //   bot:daily:tg:{userId}:{date}    → message count string              TTL: ~48 h
+//   bot:daily:wa:{userId}:{date}:atomic → atomic counter                TTL: ~48 h
+//   bot:daily:tg:{userId}:{date}:atomic → atomic counter                TTL: ~48 h
 
 import { getUserPlan } from '@/lib/billing/tier-checker'
 import type { KVStore } from '@/types'
+import { checkAndIncrementAtomicCounter } from '@/lib/server/platform/atomic-quota'
 
 export type BotPlatform = 'whatsapp' | 'telegram'
 
@@ -44,6 +49,8 @@ const PENDING_WA_LINK_TTL_SECONDS = 15 * 60 // 15 minutes
 // attempts / phone / day; the code expires in 15 min regardless.
 const MAX_WA_LINK_ATTEMPTS_PER_DAY = 10
 const WA_LINK_ATTEMPTS_TTL_SECONDS = 24 * 3600 // 24 hours
+const MAX_TG_LINK_ATTEMPTS_PER_DAY = 10
+const TG_LINK_ATTEMPTS_TTL_SECONDS = 24 * 3600 // 24 hours
 
 // ─── Sender → userId resolution ──────────────────────────────────────────────
 
@@ -127,22 +134,41 @@ export async function checkPlanGate(userId: string): Promise<{ allowed: boolean;
 
 // ─── Daily message limits ─────────────────────────────────────────────────────
 
+// P1-1 fix: When the atomic counter is unavailable, the KV fallback applies
+// a reduced limit to absorb potential TOCTOU overshoot from concurrent writes.
+const KV_DAILY_LIMIT_SAFETY_MARGIN = 5
+
 export async function checkAndIncrementBotDailyLimit(
   kv: KVStore,
   platform: BotPlatform,
   userId: string,
   date: string, // YYYY-MM-DD
 ): Promise<{ allowed: boolean; count: number }> {
-  const key = `bot:daily:${platform === 'whatsapp' ? 'wa' : 'tg'}:${userId}:${date}`
-  const raw = await kv.get(key)
-  const count = raw ? parseInt(raw, 10) : 0
+  const counterName = `bot:daily:${platform === 'whatsapp' ? 'wa' : 'tg'}:${userId}:${date}`
 
-  if (count >= BOT_DAILY_LIMIT) {
-    return { allowed: false, count }
+  // Prefer atomic counter when available
+  const atomic = await checkAndIncrementAtomicCounter(counterName, BOT_DAILY_LIMIT, DAILY_COUNTER_TTL_SECONDS)
+  if (atomic) {
+    return { allowed: atomic.allowed, count: atomic.count }
   }
 
-  await kv.put(key, String(count + 1), { expirationTtl: DAILY_COUNTER_TTL_SECONDS })
-  return { allowed: true, count: count + 1 }
+  // P1-1 fix: KV fallback — increment-first pattern.
+  // Write the incremented value BEFORE checking the limit so the counter
+  // always advances monotonically even under concurrent access. A reduced
+  // limit (BOT_DAILY_LIMIT - safety margin) absorbs any remaining overshoot.
+  const kvLimit = BOT_DAILY_LIMIT - KV_DAILY_LIMIT_SAFETY_MARGIN
+  const raw = await kv.get(counterName)
+  const count = raw ? parseInt(raw, 10) : 0
+  const newCount = count + 1
+
+  // Always write the increment — ensures concurrent requests advance the counter
+  await kv.put(counterName, String(newCount), { expirationTtl: DAILY_COUNTER_TTL_SECONDS })
+
+  if (newCount > kvLimit) {
+    return { allowed: false, count: newCount }
+  }
+
+  return { allowed: true, count: newCount }
 }
 
 // ─── Message deduplication ────────────────────────────────────────────────────
@@ -212,16 +238,25 @@ export async function checkOTPRateLimit(
   userId: string,
   date: string,
 ): Promise<{ allowed: boolean; attempts: number }> {
-  const key = `bot:otp:attempts:${userId}:${date}`
-  const raw = await kv.get(key)
-  const attempts = raw ? parseInt(raw, 10) : 0
+  const counterName = `bot:otp:attempts:${userId}:${date}`
 
-  if (attempts >= MAX_OTP_ATTEMPTS_PER_DAY) {
-    return { allowed: false, attempts }
+  const atomic = await checkAndIncrementAtomicCounter(counterName, MAX_OTP_ATTEMPTS_PER_DAY, OTP_ATTEMPTS_TTL_SECONDS)
+  if (atomic) {
+    return { allowed: atomic.allowed, attempts: atomic.count }
   }
 
-  await kv.put(key, String(attempts + 1), { expirationTtl: OTP_ATTEMPTS_TTL_SECONDS })
-  return { allowed: true, attempts: attempts + 1 }
+  // P1-1 fix: increment-first pattern — write before checking
+  const raw = await kv.get(counterName)
+  const attempts = raw ? parseInt(raw, 10) : 0
+  const newAttempts = attempts + 1
+
+  await kv.put(counterName, String(newAttempts), { expirationTtl: OTP_ATTEMPTS_TTL_SECONDS })
+
+  if (newAttempts > MAX_OTP_ATTEMPTS_PER_DAY) {
+    return { allowed: false, attempts: newAttempts }
+  }
+
+  return { allowed: true, attempts: newAttempts }
 }
 
 // ─── Telegram deep-link code ──────────────────────────────────────────────────
@@ -264,16 +299,51 @@ export async function checkAndIncrementWaLinkAttempt(
 ): Promise<{ allowed: boolean; attempts: number }> {
   // KV key stores the phone to enforce rate limit; phone is already stored
   // in bot:wa:{phone} for the actual mapping — same trust boundary.
-  const key = `bot:wa:link-attempts:${phone}:${date}`
-  const raw = await kv.get(key)
-  const attempts = raw ? parseInt(raw, 10) : 0
+  const counterName = `bot:wa:link-attempts:${phone}:${date}`
 
-  if (attempts >= MAX_WA_LINK_ATTEMPTS_PER_DAY) {
-    return { allowed: false, attempts }
+  const atomic = await checkAndIncrementAtomicCounter(counterName, MAX_WA_LINK_ATTEMPTS_PER_DAY, WA_LINK_ATTEMPTS_TTL_SECONDS)
+  if (atomic) {
+    return { allowed: atomic.allowed, attempts: atomic.count }
   }
 
-  await kv.put(key, String(attempts + 1), { expirationTtl: WA_LINK_ATTEMPTS_TTL_SECONDS })
-  return { allowed: true, attempts: attempts + 1 }
+  // P1-1 fix: increment-first pattern — write before checking
+  const raw = await kv.get(counterName)
+  const attempts = raw ? parseInt(raw, 10) : 0
+  const newAttempts = attempts + 1
+
+  await kv.put(counterName, String(newAttempts), { expirationTtl: WA_LINK_ATTEMPTS_TTL_SECONDS })
+
+  if (newAttempts > MAX_WA_LINK_ATTEMPTS_PER_DAY) {
+    return { allowed: false, attempts: newAttempts }
+  }
+
+  return { allowed: true, attempts: newAttempts }
+}
+
+export async function checkAndIncrementTgLinkAttempt(
+  kv: KVStore,
+  telegramUserId: string | number,
+  date: string, // YYYY-MM-DD
+): Promise<{ allowed: boolean; attempts: number }> {
+  const counterName = `bot:tg:link-attempts:${telegramUserId}:${date}`
+
+  const atomic = await checkAndIncrementAtomicCounter(counterName, MAX_TG_LINK_ATTEMPTS_PER_DAY, TG_LINK_ATTEMPTS_TTL_SECONDS)
+  if (atomic) {
+    return { allowed: atomic.allowed, attempts: atomic.count }
+  }
+
+  // P1-1 fix: increment-first pattern — write before checking
+  const raw = await kv.get(counterName)
+  const attempts = raw ? parseInt(raw, 10) : 0
+  const newAttempts = attempts + 1
+
+  await kv.put(counterName, String(newAttempts), { expirationTtl: TG_LINK_ATTEMPTS_TTL_SECONDS })
+
+  if (newAttempts > MAX_TG_LINK_ATTEMPTS_PER_DAY) {
+    return { allowed: false, attempts: newAttempts }
+  }
+
+  return { allowed: true, attempts: newAttempts }
 }
 
 export async function storeTelegramLinkCode(

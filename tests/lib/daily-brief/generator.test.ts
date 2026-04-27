@@ -8,7 +8,7 @@ vi.mock('nanoid', () => ({
 }))
 
 // Mock the AI client
-vi.mock('@/lib/ai/vertex-client', () => ({
+vi.mock('@/lib/ai/providers/vertex-client', () => ({
   geminiGenerate: vi.fn(),
 }))
 
@@ -25,6 +25,12 @@ vi.mock('@/lib/memory/life-graph', () => ({
       lastUpdatedAt: 0,
       version: 1,
     }),
+  ),
+  getTopLifeNodesByAccess: vi.fn(() =>
+    Promise.resolve([
+      { category: 'goal', title: 'Learn TypeScript', accessCount: 5 },
+      { category: 'goal', title: 'Exercise daily', accessCount: 3 },
+    ]),
   ),
 }))
 
@@ -61,7 +67,7 @@ vi.mock('@/lib/plugins/data-fetcher', () => ({
   getGoogleTokens: vi.fn(() => Promise.resolve(null)),
 }))
 
-import { geminiGenerate } from '@/lib/ai/vertex-client'
+import { geminiGenerate } from '@/lib/ai/providers/vertex-client'
 import {
   buildGenerationContext,
   generateBriefWithGemini,

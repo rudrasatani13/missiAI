@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { ArrowRight, Loader2, Sparkles } from 'lucide-react'
-import { hasCompletedSetupLocally, markSetupCompleteLocally } from '@/lib/setupCompletion'
+import { hasCompletedSetupLocally, markSetupCompleteLocally } from '@/lib/setup/setup-completion'
 
 export default function SetupPage() {
   const router = useRouter()

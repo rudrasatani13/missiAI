@@ -7,6 +7,33 @@ const NOTION_API_BASE = "https://api.notion.com/v1"
 const NOTION_VERSION = "2022-06-28"
 const TIMEOUT_MS = 10_000
 
+interface NotionPageCreateResponse {
+  id?: string
+  url?: string
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function isOptionalString(value: unknown): value is string | undefined {
+  return value === undefined || typeof value === "string"
+}
+
+function isNotionPageCreateResponse(value: unknown): value is NotionPageCreateResponse {
+  return isRecord(value)
+    && isOptionalString(value.id)
+    && isOptionalString(value.url)
+}
+
+function parseNotionPageCreateResponse(value: unknown): NotionPageCreateResponse {
+  if (!isNotionPageCreateResponse(value)) {
+    throw new Error("Invalid Notion page response")
+  }
+
+  return value
+}
+
 function notionHeaders(apiKey: string): Record<string, string> {
   return {
     Authorization: `Bearer ${apiKey}`,
@@ -122,13 +149,13 @@ export async function createNotionPage(
       }
     }
 
-    const data = await res.json()
+    const data = parseNotionPageCreateResponse(await res.json())
     return {
       success: true,
       pluginId: "notion",
       action: "create_page",
       output: `Page "${title}" created in Notion`,
-      url: (data as any).url,
+      url: data.url,
       executedAt: Date.now(),
     }
   } catch {
@@ -182,8 +209,8 @@ export async function addToNotionDatabase(
       }
     }
 
-    const created = await res.json()
-    const pageId = (created as any).id
+    const created = parseNotionPageCreateResponse(await res.json())
+    const pageId = created.id
 
     // Append content as a block to the newly created page
     if (pageId && content) {
@@ -216,7 +243,7 @@ export async function addToNotionDatabase(
       pluginId: "notion",
       action: "add_to_database",
       output: `"${title}" added to your Notion database`,
-      url: (created as any).url,
+      url: created.url,
       executedAt: Date.now(),
     }
   } catch {

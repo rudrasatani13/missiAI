@@ -1,6 +1,6 @@
 import type { LifeGraph } from '@/types/memory'
 import type { BriefingItem, DailyBriefing, ProactiveConfig } from '@/types/proactive'
-import { geminiGenerate } from '@/lib/ai/vertex-client'
+import { geminiGenerate } from '@/lib/ai/providers/vertex-client'
 
 const GEMINI_MODEL = 'gemini-2.5-pro'
 const BRIEFING_TIMEOUT_MS = 15_000

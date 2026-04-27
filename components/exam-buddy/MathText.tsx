@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import katex from 'katex'
+import DOMPurify from 'dompurify'
 
 type RenderPart = string | { html: string }
 
@@ -9,6 +10,10 @@ type RenderPart = string | { html: string }
  * Renders text that may contain LaTeX math expressions.
  * Inline math: $...$ or \(...\)
  * Display math: $$...$$ or \[...\]
+ *
+ * P1-2 fix: KaTeX output is sanitized through DOMPurify before injection
+ * via dangerouslySetInnerHTML. This is defense-in-depth against potential
+ * future KaTeX CVEs or adversarial LaTeX payloads from AI output.
  */
 export function MathText({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
   const parts = useMemo(() => renderMathInText(text), [text])
@@ -21,6 +26,22 @@ export function MathText({ text, className, style }: { text: string; className?:
       )}
     </span>
   )
+}
+
+/**
+ * Sanitize KaTeX HTML output via DOMPurify.
+ * Allows only the elements and attributes that KaTeX legitimately produces.
+ */
+function sanitizeKatexHtml(html: string): string {
+  return DOMPurify.sanitize(html, {
+    // KaTeX uses span, math, semantics, annotation, mrow, mi, mo, mn, mfrac,
+    // msup, msub, msqrt, mover, munder, mtable, mtr, mtd, mtext, mspace, etc.
+    // Allow all MathML elements plus the spans KaTeX wraps around them.
+    USE_PROFILES: { mathMl: true, html: true },
+    // Strip <script>, <iframe>, event handlers, etc. — DOMPurify defaults handle this.
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'textarea'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus'],
+  })
 }
 
 function renderMathInText(input: string): RenderPart[] {
@@ -71,8 +92,11 @@ function renderMathSegment(segment: string): RenderPart {
   }
 
   try {
-    return { html: katex.renderToString(math.trim(), { displayMode, throwOnError: false }) }
+    const rawHtml = katex.renderToString(math.trim(), { displayMode, throwOnError: false })
+    // P1-2 fix: sanitize KaTeX HTML before injection
+    return { html: sanitizeKatexHtml(rawHtml) }
   } catch {
     return segment
   }
 }
+

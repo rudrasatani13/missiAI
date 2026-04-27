@@ -16,10 +16,10 @@ import type {
   DailyTask,
   BriefGenerationContext,
 } from '@/types/daily-brief'
-import { getLifeGraph } from '@/lib/memory/life-graph'
+import { getTopLifeNodesByAccess } from '@/lib/memory/life-graph'
 import { getGamificationData } from '@/lib/gamification/streak'
 import { getRecentEntries } from '@/lib/mood/mood-store'
-import { geminiGenerate } from '@/lib/ai/vertex-client'
+import { geminiGenerate } from '@/lib/ai/providers/vertex-client'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -196,9 +196,9 @@ export async function buildGenerationContext(
   }
 
   // Parallel reads from multiple data sources
-  const [graphResult, gamificationResult, moodResult] = await Promise.all([
+  const [topGoalNodes, gamificationResult, moodResult] = await Promise.all([
     // 1. LifeGraph — extract top 3 goal nodes
-    getLifeGraph(kv, userId).catch(() => null),
+    getTopLifeNodesByAccess(kv, userId, { categories: ['goal'], limit: 3, readLimit: 200 }).catch(() => []),
     // 2. GamificationData — extract habits, streaks, loginStreak
     getGamificationData(kv, userId).catch(() => null),
     // 3. Mood — get yesterday's mood
@@ -206,11 +206,8 @@ export async function buildGenerationContext(
   ])
 
   // Process LifeGraph: top 3 goals sorted by accessCount
-  if (graphResult && Array.isArray(graphResult.nodes)) {
-    const goals = graphResult.nodes
-      .filter((n) => n.category === 'goal')
-      .sort((a, b) => (b.accessCount || 0) - (a.accessCount || 0))
-      .slice(0, 3)
+  if (Array.isArray(topGoalNodes) && topGoalNodes.length > 0) {
+    const goals = topGoalNodes
       .map((n) => sanitizeForPrompt(n.title, 100))
       .filter(Boolean)
 

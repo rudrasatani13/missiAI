@@ -1,10 +1,29 @@
-import { callAIDirect } from "@/services/ai.service"
+import { callGeminiDirect } from "@/lib/ai/services/ai-service"
 import { createNotionPage, addToNotionDatabase, appendToNotionPage } from "./notion-plugin"
 import { parseEventFromCommand, createCalendarEvent } from "./calendar-plugin"
 import { triggerWebhook } from "./webhook-plugin"
 import type { PluginCommand, PluginConfig, PluginResult, PluginId } from "@/types/plugins"
 
 // ─── Plugin Executor ──────────────────────────────────────────────────────────
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function readOptionalString(value: unknown): string | null {
+  return typeof value === "string" && value ? value : null
+}
+
+function parseNotionCommandDraft(value: unknown): { title: string | null; content: string | null } {
+  if (!isRecord(value)) {
+    return { title: null, content: null }
+  }
+
+  return {
+    title: readOptionalString(value.title),
+    content: readOptionalString(value.content),
+  }
+}
 
 function errorResult(
   pluginId: PluginId,
@@ -117,7 +136,7 @@ export async function buildPluginCommand(
     let content = userMessage
 
     try {
-      const raw = await callAIDirect(
+      const raw = await callGeminiDirect(
         `Extract a short title and the main content from the user's message.
 Return ONLY valid JSON: { "title": string, "content": string }
 Title should be 2-6 words. Content is the full note body.`,
@@ -125,9 +144,10 @@ Title should be 2-6 words. Content is the full note body.`,
         { temperature: 0.1, maxOutputTokens: 200, useGoogleSearch: false },
       )
       const cleaned = raw.replace(/```(?:json)?/gi, "").trim()
-      const parsed = JSON.parse(cleaned)
-      if (typeof parsed.title === "string" && parsed.title) title = parsed.title
-      if (typeof parsed.content === "string" && parsed.content) content = parsed.content
+      const parsed: unknown = JSON.parse(cleaned)
+      const draft = parseNotionCommandDraft(parsed)
+      if (draft.title) title = draft.title
+      if (draft.content) content = draft.content
     } catch {
       // Keep defaults on parse failure
     }

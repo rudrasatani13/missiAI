@@ -3,29 +3,28 @@ import {
   getVerifiedUserId,
   AuthenticationError,
   unauthorizedResponse,
-} from "@/lib/server/auth"
-import { memorySchema, validationErrorResponse } from "@/lib/validation/schemas"
-import { getCloudflareContext } from "@opennextjs/cloudflare"
+} from "@/lib/server/security/auth"
 import {
-  getLifeGraph,
-  saveLifeGraph,
-  addOrUpdateNodes,
-  searchLifeGraph,
-} from "@/lib/memory/life-graph"
-import { extractLifeNodes } from "@/lib/memory/graph-extractor"
-import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/rateLimiter"
+  parseMemoryReadQuery,
+  parseMemoryWriteRequest,
+  resolveMemoryDeleteNodeId,
+  validateMemoryDeleteNodeId,
+} from "@/lib/server/routes/memory/helpers"
+import {
+  executeMemoryDelete,
+  executeMemoryRead,
+  executeMemoryWrite,
+  scheduleMemoryReadFollowUps,
+  scheduleMemoryWriteFollowUps,
+} from "@/lib/server/routes/memory/runner"
+import { getCloudflareKVBinding, getCloudflareVectorizeEnv } from "@/lib/server/platform/bindings"
+import {
+  checkRateLimit,
+  rateLimitExceededResponse,
+  rateLimitHeaders,
+} from "@/lib/server/security/rate-limiter"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { logRequest, logError } from "@/lib/server/logger"
-import { waitUntil } from "@/lib/server/wait-until"
-import { recordEvent, recordUserSeen } from "@/lib/analytics/event-store"
-import { getTodayDate } from "@/lib/billing/usage-tracker"
-import { awardXP } from "@/lib/gamification/xp-engine"
-import { deleteUserVectors } from "@/lib/memory/vectorize"
-import type { KVStore } from "@/types"
-import type { VectorizeEnv } from "@/lib/memory/vectorize"
-import type { MemoryCategory } from "@/types/memory"
-import { z } from "zod"
-
+import { logRequest, logError } from "@/lib/server/observability/logger"
 
 function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -33,32 +32,6 @@ function jsonResponse(body: unknown, status = 200, headers: Record<string, strin
     headers: { "Content-Type": "application/json", ...headers },
   })
 }
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
-  }
-}
-
-function getVectorizeEnv(): VectorizeEnv | null {
-  try {
-    const { env } = getCloudflareContext()
-    const lifeGraph = (env as any).LIFE_GRAPH
-    if (!lifeGraph) return null
-    return { LIFE_GRAPH: lifeGraph }
-  } catch {
-    return null
-  }
-}
-
-// Allowlist of valid memory categories (mirrors the MemoryCategory union type)
-const VALID_CATEGORIES = new Set([
-  'person', 'goal', 'habit', 'preference', 'event',
-  'emotion', 'skill', 'place', 'belief', 'relationship',
-])
 
 // ─── GET — Load life graph or search by query ─────────────────────────────────
 
@@ -76,7 +49,7 @@ export async function GET(req: NextRequest) {
 
   // OWASP API4: rate-limit memory reads — search calls may invoke Gemini embeddings
   const planId = await getUserPlan(userId)
-  const rateTier = planId === 'free' ? 'free' : 'paid'
+  const rateTier = planId === "free" ? "free" : "paid"
   const rateResult = await checkRateLimit(userId, rateTier)
   if (!rateResult.allowed) {
     logRequest("memory.get.rate_limited", userId, startTime)
@@ -84,81 +57,34 @@ export async function GET(req: NextRequest) {
   }
 
   // OWASP A03: validate query params before passing to downstream functions
-  const rawQuery = req.nextUrl.searchParams.get("query")
-  const rawCategory = req.nextUrl.searchParams.get("category")
-
-  // Reject oversized query strings to prevent embedding abuse
-  if (rawQuery !== null && rawQuery.length > 500) {
-    return jsonResponse(
-      { success: false, error: "Query too long (max 500 chars)", code: "VALIDATION_ERROR" },
-      400,
-    )
-  }
-
-  // Reject unknown category values to prevent unexpected KV key patterns
-  if (rawCategory !== null && !VALID_CATEGORIES.has(rawCategory)) {
-    return jsonResponse(
-      { success: false, error: "Invalid category", code: "VALIDATION_ERROR" },
-      400,
-    )
-  }
+  const parsedReadQuery = parseMemoryReadQuery(req.nextUrl.searchParams.get("query"), req.nextUrl.searchParams.get("category"))
+  if (!parsedReadQuery.ok) return parsedReadQuery.response
 
   try {
-    const kv = getKV()
-    if (!kv) {
-      logError(
-        "memory.kv_unavailable",
-        "KV binding MISSI_MEMORY not found",
-        userId,
+    const kv = getCloudflareKVBinding()
+    const vectorizeEnv = getCloudflareVectorizeEnv()
+    const readResult = await executeMemoryRead(kv, vectorizeEnv, userId, parsedReadQuery.data)
+
+    if (readResult.kind === "fallback") {
+      logError("memory.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
+      return jsonResponse(
+        { success: false, error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" },
+        503,
+        rateLimitHeaders(rateResult),
       )
-      return jsonResponse({
-        success: true,
-        data: { nodes: [], totalInteractions: 0, lastUpdatedAt: 0, version: 1 },
-      })
     }
 
-    const query = rawQuery
-    const category = rawCategory as MemoryCategory | null
+    logRequest("memory.read", userId, startTime, readResult.logContext)
+    scheduleMemoryReadFollowUps(kv, userId)
 
-    if (query) {
-      
-      const vectorizeEnv = getVectorizeEnv()
-      const results = await searchLifeGraph(kv, vectorizeEnv, userId, query,
-        { topK: 10, category: category ?? undefined },
-      )
-
-      logRequest("memory.read", userId, startTime, {
-        resultCount: results.length,
-      })
-
-      // Analytics: fire-and-forget (H1 fix: wrap in waitUntil)
-      if (kv) {
-        waitUntil(recordEvent(kv, { type: 'memory_read', userId }).catch(() => {}))
-        waitUntil(recordUserSeen(kv, userId, getTodayDate()).catch(() => {}))
-      }
-
-      return jsonResponse({ success: true, data: results }, 200, rateLimitHeaders(rateResult))
-    }
-
-    const graph = await getLifeGraph(kv, userId)
-
-    logRequest("memory.read", userId, startTime, {
-      nodeCount: graph.nodes.length,
-    })
-
-    // Analytics: fire-and-forget (H1 fix: wrap in waitUntil)
-    if (kv) {
-      waitUntil(recordEvent(kv, { type: 'memory_read', userId }).catch(() => {}))
-      waitUntil(recordUserSeen(kv, userId, getTodayDate()).catch(() => {}))
-    }
-
-    return jsonResponse({ success: true, data: graph }, 200, rateLimitHeaders(rateResult))
+    return jsonResponse({ success: true, data: readResult.data }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
     logError("memory.read_error", err, userId)
-    return jsonResponse({
-      success: true,
-      data: { nodes: [], totalInteractions: 0, lastUpdatedAt: 0, version: 1 },
-    })
+    return jsonResponse(
+      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
+      500,
+      rateLimitHeaders(rateResult),
+    )
   }
 }
 
@@ -177,28 +103,21 @@ export async function POST(req: NextRequest) {
   }
 
   const planId = await getUserPlan(userId)
-  const rateTier = planId === 'free' ? 'free' : 'paid'
-  const rateResult = await checkRateLimit(userId, rateTier, 'ai')
+  const rateTier = planId === "free" ? "free" : "paid"
+  const rateResult = await checkRateLimit(userId, rateTier, "ai")
   if (!rateResult.allowed) {
     logRequest("memory.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
   }
 
-  let body: unknown
-  try {
-    body = await req.json()
-  } catch {
-    logRequest("memory.invalid_json", userId, startTime)
-    return jsonResponse(
-      { success: false, error: "Invalid JSON body", code: "VALIDATION_ERROR" },
-      400,
+  const parsed = await parseMemoryWriteRequest(req)
+  if (!parsed.ok) {
+    logRequest(
+      parsed.kind === "invalid_json" ? "memory.invalid_json" : "memory.validation_error",
+      userId,
+      startTime,
     )
-  }
-
-  const parsed = memorySchema.safeParse(body)
-  if (!parsed.success) {
-    logRequest("memory.validation_error", userId, startTime)
-    return validationErrorResponse(parsed.error)
+    return parsed.response
   }
 
   const { conversation, interactionCount, incognito, analyticsOptOut } = parsed.data
@@ -213,7 +132,7 @@ export async function POST(req: NextRequest) {
     return jsonResponse({ success: true, skipped: "incognito" })
   }
 
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
   if (!kv) {
     logError(
       "memory.kv_unavailable",
@@ -227,38 +146,14 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    let graph = await getLifeGraph(kv, userId)
-    const vectorizeEnv = getVectorizeEnv()
-
-    let added = 0
-    let updated = 0
-
-    // Increment total interactions
-    graph.totalInteractions = (graph.totalInteractions || 0) + 1
-    await saveLifeGraph(kv, userId, graph)
-
-    // Extract new life nodes when there are at least 2 user interactions
-    if (interactionCount >= 2) {
-      const extractedNodes = await extractLifeNodes(
-        conversation,
-        graph,
-      )
-
-      const beforeCount = graph.nodes.length
-
-      // Batch update to fix N+1 query issue
-      await addOrUpdateNodes(
-        kv,
-        vectorizeEnv,
-        userId,
-        extractedNodes.map((nodeInput) => ({ ...nodeInput, userId })),
-      )
-
-      // Reload to count changes
-      graph = await getLifeGraph(kv, userId)
-      added = Math.max(0, graph.nodes.length - beforeCount)
-      updated = Math.max(0, extractedNodes.length - added)
-    }
+    const vectorizeEnv = getCloudflareVectorizeEnv()
+    const { added, updated, graph } = await executeMemoryWrite(
+      kv,
+      vectorizeEnv,
+      userId,
+      conversation,
+      interactionCount,
+    )
 
     logRequest("memory.write", userId, startTime, {
       nodeCount: graph.nodes.length,
@@ -267,35 +162,7 @@ export async function POST(req: NextRequest) {
       totalInteractions: graph.totalInteractions,
     })
 
-    // Analytics & Gamification: fire-and-forget (H1 fix: wrap in waitUntil)
-    if (kv && !analyticsOptOut) {
-      waitUntil(recordEvent(kv, { type: 'memory_write', userId }).catch(() => {}))
-      waitUntil(recordUserSeen(kv, userId, getTodayDate()).catch(() => {}))
-
-    }
-
-    // Gamification stays enabled even with analyticsOptOut — XP / chat / memory
-    // awards are a user-facing feature, not telemetry. Keep the KV guard so a
-    // missing binding is still handled safely.
-    if (kv) {
-      // Award chat XP only for meaningful conversations (4+ turns)
-      // and only once per 5-minute window to prevent duplicate beacon awards
-      if (interactionCount >= 4) {
-        const cooldownKey = `xp-cooldown:chat:${userId}`
-        const cooldownHit = await kv.get(cooldownKey).catch(() => null)
-        if (!cooldownHit) {
-          waitUntil(awardXP(kv, userId, 'chat', 3).catch(() => {}))
-          waitUntil(kv.put(cooldownKey, '1', { expirationTtl: 300 }).catch(() => {})) // 5-min cooldown
-        }
-      }
-
-      // Award XP for each memory node saved
-      if (added > 0) {
-        for (let i = 0; i < Math.min(added, 10); i++) {
-          waitUntil(awardXP(kv, userId, 'memory', 2).catch(() => {}))
-        }
-      }
-    }
+    await scheduleMemoryWriteFollowUps(kv, userId, analyticsOptOut, interactionCount, added)
 
     return jsonResponse({ success: true, data: { added, updated } }, 200, rateLimitHeaders(rateResult))
   } catch (err) {
@@ -312,8 +179,6 @@ export async function POST(req: NextRequest) {
 // This lives in the parent route because the [nodeId] dynamic route has
 // Cloudflare edge worker compilation issues.
 
-const nodeIdSchema = z.string().min(1).max(50)
-
 export async function DELETE(req: NextRequest) {
   const startTime = Date.now()
 
@@ -327,48 +192,23 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    // Get nodeId from query param or body
-    let nodeId = req.nextUrl.searchParams.get("nodeId")
+    const parsedNodeId = validateMemoryDeleteNodeId(await resolveMemoryDeleteNodeId(req))
+    if (!parsedNodeId.ok) return parsedNodeId.response
+    const nodeId = parsedNodeId.data
 
-    if (!nodeId) {
-      // Try reading from body
-      try {
-        const body = await req.json()
-        nodeId = body?.nodeId ?? null
-      } catch {
-        // No body — that's fine, check for null below
-      }
-    }
-
-    if (!nodeId) {
-      return jsonResponse({ success: false, error: "nodeId is required", code: "VALIDATION_ERROR" }, 400)
-    }
-
-    const parsed = nodeIdSchema.safeParse(nodeId)
-    if (!parsed.success) {
-      return jsonResponse({ success: false, error: "Invalid node ID", code: "VALIDATION_ERROR" }, 400)
-    }
-
-    const kv = getKV()
+    const kv = getCloudflareKVBinding()
     if (!kv) {
       logError("memory.delete.kv_unavailable", "KV binding MISSI_MEMORY not found", userId)
       return jsonResponse({ success: false, error: "Storage unavailable", code: "INTERNAL_ERROR" }, 503)
     }
-    const vectorizeEnv = getVectorizeEnv()
+    const vectorizeEnv = getCloudflareVectorizeEnv()
 
-    const graph = await getLifeGraph(kv, userId)
-    const before = graph.nodes.length
-    graph.nodes = graph.nodes.filter((n) => n.id !== nodeId)
-
-    if (graph.nodes.length < before) {
-      await saveLifeGraph(kv, userId, graph)
-      if (vectorizeEnv) {
-        await deleteUserVectors(vectorizeEnv, [nodeId])
-      }
+    const deleteResult = await executeMemoryDelete(kv, vectorizeEnv, userId, nodeId)
+    if (deleteResult.didDelete) {
       logRequest("memory.node.deleted", userId, startTime, { nodeId })
     }
 
-    return jsonResponse({ success: true, data: { deleted: nodeId } })
+    return jsonResponse({ success: true, data: { deleted: deleteResult.deleted } })
   } catch (err) {
     logError("memory.delete.error", err, userId)
     return jsonResponse({ success: false, error: "Failed to delete memory", code: "INTERNAL_ERROR" }, 500)

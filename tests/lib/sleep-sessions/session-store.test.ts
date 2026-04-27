@@ -1,13 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { 
-    getActiveSleepSession,
     cacheGeneratedStory, 
     getLastGeneratedStory, 
     addToHistory, 
     getHistory,
     checkGenerationRateLimit,
-    incrementGenerationRateLimit
+    checkTTSRateLimit,
+    incrementGenerationRateLimit,
+    incrementTTSRateLimit,
 } from '@/lib/sleep-sessions/session-store'
+import {
+    buildSleepDailyQuotaKey,
+    buildSleepHistoryEntryKey,
+    buildSleepHistoryIndexKey,
+    putSleepHistoryEntryRecord,
+    saveSleepHistoryIndex,
+} from '@/lib/sleep-sessions/session-record-store'
 import type { KVStore } from '@/types'
 
 describe('Session Store', () => {
@@ -21,7 +29,9 @@ describe('Session Store', () => {
             put: vi.fn(async (key: string, value: string) => {
                 mockKv[key] = value
             }),
-            delete: vi.fn(),
+            delete: vi.fn(async (key: string) => {
+                delete mockKv[key]
+            }),
         } as any as KVStore
     })
 
@@ -39,13 +49,19 @@ describe('Session Store', () => {
         expect(retrieved).toBeNull()
     })
 
-    it('addToHistory correctly prepends, caps at 30', async () => {
+    it('addToHistory writes v2 history records, prepends, and caps at 30', async () => {
         const entry = { id: 'e1', mode: 'library', title: 'Test', completed: true, durationSec: 100, date: '2024-01-01' } as any
 
         await addToHistory(kv, 'user1', entry)
         let hist = await getHistory(kv, 'user1')
         expect(hist.length).toBe(1)
         expect(hist[0].id).toBe('e1')
+        expect(mockKv['sleep-sessions:history:user1']).toBeUndefined()
+        expect(JSON.parse(mockKv[buildSleepHistoryIndexKey('user1')])).toEqual({
+            entryIds: ['e1'],
+            updatedAt: expect.any(Number),
+        })
+        expect(JSON.parse(mockKv[buildSleepHistoryEntryKey('user1', 'e1')])).toEqual(entry)
 
         // Add 31 more
         for (let i = 0; i < 31; i++) {
@@ -56,59 +72,137 @@ describe('Session Store', () => {
         hist = await getHistory(kv, 'user1', 30)
         expect(hist.length).toBe(30)
         expect(hist[0].id).toBe('e32') // the very last one added
+        expect(JSON.parse(mockKv[buildSleepHistoryIndexKey('user1')]).entryIds).toHaveLength(30)
+        expect(mockKv[buildSleepHistoryEntryKey('user1', 'e1')]).toBeUndefined()
     })
 
-    it('getActiveSleepSession returns session on success', async () => {
-        const mockSession = { id: 'session1', data: 'something' }
+    it('getHistory prefers v2 history when legacy history is stale', async () => {
+        const legacyEntry = {
+            id: 'e1',
+            mode: 'library',
+            title: 'Legacy Title',
+            completed: true,
+            durationSec: 100,
+            date: '2024-01-01T00:00:00.000Z',
+        } as any
+        const v2Entry = {
+            ...legacyEntry,
+            title: 'V2 Title',
+        }
+        const newerV2Entry = {
+            ...legacyEntry,
+            id: 'e2',
+            title: 'V2 Newer Title',
+            date: '2024-01-02T00:00:00.000Z',
+        }
 
-        const originalGet = kv.get
-        kv.get = vi.fn(async (key: string, options?: any) => {
-            if (key === `sleep-session:user1` && options?.type === 'json') return mockSession
-            return null
-        }) as any
+        await putSleepHistoryEntryRecord(kv, 'user1', v2Entry)
+        await putSleepHistoryEntryRecord(kv, 'user1', newerV2Entry)
+        await saveSleepHistoryIndex(kv, 'user1', ['e2', 'e1'])
+        mockKv['sleep-sessions:history:user1'] = JSON.stringify([legacyEntry])
 
-        const result = await getActiveSleepSession(kv, 'user1')
-        expect(result).toEqual(mockSession)
-
-        kv.get = originalGet
+        const hist = await getHistory(kv, 'user1')
+        expect(hist).toEqual([newerV2Entry, v2Entry])
     })
 
-    it('getActiveSleepSession returns null when session is not found', async () => {
-        const originalGet = kv.get
-        kv.get = vi.fn(async () => null)
+    it('getHistory ignores legacy history when no v2 history exists', async () => {
+        const entryOne = {
+            id: 'e1',
+            mode: 'library',
+            title: 'First',
+            completed: true,
+            durationSec: 100,
+            date: '2024-01-01T00:00:00.000Z',
+        } as any
+        const entryTwo = {
+            ...entryOne,
+            id: 'e2',
+            title: 'Second',
+            date: '2024-01-02T00:00:00.000Z',
+        }
 
-        const result = await getActiveSleepSession(kv, 'user2')
-        expect(result).toBeNull()
+        mockKv['sleep-sessions:history:user1'] = JSON.stringify([entryTwo, entryOne])
 
-        kv.get = originalGet
+        const hist = await getHistory(kv, 'user1', 30)
+        expect(hist).toEqual([])
+        expect(mockKv[buildSleepHistoryIndexKey('user1')]).toBeUndefined()
+        expect(mockKv[buildSleepHistoryEntryKey('user1', 'e2')]).toBeUndefined()
+        expect(mockKv[buildSleepHistoryEntryKey('user1', 'e1')]).toBeUndefined()
     })
 
-    it('getActiveSleepSession returns null on KV error', async () => {
-        const originalGet = kv.get
-        kv.get = vi.fn().mockRejectedValue(new Error('KV store failure'))
+    it('addToHistory ignores legacy history and only writes the new v2 entry', async () => {
+        const entryOne = {
+            id: 'e1',
+            mode: 'library',
+            title: 'First',
+            completed: true,
+            durationSec: 100,
+            date: '2024-01-01T00:00:00.000Z',
+        } as any
+        const entryTwo = {
+            ...entryOne,
+            id: 'e2',
+            title: 'Second',
+            date: '2024-01-02T00:00:00.000Z',
+        }
+        const entryThree = {
+            ...entryOne,
+            id: 'e3',
+            title: 'Third',
+            date: '2024-01-03T00:00:00.000Z',
+        }
 
-        const result = await getActiveSleepSession(kv, 'user1')
-        expect(result).toBeNull()
+        mockKv['sleep-sessions:history:user1'] = JSON.stringify([entryTwo, entryOne])
 
-        kv.get = originalGet
+        await addToHistory(kv, 'user1', entryThree)
+
+        expect(await getHistory(kv, 'user1', 30)).toEqual([entryThree])
+        expect(JSON.parse(mockKv[buildSleepHistoryIndexKey('user1')])).toEqual({
+            entryIds: ['e3'],
+            updatedAt: expect.any(Number),
+        })
+        expect(mockKv['sleep-sessions:history:user1']).toBe(JSON.stringify([entryTwo, entryOne]))
     })
 
-    it('Rate limit functions work correctly', async () => {
-        const res1 = await checkGenerationRateLimit(kv, 'user1', 'free')
-        expect(res1.allowed).toBe(true)
-        
-        // Simulating reaching limit of 3 for free users
+    it('Rate limit functions use the v2 daily quota record and preserve generation and TTS limits', async () => {
+        const today = new Date().toISOString().slice(0, 10)
+
+        expect(await checkGenerationRateLimit(kv, 'user1', 'free')).toEqual({
+            allowed: true,
+            remaining: 3,
+        })
+        expect(await checkTTSRateLimit(kv, 'user1', 'free')).toEqual({
+            allowed: true,
+            remaining: 10,
+        })
+
         await incrementGenerationRateLimit(kv, 'user1')
         await incrementGenerationRateLimit(kv, 'user1')
         await incrementGenerationRateLimit(kv, 'user1')
+        await incrementTTSRateLimit(kv, 'user1')
+        await incrementTTSRateLimit(kv, 'user1')
 
-        const res2 = await checkGenerationRateLimit(kv, 'user1', 'free')
-        expect(res2.allowed).toBe(false)
-        expect(res2.remaining).toBe(0)
+        expect(await checkGenerationRateLimit(kv, 'user1', 'free')).toEqual({
+            allowed: false,
+            remaining: 0,
+        })
+        expect(await checkGenerationRateLimit(kv, 'user1', 'pro')).toEqual({
+            allowed: true,
+            remaining: 17,
+        })
+        expect(await checkTTSRateLimit(kv, 'user1', 'free')).toEqual({
+            allowed: true,
+            remaining: 8,
+        })
 
-        // Pro user gets 20
-        const res3 = await checkGenerationRateLimit(kv, 'user1', 'pro')
-        expect(res3.allowed).toBe(true)
-        expect(res3.remaining).toBe(17) // 20 - 3
+        expect(JSON.parse(mockKv[buildSleepDailyQuotaKey('user1', today)])).toEqual({
+            userId: 'user1',
+            date: today,
+            generationCount: 3,
+            ttsCount: 2,
+            updatedAt: expect.any(Number),
+        })
+        expect(mockKv[`ratelimit:sleep-story-gen:user1:${today}`]).toBeUndefined()
+        expect(mockKv[`ratelimit:sleep-story-tts:user1:${today}`]).toBeUndefined()
     })
 })

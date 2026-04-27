@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { generateYearInReview } from '@/lib/life-story/year-review-generator'
-import * as vertexClient from '@/lib/ai/vertex-client'
+import * as vertexClient from '@/lib/ai/providers/vertex-client'
 import { LifeGraph } from '@/types/memory'
 
-vi.mock('@/lib/ai/vertex-client', () => ({
+vi.mock('@/lib/ai/providers/vertex-client', () => ({
   geminiGenerate: vi.fn()
 }))
 

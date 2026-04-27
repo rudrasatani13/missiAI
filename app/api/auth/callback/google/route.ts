@@ -1,24 +1,44 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
-import { getEnv } from "@/lib/server/env"
+import { getVerifiedUserId, AuthenticationError } from "@/lib/server/security/auth"
+import { getEnv } from "@/lib/server/platform/env"
 import { saveGoogleTokens, fetchCalendarContext } from "@/lib/plugins/data-fetcher"
-import { getCloudflareContext } from "@opennextjs/cloudflare"
-import { logError } from "@/lib/server/logger"
-import type { KVStore } from "@/types"
-
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch { return null }
-}
+import { getCloudflareKVBinding } from "@/lib/server/platform/bindings"
+import { logError } from "@/lib/server/observability/logger"
 
 // ─── Google OAuth Callback ────────────────────────────────────────────────────
 // Exchanges the authorization code for tokens, fetches initial calendar data.
 //
 // SECURITY (C1, H4): Verifies state token against KV and confirms the
 // authenticated Clerk session matches the userId that initiated the flow.
+
+interface OAuthStateData {
+  userId: string
+  createdAt: number
+}
+
+interface GoogleTokenResponse {
+  access_token: string
+  refresh_token?: string
+  expires_in?: number
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function isOAuthStateData(value: unknown): value is OAuthStateData {
+  return isRecord(value)
+    && typeof value.userId === "string"
+    && typeof value.createdAt === "number"
+    && Number.isFinite(value.createdAt)
+}
+
+function isGoogleTokenResponse(value: unknown): value is GoogleTokenResponse {
+  return isRecord(value)
+    && typeof value.access_token === "string"
+    && (value.refresh_token === undefined || typeof value.refresh_token === "string")
+    && (value.expires_in === undefined || (typeof value.expires_in === "number" && Number.isFinite(value.expires_in)))
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -48,7 +68,7 @@ export async function GET(req: NextRequest) {
   }
 
   // ── SECURITY: Verify state token against KV ─────────────────────────────
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
   let userId: string
 
   if (kv) {
@@ -61,7 +81,11 @@ export async function GET(req: NextRequest) {
         return NextResponse.redirect(chatUrl)
       }
 
-      const stateData = JSON.parse(raw) as { userId: string; createdAt: number }
+      const stateData: unknown = JSON.parse(raw)
+      if (!isOAuthStateData(stateData)) {
+        throw new Error("Invalid Google OAuth state payload")
+      }
+
       userId = stateData.userId
 
       // Delete the state token immediately to prevent replay attacks
@@ -73,7 +97,8 @@ export async function GET(req: NextRequest) {
         chatUrl.searchParams.set("oauth_error", "invalid_state")
         return NextResponse.redirect(chatUrl)
       }
-    } catch {
+    } catch (error) {
+      logError("oauth.google.invalid_state", error, currentUserId)
       chatUrl.searchParams.set("oauth_error", "invalid_state")
       return NextResponse.redirect(chatUrl)
     }
@@ -107,11 +132,15 @@ export async function GET(req: NextRequest) {
     })
 
     if (!tokenRes.ok) {
+      logError("oauth.google.token_exchange_error", `HTTP ${tokenRes.status}`, userId)
       chatUrl.searchParams.set("oauth_error", "token_exchange_failed")
       return NextResponse.redirect(chatUrl)
     }
 
-    const tokenData = await tokenRes.json() as any
+    const tokenData: unknown = await tokenRes.json()
+    if (!isGoogleTokenResponse(tokenData)) {
+      throw new Error("Invalid Google token response")
+    }
 
     const tokens = {
       accessToken: tokenData.access_token,
@@ -128,11 +157,14 @@ export async function GET(req: NextRequest) {
       env.GOOGLE_CLIENT_ID,
       env.GOOGLE_CLIENT_SECRET,
       true
-    ).catch(() => {})
+    ).catch((error) => {
+      logError("oauth.google.prefetch_error", error, userId)
+    })
 
     chatUrl.searchParams.set("oauth_success", "google")
     return NextResponse.redirect(chatUrl)
-  } catch {
+  } catch (error) {
+    logError("oauth.google.callback_error", error, userId)
     chatUrl.searchParams.set("oauth_error", "server_error")
     return NextResponse.redirect(chatUrl)
   }

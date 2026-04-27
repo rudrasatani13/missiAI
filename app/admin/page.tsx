@@ -1,7 +1,7 @@
 'use client'
 
 import { useUser } from '@clerk/nextjs'
-import { useAnalytics } from '@/hooks/useAnalytics'
+import { useAnalytics } from '@/hooks/admin/useAnalytics'
 import { calculateGrowthRate, formatCostUsd } from '@/lib/analytics/aggregator'
 
 export const dynamic = 'force-dynamic'

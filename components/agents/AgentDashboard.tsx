@@ -9,8 +9,8 @@ import {
   Sparkles, ArrowRight,
 } from 'lucide-react'
 import { formatMoney } from '@/lib/budget/currency'
-import type { AgentPlan, AgentPlanStep } from '@/lib/ai/agent-planner'
-import type { AgentHistoryEntry } from '@/lib/ai/agent-history'
+import type { AgentPlan, AgentPlanStep } from '@/lib/ai/agents/planner'
+import type { AgentHistoryEntry } from '@/lib/ai/agents/history'
 
 // ─── Typewriter Animation ─────────────────────────────────────────────────────
 

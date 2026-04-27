@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid'
 import type { SleepStory } from '@/types/sleep-sessions'
-import { geminiGenerate } from '@/lib/ai/vertex-client'
+import { geminiGenerate } from '@/lib/ai/providers/vertex-client'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 
 const GEMINI_MODEL = 'gemini-2.5-pro'

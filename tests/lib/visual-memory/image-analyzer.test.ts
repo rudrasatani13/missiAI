@@ -8,11 +8,11 @@ import type { MemoryCategory } from '@/types/memory'
 
 // ─── Mock Gemini client ───────────────────────────────────────────────────────
 
-vi.mock('@/lib/ai/vertex-client', () => ({
+vi.mock('@/lib/ai/providers/vertex-client', () => ({
   geminiGenerate: vi.fn(),
 }))
 
-import { geminiGenerate } from '@/lib/ai/vertex-client'
+import { geminiGenerate } from '@/lib/ai/providers/vertex-client'
 const mockGeminiGenerate = vi.mocked(geminiGenerate)
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth, clerkClient } from "@clerk/nextjs/server"
-import { getVerifiedUserId, AuthenticationError } from "@/lib/server/auth"
+import { getVerifiedUserId, AuthenticationError } from "@/lib/server/security/auth"
+import { isAdminUser } from "@/lib/server/security/admin-auth"
 import { z } from "zod"
 
-
 // Rate limiting is handled by the middleware's IP-based limiter (100 req/min).
-// Structured logging via @/lib/server/logger is avoided here because it pulls in
+// Structured logging via @/lib/server/observability/logger is avoided here because it pulls in
 // heavy deps that push the Cloudflare Pages bundle over the 25 MiB limit.
 
 // SECURITY (H1): Whitelist of allowed role values — prevents arbitrary metadata injection.
@@ -58,11 +58,9 @@ export async function POST(
 
   // ── 2. Admin check (defense-in-depth — middleware also checks) ─────────────
   const clerkAuth = await auth()
-  const role = (clerkAuth.sessionClaims?.metadata as any)?.role
-  const isRoleAdmin = role === "admin"
-  const isSuperAdminEnv = process.env.ADMIN_USER_ID ? userId === process.env.ADMIN_USER_ID : false
+  const isAdmin = isAdminUser(clerkAuth, userId)
 
-  if (!isRoleAdmin && !isSuperAdminEnv) {
+  if (!isAdmin) {
     // Structured log: admin access denied
     console.warn(JSON.stringify({ event: "admin.role_change.forbidden", userId, targetUserId, timestamp: Date.now() }))
     return new NextResponse(

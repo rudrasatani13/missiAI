@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/auth'
+import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/security/auth'
 import { getBudgetKV } from '@/lib/budget/kv'
 import { getOrCreateSettings, saveSettings } from '@/lib/budget/budget-store'
 import { validateCurrency, DEFAULT_CURRENCY } from '@/lib/budget/currency'
@@ -86,13 +86,30 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     const msg = parsed.error.issues[0]?.message ?? 'Invalid request'
     return new Response(
-      JSON.stringify({ success: false, error: msg }),
+      JSON.stringify({ success: false, error: msg, code: 'VALIDATION_ERROR' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } },
     )
   }
 
   try {
     const existing = await getOrCreateSettings(kv, userId)
+    const preferredCurrency = parsed.data.preferredCurrency === undefined
+      ? existing.preferredCurrency
+      : validateCurrency(parsed.data.preferredCurrency)
+    if (!preferredCurrency) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unsupported currency', code: 'VALIDATION_ERROR' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+    for (const limit of parsed.data.limits ?? []) {
+      if (!validateCurrency(limit.currency)) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Unsupported currency', code: 'VALIDATION_ERROR' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+    }
     const mappedLimits: BudgetLimit[] | undefined = parsed.data.limits?.map((l) => ({
       category: (VALID_CATEGORIES.includes(l.category.toLowerCase())
         ? l.category.toLowerCase()
@@ -101,7 +118,7 @@ export async function POST(req: NextRequest) {
       currency: validateCurrency(l.currency) ?? DEFAULT_CURRENCY,
     }))
     const normalized = await saveSettings(kv, userId, {
-      preferredCurrency: parsed.data.preferredCurrency ?? existing.preferredCurrency,
+      preferredCurrency,
       defaultView: (parsed.data.defaultView as BudgetTab) ?? existing.defaultView,
       limits: mappedLimits ?? existing.limits,
     })

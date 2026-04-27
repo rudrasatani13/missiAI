@@ -1,25 +1,15 @@
-import { getCloudflareContext } from '@opennextjs/cloudflare'
-import { getVerifiedUserId, AuthenticationError } from '@/lib/server/auth'
+import { getCloudflareKVBinding } from '@/lib/server/platform/bindings'
+import { getVerifiedUserId, AuthenticationError } from '@/lib/server/security/auth'
+import { isAdminUser } from '@/lib/server/security/admin-auth'
 import { buildAnalyticsSnapshot } from '@/lib/analytics/aggregator'
-import { getDailyStats } from '@/lib/analytics/event-store'
-import { log } from '@/lib/server/logger'
-import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/rateLimiter'
+import { getAnalyticsAggregationStatus, getDailyStats } from '@/lib/analytics/event-store'
+import { log } from '@/lib/server/observability/logger'
+import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from '@/lib/server/security/rate-limiter'
 import { getUserPlan } from '@/lib/billing/tier-checker'
-import type { KVStore } from '@/types'
 
 // OWASP A03: strict allowlist for the date query param — prevents arbitrary
 // KV key injection via the `analytics:daily:{date}` key pattern.
 const DATE_PARAM_RE = /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/
-
-
-function getKV(): KVStore | null {
-  try {
-    const { env } = getCloudflareContext()
-    return (env as any).MISSI_MEMORY ?? null
-  } catch {
-    return null
-  }
-}
 
 function forbiddenResponse(): Response {
   return new Response(
@@ -65,11 +55,9 @@ export async function GET(req: Request) {
 
   // ── 2. Admin check ──────────────────────────────────────────────────────
   const clerkAuth = await import('@clerk/nextjs/server').then(m => m.auth())
-  const role = (clerkAuth.sessionClaims?.metadata as any)?.role
-  const isRoleAdmin = role === 'admin'
-  const isSuperAdminEnv = process.env.ADMIN_USER_ID ? userId === process.env.ADMIN_USER_ID : false
+  const isAdmin = isAdminUser(clerkAuth, userId)
 
-  if (!isRoleAdmin && !isSuperAdminEnv) {
+  if (!isAdmin) {
     return forbiddenResponse()
   }
 
@@ -84,7 +72,7 @@ export async function GET(req: Request) {
   }
 
   // ── 4. KV ───────────────────────────────────────────────────────────────
-  const kv = getKV()
+  const kv = getCloudflareKVBinding()
   if (!kv) {
     // Local dev fallback when Cloudflare bindings are missing
     return new Response(
@@ -96,7 +84,15 @@ export async function GET(req: Request) {
           last7Days: [],
           lifetime: { totalUsers: 0, totalInteractions: 0, planBreakdown: { free: 0, plus: 0, pro: 0 } },
           generatedAt: Date.now(),
-          planBreakdown: { free: 0, plus: 0, pro: 0 }
+          planBreakdown: { free: 0, plus: 0, pro: 0 },
+          aggregation: {
+            pendingEventCount: 0,
+            pendingDates: [],
+            lastAppendedAt: 0,
+            lastProcessedAt: 0,
+            lagMs: 0,
+            isCaughtUp: true,
+          },
         }
       }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rateResult) } }
@@ -132,6 +128,7 @@ export async function GET(req: Request) {
   // ── 5. Full analytics snapshot ──────────────────────────────────────────
   try {
     const snapshot = await buildAnalyticsSnapshot(kv)
+    const aggregation = await getAnalyticsAggregationStatus(kv)
 
     // Fetch plan breakdown from Clerk
     let planBreakdown: Record<string, number> = { free: 0, plus: 0, pro: 0 }
@@ -165,6 +162,7 @@ export async function GET(req: Request) {
         data: {
           ...snapshot,
           planBreakdown,
+          aggregation,
         },
       }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rateResult) } }

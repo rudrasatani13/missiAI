@@ -33,8 +33,9 @@ import openNextWorker, {
   BucketCachePurge,
 } from "../.open-next/worker.js"
 
-import { AtomicCounterDO } from "./atomic-counter-do"
-import { handleLiveWs } from "./live-ws-handler"
+import { AtomicCounterDO } from "./durable-objects/atomic-counter"
+import { handleLiveWs } from "./live/handler"
+import { isLiveRelayRequest, syncWorkerStringBindingsToProcessEnv } from "./runtime"
 
 // Preserve the Durable Object class exports expected by Cloudflare's runtime.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,22 +53,12 @@ export default {
     env: unknown,
     ctx: CfExecutionContext,
   ): Promise<Response> {
-    // OpenNext populates process.env from Worker bindings only when its own
-    // fetch handler runs. Routes intercepted BEFORE openNextWorker.fetch()
-    // would see empty process.env. Copy all string bindings now so
-    // vertex-auth and env.ts can read secrets via process.env normally.
-    const cfEnv = env as Record<string, unknown>
-    const processEnv = process.env as Record<string, string | undefined>
-    for (const [k, v] of Object.entries(cfEnv)) {
-      if (typeof v === "string" && !processEnv[k]) processEnv[k] = v
-    }
-
-    const url = new URL(request.url)
+    syncWorkerStringBindingsToProcessEnv(env)
 
     // Intercept the Live API WebSocket relay BEFORE OpenNext sees it.
     // OpenNext cannot pass the `webSocket` extension through; the raw
     // Cloudflare runtime can. All other requests fall through untouched.
-    if (url.pathname === "/api/v1/voice-relay") {
+    if (isLiveRelayRequest(request.url)) {
       return handleLiveWs(request, env, ctx)
     }
 

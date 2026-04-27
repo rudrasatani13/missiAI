@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   getGamificationData,
   checkInHabit,
@@ -7,6 +7,14 @@ import {
 import type { KVStore } from '@/types'
 import type { GamificationData } from '@/types/gamification'
 
+const { checkAndIncrementAtomicCounterMock } = vi.hoisted(() => ({
+  checkAndIncrementAtomicCounterMock: vi.fn(),
+}))
+
+vi.mock('@/lib/server/platform/atomic-quota', () => ({
+  checkAndIncrementAtomicCounter: checkAndIncrementAtomicCounterMock,
+}))
+
 // In-memory KV mock
 function createMockKV(): KVStore {
   const store = new Map<string, string>()
@@ -14,6 +22,17 @@ function createMockKV(): KVStore {
     get: async (key: string) => store.get(key) ?? null,
     put: async (key: string, value: string) => { store.set(key, value) },
     delete: async (key: string) => { store.delete(key) },
+    list: async ({ prefix = '', cursor, limit = 1000 } = {}) => {
+      const keys = [...store.keys()].filter((key) => key.startsWith(prefix)).sort()
+      const start = cursor ? Number(cursor) : 0
+      const slice = keys.slice(start, start + limit)
+      const next = start + slice.length
+      return {
+        keys: slice.map((name) => ({ name })),
+        list_complete: next >= keys.length,
+        cursor: next >= keys.length ? undefined : String(next),
+      }
+    },
   }
 }
 
@@ -47,6 +66,8 @@ describe('gamification streak', () => {
 
   beforeEach(() => {
     kv = createMockKV()
+    checkAndIncrementAtomicCounterMock.mockReset()
+    checkAndIncrementAtomicCounterMock.mockResolvedValue(null)
   })
 
   it('getGamificationData returns default for new user', async () => {
@@ -64,6 +85,17 @@ describe('gamification streak', () => {
     expect(result.alreadyCheckedIn).toBe(false)
   })
 
+  it('checkInHabit does not recreate the legacy snapshot when list-backed v2 records are available', async () => {
+    const result = await checkInHabit(kv, 'u1', 'node-1', 'Morning run')
+
+    expect(result.alreadyCheckedIn).toBe(false)
+    await expect(kv.get('gamification:u1')).resolves.toBeNull()
+
+    const data = await getGamificationData(kv, 'u1')
+    expect(data.habits).toHaveLength(1)
+    expect(data.habits[0].nodeId).toBe('node-1')
+  })
+
   it('checkInHabit does not double-count on same day', async () => {
     await checkInHabit(kv, 'u1', 'node-1', 'Morning run')
     const second = await checkInHabit(kv, 'u1', 'node-1', 'Morning run')
@@ -73,6 +105,37 @@ describe('gamification streak', () => {
     const data = await getGamificationData(kv, 'u1')
     // 5 XP from check-in + 5 XP from 'first_words' achievement = 10
     expect(data.totalXP).toBe(10)
+  })
+
+  it('checkInHabit collapses same-day parallel check-ins into one committed streak update', async () => {
+    let habitCheckInCalls = 0
+    checkAndIncrementAtomicCounterMock.mockImplementation(async (name: string) => {
+      if (!name.startsWith('habit-checkin:u1:node-1:')) {
+        return null
+      }
+      habitCheckInCalls += 1
+      if (habitCheckInCalls === 1) {
+        return { allowed: true, count: 1, remaining: 0 }
+      }
+      return { allowed: false, count: 1, remaining: 0 }
+    })
+
+    const [first, second] = await Promise.all([
+      checkInHabit(kv, 'u1', 'node-1', 'Morning run'),
+      checkInHabit(kv, 'u1', 'node-1', 'Morning run'),
+    ])
+
+    expect(first.alreadyCheckedIn).toBe(false)
+    expect(second.alreadyCheckedIn).toBe(true)
+
+    const data = await getGamificationData(kv, 'u1')
+    expect(data.habits).toHaveLength(1)
+    expect(data.habits[0]).toMatchObject({
+      nodeId: 'node-1',
+      currentStreak: 1,
+      totalCheckIns: 1,
+    })
+    expect(data.xpLog.filter((entry) => entry.source === 'checkin')).toHaveLength(1)
   })
 
   it('checkInHabit resets streak if last check-in was 2+ days ago', async () => {

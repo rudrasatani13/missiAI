@@ -6,9 +6,9 @@ import {
   getVerifiedUserId,
   AuthenticationError,
   unauthorizedResponse,
-} from '@/lib/server/auth'
+} from '@/lib/server/security/auth'
 import { validationErrorResponse } from '@/lib/validation/schemas'
-import { logError, logRequest } from '@/lib/server/logger'
+import { logError, logRequest } from '@/lib/server/observability/logger'
 import {
   dissolveSpace,
   getSpace,

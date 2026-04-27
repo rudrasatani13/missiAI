@@ -3,8 +3,8 @@ import type { KVStore } from '@/types'
 import { generateSpendingInsight } from '@/lib/budget/insight-generator'
 import { saveSettings, saveEntry } from '@/lib/budget/budget-store'
 
-vi.mock('@/services/ai.service', () => ({ callAIDirect: vi.fn() }))
-import { callAIDirect } from '@/services/ai.service'
+vi.mock('@/lib/ai/services/ai-service', () => ({ callGeminiDirect: vi.fn() }))
+import { callGeminiDirect as callAIDirect } from '@/lib/ai/services/ai-service'
 const mockCallAIDirect = vi.mocked(callAIDirect)
 
 function makeKV(): KVStore {

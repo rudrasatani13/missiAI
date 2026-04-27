@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
-import { callAIDirect } from '@/services/ai.service'
+import { callGeminiDirect } from '@/lib/ai/services/ai-service'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 import type {
   ExamTarget,
@@ -347,7 +347,7 @@ export async function generateQuizWithDiagnostics(
   )
 
   // Race against timeout — use gemini-2.5-flash for fast, reliable JSON output
-  const generatePromise = callAIDirect(systemPrompt, userPrompt, {
+  const generatePromise = callGeminiDirect(systemPrompt, userPrompt, {
     temperature: 0.4,
     maxOutputTokens: 4096,
     model: 'gemini-2.5-flash',

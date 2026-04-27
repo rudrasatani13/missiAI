@@ -7,10 +7,18 @@
 
 import type { KVStore } from '@/types'
 import type { Quest } from '@/types/quests'
+import {
+  getQuestRecord,
+  putQuestRecord,
+  deleteQuestRecord,
+  buildQuestSnapshot,
+  getQuestIndex,
+  saveQuestIndex,
+} from '@/lib/quests/quest-record-store'
+import { checkAndIncrementAtomicCounter } from '@/lib/server/platform/atomic-quota'
 
 // ─── KV Keys ──────────────────────────────────────────────────────────────────
 
-const QUESTS_PREFIX = 'quests:'
 const RATE_LIMIT_PREFIX = 'ratelimit:quest-gen:'
 const BOSS_TOKEN_PREFIX = 'boss-token:'
 
@@ -47,11 +55,7 @@ export async function getQuests(
   userId: string,
 ): Promise<Quest[]> {
   try {
-    const raw = await kv.get(`${QUESTS_PREFIX}${userId}`)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as Quest[]
-    if (!Array.isArray(parsed)) return []
-    return parsed
+    return await buildQuestSnapshot(kv, userId)
   } catch {
     return []
   }
@@ -84,7 +88,23 @@ export async function saveQuests(
     capped = [...active, ...rest].slice(0, MAX_QUESTS_PER_USER)
   }
 
-  await kv.put(`${QUESTS_PREFIX}${userId}`, JSON.stringify(capped))
+  const questIds = capped.map(q => q.id)
+  const existingIndex = await getQuestIndex(kv, userId)
+
+  for (const quest of capped) {
+    await putQuestRecord(kv, userId, quest)
+  }
+
+  await saveQuestIndex(kv, userId, { questIds, updatedAt: Date.now() })
+
+  if (!existingIndex) {
+    return
+  }
+
+  const toRemove = existingIndex.questIds.filter(id => !questIds.includes(id))
+  for (const id of toRemove) {
+    await deleteQuestRecord(kv, userId, id).catch(() => {})
+  }
 }
 
 /**
@@ -95,11 +115,7 @@ export async function getQuest(
   userId: string,
   questId: string,
 ): Promise<Quest | null> {
-  const quests = await getQuests(kv, userId)
-  const quest = quests.find(q => q.id === questId)
-  if (!quest) return null
-  if (quest.userId !== userId) return null
-  return quest
+  return getQuestRecord(kv, userId, questId)
 }
 
 /**
@@ -214,6 +230,40 @@ export async function incrementQuestGenRateLimit(
   } catch {
     // Non-critical — continue even if counter update fails
   }
+}
+
+/**
+ * Atomically check and increment the quest generation rate limit.
+ *
+ * Tries the ATOMIC_COUNTER Durable Object first for race-free check+increment.
+ * Falls back to the legacy KV read-modify-write if the DO binding is unavailable.
+ *
+ * Returns the same shape as `checkQuestGenRateLimit` so callers can swap directly.
+ */
+export async function checkAndIncrementQuestGenRateLimit(
+  kv: KVStore,
+  userId: string,
+  planId: string,
+): Promise<{ allowed: boolean; remaining: number }> {
+  const isoWeek = getISOWeek()
+  const limit = planId === 'free' ? 3 : 20
+  const counterName = `${RATE_LIMIT_PREFIX}${userId}:${isoWeek}`
+
+  // Prefer atomic counter: check + increment in a single Durable Object call
+  const atomicResult = await checkAndIncrementAtomicCounter(counterName, limit, RATE_LIMIT_TTL)
+  if (atomicResult) {
+    return {
+      allowed: atomicResult.allowed,
+      remaining: Math.max(0, limit - atomicResult.count),
+    }
+  }
+
+  // Fallback: legacy KV-based check + increment (still has a narrow race)
+  const checkResult = await checkQuestGenRateLimit(kv, userId, planId)
+  if (checkResult.allowed) {
+    await incrementQuestGenRateLimit(kv, userId)
+  }
+  return checkResult
 }
 
 // ─── Boss Token Management ────────────────────────────────────────────────────
