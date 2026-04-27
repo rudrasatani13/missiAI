@@ -24,8 +24,7 @@
 // `opennextjs-cloudflare build` before deploy. On a fresh clone with no
 // prior build this import will 404 until `pnpm build:cf` runs — that is
 // expected and matches how OpenNext's own examples bootstrap.
-// @ts-ignore — .open-next/worker.js is generated at build time; it exists
-// locally after `pnpm build:cf` but not in CI during type-checking.
+// @ts-ignore — .open-next/worker.js is build-generated; does not exist in CI
 import openNextWorker, {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   DOQueueHandler,
