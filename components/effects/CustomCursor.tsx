@@ -35,10 +35,10 @@ export function CustomCursor() {
     const handleMouseMove = (e: MouseEvent) => {
       mouseX.set(e.clientX - 16);
       mouseY.set(e.clientY - 16);
+    };
 
-      // elementFromPoint skips the cursor div (pointer-events-none) and
-      // returns the real element under the cursor — no bubbling flicker.
-      const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+    const handleMouseOver = (e: MouseEvent) => {
+      const el = e.target as HTMLElement | null;
       if (!el) {
         setIsHovering(false);
         return;
@@ -53,11 +53,13 @@ export function CustomCursor() {
       setIsHovering(clickable);
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    window.addEventListener("mouseover", handleMouseOver, { passive: true });
 
     return () => {
       document.body.classList.remove("custom-cursor-active");
       window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseover", handleMouseOver);
     };
   }, [mouseX, mouseY, pathname]);
 

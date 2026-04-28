@@ -1,0 +1,3 @@
+## 2024-05-24 - `elementFromPoint` in global `mousemove` handlers is a massive performance killer
+**Learning:** Calling `document.elementFromPoint(x, y)` inside a `mousemove` event forces a synchronous layout and hit test on every mouse movement frame, creating a severe performance bottleneck across the entire application.
+**Action:** Always prefer passive event listeners like `mouseover`/`mouseout` combined with `e.target` checks for state that depends on what element the cursor is currently over. Use event delegation to handle interactive elements naturally without expensive DOM hit testing inside high-frequency loops.
