@@ -101,6 +101,7 @@ function ErrorDisplay({ message, onDismiss }: ErrorDisplayProps) {
       <button
         onClick={onDismiss}
         data-testid="error-dismiss-btn"
+        aria-label="Dismiss error"
         style={{
           background: "none",
           border: "none",
