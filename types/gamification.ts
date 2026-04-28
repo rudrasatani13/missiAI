@@ -40,6 +40,21 @@ export interface Achievement {
   unlockedAt: number | null  // unix ms, null = locked
 }
 
+export interface GamificationStateRecord {
+  userId: string
+  totalXPBaseline: number
+  loginStreak: number
+  lastLoginDate: string
+  legacyTodayXPLogDate: string
+  legacyTodayXPLog: XPLogEntry[]
+  lastUpdatedAt: number
+}
+
+export interface GamificationGrantRecord extends XPLogEntry {
+  userId: string
+  date: string
+}
+
 // ─── XP Log Entry ─────────────────────────────────────────────────────────────
 
 export type XPSource = 'checkin' | 'milestone' | 'chat' | 'memory' | 'agent' | 'login' | 'achievement' | 'budget'

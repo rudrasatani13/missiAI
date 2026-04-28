@@ -1,5 +1,13 @@
 import type { KVStore } from '@/types'
-import type { Achievement, GamificationData, HabitStreak, XPLogEntry, XPSource } from '@/types/gamification'
+import type {
+  Achievement,
+  GamificationData,
+  GamificationGrantRecord,
+  GamificationStateRecord,
+  HabitStreak,
+  XPLogEntry,
+  XPSource,
+} from '@/types/gamification'
 
 const V2_PREFIX = 'gamification:v2'
 const LIST_PAGE_LIMIT = 1000
@@ -13,21 +21,6 @@ const XP_SOURCE_SET = new Set<XPSource>([
   'achievement',
   'budget',
 ])
-
-export interface GamificationStateRecord {
-  userId: string
-  totalXPBaseline: number
-  loginStreak: number
-  lastLoginDate: string
-  legacyTodayXPLogDate: string
-  legacyTodayXPLog: XPLogEntry[]
-  lastUpdatedAt: number
-}
-
-export interface GamificationGrantRecord extends XPLogEntry {
-  userId: string
-  date: string
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
