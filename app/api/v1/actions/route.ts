@@ -3,7 +3,6 @@ import { runActionsGetRoute, runActionsPostRoute } from "@/lib/server/routes/act
 export async function POST(req: Request) {
   // OWASP API4: rate-limit action detection — each call invokes Gemini
   // Save reminders and notes to KV
-  // Analytics: fire-and-forget (H1 fix: wrap in waitUntil)
   return runActionsPostRoute(req)
 }
 
