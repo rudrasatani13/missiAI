@@ -1,6 +1,5 @@
 import type { QuizSession } from '@/types/exam-buddy'
-
-const LOCAL_SESSION_SECRET = 'missi-exam-buddy-local-session-v1'
+import { getEnv } from '@/lib/server/platform/env'
 
 function bytesToBase64Url(bytes: Uint8Array) {
   let binary = ''
@@ -23,7 +22,10 @@ function base64UrlToBytes(value: string) {
 }
 
 async function getCryptoKey() {
-  const secretBytes = new TextEncoder().encode(LOCAL_SESSION_SECRET)
+  const env = getEnv()
+  // Use the KV encryption secret as the root of trust, fallback for local dev
+  const secret = env.MISSI_KV_ENCRYPTION_SECRET || 'missi-exam-buddy-local-session-v1'
+  const secretBytes = new TextEncoder().encode(secret)
   const keyBytes = await crypto.subtle.digest('SHA-256', secretBytes)
   return crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt'])
 }
