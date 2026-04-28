@@ -10,6 +10,7 @@ import {
 import { validateCurrency } from '@/lib/budget/currency'
 import { awardBudgetXP } from '@/lib/gamification/budget-xp'
 import type { ExpenseCategory, ExpenseEntry } from '@/types/budget'
+import { nanoid } from 'nanoid'
 
 const VALID_CATEGORIES: readonly string[] = [
   'food', 'transport', 'groceries', 'entertainment', 'health',
@@ -31,7 +32,7 @@ function stripHtml(text: string): string {
 }
 
 function generateEntryId(): string {
-  return `bgt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+  return `bgt-${Date.now().toString(36)}-${nanoid(6)}`
 }
 
 export async function GET(req: NextRequest) {
