@@ -4,7 +4,6 @@
  * Used by Gemini Live WebSocket to execute tools server-side.
  * The client sends the tool name and args, we execute it and return the result.
  *
- * BUG-002 fix: Added per-user rate limiting and plan-based gating.
  * BUG-003 fix: Added Zod schema validation and tool name allowlist.
  */
 
@@ -29,7 +28,7 @@ export async function POST(req: NextRequest) {
     throw e
   }
 
-  // ── 2. Rate limit (BUG-002 fix) ──────────────────────────────────────────
+  // ── 2. Rate limit ────────────────────────────────────────────────────────
   const planId = await getUserPlan(userId)
   const rlTier = planId === "free" ? "free" : "paid"
   const rateResult = await checkRateLimit(userId, rlTier, "ai")
