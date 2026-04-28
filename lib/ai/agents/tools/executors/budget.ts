@@ -1,3 +1,4 @@
+import { nanoid } from "nanoid"
 import type { AgentToolCall, AgentStepResult, ToolContext } from "@/lib/ai/agents/tools/types"
 import { abortedToolResult, VALID_EXPENSE_CATEGORIES } from "@/lib/ai/agents/tools/shared"
 import { addExpenseEntry } from "@/lib/budget/budget-store"
@@ -38,7 +39,7 @@ export async function executeBudgetTool(
   if (abortedBeforeEntry) return abortedBeforeEntry
 
   await addExpenseEntry(ctx.kv, ctx.userId, {
-    id: `bgt-${timestamp.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `bgt-${timestamp.toString(36)}-${nanoid(6)}`,
     userId: ctx.userId,
     amount,
     currency,

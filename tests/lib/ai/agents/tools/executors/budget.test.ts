@@ -2,9 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { ToolContext } from "@/lib/ai/agents/tools/types"
 import type { KVStore } from "@/types"
 
-const { addExpenseEntryMock, addOrUpdateNodeMock } = vi.hoisted(() => ({
+const { addExpenseEntryMock, addOrUpdateNodeMock, nanoidMock } = vi.hoisted(() => ({
   addExpenseEntryMock: vi.fn(),
   addOrUpdateNodeMock: vi.fn(),
+  nanoidMock: vi.fn(),
+}))
+
+vi.mock("nanoid", () => ({
+  nanoid: nanoidMock,
 }))
 
 vi.mock("@/lib/budget/budget-store", () => ({
@@ -69,6 +74,29 @@ describe("executeBudgetTool", () => {
       expect.objectContaining({ currency: "USD", amount: 12 }),
     )
     expect(addOrUpdateNodeMock).toHaveBeenCalled()
+  })
+
+  it("generates entry ID using secure nanoid randomness", async () => {
+    nanoidMock.mockReturnValue("secure123")
+    const now = 1714224000000 // Fixed timestamp
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+
+    await executeBudgetTool({
+      name: "logExpense",
+      args: { amount: 50, currency: "USD", category: "shopping", description: "Shoes" },
+    }, makeCtx())
+
+    expect(addExpenseEntryMock).toHaveBeenCalledWith(
+      expect.anything(),
+      "user_test123",
+      expect.objectContaining({
+        id: `bgt-${now.toString(36)}-secure123`,
+      }),
+    )
+
+    expect(nanoidMock).toHaveBeenCalledWith(6)
+    vi.useRealTimers()
   })
 
   it("does not write expense entries when execution is already aborted", async () => {
