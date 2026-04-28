@@ -32,7 +32,7 @@ function OnboardingView({ onComplete }: { onComplete: (profile: ExamBuddyProfile
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleStart = async () => {
+  const handleStart = useCallback(async () => {
     if (!selected || saving) return
     setError(null)
     setSaving(true)
@@ -53,7 +53,7 @@ function OnboardingView({ onComplete }: { onComplete: (profile: ExamBuddyProfile
     } finally {
       setSaving(false)
     }
-  }
+  }, [selected, saving, onComplete])
 
   return (
     <motion.div

@@ -1437,7 +1437,7 @@ function EntriesTab({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const monthLabel = formatYearMonth(month)
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     setDeletingId(id)
     try {
       const res = await fetch(`/api/v1/budget/entries/${id}`, { method: 'DELETE' })
@@ -1453,7 +1453,7 @@ function EntriesTab({
     } finally {
       setDeletingId(null)
     }
-  }
+  }, [onRefresh])
 
   return (
     <motion.div
@@ -1548,7 +1548,7 @@ function BudgetsTab({
   const existingLimits = data?.settings?.limits ?? []
   const monthLabel = formatYearMonth(month)
 
-  const handleSaveBudgets = async () => {
+  const handleSaveBudgets = useCallback(async () => {
     const newLimits = Object.entries(limits)
       .filter(([, v]) => v !== '')
       .map(([cat, amount]) => ({
@@ -1581,7 +1581,7 @@ function BudgetsTab({
     } finally {
       setSaving(false)
     }
-  }
+  }, [limits, currency, onRefresh])
 
   return (
     <motion.div
@@ -1690,7 +1690,7 @@ function InsightsTab({
   const [regenerating, setRegenerating] = useState(false)
   const insight = data?.insight
 
-  const handleRegenerate = async () => {
+  const handleRegenerate = useCallback(async () => {
     setRegenerating(true)
     try {
       const res = await fetch('/api/v1/budget/insight', {
@@ -1710,7 +1710,7 @@ function InsightsTab({
     } finally {
       setRegenerating(false)
     }
-  }
+  }, [month, onRefresh])
 
   return (
     <motion.div
@@ -1825,7 +1825,7 @@ function SettingsTab({
   )
   const [saving, setSaving] = useState(false)
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setSaving(true)
     try {
       const res = await fetch('/api/v1/budget/settings', {
@@ -1845,7 +1845,7 @@ function SettingsTab({
     } finally {
       setSaving(false)
     }
-  }
+  }, [currency, defaultView, onRefresh])
 
   return (
     <motion.div

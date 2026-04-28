@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, memo } from 'react'
 import type { LifeNode } from '@/types/memory'
 import { NodeCardHeader } from './node-card/NodeCardHeader'
 import { NodeCardBody } from './node-card/NodeCardBody'
@@ -11,7 +11,7 @@ interface NodeCardProps {
   isDeleting: boolean
 }
 
-export function NodeCard({ node, onDelete, isDeleting }: NodeCardProps) {
+export const NodeCard = memo(function NodeCard({ node, onDelete, isDeleting }: NodeCardProps) {
   const [confirming, setConfirming] = useState(false)
   const confirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -69,4 +69,4 @@ export function NodeCard({ node, onDelete, isDeleting }: NodeCardProps) {
       <NodeCardBody node={node} />
     </div>
   )
-}
+})

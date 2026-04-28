@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { 
   ChevronDown, Trash2, Users, Target, Repeat, Star, 
   Calendar, MessageSquare, Zap, MapPin, FileText 
@@ -273,7 +273,7 @@ interface GroupedMemoryViewProps {
 }
 
 export function GroupedMemoryView({ nodes, onDelete, deletingId }: GroupedMemoryViewProps) {
-  const grouped = groupNodes(nodes)
+  const grouped = useMemo(() => groupNodes(nodes), [nodes])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
