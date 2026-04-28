@@ -102,6 +102,7 @@
     ]
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260426.1",
     "@opennextjs/cloudflare": "^1.19.1",
     "@types/dompurify": "^3.2.0",
     "@types/node": "^22",

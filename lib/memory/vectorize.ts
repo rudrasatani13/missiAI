@@ -1,38 +1,5 @@
 import type { LifeNode, MemoryCategory, MemorySearchResult } from '@/types/memory'
-
-// ─── Cloudflare Vectorize Type Definitions ────────────────────────────────────
-// NOTE: If @cloudflare/workers-types is updated to include Vectorize types,
-// these local definitions can be removed in favour of the official ones.
-
-export interface VectorizeVector {
-  id: string
-  values: number[]
-  metadata?: Record<string, string | number | boolean>
-}
-
-export interface VectorizeMatch {
-  id: string
-  score: number
-  metadata?: Record<string, string | number | boolean> | null
-}
-
-export interface VectorizeMatches {
-  matches: VectorizeMatch[]
-  count: number
-}
-
-export interface VectorizeIndex {
-  upsert(vectors: VectorizeVector[]): Promise<{ count: number }>
-  query(
-    vector: number[],
-    options: {
-      topK?: number
-      filter?: Record<string, string>
-      returnMetadata?: boolean | 'all'
-    },
-  ): Promise<VectorizeMatches>
-  deleteByIds(ids: string[]): Promise<{ count: number }>
-}
+import type { VectorizeIndex } from '@cloudflare/workers-types'
 
 export interface VectorizeEnv {
   LIFE_GRAPH: VectorizeIndex

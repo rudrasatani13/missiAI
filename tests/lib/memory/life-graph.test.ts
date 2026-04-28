@@ -73,8 +73,11 @@ describe("life-graph", () => {
       LIFE_GRAPH: {
         upsert: vi.fn(),
         query: vi.fn(),
-        deleteByIds: vi.fn()
-      }
+        deleteByIds: vi.fn(),
+        describe: vi.fn(),
+        insert: vi.fn(),
+        getByIds: vi.fn()
+      } as unknown as any
     }
 
     testNode = {

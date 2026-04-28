@@ -3,9 +3,9 @@ import {
   upsertLifeNode,
   searchSimilarNodes,
   deleteUserVectors,
-  type VectorizeIndex,
   type VectorizeEnv
 } from "@/lib/memory/vectorize"
+import type { VectorizeIndex } from "@cloudflare/workers-types"
 import type { LifeNode } from "@/types/memory"
 
 describe("vectorize", () => {
@@ -17,13 +17,16 @@ describe("vectorize", () => {
     vi.clearAllMocks()
 
     mockVectorizeIndex = {
-      upsert: vi.fn().mockResolvedValue({ count: 1 }),
+      upsert: vi.fn().mockResolvedValue({ count: 1, ids: [] }),
       query: vi.fn().mockResolvedValue({
         matches: [],
         count: 0
       }),
-      deleteByIds: vi.fn().mockResolvedValue({ count: 1 })
-    }
+      deleteByIds: vi.fn().mockResolvedValue({ count: 1, ids: [] }),
+      describe: vi.fn(),
+      insert: vi.fn(),
+      getByIds: vi.fn()
+    } as unknown as VectorizeIndex
 
     mockVectorizeEnv = {
       LIFE_GRAPH: mockVectorizeIndex

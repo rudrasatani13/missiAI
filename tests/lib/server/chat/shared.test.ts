@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { VectorizeIndex } from "@/lib/memory/vectorize"
+import type { VectorizeIndex } from "@cloudflare/workers-types"
 import type { KVStore } from "@/types"
 
 const {
@@ -40,10 +40,13 @@ describe("chat-shared", () => {
     vi.clearAllMocks()
     kv = createMockKV()
     lifeGraph = {
-      query: vi.fn(async () => ({ matches: [], count: 0 })) as VectorizeIndex["query"],
-      upsert: vi.fn(async () => ({ count: 0 })) as VectorizeIndex["upsert"],
-      deleteByIds: vi.fn(async () => ({ count: 0 })) as VectorizeIndex["deleteByIds"],
-    }
+      query: vi.fn(async () => ({ matches: [], count: 0 })) as unknown as VectorizeIndex["query"],
+      upsert: vi.fn(async () => ({ count: 0, ids: [] })) as unknown as VectorizeIndex["upsert"],
+      deleteByIds: vi.fn(async () => ({ count: 0, ids: [] })) as unknown as VectorizeIndex["deleteByIds"],
+      describe: vi.fn(),
+      insert: vi.fn(),
+      getByIds: vi.fn(),
+    } as unknown as VectorizeIndex
     getCloudflareContextMock.mockReturnValue({
       env: {
         MISSI_MEMORY: kv,
