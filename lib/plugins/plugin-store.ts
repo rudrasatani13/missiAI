@@ -1,4 +1,5 @@
 import type { KVStore } from "@/types"
+import { normalizeInteger } from "@/lib/validation/normalization"
 import {
   getPluginConfigIndex,
   getPluginConfigRecord,
@@ -52,10 +53,6 @@ function parsePluginStatus(value: unknown): PluginStatus | null {
   return typeof value === "string" && PLUGIN_STATUS_SET.has(value as PluginStatus)
     ? value as PluginStatus
     : null
-}
-
-function normalizeInteger(value: unknown, fallback = 0): number {
-  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback
 }
 
 function normalizeOptionalInteger(value: unknown): number | undefined {

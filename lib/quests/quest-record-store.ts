@@ -1,4 +1,9 @@
 import type { KVStore } from '@/types'
+import {
+  normalizeInteger,
+  normalizeOptionalInteger,
+  normalizeString,
+} from '@/lib/validation/normalization'
 import type {
   Quest,
   QuestCategory,
@@ -66,18 +71,6 @@ async function listKeysByPrefix(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
-}
-
-function normalizeString(value: unknown, maxLength: number): string {
-  return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
-}
-
-function normalizeInteger(value: unknown, fallback = 0): number {
-  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback
-}
-
-function normalizeOptionalInteger(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : null
 }
 
 function normalizeQuestStatus(value: unknown): QuestStatus | null {

@@ -1,4 +1,5 @@
 import type { KVStore } from '@/types'
+import { normalizeInteger, normalizeString } from '@/lib/validation/normalization'
 import type { LifeGraph, LifeNode, MemoryCategory } from '@/types/memory'
 
 const V2_PREFIX = 'lifegraph:v2'
@@ -116,21 +117,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function normalizeString(value: unknown, maxLength: number): string {
-  return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
-}
-
 function normalizeStringArray(value: unknown, maxItems?: number): string[] {
   if (!Array.isArray(value)) return []
   const items = value
     .map((item) => (typeof item === 'string' ? item.trim() : String(item ?? '').trim()))
     .filter(Boolean)
   return typeof maxItems === 'number' ? items.slice(0, maxItems) : items
-}
-
-function normalizeInteger(value: unknown, fallback = 0): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback
-  return Math.max(0, Math.floor(value))
 }
 
 function normalizeUnitInterval(value: unknown, fallback: number): number {
