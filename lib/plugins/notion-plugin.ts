@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/utils/is-record"
 import type { PluginResult } from "@/types/plugins"
 
 // ─── Notion Plugin ─────────────────────────────────────────────────────────────
@@ -12,9 +13,6 @@ interface NotionPageCreateResponse {
   url?: string
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
 
 function isOptionalString(value: unknown): value is string | undefined {
   return value === undefined || typeof value === "string"

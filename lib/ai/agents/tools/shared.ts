@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/utils/is-record"
 import type { AgentStepResult, ToolContext } from "@/lib/ai/agents/tools/types"
 import { saveGoogleTokens } from "@/lib/plugins/data-fetcher"
 import { logError } from "@/lib/server/observability/logger"
@@ -9,9 +10,6 @@ interface GoogleRefreshResponse {
   expires_in: number
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
 
 function isGoogleRefreshResponse(value: unknown): value is GoogleRefreshResponse {
   return isRecord(value)

@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/utils/is-record"
 import type { KVStore } from '@/types'
 import type { Achievement, GamificationData, HabitStreak, XPLogEntry, XPSource } from '@/types/gamification'
 
@@ -29,9 +30,6 @@ export interface GamificationGrantRecord extends XPLogEntry {
   date: string
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
 
 function normalizeString(value: unknown, maxLength: number): string {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''

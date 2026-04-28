@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/utils/is-record"
 import type { KVStore } from '@/types'
 import type { LifeGraph, LifeNode, MemoryCategory } from '@/types/memory'
 
@@ -112,9 +113,6 @@ function supportsList(kv: KVStore): kv is KVStore & { list: NonNullable<KVStore[
   return typeof kv.list === 'function'
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
 
 function normalizeString(value: unknown, maxLength: number): string {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''

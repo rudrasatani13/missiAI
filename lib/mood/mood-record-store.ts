@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/utils/is-record"
 import type { KVStore } from '@/types'
 import type { MoodEntry, MoodLabel } from '@/types/mood'
 
@@ -22,9 +23,6 @@ export interface MoodTimelineStateRecord {
   lastUpdatedAt: number
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
 
 function normalizeString(value: unknown, maxLength: number): string {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''

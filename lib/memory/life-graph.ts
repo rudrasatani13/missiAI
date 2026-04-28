@@ -34,7 +34,7 @@ import {
 
 // ─── Empty graph factory ──────────────────────────────────────────────────────
 
-function emptyGraph(): LifeGraph {
+export function emptyGraph(): LifeGraph {
   return { nodes: [], totalInteractions: 0, lastUpdatedAt: 0, version: 1 }
 }
 

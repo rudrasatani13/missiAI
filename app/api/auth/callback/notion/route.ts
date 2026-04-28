@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/utils/is-record"
 import { NextRequest, NextResponse } from "next/server"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/security/auth"
 import { getEnv } from "@/lib/server/platform/env"
@@ -16,9 +17,6 @@ interface NotionTokenResponse {
   bot_id?: string
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
 
 function isOAuthStateData(value: unknown): value is OAuthStateData {
   return isRecord(value)

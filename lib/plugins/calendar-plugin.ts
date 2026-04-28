@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/utils/is-record"
 import { callGeminiDirect } from "@/lib/ai/services/ai-service"
 import type { PluginResult } from "@/types/plugins"
 
@@ -17,9 +18,6 @@ interface GoogleCalendarCreateEventResponse {
   htmlLink?: string
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
 
 function readString(value: unknown): string {
   return typeof value === "string" ? value : ""

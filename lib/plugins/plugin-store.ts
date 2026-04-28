@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/utils/is-record"
 import type { KVStore } from "@/types"
 import {
   getPluginConfigIndex,
@@ -38,9 +39,6 @@ function toUserPlugins(
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
 
 function parsePluginId(value: unknown): PluginId | null {
   return typeof value === "string" && Object.prototype.hasOwnProperty.call(PLUGIN_METADATA, value)

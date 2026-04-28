@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/utils/is-record"
 import type { KVStore } from "@/types"
 import { PLUGIN_METADATA } from "@/lib/plugins/plugin-registry"
 import type { PluginConfig, PluginId, PluginStatus } from "@/types/plugins"
@@ -42,9 +43,6 @@ export function buildPluginConfigIndexKey(userId: string): string {
   return `${V2_PREFIX}:index:${userId}`
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
 
 function normalizeString(value: unknown, maxLength: number): string {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : ""

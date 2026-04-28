@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/utils/is-record"
 // ─── Plugin Data Fetcher ──────────────────────────────────────────────────────
 // Fetches live data from Google Calendar and Notion using stored OAuth tokens.
 // Results are cached in KV with a TTL so chat requests stay fast.
@@ -64,9 +65,6 @@ interface NotionSearchResponse {
   results?: NotionPage[]
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
 
 function isOptionalString(value: unknown): value is string | undefined {
   return value === undefined || typeof value === "string"

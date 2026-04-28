@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/utils/is-record"
 import { callGeminiDirect } from "@/lib/ai/services/ai-service"
 import { createNotionPage, addToNotionDatabase, appendToNotionPage } from "./notion-plugin"
 import { parseEventFromCommand, createCalendarEvent } from "./calendar-plugin"
@@ -6,9 +7,6 @@ import type { PluginCommand, PluginConfig, PluginResult, PluginId } from "@/type
 
 // ─── Plugin Executor ──────────────────────────────────────────────────────────
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
 
 function readOptionalString(value: unknown): string | null {
   return typeof value === "string" && value ? value : null
