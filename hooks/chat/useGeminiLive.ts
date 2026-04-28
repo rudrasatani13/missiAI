@@ -138,7 +138,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
       }
 
       // Send as base64 — Gemini's server-side VAD handles turn detection
-      // BUG-H2 fix: use Array.from + join instead of character-by-character
+      // Optimization: use Array.from + join instead of character-by-character
       // string concatenation. The old loop was O(n²) — each += allocates a new
       // string, causing micro-stutters in the hot audio encoding path (~15Hz).
       const bytes = new Uint8Array(int16.buffer)
