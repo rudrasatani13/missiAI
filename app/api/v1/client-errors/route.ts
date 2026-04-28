@@ -5,6 +5,7 @@ import {
   unauthorizedResponse,
 } from "@/lib/server/security/auth"
 import { log, logApiError } from "@/lib/server/observability/logger"
+import { jsonResponse } from "@/lib/server/api/response"
 
 const CLIENT_ERRORS_PATH = "/api/v1/client-errors"
 
@@ -16,13 +17,6 @@ const clientErrorSchema = z.object({
     interactionCount: z.number().int().min(0).max(50),
   }),
 })
-
-function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  })
-}
 
 function getClientIp(request: Request): string | undefined {
   const cfConnectingIp = request.headers.get("cf-connecting-ip")

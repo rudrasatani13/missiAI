@@ -9,7 +9,7 @@ import { getUserPlan } from "@/lib/billing/tier-checker"
 import { getCloudflareKVBinding } from "@/lib/server/platform/bindings"
 import { z } from "zod"
 import { logError } from "@/lib/server/observability/logger"
-
+import { jsonResponse } from "@/lib/server/api/response"
 
 const MAX_SUBSCRIPTION_BYTES = 16_384
 
@@ -21,13 +21,6 @@ const pushSubscriptionSchema = z.object({
   }),
   expirationTime: z.number().nullable().optional(),
 })
-
-function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", ...headers },
-  })
-}
 
 // ─── Subscribe Handler (POST /subscribe) ──────────────────────────────────────
 

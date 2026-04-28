@@ -7,6 +7,7 @@ import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/l
 import { logRequest, logError, logApiError } from "@/lib/server/observability/logger"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
+import { jsonResponse } from "@/lib/server/api/response"
 
 const STT_TIMEOUT_MS = 15_000
 
@@ -17,13 +18,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
       setTimeout(() => reject(new Error("STT request timed out")), ms)
     ),
   ])
-}
-
-function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", ...headers },
-  })
 }
 
 export async function POST(req: NextRequest) {

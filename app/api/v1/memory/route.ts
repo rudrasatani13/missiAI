@@ -25,13 +25,7 @@ import {
 } from "@/lib/server/security/rate-limiter"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { logRequest, logError } from "@/lib/server/observability/logger"
-
-function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", ...headers },
-  })
-}
+import { jsonResponse } from "@/lib/server/api/response"
 
 // ─── GET — Load life graph or search by query ─────────────────────────────────
 

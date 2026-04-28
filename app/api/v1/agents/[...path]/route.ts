@@ -15,15 +15,9 @@ import { parseConfirmRequest, prepareConfirmedAgentExecution } from "@/lib/serve
 import { runConfirmedAgentExecution } from "@/lib/server/routes/agents/confirm-runner"
 import { parsePlanRequest, prepareAgentPlan } from "@/lib/server/routes/agents/plan-helpers"
 import { logRequest, logError } from "@/lib/server/observability/logger"
+import { jsonResponse } from "@/lib/server/api/response"
 import type { KVStore } from "@/types"
 import type { LifeNode } from "@/types/memory"
-
-function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  })
-}
 
 type AuthenticatedAgentUserResult =
   | { ok: true; userId: string }

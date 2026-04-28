@@ -2,14 +2,10 @@
 
 import { clerkClient } from '@clerk/nextjs/server'
 import { getCloudflareKVBinding } from '@/lib/server/platform/bindings'
+import { jsonResponse } from '@/lib/server/api/response'
 import type { KVStore } from '@/types'
 
-export function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
+export { jsonResponse }
 
 export function errorResponse(
   error: string,

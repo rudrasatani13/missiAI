@@ -4,6 +4,7 @@ import type { ToolContext } from "@/lib/ai/agents/tools/types"
 import { verifyAndConsumeToken } from "@/lib/ai/agents/confirm"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import { buildAgentToolContext } from "@/lib/server/routes/agents/execution-helpers"
+import { jsonResponse } from "@/lib/server/api/response"
 import type { KVStore } from "@/types"
 
 export const confirmSchema = z.object({
@@ -25,13 +26,6 @@ export interface PreparedConfirmedAgentExecution {
 export type PreparedConfirmedAgentExecutionResult =
   | { ok: true; data: PreparedConfirmedAgentExecution }
   | { ok: false; kind: "invalid_token" | "cancelled"; response: Response }
-
-function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  })
-}
 
 export async function parseConfirmRequest(
   req: Pick<Request, "json">,

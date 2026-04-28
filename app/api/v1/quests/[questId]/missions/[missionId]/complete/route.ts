@@ -17,14 +17,8 @@ import {
 import { checkQuestAchievements } from '@/lib/quests/quest-achievements'
 import { getGamificationData, saveGamificationData } from '@/lib/gamification/streak'
 import { awardXP } from '@/lib/gamification/xp-engine'
+import { jsonResponse } from '@/lib/server/api/response'
 import type { QuestMission, QuestAchievementContext } from '@/types/quests'
-
-function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
 
 // ─── POST — Mark a mission as complete ────────────────────────────────────────
 
