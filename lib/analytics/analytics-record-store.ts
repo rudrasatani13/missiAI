@@ -1,3 +1,4 @@
+import { normalizeString, normalizeInteger, normalizeDate } from "@/lib/validation"
 import type { KVStore } from '@/types'
 import type { PlanId } from '@/types/billing'
 import type { AnalyticsSnapshot, DailyStats, LifetimeTotals } from '@/types/analytics'
@@ -246,18 +247,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function normalizeString(value: unknown, maxLength: number): string {
-  return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
-}
 
-function normalizeDate(value: unknown): string {
-  const normalized = normalizeString(value, 10)
-  return DATE_RE.test(normalized) ? normalized : ''
-}
 
-function normalizeInteger(value: unknown, fallback = 0): number {
-  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback
-}
 
 function normalizeNumber(value: unknown, fallback = 0): number {
   return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : fallback

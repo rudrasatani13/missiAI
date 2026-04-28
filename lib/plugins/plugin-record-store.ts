@@ -1,3 +1,4 @@
+import { normalizeString, normalizeInteger, normalizeOptionalInteger } from "@/lib/validation"
 import type { KVStore } from "@/types"
 import { PLUGIN_METADATA } from "@/lib/plugins/plugin-registry"
 import type { PluginConfig, PluginId, PluginStatus } from "@/types/plugins"
@@ -46,17 +47,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
 }
 
-function normalizeString(value: unknown, maxLength: number): string {
-  return typeof value === "string" ? value.trim().slice(0, maxLength) : ""
-}
 
-function normalizeInteger(value: unknown, fallback = 0): number {
-  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback
-}
 
-function normalizeOptionalInteger(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : undefined
-}
 
 function normalizeStringMap(value: unknown): Record<string, string> {
   if (!isRecord(value)) return {}

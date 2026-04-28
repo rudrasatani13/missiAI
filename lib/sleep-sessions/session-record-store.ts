@@ -1,3 +1,4 @@
+import { normalizeString, normalizeOptionalString, normalizeInteger, normalizeDate, normalizeStringArray } from "@/lib/validation"
 import type { KVStore } from '@/types'
 import type {
   LibraryStoryCategory,
@@ -85,46 +86,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function normalizeString(value: unknown, maxLength: number): string {
-  return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
-}
 
-function normalizeOptionalString(value: unknown, maxLength: number): string | undefined {
-  const normalized = normalizeString(value, maxLength)
-  return normalized || undefined
-}
 
-function normalizeInteger(value: unknown, fallback = 0): number {
-  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback
-}
 
 function normalizeBoolean(value: unknown): boolean {
   return value === true
 }
 
-function normalizeDate(value: unknown): string {
-  const normalized = normalizeString(value, 10)
-  return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : ''
-}
 
 function normalizeTimestamp(value: unknown): string {
   const normalized = normalizeString(value, 40)
   return normalized && !Number.isNaN(Date.parse(normalized)) ? normalized : ''
 }
 
-function normalizeStringArray(value: unknown, maxItems: number, maxLength: number): string[] {
-  if (!Array.isArray(value)) return []
-  const seen = new Set<string>()
-  const normalized: string[] = []
-  for (const item of value) {
-    const safe = normalizeString(item, maxLength)
-    if (!safe || seen.has(safe)) continue
-    seen.add(safe)
-    normalized.push(safe)
-    if (normalized.length >= maxItems) break
-  }
-  return normalized
-}
 
 function dedupeIds(ids: string[], maxItems = Number.POSITIVE_INFINITY): string[] {
   const seen = new Set<string>()

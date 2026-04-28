@@ -23,3 +23,4 @@ export type {
 
 // memoryPostSchema alias — kept for backwards compatibility with memory route
 export { memorySchema as memoryPostSchema } from "@/lib/validation/schemas"
+export * from "./normalization"

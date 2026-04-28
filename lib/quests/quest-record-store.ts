@@ -1,3 +1,4 @@
+import { normalizeString, normalizeInteger, normalizeOptionalInteger } from "@/lib/validation"
 import type { KVStore } from '@/types'
 import type {
   Quest,
@@ -68,17 +69,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function normalizeString(value: unknown, maxLength: number): string {
-  return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
-}
 
-function normalizeInteger(value: unknown, fallback = 0): number {
-  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback
-}
 
-function normalizeOptionalInteger(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : null
-}
 
 function normalizeQuestStatus(value: unknown): QuestStatus | null {
   const s = normalizeString(value, 20)
@@ -126,8 +118,8 @@ function normalizeMission(value: unknown): QuestMission | null {
     xpReward: normalizeInteger(value.xpReward),
     isBoss: Boolean(value.isBoss),
     status,
-    completedAt: normalizeOptionalInteger(value.completedAt),
-    unlockedAt: normalizeOptionalInteger(value.unlockedAt),
+    completedAt: normalizeOptionalInteger(value.completedAt) ?? null,
+    unlockedAt: normalizeOptionalInteger(value.unlockedAt) ?? null,
   }
 }
 
@@ -196,8 +188,8 @@ export function normalizeQuestRecord(value: unknown, userId: string, questId: st
     chapters,
     status,
     createdAt: normalizeInteger(value.createdAt),
-    startedAt: normalizeOptionalInteger(value.startedAt),
-    completedAt: normalizeOptionalInteger(value.completedAt),
+    startedAt: normalizeOptionalInteger(value.startedAt) ?? null,
+    completedAt: normalizeOptionalInteger(value.completedAt) ?? null,
     targetDurationDays: normalizeInteger(value.targetDurationDays),
     totalMissions: normalizeInteger(value.totalMissions),
     completedMissions: normalizeInteger(value.completedMissions),

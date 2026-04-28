@@ -1,3 +1,4 @@
+import { normalizeString, normalizeInteger, normalizeStringArray } from "@/lib/validation"
 import type { KVStore } from '@/types'
 import type { LifeGraph } from '@/types/memory'
 import type {
@@ -161,19 +162,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function normalizeString(value: unknown, maxLength: number): string {
-  return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
-}
 
-function normalizeInteger(value: unknown, fallback = 0): number {
-  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback
-}
 
-function normalizeStringArray(value: unknown, maxItems?: number): string[] {
-  if (!Array.isArray(value)) return []
-  const items = [...new Set(value.map((item) => normalizeString(item, 200)).filter(Boolean))]
-  return typeof maxItems === 'number' ? items.slice(0, maxItems) : items
-}
 
 function coerceRole(value: unknown): SpaceRole {
   return typeof value === 'string' && SPACE_ROLE_SET.has(value as SpaceRole) ? value as SpaceRole : 'member'

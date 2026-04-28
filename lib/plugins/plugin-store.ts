@@ -1,3 +1,4 @@
+import { normalizeInteger, normalizeOptionalInteger } from "@/lib/validation"
 import type { KVStore } from "@/types"
 import {
   getPluginConfigIndex,
@@ -54,13 +55,7 @@ function parsePluginStatus(value: unknown): PluginStatus | null {
     : null
 }
 
-function normalizeInteger(value: unknown, fallback = 0): number {
-  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback
-}
 
-function normalizeOptionalInteger(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : undefined
-}
 
 function normalizeStringMap(value: unknown): Record<string, string> {
   if (!isRecord(value)) return {}
