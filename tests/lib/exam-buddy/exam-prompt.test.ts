@@ -12,17 +12,22 @@ describe('buildExamBuddyModifier', () => {
   const baseContext: ExamBuddySessionContext = {
     examTarget: 'jee_mains',
     mode: 'doubt',
+    currentSubject: null,
+    currentTopic: null,
   }
 
   const baseProfile: ExamBuddyProfile = {
     userId: 'user-1',
     examTarget: 'jee_mains',
+    targetYear: null,
     weakSubjects: [],
     studyStreak: 0,
     lastStudyDate: '',
     totalQuizzesCompleted: 0,
-    xp: 0,
-    level: 1,
+    totalCorrectAnswers: 0,
+    totalQuestionsAttempted: 0,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
   }
 
   it('should generate a valid prompt modifier with minimum context (no profile)', () => {
@@ -36,6 +41,7 @@ describe('buildExamBuddyModifier', () => {
 
   it('should map unknown exam target to itself', () => {
     const context: ExamBuddySessionContext = {
+      ...baseContext,
       examTarget: 'unknown_exam' as any,
       mode: 'doubt',
     }
@@ -45,6 +51,7 @@ describe('buildExamBuddyModifier', () => {
 
   it('should map unknown mode to doubt mode instruction', () => {
     const context: ExamBuddySessionContext = {
+      ...baseContext,
       examTarget: 'neet',
       mode: 'unknown_mode' as any,
     }
@@ -55,7 +62,7 @@ describe('buildExamBuddyModifier', () => {
   it('should include current subject and topic if provided in context', () => {
     const context: ExamBuddySessionContext = {
       ...baseContext,
-      currentSubject: 'Physics',
+      currentSubject: 'physics',
       currentTopic: 'Newton Laws',
     }
     const modifier = buildExamBuddyModifier(null, context)
@@ -66,7 +73,7 @@ describe('buildExamBuddyModifier', () => {
   it('should include sanitized weak subjects from profile (max 5)', () => {
     const profile: ExamBuddyProfile = {
       ...baseProfile,
-      weakSubjects: ['Math', 'Physics', 'Chemistry', 'Biology', 'English', 'History'],
+      weakSubjects: ['mathematics', 'physics', 'chemistry', 'biology', 'english', 'history'],
     }
     const modifier = buildExamBuddyModifier(profile, baseContext)
 
@@ -92,7 +99,7 @@ describe('buildExamBuddyModifier', () => {
     const longContext: ExamBuddySessionContext = {
       ...baseContext,
       // Creating a very long subject string
-      currentSubject: 'A'.repeat(5000),
+      currentSubject: 'A'.repeat(5000) as any,
     }
 
     const modifier = buildExamBuddyModifier(null, longContext)
