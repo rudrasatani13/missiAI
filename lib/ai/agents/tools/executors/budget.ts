@@ -2,6 +2,7 @@ import type { AgentToolCall, AgentStepResult, ToolContext } from "@/lib/ai/agent
 import { abortedToolResult, VALID_EXPENSE_CATEGORIES } from "@/lib/ai/agents/tools/shared"
 import { addExpenseEntry } from "@/lib/budget/budget-store"
 import { validateCurrency } from "@/lib/budget/currency"
+import { nanoid } from "nanoid"
 import { addOrUpdateNode } from "@/lib/memory/life-graph"
 import { stripHtml } from "@/lib/validation/sanitizer"
 import type { ExpenseCategory } from "@/types/budget"
@@ -38,7 +39,7 @@ export async function executeBudgetTool(
   if (abortedBeforeEntry) return abortedBeforeEntry
 
   await addExpenseEntry(ctx.kv, ctx.userId, {
-    id: `bgt-${timestamp.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `bgt-${timestamp.toString(36)}-${nanoid(6).toLowerCase()}`,
     userId: ctx.userId,
     amount,
     currency,

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
+import { nanoid } from 'nanoid'
 import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/lib/server/security/auth'
 import { getBudgetKV } from '@/lib/budget/kv'
 import {
@@ -31,7 +32,7 @@ function stripHtml(text: string): string {
 }
 
 function generateEntryId(): string {
-  return `bgt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+  return `bgt-${Date.now().toString(36)}-${nanoid(6).toLowerCase()}`
 }
 
 export async function GET(req: NextRequest) {
