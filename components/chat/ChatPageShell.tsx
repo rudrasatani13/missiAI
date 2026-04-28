@@ -286,6 +286,7 @@ export function ChatPageShell({
               </>
             )}
             <button onClick={dismissVisualResult}
+              aria-label="Dismiss visual result"
               className="absolute top-2 right-2 text-white/30 hover:text-white/60 transition-colors"
               style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'absolute' }}>
               <X className="w-3 h-3" />
@@ -302,6 +303,7 @@ export function ChatPageShell({
                 e.stopPropagation()
                 clearVisualSelection()
               }}
+                aria-label="Clear image selection"
                 className="absolute -top-2 -right-2 bg-black text-white rounded-full p-0.5 border border-white/20 hover:scale-110 transition-transform">
                 <X className="w-3 h-3" />
               </button>
