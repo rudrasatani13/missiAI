@@ -12,11 +12,7 @@ describe('exam-buddy session-token', () => {
       topic: 'Kinematics',
       difficulty: 'medium',
       questions: [],
-      currentQuestionIndex: 0,
-      status: 'in_progress',
-      score: 0,
-      startedAt: Date.now(),
-      expiresAt: Date.now() + 3600000,
+      userAnswers: {}, score: 0, totalMarks: null, completedAt: null, createdAt: Date.now(), xpEarned: 0,
     }
 
     const token = await createLocalSessionToken(session)
@@ -56,11 +52,7 @@ describe('exam-buddy session-token', () => {
       topic: 'Kinematics',
       difficulty: 'medium',
       questions: [],
-      currentQuestionIndex: 0,
-      status: 'in_progress',
-      score: 0,
-      startedAt: Date.now(),
-      expiresAt: Date.now() + 3600000,
+      userAnswers: {}, score: 0, totalMarks: null, completedAt: null, createdAt: Date.now(), xpEarned: 0,
     }
 
     const token = await createLocalSessionToken(session)
@@ -83,11 +75,7 @@ describe('exam-buddy session-token', () => {
       topic: 'Kinematics',
       difficulty: 'medium',
       questions: [],
-      currentQuestionIndex: 0,
-      status: 'in_progress',
-      score: 0,
-      startedAt: Date.now(),
-      expiresAt: Date.now() + 3600000,
+      userAnswers: {}, score: 0, totalMarks: null, completedAt: null, createdAt: Date.now(), xpEarned: 0,
     }
 
     const token = await createLocalSessionToken(session)
