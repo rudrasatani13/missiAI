@@ -1,51 +1,22 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import type { ReactNode, CSSProperties } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-
-function useReveal<T extends HTMLElement>() {
-  const ref = useRef<T>(null)
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    const element = ref.current
-    if (!element) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true)
-          observer.unobserve(element)
-        }
-      },
-      { threshold: 0.14 }
-    )
-
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [])
-
-  return { ref, visible }
-}
+import Image from "next/image"
 
 function Reveal({ children, className = "", delay = 0, style }: { children: ReactNode; className?: string; delay?: number; style?: CSSProperties }) {
-  const { ref, visible } = useReveal<HTMLDivElement>()
-
   return (
-    <div
-      ref={ref}
+    <motion.div
+      initial={{ opacity: 0, y: 28, filter: "blur(10px)" }}
+      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      viewport={{ once: true, amount: 0.14 }}
+      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay }}
       className={className}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(28px)",
-        filter: visible ? "blur(0px)" : "blur(10px)",
-        transition: `opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s, transform 0.9s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s, filter 0.9s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s`,
-        ...style,
-      }}
+      style={style}
     >
       {children}
-    </div>
+    </motion.div>
   )
 }
 
@@ -147,8 +118,7 @@ export function ProductShowcase() {
       <div className="relative z-10 mx-auto max-w-[92rem] px-5 sm:px-6 lg:px-8">
         <Reveal className="flex justify-center">
           <span
-            className="mb-8 inline-flex items-center gap-4 text-sm text-white/45"
-            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            className="mb-8 inline-flex items-center gap-4 text-sm text-white/60 font-mono"
           >
             <span className="h-px w-12 bg-white/20" />
             Product
@@ -157,12 +127,11 @@ export function ProductShowcase() {
         </Reveal>
         <Reveal delay={0.08}>
           <h2
-            className="mb-16 text-center text-[2.9rem] leading-[0.9] sm:mb-20 sm:text-6xl md:text-7xl lg:mb-24 lg:text-[128px]"
-            style={{ fontFamily: "'Instrument Serif', serif" }}
+            className="mb-16 text-center text-[2.9rem] leading-[0.9] sm:mb-20 sm:text-6xl md:text-7xl lg:mb-24 lg:text-[128px] font-serif"
           >
             See it
             <br />
-            <span className="text-white/35">in action.</span>
+            <span className="text-white/60">in action.</span>
           </h2>
         </Reveal>
 
@@ -205,10 +174,12 @@ export function ProductShowcase() {
                         filter: isActive ? "blur(0px)" : `blur(${style.blur}px)`,
                       }}
                     >
-                      <img
+                      <Image
                         src={product.image}
                         alt={product.title}
-                        className="h-full w-full rounded-lg object-cover"
+                        fill
+                        sizes="(max-width: 640px) 100vw, 640px"
+                        className="rounded-lg object-cover"
                       />
                     </motion.div>
                   )
@@ -241,18 +212,16 @@ export function ProductShowcase() {
                 transition={{ duration: 0.35, ease: "easeOut" }}
               >
                 <span
-                  className="mb-4 inline-block text-xs uppercase tracking-[0.22em] text-white/40"
-                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                  className="mb-4 inline-block text-xs uppercase tracking-[0.22em] text-white/60 font-mono"
                 >
                   {current.tag}
                 </span>
                 <h3
-                  className="mb-5 text-3xl leading-tight sm:text-4xl lg:text-5xl"
-                  style={{ fontFamily: "'Instrument Serif', serif" }}
+                  className="mb-5 text-3xl leading-tight sm:text-4xl lg:text-5xl font-serif"
                 >
                   {current.title}
                 </h3>
-                <p className="max-w-lg text-base leading-relaxed text-white/55 sm:text-lg">
+                <p className="max-w-lg text-base leading-relaxed text-white/70 sm:text-lg">
                   {current.description}
                 </p>
 
@@ -260,14 +229,12 @@ export function ProductShowcase() {
                   {current.stats.map((stat) => (
                     <div key={stat.label}>
                       <div
-                        className="text-2xl text-white sm:text-3xl"
-                        style={{ fontFamily: "'Instrument Serif', serif" }}
+                        className="text-2xl text-white sm:text-3xl font-serif"
                       >
                         {stat.value}
                       </div>
                       <div
-                        className="mt-1 text-xs text-white/40"
-                        style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                        className="mt-1 text-xs text-white/60 font-mono"
                       >
                         {stat.label}
                       </div>
@@ -278,8 +245,8 @@ export function ProductShowcase() {
             </AnimatePresence>
 
             {/* Click hint */}
-            <div className="mt-12 flex items-center gap-2 text-xs text-white/30" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-              <span className="inline-block h-1 w-1 rounded-full bg-white/30" />
+            <div className="mt-12 flex items-center gap-2 text-xs text-white/50 font-mono">
+              <span className="inline-block h-1 w-1 rounded-full bg-white/50" />
               Click image to explore
             </div>
           </div>

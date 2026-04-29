@@ -1,6 +1,7 @@
 "use client"
 
-import { type ComponentType, type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react"
+import { type ComponentType, type CSSProperties, type ReactNode, useEffect, useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
@@ -61,24 +62,7 @@ const processSteps = [
   },
 ]
 
-const presenceModes = [
-  {
-    title: "Morning planning",
-    description: "Start with a daily brief that remembers your priorities, unfinished tasks, and energy.",
-  },
-  {
-    title: "Memory recall",
-    description: "Bring back names, plans, routines, and details without digging through old chats.",
-  },
-  {
-    title: "Study support",
-    description: "Use Exam Buddy for revision, weak-topic practice, and calmer preparation.",
-  },
-  {
-    title: "Money awareness",
-    description: "Use Budget Buddy for quick expense logging and a clearer sense of what changed this month.",
-  },
-]
+
 
 const toolCards: Array<{
   name: string
@@ -156,50 +140,18 @@ function useReferralCapture() {
   }, [])
 }
 
-function useReveal<T extends HTMLElement>() {
-  const ref = useRef<T>(null)
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    const element = ref.current
-    if (!element) {
-      return
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true)
-          observer.disconnect()
-        }
-      },
-      { threshold: 0.14 }
-    )
-
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [])
-
-  return { ref, visible }
-}
-
 function Reveal({ children, className = "", delay = 0, style }: { children: ReactNode; className?: string; delay?: number; style?: CSSProperties }) {
-  const { ref, visible } = useReveal<HTMLDivElement>()
-
   return (
-    <div
-      ref={ref}
+    <motion.div
+      initial={{ opacity: 0, y: 28, filter: "blur(10px)" }}
+      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      viewport={{ once: true, amount: 0.14 }}
+      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay }}
       className={className}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(28px)",
-        filter: visible ? "blur(0px)" : "blur(10px)",
-        transition: `opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s, transform 0.9s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s, filter 0.9s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s`,
-        ...style,
-      }}
+      style={style}
     >
       {children}
-    </div>
+    </motion.div>
   )
 }
 
@@ -215,256 +167,39 @@ function CTAArrow({ dark = false }: { dark?: boolean }) {
 
 function BlurWord({ word, trigger }: { word: string; trigger: number }) {
   const letters = word.split("")
-  const [letterStates, setLetterStates] = useState(() => letters.map(() => ({ opacity: 0, blur: 18 })))
-  const framesRef = useRef<number[]>([])
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
-
-  useEffect(() => {
-    const currentLetters = word.split("")
-
-    framesRef.current.forEach(cancelAnimationFrame)
-    timersRef.current.forEach(clearTimeout)
-    framesRef.current = []
-    timersRef.current = []
-
-    setLetterStates(currentLetters.map(() => ({ opacity: 0, blur: 18 })))
-
-    currentLetters.forEach((_, index) => {
-      const timer = setTimeout(() => {
-        const start = performance.now()
-
-        const tick = (now: number) => {
-          const progress = Math.min((now - start) / 500, 1)
-          const eased = 1 - Math.pow(1 - progress, 3)
-
-          setLetterStates((previous) => {
-            const next = [...previous]
-            next[index] = {
-              opacity: eased,
-              blur: 18 * (1 - eased),
-            }
-            return next
-          })
-
-          if (progress < 1) {
-            const id = requestAnimationFrame(tick)
-            framesRef.current.push(id)
-          }
-        }
-
-        const id = requestAnimationFrame(tick)
-        framesRef.current.push(id)
-      }, index * 48)
-
-      timersRef.current.push(timer)
-    })
-
-    return () => {
-      framesRef.current.forEach(cancelAnimationFrame)
-      timersRef.current.forEach(clearTimeout)
-    }
-  }, [word, trigger])
-
-  const colors = ["#eca8d6", "#a78bfa", "#67e8f9", "#fbbf24", "#eca8d6"]
 
   return (
-    <>
-      {letters.map((char, index) => {
-        const colorIndex = (index / Math.max(letters.length - 1, 1)) * (colors.length - 1)
-        const lower = Math.floor(colorIndex)
-        const upper = Math.min(lower + 1, colors.length - 1)
-        const mix = colorIndex - lower
-
-        const hexToRgb = (hex: string) => {
-          const r = parseInt(hex.slice(1, 3), 16)
-          const g = parseInt(hex.slice(3, 5), 16)
-          const b = parseInt(hex.slice(5, 7), 16)
-          return [r, g, b]
-        }
-
-        const [r1, g1, b1] = hexToRgb(colors[lower])
-        const [r2, g2, b2] = hexToRgb(colors[upper])
-        const r = Math.round(r1 + (r2 - r1) * mix)
-        const g = Math.round(g1 + (g2 - g1) * mix)
-        const b = Math.round(b1 + (b2 - b1) * mix)
-
-        return (
-          <span
-            key={`${char}-${index}-${trigger}`}
-            style={{
-              display: "inline-block",
-              fontFamily: "'Instrument Sans', system-ui, sans-serif",
-              fontWeight: 500,
-              letterSpacing: "-0.04em",
-              opacity: letterStates[index]?.opacity ?? 0,
-              filter: `blur(${letterStates[index]?.blur ?? 18}px)`,
-              color: `rgb(${r}, ${g}, ${b})`,
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={trigger}
+        initial="hidden"
+        animate="visible"
+        exit="hidden"
+        variants={{
+          visible: {
+            transition: { staggerChildren: 0.048 }
+          },
+          hidden: {}
+        }}
+        className="inline-flex"
+      >
+        {letters.map((char, index) => (
+          <motion.span
+            key={index}
+            variants={{
+              hidden: { opacity: 0, filter: "blur(18px)" },
+              visible: { opacity: 1, filter: "blur(0px)", transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } }
             }}
+            className="font-serif italic tracking-tight text-[#eca8d6]"
           >
-            {char}
-          </span>
-        )
-      })}
-    </>
+            {char === " " ? "\u00A0" : char}
+          </motion.span>
+        ))}
+      </motion.div>
+    </AnimatePresence>
   )
 }
 
-function AnimatedCounter({ end, prefix = "", suffix = "" }: { end: number; prefix?: string; suffix?: string }) {
-  const { ref, visible } = useReveal<HTMLDivElement>()
-  const [count, setCount] = useState(0)
-
-  useEffect(() => {
-    if (!visible) {
-      return
-    }
-
-    let frame = 0
-    let start = 0
-
-    const step = (timestamp: number) => {
-      if (!start) {
-        start = timestamp
-      }
-
-      const progress = Math.min((timestamp - start) / 1800, 1)
-      const eased = 1 - Math.pow(1 - progress, 4)
-      setCount(Math.floor(eased * end))
-
-      if (progress < 1) {
-        frame = requestAnimationFrame(step)
-      }
-    }
-
-    frame = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(frame)
-  }, [end, visible])
-
-  return (
-    <div ref={ref} className="inline-flex items-baseline gap-1 tabular-nums">
-      {prefix ? <span className="text-white/45">{prefix}</span> : null}
-      <span>{count.toLocaleString()}</span>
-      {suffix ? <span className="text-white/45">{suffix}</span> : null}
-    </div>
-  )
-}
-
-function DotGraph({ accent = false, height = 28 }: { accent?: boolean; height?: number }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const frameRef = useRef(0)
-  const timeRef = useRef(Math.random() * 100)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) {
-      return
-    }
-
-    const context = canvas.getContext("2d")
-    if (!context) {
-      return
-    }
-
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
-    const width = canvas.offsetWidth || 280
-    const localHeight = height
-    canvas.width = width * dpr
-    canvas.height = localHeight * dpr
-    context.scale(dpr, dpr)
-
-    const render = () => {
-      context.clearRect(0, 0, width, localHeight)
-      const columns = Math.floor(width / 8)
-      const time = timeRef.current
-
-      for (let index = 0; index < columns; index += 1) {
-        const value = 0.35 + 0.5 * Math.sin(index * 0.26 + time) * Math.cos(index * 0.11 + time * 0.55)
-        const normalized = Math.max(0, Math.min(1, value))
-        const x = index * 8 + 4
-        const y = localHeight - 4 - normalized * (localHeight - 8)
-        const alpha = 0.16 + normalized * 0.55
-        const radius = 1.5 + normalized * 1.2
-
-        context.beginPath()
-        context.arc(x, y, radius, 0, Math.PI * 2)
-        context.fillStyle = accent ? `rgba(236, 168, 214, ${alpha})` : `rgba(255, 255, 255, ${alpha})`
-        context.fill()
-      }
-
-      timeRef.current += accent ? 0.032 : 0.018
-      frameRef.current = requestAnimationFrame(render)
-    }
-
-    render()
-    return () => cancelAnimationFrame(frameRef.current)
-  }, [accent, height])
-
-  return <canvas ref={canvasRef} style={{ width: "100%", height: `${height}px`, display: "block" }} />
-}
-
-function GridBackground() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const frameRef = useRef(0)
-  const timeRef = useRef(0)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) {
-      return
-    }
-
-    const context = canvas.getContext("2d")
-    if (!context) {
-      return
-    }
-
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect()
-      const dpr = Math.min(window.devicePixelRatio || 1, 2)
-      canvas.width = rect.width * dpr
-      canvas.height = rect.height * dpr
-      context.setTransform(dpr, 0, 0, dpr, 0, 0)
-    }
-
-    resize()
-    window.addEventListener("resize", resize)
-
-    const render = () => {
-      const rect = canvas.getBoundingClientRect()
-      const width = rect.width
-      const height = rect.height
-      context.clearRect(0, 0, width, height)
-
-      for (let x = 0; x < width; x += 60) {
-        for (let y = 0; y < height; y += 60) {
-          const wave = Math.sin(x * 0.01 + y * 0.01 + timeRef.current) * 0.5 + 0.5
-          context.beginPath()
-          context.arc(x, y, 1 + wave * 2, 0, Math.PI * 2)
-          context.fillStyle = "rgba(255,255,255,0.04)"
-          context.fill()
-        }
-      }
-
-      const pulseY = (timeRef.current * 30) % height
-      context.strokeStyle = "rgba(255,255,255,0.03)"
-      context.lineWidth = 1
-      context.beginPath()
-      context.moveTo(0, pulseY)
-      context.lineTo(width, pulseY)
-      context.stroke()
-
-      timeRef.current += 0.02
-      frameRef.current = requestAnimationFrame(render)
-    }
-
-    render()
-    return () => {
-      window.removeEventListener("resize", resize)
-      cancelAnimationFrame(frameRef.current)
-    }
-  }, [])
-
-  return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" style={{ width: "100%", height: "100%" }} />
-}
 
 function TopNavigation({ isLoaded, isSignedIn }: { isLoaded: boolean; isSignedIn: boolean | undefined }) {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -509,7 +244,7 @@ function TopNavigation({ isLoaded, isSignedIn }: { isLoaded: boolean; isSignedIn
                 className={`group relative text-sm transition-colors duration-300 ${
                   isScrolled ? "text-white/70 hover:text-white" : "text-white/75 hover:text-white"
                 }`}
-                style={{ fontFamily: "'Instrument Sans', system-ui, sans-serif" }}
+                
               >
                 {link.name}
                 <span className={`absolute -bottom-1 left-0 h-px w-0 transition-all duration-300 group-hover:w-full ${isScrolled ? "bg-white" : "bg-white"}`} />
@@ -526,7 +261,7 @@ function TopNavigation({ isLoaded, isSignedIn }: { isLoaded: boolean; isSignedIn
                     ? "h-8 bg-white text-black text-xs inline-flex items-center"
                     : "px-6 py-3 bg-white text-black text-sm inline-flex items-center"
                 }`}
-                style={{ fontFamily: "'Instrument Sans', system-ui, sans-serif" }}
+                
               >
                 Open missi
               </Link>
@@ -537,7 +272,7 @@ function TopNavigation({ isLoaded, isSignedIn }: { isLoaded: boolean; isSignedIn
                   className={`transition-all duration-500 ${
                     isScrolled ? "text-xs text-white/70 hover:text-white" : "text-sm text-white/75 hover:text-white"
                   }`}
-                  style={{ fontFamily: "'Instrument Sans', system-ui, sans-serif" }}
+                  
                 >
                   Sign in
                 </Link>
@@ -546,7 +281,7 @@ function TopNavigation({ isLoaded, isSignedIn }: { isLoaded: boolean; isSignedIn
                   className={`rounded-full bg-white text-black transition-all duration-500 ${
                     isScrolled ? "px-4 h-8 text-xs inline-flex items-center" : "px-6 py-3 text-sm inline-flex items-center"
                   }`}
-                  style={{ fontFamily: "'Instrument Sans', system-ui, sans-serif" }}
+                  
                 >
                   Start free
                 </Link>
@@ -570,6 +305,16 @@ function TopNavigation({ isLoaded, isSignedIn }: { isLoaded: boolean; isSignedIn
           isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
       >
+        {/* Close button — matches hamburger style exactly */}
+        <button
+          type="button"
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="absolute right-4 top-4 p-2 text-white transition-colors"
+          aria-label="Close menu"
+        >
+          <X className="h-6 w-6" />
+        </button>
+
         <div className="flex h-full flex-col overflow-y-auto px-5 pb-6 pt-24 sm:px-8 sm:pb-8 sm:pt-28">
           <div className="flex flex-1 flex-col justify-center gap-6 sm:gap-8">
             {navLinks.map((link, index) => (
@@ -577,37 +322,34 @@ function TopNavigation({ isLoaded, isSignedIn }: { isLoaded: boolean; isSignedIn
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`text-[2.5rem] leading-none text-white transition-all duration-500 sm:text-5xl ${
+                className={`text-[2.5rem] leading-none text-white transition-all duration-500 sm:text-5xl font-serif ${
                   isMobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                 }`}
-                style={{
-                  transitionDelay: isMobileMenuOpen ? `${index * 75}ms` : "0ms",
-                  fontFamily: "'Instrument Serif', serif",
-                }}
+                style={{ transitionDelay: isMobileMenuOpen ? `${index * 75}ms` : "0ms" }}
               >
                 {link.name}
               </a>
             ))}
           </div>
           <div
-            className={`flex flex-col gap-3 border-t border-white/10 pt-6 transition-all duration-500 sm:flex-row sm:gap-4 sm:pt-8 ${
+            className={`flex flex-col gap-4 border-t border-white/10 pt-6 transition-all duration-500 ${
               isMobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             }`}
-            style={{ transitionDelay: isMobileMenuOpen ? "260ms" : "0ms", paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}
+            style={{ transitionDelay: isMobileMenuOpen ? "260ms" : "0ms", paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
           >
             <Link
               href={isLoaded && isSignedIn ? "/chat" : "/sign-in"}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="inline-flex h-[4.5rem] flex-1 items-center justify-center rounded-full border-2 border-white/25 bg-white/[0.04] px-7 text-[1.15rem] font-medium text-white/95 shadow-[0_12px_28px_rgba(0,0,0,0.32)] sm:h-14 sm:border sm:border-white/20 sm:bg-white/[0.02] sm:px-5 sm:text-base sm:shadow-none"
-              style={{ fontFamily: "'Instrument Sans', system-ui, sans-serif" }}
+              className="flex w-full items-center justify-center rounded-full border border-white/20 bg-white/[0.06] py-5 text-xl font-medium text-white active:scale-[0.98]"
+              
             >
               {isLoaded && isSignedIn ? "Open missi" : "Sign in"}
             </Link>
             <Link
               href={isLoaded && isSignedIn ? "/chat" : "/sign-up"}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="inline-flex h-[4.5rem] flex-1 items-center justify-center rounded-full bg-white px-7 text-[1.18rem] font-semibold text-black shadow-[0_16px_40px_rgba(255,255,255,0.12)] sm:h-14 sm:px-5 sm:text-base sm:font-medium sm:shadow-none"
-              style={{ fontFamily: "'Instrument Sans', system-ui, sans-serif" }}
+              className="flex w-full items-center justify-center rounded-full bg-white py-5 text-xl font-semibold text-black shadow-[0_8px_32px_rgba(255,255,255,0.18)] active:scale-[0.98]"
+              
             >
               {isLoaded && isSignedIn ? "Talk now" : "Start free"}
             </Link>
@@ -623,7 +365,6 @@ export function AgenticMissiHome() {
   const router = useRouter()
   const [wordIndex, setWordIndex] = useState(0)
   const [activeProcess, setActiveProcess] = useState(0)
-  const [activePresence, setActivePresence] = useState(0)
   const [hoveredTool, setHoveredTool] = useState<number | null>(null)
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null)
 
@@ -651,13 +392,6 @@ export function AgenticMissiHome() {
     return () => clearInterval(interval)
   }, [])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActivePresence((current) => (current + 1) % presenceModes.length)
-    }, 3200)
-
-    return () => clearInterval(interval)
-  }, [])
 
   // activeTrust auto-cycler removed — cards now use consistent static styling
 
@@ -671,7 +405,7 @@ export function AgenticMissiHome() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-black text-white" style={{ fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>  
+    <main className="relative min-h-screen overflow-x-hidden bg-black text-white" >  
       <TopNavigation isLoaded={isLoaded} isSignedIn={isSignedIn} />
 
       <section className="relative flex min-h-[100svh] flex-col overflow-hidden bg-black lg:min-h-screen">
@@ -692,132 +426,81 @@ export function AgenticMissiHome() {
           ))}
         </div>
 
-        <div className={`relative z-10 ${pageShell} flex flex-1 items-start pb-4 pt-32 sm:min-h-[100svh] sm:pb-12 sm:pt-36 lg:min-h-screen lg:items-center lg:pb-36 lg:pt-40`}>
+        <div className={`relative z-10 ${pageShell} flex flex-1 flex-col justify-between pb-28 pt-28 sm:min-h-[100svh] sm:pb-20 sm:pt-36 lg:min-h-screen lg:justify-center lg:pb-36 lg:pt-40`}>
+          {/* Headline — top of hero */}
           <div className="w-full max-w-[28rem] sm:max-w-2xl lg:max-w-[58%]">
             <Reveal delay={0.08} className="mt-2 sm:mt-4">
-              <h1 className="text-left text-[2.9rem] leading-[0.92] tracking-tight text-white sm:text-6xl md:text-7xl lg:text-[7.2rem]" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                <span className="block">Your missi</span>
-                <span className="block">actually</span>
-                <span className="mt-2 block min-h-[0.95em] text-white/92" style={{ fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>
+              <h1 className="text-left tracking-tight text-white font-serif">
+                <span className="block text-[2.4rem] leading-[1.05] text-white/60 sm:text-5xl md:text-6xl lg:text-[5rem]">Your personal AI</span>
+                <span className="mt-1 block text-[3.4rem] leading-[0.92] sm:text-7xl md:text-8xl lg:text-[7.8rem]">
                   <BlurWord key={`${heroWords[wordIndex]}-${wordIndex}`} word={heroWords[wordIndex]} trigger={wordIndex} />
                 </span>
               </h1>
             </Reveal>
 
-            <Reveal delay={0.16} className="mt-10 max-w-2xl">
-              <p className="text-base leading-relaxed text-white/62 sm:text-xl lg:text-[1.35rem]">
-                Talk naturally. missiAI remembers what matters, keeps context alive, and gives calm, personal support for planning, study, reminders, and everyday life.
+            <Reveal delay={0.16} className="mt-6 max-w-lg">
+              <p className="text-base leading-relaxed text-gray-400 sm:text-lg">
+                A personal companion designed to stay in sync with your life.
               </p>
             </Reveal>
 
-            <Reveal delay={0.24} className="mt-10 flex w-full flex-col items-start gap-4 sm:mt-12 sm:flex-row">
+            {/* Desktop-only inline CTA */}
+            <Reveal delay={0.24} className="mt-10 hidden sm:flex w-full flex-col items-start gap-4 sm:mt-12 sm:flex-row">
               <Link href="/chat" className="group inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-white px-8 text-sm text-black shadow-[0_0_24px_rgba(255,255,255,0.08)] transition-all duration-300 hover:bg-white/90 sm:w-auto sm:text-base">
                 <Mic className="h-4 w-4" />
                 Start talking to missi
                 <CTAArrow dark />
               </Link>
             </Reveal>
-            <Reveal delay={0.28} className="mt-3 flex items-center justify-center gap-2 text-xs text-white/45 sm:justify-start" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Free forever — no credit card required
-            </Reveal>
           </div>
-        </div>
 
-        <Reveal delay={0.35} className={`relative z-10 ${pageShell} pb-10 pt-8 sm:pb-8 sm:pt-10 lg:absolute lg:bottom-12 lg:left-0 lg:right-0`}>
-          <div className="grid w-full grid-cols-3 gap-3 sm:flex sm:flex-wrap sm:items-start sm:gap-10 lg:gap-20">
-            {[
-              { value: "1", label: "remembers everything you share" },
-              { value: "40+", label: "languages, accents, naturally" },
-              { value: "0ms", label: "feels instant, always on" },
-            ].map((stat) => (
-              <div key={stat.label} className="flex min-w-0 flex-col gap-1.5 sm:gap-2">
-                <span className="text-2xl text-white sm:text-3xl lg:text-4xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                  {stat.value}
-                </span>
-                <span className="max-w-[11ch] text-[11px] leading-[1.35] text-white/50 sm:max-w-none sm:text-xs sm:leading-tight">{stat.label}</span>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-      </section>
-
-      <section id="memory" className="relative overflow-hidden py-20 sm:py-24 lg:py-32">
-        <div className={pageShell}>
-          <div className="relative mb-16 sm:mb-24 lg:mb-32">
-            <div className="grid items-end gap-6 sm:gap-8 lg:grid-cols-12">
-              <div className="lg:col-span-7">
-                <Reveal>
-                  <span className="mb-6 inline-flex items-center text-sm text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    Memory
+          {/* Missi identity + social proof — fills the dead zone on mobile */}
+          <Reveal delay={0.32} className="mt-auto pt-8 sm:hidden">
+            {/* Identity chips */}
+            <div className="mb-5 flex flex-wrap gap-2">
+              {[
+                { label: "Voice chat", icon: Mic },
+                { label: "Memory", icon: BrainCircuit },
+                { label: "Reminders", icon: Bell },
+                { label: "Exam Buddy", icon: GraduationCap },
+                { label: "Budget Buddy", icon: Wallet },
+              ].map((chip) => {
+                const Icon = chip.icon
+                return (
+                  <span
+                    key={chip.label}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/70 backdrop-blur-sm"
+                  >
+                    <Icon className="h-3 w-3" />
+                    {chip.label}
                   </span>
-                </Reveal>
-                <Reveal delay={0.08}>
-                  <h2 className="text-[2.9rem] leading-[0.9] tracking-tight sm:text-6xl md:text-7xl lg:text-[128px]" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                    Context that
-                    <br />
-                    <span className="text-white/35">stays alive.</span>
-                  </h2>
-                </Reveal>
-              </div>
-              <div className="lg:col-span-5 lg:pb-4">
-                <Reveal delay={0.16}>
-                  <p className="text-base leading-relaxed text-white/55 sm:text-xl">
-                    This section mirrors the Agentic reference layout, but the story is missiAI: a companion that keeps the people, plans, moods, and small details that make help actually feel personal.
-                  </p>
-                </Reveal>
-              </div>
+                )
+              })}
             </div>
-          </div>
-
-          <Reveal className="grid gap-6 lg:grid-cols-12">
-            <div className="group relative flex min-h-[420px] overflow-hidden border border-white/10 bg-black sm:min-h-[500px] lg:col-span-12">
-              <div className="relative flex-1 bg-black p-6 sm:p-8 lg:p-12">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(236,168,214,0.14),transparent_34%),radial-gradient(circle_at_44%_76%,rgba(103,232,249,0.1),transparent_26%)]" />
-                <div className="relative z-10 max-w-xl">
-                  <span className="text-sm text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    01
-                  </span>
-                  <h3 className="mt-4 text-2xl transition-transform duration-500 group-hover:translate-x-2 sm:text-3xl lg:text-4xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                    One conversation that keeps deepening.
-                  </h3>
-                  <p className="mt-5 max-w-md text-base leading-relaxed text-white/58 sm:mt-6 sm:text-lg">
-                    missi does not reset every time you come back. It can carry your routines, people, projects, and emotional context forward so the next moment begins with understanding.
-                  </p>
-                  <div className="mt-10 space-y-4">
-                    {[
-                      "People, places, and plans stay nearby",
-                      "Voice-first capture makes memory feel effortless",
-                      "Daily help grows from what already matters to you",
-                    ].map((item) => (
-                      <div key={item} className="flex items-center gap-3 border-t border-white/10 pt-4 text-sm text-white/62 sm:gap-4 sm:text-base">
-                        <div className="h-1.5 w-1.5 rounded-full bg-[#eca8d6]" />
-                        <span>{item}</span>
-                      </div>
-                    ))}
+            {/* Social proof */}
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {["P", "M", "A", "R"].map((initial) => (
+                  <div key={initial} className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-white/10 text-[10px] text-white/70">
+                    {initial}
                   </div>
-                  <div className="mt-10">
-                    <span className="text-4xl sm:text-5xl lg:text-6xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                      1 thread
-                    </span>
-                    <span className="mt-2 block text-sm text-white/42" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                      across voice, reminders, notes, and follow-ups
-                    </span>
-                  </div>
-                </div>
+                ))}
               </div>
-              <div className="relative hidden w-[42%] shrink-0 overflow-hidden lg:block">
-                <img
-                  src="/images/landing/atmospheric-portrait.png"
-                  alt="Atmospheric portrait"
-                  className="absolute inset-0 h-full w-full object-cover object-center"
-                  style={{ transform: "scaleX(-1)" }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent" />
-              </div>
+              <p className="text-xs text-white/60 font-mono">
+                500+ students & professionals
+              </p>
             </div>
           </Reveal>
         </div>
+
+        {/* Mobile-only fixed bottom CTA */}
+        <Reveal delay={0.24} className="sm:hidden fixed bottom-0 left-0 right-0 z-20 px-5 pb-8 pt-4 bg-gradient-to-t from-black via-black/90 to-transparent">
+          <Link href="/chat" className="group inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-white px-8 text-sm text-black shadow-[0_8px_32px_rgba(255,255,255,0.15)] transition-all duration-300 active:scale-[0.98]">
+            <Mic className="h-4 w-4" />
+            Start talking to missi
+            <CTAArrow dark />
+          </Link>
+        </Reveal>
       </section>
 
       <section id="process" className="relative overflow-hidden bg-black py-20 text-white sm:py-24 lg:py-32">
@@ -826,15 +509,15 @@ export function AgenticMissiHome() {
           <div className="grid items-end gap-8 lg:grid-cols-2 lg:gap-12">
             <div className="overflow-hidden pb-0 lg:pb-32">
               <Reveal>
-                <span className="mb-8 inline-flex items-center text-sm text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                <span className="mb-8 inline-flex items-center text-sm text-white/60 font-mono">
                   Process
                 </span>
               </Reveal>
               <Reveal delay={0.08}>
-                <h2 className="text-[2.9rem] leading-[0.85] sm:text-6xl md:text-7xl lg:text-[128px]" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                <h2 className="text-[2.9rem] leading-[0.85] sm:text-6xl md:text-7xl lg:text-[128px] font-serif">
                   Speak.
                   <br />
-                  <span className="text-white/35">Save.</span>
+                  <span className="text-white/60">Save.</span>
                   <br />
                   <span className="text-white/15">Live.</span>
                 </h2>
@@ -843,12 +526,7 @@ export function AgenticMissiHome() {
 
             <Reveal delay={0.16} className="relative mt-2 h-[220px] overflow-hidden sm:h-[320px] lg:mt-0 lg:h-[680px]">
               <div className="pointer-events-none absolute inset-x-[14%] bottom-[6%] top-[12%] rounded-[42%] bg-[#ec7ca6]/10 blur-[72px]" />
-              <img
-                src="/images/landing/tree-artwork.png"
-                alt="Glowing tree artwork"
-                className="absolute -bottom-4 left-0 h-full w-full scale-[1.08] object-contain object-bottom"
-                style={featheredPortraitMask}
-              />
+              <Image src="/images/landing/tree-artwork.png" alt="Glowing tree artwork" className="absolute -bottom-4 left-0 h-full w-full scale-[1.08] object-contain object-bottom" style={featheredPortraitMask} fill sizes="100vw" />
               <div className="pointer-events-none absolute inset-y-0 left-0 w-[14%] bg-gradient-to-r from-black via-black/80 to-transparent" />
               <div className="pointer-events-none absolute inset-y-0 right-0 w-[10%] bg-gradient-to-l from-black via-black/70 to-transparent" />
               <div className="pointer-events-none absolute inset-x-0 top-0 h-[10%] bg-gradient-to-b from-black via-black/60 to-transparent" />
@@ -869,17 +547,17 @@ export function AgenticMissiHome() {
                 }`}
               >
                 <div className="mb-8 flex items-center gap-4">
-                  <span className={`text-3xl transition-colors duration-300 sm:text-4xl ${activeProcess === index ? "text-[#eca8d6]" : "text-white/20"}`} style={{ fontFamily: "'Instrument Serif', serif" }}>
+                  <span className={`text-3xl transition-colors duration-300 sm:text-4xl ${activeProcess === index ? "text-[#eca8d6]" : "text-white/20"} font-serif`}>
                     {step.number}
                   </span>
                   <div className="h-px flex-1 overflow-hidden bg-white/10">
                     {activeProcess === index ? <div className="h-full bg-[#eca8d6]/50 animate-[missiProgress_5.6s_linear_forwards]" /> : null}
                   </div>
                 </div>
-                <h3 className="text-2xl sm:text-3xl lg:text-4xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-serif">
                   {step.title}
                 </h3>
-                <span className="mb-6 mt-2 block text-lg text-white/40 sm:text-xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                <span className="mb-6 mt-2 block text-lg text-white/60 sm:text-xl font-serif">
                   {step.subtitle}
                 </span>
                 <p className={`text-sm leading-relaxed text-white/60 transition-opacity duration-300 sm:text-base ${activeProcess === index ? "opacity-100" : "opacity-70"}`}>
@@ -894,222 +572,210 @@ export function AgenticMissiHome() {
 
       <ProductShowcase />
 
-      <section id="presence" className="relative overflow-hidden py-20 sm:py-24 lg:py-40">
+
+      <section className="relative z-20 flex justify-center pb-12 pt-6 sm:pb-24 sm:pt-12">
+        <Reveal delay={0.1}>
+          <Link href="/chat" className="group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-white px-8 text-sm font-medium text-black shadow-[0_0_24px_rgba(255,255,255,0.08)] transition-all duration-300 hover:bg-white/90 sm:text-base">
+            <Mic className="h-4 w-4" />
+            Try missi for free
+            <CTAArrow dark />
+          </Link>
+        </Reveal>
+      </section>
+
+      <section id="memory" className="relative overflow-hidden py-20 sm:py-24 lg:py-32">
         <div className={pageShell}>
-          <div className="mb-16 sm:mb-20">
-            <Reveal>
-              <span className="mb-8 inline-flex items-center text-sm text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                Daily life
-              </span>
-            </Reveal>
-            <div className="grid items-stretch gap-6 sm:gap-8 lg:grid-cols-[auto_1fr] lg:gap-16">
-              <Reveal className="mx-auto w-32 shrink-0 sm:w-48 lg:mx-0 lg:w-72 xl:w-80">
-                <img
-                  src="/images/landing/orbital-sphere.png"
-                  alt="Orbital sphere"
-                  className="h-full w-full object-contain object-center"
-                />
-              </Reveal>
-              <div className="flex flex-col justify-center text-center lg:text-left">
+          <div className="relative mb-16 sm:mb-24 lg:mb-32">
+            <div className="grid items-end gap-6 sm:gap-8 lg:grid-cols-12">
+              <div className="lg:col-span-7">
+                <Reveal>
+                  <span className="mb-6 inline-flex items-center text-sm text-white/60 font-mono">
+                    Memory
+                  </span>
+                </Reveal>
                 <Reveal delay={0.08}>
-                  <h2 className="text-[2.9rem] leading-[0.9] sm:text-6xl md:text-7xl lg:text-[128px]" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                    Present through
+                  <h2 className="text-[2.9rem] leading-[0.9] tracking-tight sm:text-6xl md:text-7xl lg:text-[128px] font-serif">
+                    Context that
                     <br />
-                    <span className="text-white/35">the whole day.</span>
+                    <span className="text-white/60">stays alive.</span>
                   </h2>
                 </Reveal>
+              </div>
+              <div className="lg:col-span-5 lg:pb-4">
                 <Reveal delay={0.16}>
-                  <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-white/55 sm:mt-8 sm:text-xl lg:mx-0">
-                    missiAI is not just a chat screen. It is meant to show up in the moments where life actually happens: planning, remembering, studying, reflecting, and keeping small promises to yourself.
+                  <p className="text-base leading-relaxed text-white/70 sm:text-xl">
+                    Every interaction with missi builds a lasting context. People, plans, moods, and the small details that make up your day are preserved so your personal AI can offer help that actually feels personal.
                   </p>
                 </Reveal>
               </div>
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-12">
-            <Reveal className="relative overflow-hidden border border-white/10 bg-white/[0.02] p-6 sm:p-8 lg:col-span-7 lg:p-12">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(236,168,214,0.12),transparent_26%),radial-gradient(circle_at_68%_70%,rgba(103,232,249,0.08),transparent_28%)]" />
-              <div className="relative z-10">
-                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
-                  <span className="text-5xl leading-none sm:text-7xl lg:text-[9rem]" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                    24/7
+          <Reveal className="grid gap-6 lg:grid-cols-12">
+            <div className="group relative flex min-h-[420px] overflow-hidden border border-white/10 bg-black sm:min-h-[500px] lg:col-span-12">
+              <div className="relative flex-1 bg-black p-6 sm:p-8 lg:p-12">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(236,168,214,0.14),transparent_34%),radial-gradient(circle_at_44%_76%,rgba(103,232,249,0.1),transparent_26%)]" />
+                <div className="relative z-10 max-w-xl">
+                  <span className="text-sm text-white/60 font-mono">
+                    01
                   </span>
-                  <span className="text-lg text-white/45 sm:text-2xl">presence</span>
+                  <h3 className="mt-4 text-2xl transition-transform duration-500 group-hover:translate-x-2 sm:text-3xl lg:text-4xl font-serif">
+                    One conversation that keeps deepening.
+                  </h3>
+                  <p className="mt-5 max-w-md text-base leading-relaxed text-white/58 sm:mt-6 sm:text-lg">
+                    missi does not reset every time you come back. It can carry your routines, people, projects, and emotional context forward so the next moment begins with understanding.
+                  </p>
+                  <div className="mt-10 space-y-4">
+                    {[
+                      "People, places, and plans stay nearby",
+                      "Voice-first capture makes memory feel effortless",
+                      "Daily help grows from what already matters to you",
+                    ].map((item) => (
+                      <div key={item} className="flex items-center gap-3 border-t border-white/10 pt-4 text-sm text-white/62 sm:gap-4 sm:text-base">
+                        <div className="h-1.5 w-1.5 rounded-full bg-[#eca8d6]" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-10">
+                    <span className="text-4xl sm:text-5xl lg:text-6xl font-serif">
+                      1 thread
+                    </span>
+                    <span className="mt-2 block text-sm text-white/60 font-mono">
+                      across voice, reminders, notes, and follow-ups
+                    </span>
+                  </div>
                 </div>
-                <p className="max-w-md text-sm text-white/58 sm:text-base">
-                  A calmer companion works best when it can stay consistent across voice, notes, reminders, study sessions, and quiet check-ins.
-                </p>
               </div>
-            </Reveal>
-            <Reveal delay={0.08} className="flex flex-col justify-between border border-white/10 bg-white/[0.02] p-6 sm:p-8 lg:col-span-5">
-              <span className="text-xs uppercase tracking-[0.22em] text-white/40" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                Daily rhythm
-              </span>
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-2 w-2 rounded-full bg-[#eca8d6]" />
-                  <span className="text-sm text-white/70">Morning briefs</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="h-2 w-2 rounded-full bg-[#67e8f9]" />
-                  <span className="text-sm text-white/70">Study sessions</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="h-2 w-2 rounded-full bg-[#a78bfa]" />
-                  <span className="text-sm text-white/70">Evening reflection</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="h-2 w-2 rounded-full bg-white/20" />
-                  <span className="text-sm text-white/45">Quiet standby</span>
-                </div>
+              <div className="relative hidden w-[42%] shrink-0 overflow-hidden lg:block">
+                <Image
+                  src="/images/landing/atmospheric-portrait.png"
+                  alt="Atmospheric portrait"
+                  className="object-cover object-center"
+                  fill
+                  sizes="(max-width: 1024px) 0vw, 42vw"
+                  style={{ transform: "scaleX(-1)" }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent" />
               </div>
-            </Reveal>
-          </div>
-
-          <Reveal delay={0.16} className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {presenceModes.map((mode, index) => (
-              <div
-                key={mode.title}
-                className={`cursor-default border p-5 transition-all duration-300 sm:p-6 ${
-                  activePresence === index ? "border-white/30 bg-white/[0.04]" : "border-white/10"
-                }`}
-              >
-                <div className="mb-3 flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full transition-colors ${activePresence === index ? "bg-[#eca8d6]" : "bg-white/20"}`} />
-                  <span className="text-xs uppercase tracking-[0.24em] text-white/38" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    active
-                  </span>
-                </div>
-                <span className="mb-2 block font-medium text-white">{mode.title}</span>
-                <span className="text-sm text-white/50">{mode.description}</span>
-              </div>
-            ))}
+            </div>
           </Reveal>
         </div>
       </section>
 
-      <section className="relative overflow-hidden pb-20 pt-24 sm:pb-24 sm:pt-28 lg:pb-40 lg:pt-48">
-        <GridBackground />
+      <section id="trust" className="relative overflow-hidden py-20 sm:py-24 lg:py-40">
+        <div className={pageShell}>
+          <div className="mb-16 sm:mb-20">
+            <Reveal>
+              <span className="mb-8 inline-flex items-center text-sm text-white/60 font-mono">
+                Trust
+              </span>
+            </Reveal>
+            <Reveal delay={0.08}>
+              <h2 className="mb-8 text-[2.9rem] leading-[0.9] sm:mb-12 sm:text-6xl md:text-7xl lg:text-[128px] font-serif">
+                Personal,
+                <br />
+                <span className="text-white/60">not intrusive.</span>
+              </h2>
+            </Reveal>
+            <Reveal delay={0.16}>
+              <p className="max-w-2xl text-base leading-relaxed text-white/70 sm:text-xl">
+                A memory product only works if it feels safe. missiAI should be warm, capable, and private at the same time.
+              </p>
+            </Reveal>
+          </div>
 
-        <div className={`relative z-10 ${pageShell}`}>
-          <div className="mb-16 grid gap-6 sm:gap-8 lg:mb-32 lg:grid-cols-12">
-            <div className="lg:col-span-8 lg:col-start-1">
-              <Reveal>
-                <div className="mb-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
-                  <span className="flex items-center gap-2 bg-[#eca8d6]/10 px-3 py-1 text-xs text-[#eca8d6]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    <span className="h-2 w-2 rounded-full bg-[#eca8d6] animate-pulse" />
-                    LIVE FEEL
+          <div className="grid gap-6 lg:grid-cols-12">
+            <Reveal className="relative min-h-[420px] overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] lg:col-span-7 p-6 sm:min-h-[440px] sm:p-8 lg:p-12">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(236,168,214,0.16),transparent_24%),radial-gradient(circle_at_72%_70%,rgba(103,232,249,0.12),transparent_28%)]" />
+              <Shield className="absolute bottom-6 right-6 h-24 w-24 text-white/[0.05] sm:bottom-10 sm:right-10 sm:h-32 sm:w-32 lg:h-40 lg:w-40" />
+              <div className="relative z-10 flex h-full flex-col justify-between">
+                <div>
+                  <span className="text-sm uppercase tracking-[0.22em] text-white/60 font-mono">
+                    Control
                   </span>
-                  <span className="text-sm text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    designed for natural daily use
-                  </span>
+                  <h3 className="mt-5 max-w-[9ch] text-4xl leading-[0.92] sm:mt-6 sm:text-5xl md:text-6xl lg:text-7xl font-serif">
+                    You stay in control.
+                  </h3>
+                  <p className="mt-5 max-w-lg text-base leading-relaxed text-white/56 sm:mt-6 sm:text-lg">
+                    Memory should stay editable, understandable, and permission-led — useful when invited, quiet when not.
+                  </p>
                 </div>
-              </Reveal>
-              <Reveal delay={0.08}>
-                <h2 className="text-[2.9rem] leading-[0.95] sm:text-6xl md:text-7xl lg:text-[140px]" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                  Real-time
-                  <br />
-                  <span className="text-white/35">companion feel.</span>
-                </h2>
-              </Reveal>
+                <div className="mt-8 grid gap-4 sm:mt-12 sm:grid-cols-2 lg:max-w-[85%]">
+                  {[
+                    { label: "Review before trust", value: "Editable memory" },
+                    { label: "Boundaries first", value: "Permission aware" },
+                  ].map((item) => (
+                    <div key={item.label} className="border border-white/10 bg-black/20 p-4">
+                      <span className="block text-[11px] uppercase tracking-[0.22em] text-white/60 font-mono">
+                        {item.label}
+                      </span>
+                      <span className="mt-2 block text-lg text-white">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-10 flex flex-wrap gap-2">
+                  {[
+                    "Encrypted",
+                    "Delete anytime",
+                    "Reviewable context",
+                    "Permission aware",
+                  ].map((badge, index) => (
+                    <span
+                      key={badge}
+                      className="border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-white/52 font-mono"
+                      style={{
+                        transitionDelay: `${index * 100}ms`,
+                      }}
+                    >
+                      {badge}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+
+            <div className="flex flex-col gap-4 lg:col-span-5">
+              {trustFeatures.map((feature, index) => {
+                const Icon = feature.icon
+                return (
+                  <Reveal key={feature.title} delay={0.08 + index * 0.06}>
+                    <div className="flex flex-col gap-3 border border-white/10 bg-white/[0.02] p-5 sm:p-6 transition-colors hover:border-white/15">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-white/15 bg-white/[0.03]">
+                          <Icon className="h-4 w-4 text-white/70" />
+                        </div>
+                        <span className="text-[11px] uppercase tracking-[0.22em] text-white/60 font-mono">
+                          {feature.label}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-medium text-white">{feature.title}</h3>
+                      <p className="text-sm leading-relaxed text-white/70">{feature.description}</p>
+                    </div>
+                  </Reveal>
+                )
+              })}
             </div>
           </div>
-        </div>
-
-        <Reveal delay={0.16} className="relative w-full overflow-hidden">
-          <div className="pointer-events-none absolute inset-x-[6%] bottom-[4%] top-[6%] rounded-[42%] bg-[#eca8d6]/10 blur-[96px]" />
-          <img
-            src="/images/landing/realtime-graph.png"
-            alt="Organic graph artwork"
-            className="relative z-10 h-auto w-full scale-[1.06] object-cover"
-            style={featheredLandscapeMask}
-          />
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-[5%] bg-gradient-to-r from-black to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-[5%] bg-gradient-to-l from-black to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[8%] bg-gradient-to-b from-black via-black/70 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[12%] bg-gradient-to-t from-black via-black/85 to-transparent" />
-        </Reveal>
-
-        <div className={`relative z-10 ${pageShell}`}>
-          <div className="relative z-10 -mt-6 grid gap-4 sm:-mt-8 lg:-mt-14 lg:grid-cols-3">
-            {[
-              {
-                delay: 0,
-                eyebrow: "memory that keeps building",
-                title: "continuous memory thread",
-                value: <AnimatedCounter end={1} />,
-                note: "across voice, notes, reminders, and follow-up context",
-                accent: false,
-              },
-              {
-                delay: 0.08,
-                eyebrow: "understands every language",
-                title: "language flexibility",
-                value: "all",
-                note: "across languages, accents, and the way people naturally speak worldwide",
-                accent: true,
-              },
-              {
-                delay: 0.16,
-                eyebrow: "fast enough to stay natural",
-                title: "voice response feel",
-                value: <AnimatedCounter end={200} prefix="<" suffix="ms" />,
-                note: "quick enough to keep the conversation fluid instead of feeling delayed",
-                accent: false,
-              },
-            ].map((card) => (
-              <Reveal
-                key={card.title}
-                delay={card.delay}
-                className="flex min-h-[270px] flex-col justify-between gap-6 border border-white/10 bg-white/[0.02] p-6 sm:min-h-[300px] sm:p-8 lg:p-10"
-              >
-                <div className="w-full">
-                  <div className="mb-2 text-sm text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    {card.eyebrow}
-                  </div>
-                  <div className="mb-3 text-base text-white">{card.title}</div>
-                  <DotGraph accent={card.accent} height={24} />
-                </div>
-                <div>
-                  <div className="text-2xl tracking-tight sm:text-3xl md:text-4xl lg:text-5xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                    {card.value}
-                  </div>
-                  <div className="mt-2 text-sm leading-relaxed text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    {card.note}
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-
-          <Reveal delay={0.24} className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-white/10 pt-6 text-sm text-white/45 sm:mt-16 sm:gap-x-12 sm:gap-y-4 sm:pt-8" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            <span>Voice chat</span>
-            <span>Daily briefs</span>
-            <span>Reminders</span>
-            <span>Notes</span>
-            <span>Budget Buddy</span>
-            <span className="text-white">Exam Buddy</span>
-          </Reveal>
         </div>
       </section>
 
       <section id="tools" className="relative overflow-hidden pb-6 sm:pb-8 lg:pb-0">
         <div className="relative z-10 px-5 pt-20 text-center sm:px-6 sm:pt-24 lg:px-0 lg:pt-40">
           <Reveal>
-            <span className="mb-8 inline-flex items-center justify-center text-sm text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+            <span className="mb-8 inline-flex items-center justify-center text-sm text-white/60 font-mono">
               Tools
             </span>
           </Reveal>
           <Reveal delay={0.08}>
-            <h2 className="text-[2.9rem] leading-[0.9] sm:text-6xl md:text-7xl lg:text-[128px]" style={{ fontFamily: "'Instrument Serif', serif" }}>
+            <h2 className="text-[2.9rem] leading-[0.9] sm:text-6xl md:text-7xl lg:text-[128px] font-serif">
               Connected to
               <br />
-              <span className="text-white/35">your daily stack.</span>
+              <span className="text-white/60">your daily stack.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.16}>
-            <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-white/55 sm:mt-8 sm:text-xl">
+            <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-white/70 sm:mt-8 sm:text-xl">
               missiAI is not just memory for memory&apos;s sake. It connects that context to the tools and moments that keep a real day moving.
             </p>
           </Reveal>
@@ -1117,12 +783,7 @@ export function AgenticMissiHome() {
 
         <Reveal delay={0.2} className="relative mt-8 w-full overflow-hidden sm:mt-10 lg:mt-0">
           <div className="pointer-events-none absolute inset-x-[6%] bottom-[4%] top-[6%] rounded-[44%] bg-[#ff876e]/12 blur-[104px]" />
-          <img
-            src="/images/landing/connection-artwork.png"
-            alt="Connection artwork"
-            className="relative z-10 h-auto w-full scale-[1.06] object-cover"
-            style={featheredLandscapeMask}
-          />
+          <Image src="/images/landing/connection-artwork.png" alt="Connection artwork" width={1800} height={873} className="relative z-10 h-auto w-full scale-[1.06] object-cover" style={featheredLandscapeMask} sizes="100vw" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-[5%] bg-gradient-to-r from-black to-transparent" />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-[5%] bg-gradient-to-l from-black to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 top-0 h-[8%] bg-gradient-to-b from-black via-black/70 to-transparent" />
@@ -1166,9 +827,8 @@ export function AgenticMissiHome() {
                   ) : null}
                   <span
                     className={`absolute right-3 top-3 px-2 py-0.5 text-[10px] transition-colors ${
-                      isHovered ? "bg-white text-black" : "bg-white/10 text-white/45"
-                    }`}
-                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                      isHovered ? "bg-white text-black" : "bg-white/10 text-white/60"
+                    } font-mono`}
                   >
                     {tool.category}
                   </span>
@@ -1192,116 +852,18 @@ export function AgenticMissiHome() {
                 { value: "Daily", label: "real-life support" },
               ].map((stat) => (
                 <div key={stat.label} className="flex items-baseline gap-3">
-                  <span className="text-3xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                  <span className="text-3xl font-serif">
                     {stat.value}
                   </span>
-                  <span className="text-sm text-white/45">{stat.label}</span>
+                  <span className="text-sm text-white/60">{stat.label}</span>
                 </div>
               ))}
             </div>
-            <Link href="/chat" className="group inline-flex items-center gap-2 text-sm text-white/45 transition-colors hover:text-white" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+            <Link href="/chat" className="group inline-flex items-center gap-2 text-sm text-white/60 transition-colors hover:text-white font-mono">
               Open missi now
               <CTAArrow />
             </Link>
           </Reveal>
-        </div>
-      </section>
-
-      <section id="trust" className="relative overflow-hidden py-20 sm:py-24 lg:py-40">
-        <div className={pageShell}>
-          <div className="mb-16 sm:mb-20">
-            <Reveal>
-              <span className="mb-8 inline-flex items-center text-sm text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                Trust
-              </span>
-            </Reveal>
-            <Reveal delay={0.08}>
-              <h2 className="mb-8 text-[2.9rem] leading-[0.9] sm:mb-12 sm:text-6xl md:text-7xl lg:text-[128px]" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                Personal,
-                <br />
-                <span className="text-white/35">not intrusive.</span>
-              </h2>
-            </Reveal>
-            <Reveal delay={0.16}>
-              <p className="max-w-2xl text-base leading-relaxed text-white/55 sm:text-xl">
-                A memory product only works if it feels safe. missiAI should be warm, capable, and private at the same time.
-              </p>
-            </Reveal>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-12">
-            <Reveal className="relative min-h-[420px] overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] lg:col-span-7 p-6 sm:min-h-[440px] sm:p-8 lg:p-12">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(236,168,214,0.16),transparent_24%),radial-gradient(circle_at_72%_70%,rgba(103,232,249,0.12),transparent_28%)]" />
-              <Shield className="absolute bottom-6 right-6 h-24 w-24 text-white/[0.05] sm:bottom-10 sm:right-10 sm:h-32 sm:w-32 lg:h-40 lg:w-40" />
-              <div className="relative z-10 flex h-full flex-col justify-between">
-                <div>
-                  <span className="text-sm uppercase tracking-[0.22em] text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    Control
-                  </span>
-                  <h3 className="mt-5 max-w-[9ch] text-4xl leading-[0.92] sm:mt-6 sm:text-5xl md:text-6xl lg:text-7xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                    You stay in control.
-                  </h3>
-                  <p className="mt-5 max-w-lg text-base leading-relaxed text-white/56 sm:mt-6 sm:text-lg">
-                    Memory should stay editable, understandable, and permission-led — useful when invited, quiet when not.
-                  </p>
-                </div>
-                <div className="mt-8 grid gap-4 sm:mt-12 sm:grid-cols-2 lg:max-w-[85%]">
-                  {[
-                    { label: "Review before trust", value: "Editable memory" },
-                    { label: "Boundaries first", value: "Permission aware" },
-                  ].map((item) => (
-                    <div key={item.label} className="border border-white/10 bg-black/20 p-4">
-                      <span className="block text-[11px] uppercase tracking-[0.22em] text-white/35" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                        {item.label}
-                      </span>
-                      <span className="mt-2 block text-lg text-white">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-10 flex flex-wrap gap-2">
-                  {[
-                    "Encrypted",
-                    "Delete anytime",
-                    "Reviewable context",
-                    "Permission aware",
-                  ].map((badge, index) => (
-                    <span
-                      key={badge}
-                      className="border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-white/52"
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        transitionDelay: `${index * 100}ms`,
-                      }}
-                    >
-                      {badge}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </Reveal>
-
-            <div className="flex flex-col gap-4 lg:col-span-5">
-              {trustFeatures.map((feature, index) => {
-                const Icon = feature.icon
-                return (
-                  <Reveal key={feature.title} delay={0.08 + index * 0.06}>
-                    <div className="flex flex-col gap-3 border border-white/10 bg-white/[0.02] p-5 sm:p-6 transition-colors hover:border-white/15">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-white/15 bg-white/[0.03]">
-                          <Icon className="h-4 w-4 text-white/70" />
-                        </div>
-                        <span className="text-[11px] uppercase tracking-[0.22em] text-white/40" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                          {feature.label}
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-medium text-white">{feature.title}</h3>
-                      <p className="text-sm leading-relaxed text-white/50">{feature.description}</p>
-                    </div>
-                  </Reveal>
-                )
-              })}
-            </div>
-          </div>
         </div>
       </section>
 
@@ -1312,10 +874,10 @@ export function AgenticMissiHome() {
               <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(600px_circle_at_18%_28%,rgba(255,255,255,0.18),transparent_42%)]" />
               <div className="relative z-10 grid gap-8 px-6 py-10 sm:gap-12 sm:px-8 sm:py-16 lg:grid-cols-12 lg:px-16 lg:py-20">
                 <div className="lg:col-span-7">
-                  <span className="inline-flex items-center text-sm text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                  <span className="inline-flex items-center text-sm text-white/60 font-mono">
                     Begin
                   </span>
-                  <h2 className="mt-6 text-[2.6rem] leading-[0.95] sm:mt-8 sm:text-5xl md:text-6xl lg:text-[72px]" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                  <h2 className="mt-6 text-[2.6rem] leading-[0.95] sm:mt-8 sm:text-5xl md:text-6xl lg:text-[72px] font-serif">
                     Ready to live
                     <br />
                     with missi?
@@ -1333,25 +895,21 @@ export function AgenticMissiHome() {
                       Read the manifesto
                     </Link>
                   </div>
-                  <p className="mt-4 flex items-center gap-2 text-xs text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                  <p className="mt-4 flex items-center gap-2 text-xs text-white/60 font-mono">
                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
                     Free forever — no credit card required
                   </p>
-                  <p className="mt-4 text-sm text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                  <p className="mt-4 text-sm text-white/60 font-mono">
                     Voice, memory, reminders, Budget Buddy, and Exam Buddy in one system
                   </p>
                 </div>
                 <div className="hidden lg:col-span-5 lg:block">
                   <div className="relative min-h-[420px] overflow-hidden border border-white/10 bg-black/30">
-                    <img
-                      src="/images/landing/connection-artwork.png"
-                      alt="Connection artwork"
-                      className="absolute inset-0 h-full w-full scale-110 object-cover object-center opacity-85"
-                    />
+                    <Image src="/images/landing/connection-artwork.png" alt="Connection artwork" className="absolute inset-0 h-full w-full scale-110 object-cover object-center opacity-85" fill sizes="100vw" />
                     <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-transparent to-black/10" />
                     <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black to-transparent" />
                     <div className="absolute bottom-6 left-6">
-                      <span className="text-xs uppercase tracking-[0.24em] text-white/38" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                      <span className="text-xs uppercase tracking-[0.24em] text-white/60 font-mono">
                         Always nearby
                       </span>
                       <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/60">
@@ -1372,7 +930,7 @@ export function AgenticMissiHome() {
         <div className={pageShell}>
           <div className="mb-10 text-center">
             <Reveal>
-              <span className="inline-flex items-center text-sm text-white/45" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+              <span className="inline-flex items-center text-sm text-white/60 font-mono">
                 People talking to missi
               </span>
             </Reveal>
@@ -1397,7 +955,7 @@ export function AgenticMissiHome() {
             ].map((t, i) => (
               <Reveal key={t.name} delay={i * 0.08}>
                 <div className="flex h-full flex-col justify-between border border-white/10 bg-white/[0.02] p-6 transition-colors hover:border-white/20 sm:p-8">
-                  <p className="text-base leading-relaxed text-white/70" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                  <p className="text-base leading-relaxed text-white/70 font-serif">
                     &ldquo;{t.quote}&rdquo;
                   </p>
                   <div className="mt-6 flex items-center gap-3">
@@ -1406,7 +964,7 @@ export function AgenticMissiHome() {
                     </div>
                     <div>
                       <p className="text-sm text-white/80">{t.name}</p>
-                      <p className="text-xs text-white/40">{t.role}</p>
+                      <p className="text-xs text-white/60">{t.role}</p>
                     </div>
                   </div>
                 </div>
@@ -1418,11 +976,7 @@ export function AgenticMissiHome() {
 
       <footer className="relative bg-black">
         <div className="relative h-[120px] w-full overflow-hidden sm:h-[340px] md:h-[420px]">
-          <img
-            src="/images/landing/footer-landscape.png"
-            alt="Bioluminescent landscape"
-            className="h-full w-full object-cover object-center"
-          />
+          <Image src="/images/landing/footer-landscape.png" alt="Bioluminescent landscape" className="h-full w-full object-cover object-center" fill sizes="100vw" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40" />
         </div>
@@ -1437,7 +991,7 @@ export function AgenticMissiHome() {
                     <LEDLogo className="w-[84px] sm:w-[90px] justify-start" />
                   </div>
                 </div>
-                <p className="mb-6 max-w-xs text-sm leading-relaxed text-white/50 sm:mb-8">
+                <p className="mb-6 max-w-xs text-sm leading-relaxed text-white/70 sm:mb-8">
                   Voice-first personal AI with memory. Built to help with planning, remembering, studying, reflecting, and staying present in daily life.
                 </p>
                 <div className="flex flex-wrap gap-3 sm:gap-6">
@@ -1446,7 +1000,7 @@ export function AgenticMissiHome() {
                     { name: "Manifesto", href: "/manifesto" },
                     { name: "Chat", href: "/chat" },
                   ].map((link) => (
-                    <Link key={link.name} href={link.href} className="group inline-flex items-center gap-1 text-sm text-white/40 transition-colors hover:text-white">
+                    <Link key={link.name} href={link.href} className="group inline-flex items-center gap-1 text-sm text-white/60 transition-colors hover:text-white">
                       {link.name}
                     </Link>
                   ))}
@@ -1460,7 +1014,7 @@ export function AgenticMissiHome() {
                     <ul className="space-y-3 sm:space-y-4">
                       {links.map((link) => (
                         <li key={link.name}>
-                          <Link href={link.href} className="inline-flex items-center gap-2 text-sm text-white/40 transition-colors hover:text-white">
+                          <Link href={link.href} className="inline-flex items-center gap-2 text-sm text-white/60 transition-colors hover:text-white">
                             {link.name}
                           </Link>
                         </li>
@@ -1473,8 +1027,8 @@ export function AgenticMissiHome() {
           </div>
 
           <div className="flex flex-col items-start justify-between gap-4 border-t border-white/10 py-6 text-left sm:py-8 md:flex-row md:items-center">
-            <p className="text-sm text-white/30">&copy; {new Date().getFullYear()} missiAI. All rights reserved.</p>
-            <div className="flex items-center gap-4 text-sm text-white/30">
+            <p className="text-sm text-white/60">&copy; {new Date().getFullYear()} missiAI. All rights reserved.</p>
+            <div className="flex items-center gap-4 text-sm text-white/60">
               <span className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-[#eca8d6]" />
                 Memory system online
