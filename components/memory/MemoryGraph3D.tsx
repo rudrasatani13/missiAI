@@ -3,6 +3,10 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { LifeNode } from '@/types/memory'
 import dynamic from 'next/dynamic'
+import {
+  buildMemoryGraphData,
+  getMemoryGraphRenderSettings,
+} from '@/lib/memory/graph-visualization'
 
 // Dynamically import the ForceGraph3D component to disable SSR since Canvas doesn't work server-side
 const ForceGraph3D = dynamic(() => import('react-force-graph-3d'), { ssr: false })
@@ -15,58 +19,11 @@ export default function MemoryGraph3D({
   onNodeSelect?: (node: LifeNode | null) => void
 }) {
   const fgRef = useRef<any>(null)
-  // Generate links based on shared categories, tags, and people
-  const graphData = useMemo(() => {
-    const links: any[] = []
-    
-    // Pre-calculate sets for O(1) lookups
-    const nodeTagsSets = nodes.map(n => new Set(n.tags || []))
-    const nodePeopleSets = nodes.map(n => new Set(n.people || []))
-
-    // Simple naive linking mapping nodes to each other based on shared context
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const n1 = nodes[i]
-        const n2 = nodes[j]
-        
-        let linkValue = 0
-
-        // Link by shared tags
-        let sharedTags = 0
-        const n2Tags = nodeTagsSets[j]
-        n1.tags.forEach(t => { if (n2Tags.has(t)) sharedTags++ })
-        linkValue += sharedTags * 2
-
-        // Link by shared people
-        let sharedPeople = 0
-        const n2People = nodePeopleSets[j]
-        n1.people.forEach(p => { if (n2People.has(p)) sharedPeople++ })
-        linkValue += sharedPeople * 3
-
-        // Link weakly by category
-        if (n1.category === n2.category) {
-          linkValue += 0.5
-        }
-
-        if (linkValue > 0) {
-          links.push({
-            source: n1.id,
-            target: n2.id,
-            value: linkValue
-          })
-        }
-      }
-    }
-
-    return {
-      nodes: nodes.map(n => ({
-        ...n,
-        // Make nodes size proportional to emotional weight/confidence
-        val: ((n.emotionalWeight || 0.5) + (n.confidence || 0.5)) * 5
-      })),
-      links
-    }
-  }, [nodes])
+  const graphData = useMemo(() => buildMemoryGraphData(nodes), [nodes])
+  const renderSettings = useMemo(
+    () => getMemoryGraphRenderSettings(graphData.nodes.length, graphData.links.length),
+    [graphData.links.length, graphData.nodes.length],
+  )
 
   // Map categories to colors
   const getColor = (category: string) => {
@@ -135,12 +92,12 @@ export default function MemoryGraph3D({
         nodeLabel="title"
         nodeColor={(node: any) => getColor(node.category)}
         nodeRelSize={7}
-        nodeResolution={32}
+        nodeResolution={renderSettings.nodeResolution}
         nodeOpacity={0.85}
         linkWidth={(link: any) => Math.min(link.value * 0.3, 2)}
         linkOpacity={0.4}
         linkColor={() => 'rgba(255, 255, 255, 0.15)'}
-        linkDirectionalParticles={1}
+        linkDirectionalParticles={renderSettings.linkDirectionalParticles}
         linkDirectionalParticleWidth={1.5}
         linkDirectionalParticleColor={() => 'rgba(255, 255, 255, 0.6)'}
         backgroundColor="#000000"

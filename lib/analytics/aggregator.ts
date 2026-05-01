@@ -14,6 +14,7 @@ export async function buildAnalyticsSnapshot(
   kv: KVStore
 ): Promise<AnalyticsSnapshot> {
   let aggregationCaughtUp = true
+  let cachedSnapshot: AnalyticsSnapshot | null = null
   try {
     aggregationCaughtUp = (await getAnalyticsAggregationStatus(kv)).isCaughtUp
   } catch {
@@ -22,11 +23,11 @@ export async function buildAnalyticsSnapshot(
 
   // Check cache first
   try {
-    const snapshot = await getAnalyticsSnapshotCache(kv)
-    if (snapshot && aggregationCaughtUp) {
-      const age = Date.now() - snapshot.generatedAt
+    cachedSnapshot = await getAnalyticsSnapshotCache(kv)
+    if (cachedSnapshot && aggregationCaughtUp) {
+      const age = Date.now() - cachedSnapshot.generatedAt
       if (age < SNAPSHOT_TTL * 1000) {
-        return snapshot
+        return cachedSnapshot
       }
     }
   } catch {
@@ -51,7 +52,7 @@ export async function buildAnalyticsSnapshot(
     yesterday: yesterdayStats,
     last7Days: last7DaysStats,
     lifetime: lifetimeTotals,
-    generatedAt: Date.now(),
+    generatedAt: Math.max(Date.now(), (cachedSnapshot?.generatedAt ?? 0) + 1),
   }
 
   // Cache the snapshot

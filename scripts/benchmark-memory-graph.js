@@ -78,31 +78,39 @@ const testOptimized = () => {
   const links = [];
   const start = performance.now();
 
-  const nodeTagsSets = nodes.map(n => new Set(n.tags || []));
-  const nodePeopleSets = nodes.map(n => new Set(n.people || []));
+  const nodeTagArrays = nodes.map(n => n.tags || []);
+  const nodeTagSets = nodeTagArrays.map(tags => new Set(tags));
+  const nodePeopleArrays = nodes.map(n => n.people || []);
+  const nodePeopleSets = nodePeopleArrays.map(people => new Set(people));
 
   for (let i = 0; i < nodes.length; i++) {
+    const n1 = nodes[i];
+    const n1Tags = nodeTagArrays[i];
+    const n1TagSet = nodeTagSets[i];
+    const n1People = nodePeopleArrays[i];
+    const n1PeopleSet = nodePeopleSets[i];
+
     for (let j = i + 1; j < nodes.length; j++) {
-      const n1 = nodes[i];
       const n2 = nodes[j];
 
-      let linkValue = 0;
+      let linkValue = n1.category === n2.category ? 0.5 : 0;
 
       // Link by shared tags
-      let sharedTags = 0;
-      const n2Tags = nodeTagsSets[j];
-      n1.tags.forEach(t => { if (n2Tags.has(t)) sharedTags++; });
-      linkValue += sharedTags * 2;
+      const n2Tags = nodeTagArrays[j];
+      const n2TagsSet = nodeTagSets[j];
+      const shorterTags = n1Tags.length <= n2Tags.length ? n1Tags : n2Tags;
+      const longerTagSet = n1Tags.length <= n2Tags.length ? n2TagsSet : n1TagSet;
+      for (let t = 0; t < shorterTags.length; t++) {
+        if (longerTagSet.has(shorterTags[t])) linkValue += 2;
+      }
 
       // Link by shared people
-      let sharedPeople = 0;
-      const n2People = nodePeopleSets[j];
-      n1.people.forEach(p => { if (n2People.has(p)) sharedPeople++; });
-      linkValue += sharedPeople * 3;
-
-      // Link weakly by category
-      if (n1.category === n2.category) {
-        linkValue += 0.5;
+      const n2People = nodePeopleArrays[j];
+      const n2PeopleSet = nodePeopleSets[j];
+      const shorterPeople = n1People.length <= n2People.length ? n1People : n2People;
+      const longerPeopleSet = n1People.length <= n2People.length ? n2PeopleSet : n1PeopleSet;
+      for (let p = 0; p < shorterPeople.length; p++) {
+        if (longerPeopleSet.has(shorterPeople[p])) linkValue += 3;
       }
 
       if (linkValue > 0) {
