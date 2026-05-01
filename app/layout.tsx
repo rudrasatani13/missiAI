@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Link from "next/link";
 import { SmoothScrollProvider } from "@/components/effects/SmoothScrollProvider";
 import { CustomCursor } from "@/components/effects/CustomCursor";
+import { MissiBuddyContainer } from "@/components/buddy/MissiBuddyContainer";
 import Script from "next/script";
 
 export const metadata: Metadata = {
@@ -82,6 +83,7 @@ export default function RootLayout({
         <Providers>
           <SmoothScrollProvider>
             <CustomCursor />
+            <MissiBuddyContainer />
             <div className="min-h-screen flex flex-col">
               <div className="flex-1">{children}</div>
             <footer

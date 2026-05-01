@@ -10,6 +10,7 @@ import {
 } from "@/lib/client/fetch-with-timeout"
 import { getBestAudioMimeType, isMobileBrowser, speakWithWebSpeechAPI } from "@/lib/client/browser-support"
 import { shouldUseTTS, truncateForTTS } from "@/lib/ai/audio/tts-optimizer"
+import { useBuddyState } from "@/hooks/buddy/useBuddyState"
 import type { VoiceState, ConversationEntry, PersonalityKey } from "@/types/chat"
 import { useEmotionDetector } from "@/hooks/chat/useEmotionDetector"
 import type { AIDialSettings } from "@/hooks/chat/useChatSettings"
@@ -242,7 +243,13 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
 
   /* ── Public reactive state ──────────────────────────────────────────────── */
   const [state, setState] = useState<VoiceState>("idle")
-  const [audioLevel, setAudioLevel] = useState(0)
+  const [audioLevel, _setAudioLevel] = useState(0)
+  
+  const setAudioLevel = useCallback((level: number) => {
+    _setAudioLevel(level)
+    // Synchronize to the Buddy store globally without triggering excessive React renders
+    useBuddyState.getState().setAudioLevel(level)
+  }, [])
   const [statusText, setStatusText] = useState("Tap anywhere to speak")
   const [lastTranscript, setLastTranscript] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -291,7 +298,32 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const stateRef = useRef<VoiceState>("idle")
   
   // Keep stateRef synced so closures can read the latest state
-  useEffect(() => { stateRef.current = state }, [state])
+  useEffect(() => { 
+    stateRef.current = state 
+    // Sync voice state to Buddy state
+    if (state === "idle" || state === "thinking" || state === "speaking") {
+      // Direct mappings
+      useBuddyState.getState().setState(state)
+    } else if (state === "recording") {
+      useBuddyState.getState().setState("listening")
+    } else if (state === "transcribing") {
+      useBuddyState.getState().setState("thinking")
+    }
+  }, [state])
+
+  useEffect(() => {
+    if (!currentEmotion || currentEmotion.confidence <= 0.35) {
+      useBuddyState.getState().setEmotionReaction(null)
+      return
+    }
+
+    const intensity = Math.max(
+      0.25,
+      Math.min(1, currentEmotion.confidence * 0.65 + currentEmotion.energyLevel * 0.35),
+    )
+
+    useBuddyState.getState().setEmotionReaction(currentEmotion.state, intensity)
+  }, [currentEmotion])
 
   /**
    * Stable refs for internal functions so that event-handler closures
@@ -520,7 +552,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     }
 
     levelAnimRef.current = requestAnimationFrame(monitor)
-  }, [cancelAbort])
+  }, [cancelAbort, setAudioLevel])
 
   const stopAudioMonitor = useCallback(() => {
     if (levelAnimRef.current) cancelAnimationFrame(levelAnimRef.current)
@@ -545,7 +577,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     audioContextRef.current = null
     analyserRef.current = null
     setAudioLevel(0)
-  }, [analyzeRecording])
+  }, [analyzeRecording, setAudioLevel])
 
   /* ── TTS playback audio monitor ─────────────────────────────────────────── */
 
@@ -614,7 +646,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
       // TTS monitor is non-critical — audio still plays without visualization
       console.warn("TTS monitor unavailable:", err)
     }
-  }, [])
+  }, [setAudioLevel])
 
   const stopTTSMonitor = useCallback(() => {
     if (levelAnimRef.current) cancelAnimationFrame(levelAnimRef.current)
@@ -625,7 +657,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     }
     ttsAnalyserRef.current = null
     setAudioLevel(0)
-  }, [])
+  }, [setAudioLevel])
 
   stopTTSMonitorRef.current = stopTTSMonitor
 

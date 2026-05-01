@@ -19,6 +19,7 @@ import type { ConversationEntry } from "@/types/chat"
 import { ChatPageShell } from "@/components/chat/ChatPageShell"
 import { shouldShowOnboarding } from "@/components/chat/OnboardingTour"
 import { useVisualMemoryCapture } from "@/hooks/chat/useVisualMemoryCapture"
+import { useBuddyState } from "@/hooks/buddy/useBuddyState"
 
 import {
   getEffectiveStatusText,
@@ -35,6 +36,7 @@ export default function VoiceAssistantPage() {
   const router = useRouter()
   const memoriesRef = useRef("")
   const conversationRef = useRef<ConversationEntry[]>([])
+  const lastBuddyErrorRef = useRef<string | null>(null)
   const {
     bootCompleted,
     completeBootSequence,
@@ -133,10 +135,20 @@ export default function VoiceAssistantPage() {
       setLiveTranscriptOut(text)
     },
     onStateChange: (s) => {
-      // Model started speaking → clear user's transcript so UI shows "Speaking..." cleanly
+      // Sync Gemini live state to the Buddy store
+      const buddyStore = useBuddyState.getState()
       if (s === "speaking") {
         setLiveTranscriptIn("")
+        buddyStore.setState("speaking")
+      } else if (s === "connected") {
+        // 'connected' means it is listening / idling
+        buddyStore.setState("listening")
+      } else if (s === "disconnected" || s === "error") {
+        buddyStore.setState(s === "error" ? "error" : "idle")
+      } else if (s === "connecting") {
+        buddyStore.setState("thinking")
       }
+
       // Model finished a turn → save transcript to memory, then fade out after delay
       if (s === "connected" && liveTranscriptOut.trim()) {
         conversationRef.current.push({ role: "assistant", content: liveTranscriptOut.trim() })
@@ -147,6 +159,10 @@ export default function VoiceAssistantPage() {
         setTimeout(() => setLiveTranscriptOut(""), 2000)
       }
     },
+    onAudioLevel: (level) => {
+      // Sync Gemini audio level to the Buddy store
+      useBuddyState.getState().setAudioLevel(level)
+    },
   })
 
   // Map live state to voice state for the visualizer & StatusDisplay
@@ -154,16 +170,23 @@ export default function VoiceAssistantPage() {
 
   // Unified handleTap — uses Live mode or legacy
   const handleTap = useCallback(() => {
-    if (liveMode) {
-      if (geminiLive.state === "disconnected" || geminiLive.state === "error") {
-        // Cancel any legacy audio that might still be playing
-        cancelAll()
-        geminiLive.connect()
-      } else {
-        geminiLive.disconnect()
-      }
+    if (geminiLive.state === "connecting") {
+      return
     }
-  }, [liveMode, geminiLive, cancelAll])
+
+    if (geminiLive.state === "disconnected" || geminiLive.state === "error") {
+      cancelAll()
+      geminiLive.clearError()
+      geminiLive.connect()
+      return
+    }
+
+    geminiLive.disconnect()
+  }, [geminiLive, cancelAll])
+
+  const effectiveErrorMessage = liveMode
+    ? (geminiLive.error || error)
+    : error
 
   // Unified status text — not used by StatusDisplay (it uses state), kept for compatibility
   const effectiveStatusText = getEffectiveStatusText(
@@ -190,6 +213,24 @@ export default function VoiceAssistantPage() {
     liveTranscriptIn,
     lastTranscript,
   )
+
+  useEffect(() => {
+    const nextBuddyError = liveMode
+      ? (geminiLive.error || error)
+      : error
+
+    if (!nextBuddyError) {
+      lastBuddyErrorRef.current = null
+      return
+    }
+
+    if (lastBuddyErrorRef.current === nextBuddyError) {
+      return
+    }
+
+    lastBuddyErrorRef.current = nextBuddyError
+    useBuddyState.getState().sayError(nextBuddyError, 3400)
+  }, [error, geminiLive.error, liveMode])
 
   // Clear live transcripts when turn ends so they fade out
   useEffect(() => {
@@ -293,7 +334,7 @@ export default function VoiceAssistantPage() {
       effectiveLastTranscript={effectiveLastTranscript}
       effectiveStatusText={effectiveStatusText}
       effectiveVoiceState={effectiveVoiceState}
-      errorMessage={geminiLive.error || error}
+      errorMessage={effectiveErrorMessage}
       fileInputRef={fileInputRef}
       handleImageSelect={handleImageSelect}
       handleSaveToMemory={handleSaveToMemory}
@@ -307,7 +348,10 @@ export default function VoiceAssistantPage() {
       nudges={nudges}
       onActionCopy={handleActionCopy}
       onDismissDisplay={handleDismissDisplay}
-      onDismissError={() => setError(null)}
+      onDismissError={() => {
+        geminiLive.clearError()
+        setError(null)
+      }}
       onDismissItem={dismissItem}
       onLogout={handleLogout}
       onNewChat={handleNewChat}

@@ -51,17 +51,17 @@ export async function POST(req: NextRequest) {
 
   // Fail-closed: block non-pro users if KV unavailable
   {
-    const kvCheck = getCloudflareKVBinding()
-
-    if (!kvCheck && planId !== 'pro') {
+    const kv = getCloudflareKVBinding()
+    const isDev = process.env.NODE_ENV === "development"
+    if (!kv && planId !== "pro" && !isDev) {
       return NextResponse.json(
         { success: false, error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" },
         { status: 503 }
       )
     }
 
-    if (kvCheck && planId !== 'pro') {
-      const voiceLimit = await checkVoiceLimit(kvCheck, userId, planId)
+    if (kv && planId !== "pro") {
+      const voiceLimit = await checkVoiceLimit(kv, userId, planId)
       if (!voiceLimit.allowed) {
         if (voiceLimit.unavailable) {
           logRequest("tts.voice_quota_unavailable", userId, startTime)

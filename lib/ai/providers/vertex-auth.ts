@@ -196,14 +196,20 @@ export async function getVertexAccessToken(): Promise<string | null> {
  * cause confusing 404 errors from Google's API endpoint.
  */
 export function getVertexProjectId(): string {
-  const projectId = process.env.VERTEX_AI_PROJECT_ID
-  if (!projectId) {
-    throw new Error(
-      "Missing VERTEX_AI_PROJECT_ID environment variable. " +
-      "Set it via `wrangler secret put VERTEX_AI_PROJECT_ID` or in .env.local."
-    )
+  const projectId = process.env.VERTEX_AI_PROJECT_ID?.trim()
+  if (projectId) {
+    return projectId
   }
-  return projectId
+
+  const serviceAccountProjectId = getServiceAccountKey()?.project_id?.trim()
+  if (serviceAccountProjectId) {
+    return serviceAccountProjectId
+  }
+
+  throw new Error(
+    "Missing Vertex AI project configuration. " +
+    "Set VERTEX_AI_PROJECT_ID or provide GOOGLE_SERVICE_ACCOUNT_JSON with project_id."
+  )
 }
 
 /**

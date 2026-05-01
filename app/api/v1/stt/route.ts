@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
   // ── 2. Plan & KV setup (fail-closed for non-pro when KV is down) ─────────
   const planId = await getUserPlan(userId)
   const kv = getCloudflareKVBinding()
-
-  if (!kv && planId !== 'pro') {
+  const isDev = process.env.NODE_ENV === "development"
+  if (!kv && planId !== "pro" && !isDev) {
     return jsonResponse({ success: false, error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" }, 503)
   }
 

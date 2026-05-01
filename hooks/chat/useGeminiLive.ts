@@ -45,6 +45,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
   const outputTranscriptRef = useRef("")
   const setupCompleteRef = useRef(false)
   const turnCompleteTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const userInitiatedCloseRef = useRef(false)
 
   // Refs for callbacks to avoid stale closures
   const configRef = useRef(config)
@@ -132,9 +133,17 @@ export function useGeminiLive(config: GeminiLiveConfig) {
 
       // Convert float32 to int16 PCM
       const int16 = new Int16Array(float32.length)
+      let sum = 0
       for (let i = 0; i < float32.length; i++) {
         const s = Math.max(-1, Math.min(1, float32[i]))
+        sum += s * s
         int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff
+      }
+
+      const rms = Math.sqrt(sum / float32.length)
+      const outputIsActive = !!audioCtxRef.current && nextPlayTimeRef.current > audioCtxRef.current.currentTime + 0.04
+      if (!outputIsActive) {
+        configRef.current.onAudioLevel?.(Math.min(1, rms * 5.5))
       }
 
       // Send as base64 — Gemini's server-side VAD handles turn detection
@@ -146,10 +155,12 @@ export function useGeminiLive(config: GeminiLiveConfig) {
 
       ws.send(JSON.stringify({
         realtimeInput: {
-          audio: {
-            data: b64,
-            mimeType: "audio/pcm;rate=16000",
-          }
+          mediaChunks: [
+            {
+              data: b64,
+              mimeType: "audio/pcm;rate=16000",
+            },
+          ],
         },
       }))
     }
@@ -167,6 +178,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
     updateState("connecting")
     setError(null)
     setupCompleteRef.current = false
+    userInitiatedCloseRef.current = false
 
     // Create AudioContexts synchronously during click to satisfy browser "user gesture" requirement
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
@@ -332,11 +344,25 @@ export function useGeminiLive(config: GeminiLiveConfig) {
         console.error("[GeminiLive] WebSocket error:", ev)
         setError("WebSocket connection error")
         updateState("error")
+        configRef.current.onError?.("WebSocket connection error")
       }
 
-      ws.onclose = (_ev) => {
+      ws.onclose = (ev) => {
         isConnectedRef.current = false
+        const userInitiatedClose = userInitiatedCloseRef.current
+        userInitiatedCloseRef.current = false
+        const closedBeforeSetupComplete = !setupCompleteRef.current
         setupCompleteRef.current = false
+
+        const closeReason = [ev.code ? `code ${ev.code}` : null, ev.reason || null]
+          .filter(Boolean)
+          .join(": ")
+
+        if (closedBeforeSetupComplete && closeReason && !userInitiatedClose) {
+          setError(`Live connection closed (${closeReason})`)
+          configRef.current.onError?.(`Live connection closed (${closeReason})`)
+        }
+
         updateState("disconnected")
         
         // Ensure mic stops if the connection drops unexpectedly
@@ -407,8 +433,13 @@ export function useGeminiLive(config: GeminiLiveConfig) {
 
   // ── Disconnect ─────────────────────────────────────────────────────────────
 
+  const clearError = useCallback(() => {
+    setError(null)
+  }, [])
+
   const disconnect = useCallback(() => {
     isConnectedRef.current = false
+    userInitiatedCloseRef.current = true
     setupCompleteRef.current = false
 
     // Stop animation
@@ -469,6 +500,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
   return {
     state,
     error,
+    clearError,
     connect,
     disconnect,
   }

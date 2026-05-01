@@ -86,7 +86,8 @@ export async function POST(req: NextRequest) {
   // Uses read-only checkVoiceLimit (no increment) — we just want to know
   // if the user still has remaining voice quota before giving them a WS token.
   const kv = getCloudflareKVBinding()
-  if (!kv && planId !== "pro") {
+  const isDev = process.env.NODE_ENV === "development"
+  if (!kv && planId !== "pro" && !isDev) {
     return errorResponse(
       "Service temporarily unavailable",
       API_ERROR_CODES.SERVICE_UNAVAILABLE,

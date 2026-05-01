@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { GamificationData, CheckInResult } from '@/types/gamification'
+import { useBuddyState } from '@/hooks/buddy/useBuddyState'
 
 export function useStreak() {
   const [data, setData] = useState<GamificationData | null>(null)
@@ -33,6 +34,24 @@ export function useStreak() {
         if (!json?.success || !json.data) return null
 
         const result = json.data as CheckInResult
+        const buddy = useBuddyState.getState()
+
+        if (result.alreadyCheckedIn) {
+          buddy.setState('idle', `${habitTitle} is already checked in today.`)
+          return result
+        }
+
+        if (result.milestone || result.newAchievements.length > 0) {
+          buddy.triggerPet(0.92, 1500)
+          buddy.celebrate(
+            result.celebrationText ?? `${habitTitle} hit a ${result.habit.currentStreak}-day streak!`,
+            4500,
+          )
+        } else {
+          buddy.triggerPet(0.7, 950)
+          buddy.celebrate(`${habitTitle} logged. ${result.habit.currentStreak}-day streak!`, 3200)
+        }
+        
         setLastResult(result)
         setData((prev) => {
           if (!prev) return prev
@@ -47,6 +66,7 @@ export function useStreak() {
         })
         return result
       } catch {
+        useBuddyState.getState().sayError(`Couldn't log ${habitTitle}.`, 3200)
         return null
       }
     },

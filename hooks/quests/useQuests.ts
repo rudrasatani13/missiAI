@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { Quest, QuestStats } from '@/types/quests'
+import { useBuddyState } from '@/hooks/buddy/useBuddyState'
 
 export function useQuests() {
   const [quests, setQuests] = useState<Quest[]>([])
@@ -56,12 +57,17 @@ export function useQuests() {
       const json = await res.json()
       if (json?.success && json.quest) {
         setQuests(prev => [json.quest, ...prev])
+        const buddy = useBuddyState.getState()
+        buddy.triggerPet(0.88, 1300)
+        buddy.celebrate(`${json.quest.coverEmoji ?? '✨'} ${json.quest.title} is ready!`, 3800)
         return json.quest
       }
       setError(json?.error ?? 'Failed to create quest')
+      useBuddyState.getState().sayError(json?.error ?? 'Failed to create quest', 3200)
       return null
     } catch {
       setError('Failed to create quest')
+      useBuddyState.getState().sayError('Failed to create quest', 3200)
       return null
     }
   }, [])
@@ -81,12 +87,21 @@ export function useQuests() {
         setQuests(prev =>
           prev.map(q => q.id === questId ? json.quest : q),
         )
+        const buddy = useBuddyState.getState()
+        if (action === 'start' || action === 'resume') {
+          buddy.triggerPet(0.78, 1050)
+          buddy.celebrate(`${json.quest.coverEmoji ?? '✨'} ${json.quest.title} ${action === 'start' ? 'begins now!' : 'is back on!'}`, 3200)
+        } else {
+          buddy.setState('idle', `${json.quest.title} was ${action}ed.`)
+        }
         return json.quest
       }
       setError(json?.error ?? `Failed to ${action} quest`)
+      useBuddyState.getState().sayError(json?.error ?? `Failed to ${action} quest`, 3200)
       return null
     } catch {
       setError(`Failed to ${action} quest`)
+      useBuddyState.getState().sayError(`Failed to ${action} quest`, 3200)
       return null
     }
   }, [])
@@ -110,7 +125,20 @@ export function useQuests() {
       )
       const json = await res.json()
       if (json?.success) {
-        // Update local quest with server response
+        const buddy = useBuddyState.getState()
+        const nextQuest = json.quest
+        const completedMission = nextQuest?.chapters
+          ?.flatMap((chapter: Quest['chapters'][number]) => chapter.missions)
+          ?.find((mission: Quest['chapters'][number]['missions'][number]) => mission.id === missionId)
+
+        if (bossToken) {
+          buddy.triggerPet(0.96, 1600)
+          buddy.celebrate(`Boss defeated! ${completedMission?.title ?? 'Epic loot secured!'}`, 4600)
+        } else {
+          buddy.triggerPet(0.84, 1200)
+          buddy.celebrate(`Mission complete! ${completedMission?.title ?? 'XP gained!'}`, 3600)
+        }
+
         if (json.quest) {
           setQuests(prev =>
             prev.map(q => q.id === questId ? json.quest : q),
@@ -119,9 +147,11 @@ export function useQuests() {
         return json
       }
       setError(json?.error ?? 'Failed to complete mission')
+      useBuddyState.getState().sayError(json?.error ?? 'Failed to complete mission', 3200)
       return null
     } catch {
       setError('Failed to complete mission')
+      useBuddyState.getState().sayError('Failed to complete mission', 3200)
       return null
     }
   }, [])
