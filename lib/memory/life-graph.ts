@@ -32,12 +32,6 @@ import {
   type LifeGraphReadOptions,
 } from '@/lib/memory/life-graph-store'
 
-// ─── Empty graph factory ──────────────────────────────────────────────────────
-
-function emptyGraph(): LifeGraph {
-  return { nodes: [], totalInteractions: 0, lastUpdatedAt: 0, version: 1 }
-}
-
 function touchLifeGraph(graph: LifeGraph, touchedAt = Date.now()): LifeGraph {
   graph.version = Math.max(graph.version || 0, 1) + 1
   graph.lastUpdatedAt = Math.max(graph.lastUpdatedAt || 0, touchedAt)
