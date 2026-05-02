@@ -192,7 +192,7 @@ Build output size below is the artifact size measured by the benchmark script fo
 | Fixture module not found yet: benchmarks/fixtures/agents/action-executor.fixture.ts | 1 |
 | Fixture module not found yet: benchmarks/fixtures/mood/mood-analyzer.fixture.ts | 1 |
 | Fixture module not found yet: benchmarks/fixtures/admin/analytics-snapshot.fixture.ts | 1 |
-| Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: Cannot find module '/Users/rudrasatani/Desktop/Missi Intelligence/missi-web/node_modules/@clerk/themes/dist/index.cjs' | 1 |
+| Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: Cannot find module 'node_modules/@clerk/themes/dist/index.cjs' | 1 |
 
 ### Detailed Skipped Inventory
 
@@ -264,7 +264,7 @@ Build output size below is the artifact size measured by the benchmark script fo
 | Admin, Health, Analytics, and Observability | HTTP Route Latency | http://127.0.0.1:3000/admin | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
 | Admin, Health, Analytics, and Observability | API Latency | http://127.0.0.1:3000/api/v1/admin/analytics | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
 | Admin, Health, Analytics, and Observability | Mocked Integration Benchmark | lib/analytics/aggregator.ts#buildAnalyticsSnapshot | Fixture module not found yet: benchmarks/fixtures/admin/analytics-snapshot.fixture.ts |
-| Auth, Setup, and Middleware Security | Render Import Cost | app/(auth)/sign-in/page.tsx | Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: Cannot find module '/Users/rudrasatani/Desktop/Missi Intelligence/missi-web/node_modules/@clerk/themes/dist/index.cjs' |
+| Auth, Setup, and Middleware Security | Render Import Cost | app/(auth)/sign-in/page.tsx | Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: Cannot find module 'node_modules/@clerk/themes/dist/index.cjs' |
 | Memory Dashboard and Life Graph | Render Import Cost | app/memory/page.tsx | Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: React is not defined |
 | Budget Tracking | Render Import Cost | app/budget/page.tsx | Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: React is not defined |
 | Exam Buddy | Render Import Cost | components/exam-buddy/ExamBuddyHub.tsx | Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: Invalid or unexpected token |

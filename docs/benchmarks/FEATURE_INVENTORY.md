@@ -1,6 +1,6 @@
 # Feature Inventory
 
-This inventory was assembled from the actual repo surface in `app/`, `app/api/`, `lib/`, `hooks/`, `components/`, `workers/`, `docs/product/PRD.md`, and `tests/`. The canonical structured source is [benchmarks/feature-manifest.ts](/Users/rudrasatani/Desktop/Missi%20Intelligence/missi-web/benchmarks/feature-manifest.ts).
+This inventory was assembled from the actual repo surface in `app/`, `app/api/`, `lib/`, `hooks/`, `components/`, `workers/`, `docs/product/PRD.md`, and `tests/`. The canonical structured source is [benchmarks/feature-manifest.ts](benchmarks/feature-manifest.ts).
 
 ## 1. Public Marketing and Legal
 

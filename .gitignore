@@ -67,3 +67,8 @@ service-account*.json
 # MemPalace per-project files (issue #185)
 mempalace.yaml
 entities.json
+
+# Benchmark generated outputs
+benchmarks/results/*.json
+benchmarks/results/*.log
+benchmarks/results/*.tmp
