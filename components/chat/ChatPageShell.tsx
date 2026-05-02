@@ -1,27 +1,23 @@
 "use client"
 
-import { useState, type ChangeEventHandler, type RefObject } from "react"
+import { Suspense, lazy, useState, type ChangeEventHandler, type RefObject } from "react"
 import Link from "next/link"
 import nextDynamic from "next/dynamic"
 import { ArrowLeft, X } from "lucide-react"
 import type { ActionResult } from "@/types/actions"
 import type { PlanId } from "@/types/billing"
-import type { ConversationEntry, VoiceState } from "@/types/chat"
+import type { VoiceState } from "@/types/chat"
 import type { EmotionProfile } from "@/types/emotion"
 import type { AvatarTier } from "@/types/gamification"
 import type { PluginResult } from "@/types/plugins"
 import type { BriefingItem, DailyBriefing } from "@/types/proactive"
+import type { AgentStep } from "@/components/chat/AgentSteps"
 import { VoiceButton } from "@/components/chat/VoiceButton"
 import { StatusDisplay } from "@/components/chat/StatusDisplay"
 import { ChatSidebar } from "@/components/chat/ChatSidebar"
-import { ConversationLog } from "@/components/chat/ConversationLog"
-import { ActionCard } from "@/components/chat/ActionCard"
 import { UsageBar } from "@/components/chat/UsageBar"
 import { BootSequence } from "@/components/chat/BootSequence"
-import { AgentSteps, type AgentStep } from "@/components/chat/AgentSteps"
-import { OnboardingTour } from "@/components/chat/OnboardingTour"
 import { Magnetic } from "@/components/effects/Magnetic"
-import { DailyBriefBanner } from "@/components/chat/DailyBriefBanner"
 import type { VisualMemoryResult } from "@/lib/chat/visual-memory"
 import { pluginResultToActionResult as mapPluginResultToActionResult } from "@/lib/chat/page-helpers"
 
@@ -29,6 +25,10 @@ import { pluginResultToActionResult as mapPluginResultToActionResult } from "@/l
 const ParticleVisualizer = nextDynamic(
   () => import("@/components/chat/ParticleVisualizer").then((m) => m.ParticleVisualizer),
   { ssr: false }
+)
+
+const ChatOptionalOverlays = lazy(() =>
+  import("@/components/chat/ChatOptionalOverlays").then((module) => ({ default: module.ChatOptionalOverlays })),
 )
 
 /** Convert a PluginResult to an ActionResult shape for display in ActionCard. */
@@ -44,7 +44,6 @@ interface ChatPageShellProps {
   briefing: DailyBriefing | null
   clearVisualSelection: () => void
   completeBootSequence: () => void
-  conversation: ConversationEntry[]
   currentEmotion?: EmotionProfile | null
   dismissOnboarding: () => void
   dismissVisualResult: () => void
@@ -95,7 +94,6 @@ export function ChatPageShell({
   briefing,
   clearVisualSelection,
   completeBootSequence,
-  conversation,
   currentEmotion,
   dismissOnboarding,
   dismissVisualResult,
@@ -168,19 +166,25 @@ export function ChatPageShell({
         }}
       >
 
-      {/* Daily brief banner — fire-and-forget, never blocks chat */}
-      <div className="absolute top-0 left-0 right-0 z-[200] p-3 md:p-4 pointer-events-auto" style={{ maxWidth: 600, margin: '0 auto' }}>
-        <DailyBriefBanner />
-      </div>
       {showBootSequence && !bootCompleted && (
         <BootSequence
           userName={displayName || "Guest"}
           onComplete={completeBootSequence}
         />
       )}
-      {showOnboarding && (
-        <OnboardingTour onComplete={dismissOnboarding} />
-      )}
+      <Suspense fallback={null}>
+        <ChatOptionalOverlays
+          actionCopyEnabled={
+            !pluginResult && (lastResult?.type === "draft_email" || lastResult?.type === "draft_message")
+          }
+          agentSteps={agentSteps}
+          dismissOnboarding={dismissOnboarding}
+          displayResult={displayResult}
+          onActionCopy={onActionCopy}
+          onDismissDisplay={onDismissDisplay}
+          showOnboarding={showOnboarding}
+        />
+      </Suspense>
       <ParticleVisualizer state={effectiveVoiceState} isActive={effectiveVoiceState !== "idle"} audioLevel={audioLevel} avatarTier={avatarTier} />
       <div className="absolute inset-0 z-10" onClick={isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
         style={{ cursor: isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
@@ -228,27 +232,6 @@ export function ChatPageShell({
           <div className="flex items-center flex-1 justify-end" aria-hidden />
         </nav>
       </div>
-
-
-
-
-      <ConversationLog messages={conversation} isVisible={false} />
-
-      {/* ── Action Card Overlay — above everything ─── */}
-      {displayResult && (
-        <div className="absolute bottom-32 md:bottom-36 left-0 right-0 z-50 flex justify-center pointer-events-none"
-          data-testid="action-card-container">
-          <ActionCard
-            result={displayResult}
-            onDismiss={onDismissDisplay}
-            onCopy={
-              !pluginResult && (lastResult?.type === "draft_email" || lastResult?.type === "draft_message")
-                ? onActionCopy
-                : undefined
-            }
-          />
-        </div>
-      )}
 
       {/* ── Main Voice Controls Dock ─── */}
       <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center pointer-events-none"
@@ -377,11 +360,6 @@ export function ChatPageShell({
             <span className="md:hidden">Tap anywhere</span>
           </p>
         </div>
-      </div>
-
-      {/* Agent Steps Visualizer — appears above the bottom dock */}
-      <div className="absolute bottom-48 md:bottom-52 left-0 right-0 z-30 flex justify-center pointer-events-none">
-        <AgentSteps steps={agentSteps} />
       </div>
 
       <UsageBar

@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { Suspense, lazy, useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, BookOpen, Flame, MessageCircle, Sparkles, TrendingUp, Trophy } from 'lucide-react'
 import Link from 'next/link'
-import { QuizCreator } from './QuizCreator'
 import { WeakTopicsCard } from './WeakTopicsCard'
 import type { ExamBuddyProfile, WeakTopicRecord, ExamTarget, ExamSubject, QuizSession } from '@/types/exam-buddy'
+
+const QuizCreator = lazy(() => import('./QuizCreator').then((module) => ({ default: module.QuizCreator })))
 
 // ─── Exam display data ────────────────────────────────────────────────────────
 
@@ -213,7 +214,26 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
         >
           ← Back
         </button>
-        <QuizCreator initialSubject={practiceSubject} initialTopic={practiceTopic} />
+        <Suspense
+          fallback={
+            <div
+              className="rounded-[26px] sm:rounded-[30px] p-6 sm:p-8 md:p-10 flex flex-col items-center justify-center gap-5"
+              style={{
+                background: 'linear-gradient(180deg, rgba(10,10,14,0.94), rgba(18,18,24,0.9))',
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 28px 80px -42px rgba(0,0,0,0.92)',
+                backdropFilter: 'blur(16px)',
+              }}
+            >
+              <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-white/60 animate-spin" />
+              <p className="text-sm font-light" style={{ color: 'rgba(255,255,255,0.46)' }}>
+                Preparing your practice flow...
+              </p>
+            </div>
+          }
+        >
+          <QuizCreator initialSubject={practiceSubject} initialTopic={practiceTopic} />
+        </Suspense>
       </div>
     )
   }

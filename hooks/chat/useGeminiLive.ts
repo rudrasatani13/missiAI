@@ -8,10 +8,16 @@ import type { LiveTokenSuccessResponse } from "@/lib/ai/live/runtime"
 export type LiveState = "disconnected" | "connecting" | "connected" | "speaking" | "error"
 
 export interface GeminiLiveConfig {
-  systemPrompt: string
+  systemPrompt?: string
   voiceName?: string // Default: "Kore"
   /** Tool declarations for Gemini Live — enables agent tools in real-time voice */
   toolDeclarations?: Array<{ name: string; description: string; parameters: Record<string, unknown> }>
+  /** Lazily resolve heavy setup inputs right before connecting. */
+  resolveSetup?: () => Promise<{
+    systemPrompt?: string
+    voiceName?: string
+    toolDeclarations?: Array<{ name: string; description: string; parameters: Record<string, unknown> }>
+  }>
   onTranscriptIn?: (text: string) => void   // What user said
   onTranscriptOut?: (text: string) => void  // What Gemini said
   onStateChange?: (state: LiveState) => void
@@ -46,6 +52,11 @@ export function useGeminiLive(config: GeminiLiveConfig) {
   const setupCompleteRef = useRef(false)
   const turnCompleteTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const userInitiatedCloseRef = useRef(false)
+  const resolvedSetupRef = useRef<{
+    systemPrompt: string
+    voiceName: string
+    toolDeclarations?: Array<{ name: string; description: string; parameters: Record<string, unknown> }>
+  } | null>(null)
 
   // Refs for callbacks to avoid stale closures
   const configRef = useRef(config)
@@ -196,6 +207,19 @@ export function useGeminiLive(config: GeminiLiveConfig) {
     if (micCtx.state === "suspended") await micCtx.resume()
 
     try {
+      const resolvedSetup = configRef.current.resolveSetup
+        ? await configRef.current.resolveSetup()
+        : null
+      const systemPrompt = resolvedSetup?.systemPrompt ?? configRef.current.systemPrompt
+      if (!systemPrompt) {
+        throw new Error("Missing Gemini Live system prompt")
+      }
+      resolvedSetupRef.current = {
+        systemPrompt,
+        voiceName: resolvedSetup?.voiceName ?? configRef.current.voiceName ?? "Kore",
+        toolDeclarations: resolvedSetup?.toolDeclarations ?? configRef.current.toolDeclarations,
+      }
+
       // 1. Get WebSocket URL from our backend
       const tokenRes = await fetch("/api/v1/live-token", { method: "POST" })
       if (!tokenRes.ok) {
@@ -374,12 +398,17 @@ export function useGeminiLive(config: GeminiLiveConfig) {
 
       ws.onopen = () => {
         isConnectedRef.current = true
+        const liveSetup = resolvedSetupRef.current ?? {
+          systemPrompt: configRef.current.systemPrompt ?? "",
+          voiceName: configRef.current.voiceName || "Kore",
+          toolDeclarations: configRef.current.toolDeclarations,
+        }
 
         // Build tools array for Gemini Live
         const liveTools: Record<string, unknown>[] = [{ google_search: {} }]
-        if (configRef.current.toolDeclarations && configRef.current.toolDeclarations.length > 0) {
+        if (liveSetup.toolDeclarations && liveSetup.toolDeclarations.length > 0) {
           liveTools.push({
-            function_declarations: configRef.current.toolDeclarations,
+            function_declarations: liveSetup.toolDeclarations,
           })
         }
 
@@ -392,7 +421,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
               speechConfig: {
                 voiceConfig: {
                   prebuiltVoiceConfig: {
-                    voiceName: configRef.current.voiceName || "Kore",
+                    voiceName: liveSetup.voiceName,
                   },
                 },
               },
@@ -411,7 +440,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
             // Agent tools for EDITH mode
             tools: liveTools,
             systemInstruction: {
-              parts: [{ text: configRef.current.systemPrompt }],
+              parts: [{ text: liveSetup.systemPrompt }],
             },
             outputAudioTranscription: {},
             inputAudioTranscription: {},
@@ -441,6 +470,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
     isConnectedRef.current = false
     userInitiatedCloseRef.current = true
     setupCompleteRef.current = false
+    resolvedSetupRef.current = null
 
     // Stop animation
     if (animFrameRef.current) {

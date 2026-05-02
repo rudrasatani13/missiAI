@@ -1,0 +1,520 @@
+{
+  "schemaVersion": 1,
+  "runId": "feature-bench-2026-05-01T16-48-01-687Z",
+  "generatedAt": "2026-05-01T16:48:01.708Z",
+  "cwd": "/Users/rudrasatani/Desktop/Missi Intelligence/missi-web",
+  "baseline": false,
+  "selectedFeatures": [
+    "auth-onboarding",
+    "memory-core",
+    "visual-memory-life-story"
+  ],
+  "cli": {
+    "help": false,
+    "all": false,
+    "baseline": false,
+    "compare": false,
+    "list": false,
+    "dryRun": false,
+    "includeBuild": false,
+    "allowAuthenticated": false,
+    "allowExternalCalls": false,
+    "featureIds": [
+      "auth-onboarding",
+      "memory-core",
+      "visual-memory-life-story"
+    ],
+    "baseUrl": null,
+    "cookie": null,
+    "authHeader": null,
+    "serverCommand": null,
+    "readinessPath": "/api/health",
+    "port": 3000,
+    "timeoutMs": 15000,
+    "iterations": 10,
+    "warmupIterations": 2,
+    "outputPath": "benchmarks/results/baseline-fixes-20260501-220632.json",
+    "markdownPath": null
+  },
+  "summary": {
+    "total": 14,
+    "completed": 2,
+    "skipped": 12,
+    "failed": 0,
+    "durationMs": 21
+  },
+  "metadata": {
+    "nodeVersion": "v24.5.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "managedServer": false,
+    "baseUrl": null
+  },
+  "results": [
+    {
+      "id": "auth-onboarding:sign-in-page",
+      "featureId": "auth-onboarding",
+      "featureName": "Auth, Setup, and Middleware Security",
+      "category": "auth",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "/sign-in",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": false,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Next.js Middleware"
+      ],
+      "startedAt": "2026-05-01T16:48:01.690Z",
+      "finishedAt": "2026-05-01T16:48:01.690Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "auth-onboarding:sign-up-page",
+      "featureId": "auth-onboarding",
+      "featureName": "Auth, Setup, and Middleware Security",
+      "category": "auth",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "/sign-up",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": false,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Next.js Middleware"
+      ],
+      "startedAt": "2026-05-01T16:48:01.691Z",
+      "finishedAt": "2026-05-01T16:48:01.691Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "auth-onboarding:setup-page",
+      "featureId": "auth-onboarding",
+      "featureName": "Auth, Setup, and Middleware Security",
+      "category": "auth",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "/setup",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Next.js Middleware"
+      ],
+      "startedAt": "2026-05-01T16:48:01.691Z",
+      "finishedAt": "2026-05-01T16:48:01.691Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "auth-onboarding:setup-completion-import",
+      "featureId": "auth-onboarding",
+      "featureName": "Auth, Setup, and Middleware Security",
+      "category": "auth",
+      "benchmarkType": "server-function-benchmark",
+      "targetKind": "function",
+      "target": "lib/setup/setup-completion.ts#hasCompletedSetupLocally",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": false,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Next.js Middleware"
+      ],
+      "startedAt": "2026-05-01T16:48:01.693Z",
+      "finishedAt": "2026-05-01T16:48:01.693Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Local setup completion helper benchmarked in the Node runtime; it should return false when window is unavailable.",
+        "No static args or fixture configured for this server-function benchmark yet."
+      ],
+      "metadata": {
+        "fixtureModule": null
+      }
+    },
+    {
+      "id": "memory-core:memory-page",
+      "featureId": "memory-core",
+      "featureName": "Memory Dashboard and Life Graph",
+      "category": "memory",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "/memory",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:48:01.693Z",
+      "finishedAt": "2026-05-01T16:48:01.693Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "memory-core:memory-graph-page",
+      "featureId": "memory-core",
+      "featureName": "Memory Dashboard and Life Graph",
+      "category": "memory",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "/memory/graph",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:48:01.693Z",
+      "finishedAt": "2026-05-01T16:48:01.693Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "memory-core:memory-route",
+      "featureId": "memory-core",
+      "featureName": "Memory Dashboard and Life Graph",
+      "category": "memory",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "/api/v1/memory",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:48:01.693Z",
+      "finishedAt": "2026-05-01T16:48:01.693Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "memory-core:format-life-graph",
+      "featureId": "memory-core",
+      "featureName": "Memory Dashboard and Life Graph",
+      "category": "memory",
+      "benchmarkType": "server-function-benchmark",
+      "targetKind": "function",
+      "target": "lib/memory/life-graph.ts#formatLifeGraphForPrompt",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:48:01.693Z",
+      "finishedAt": "2026-05-01T16:48:01.704Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          0.003,
+          0.002,
+          0.003,
+          0.002,
+          0.004,
+          0.002,
+          0.002,
+          0.003,
+          0.002,
+          0.001
+        ],
+        "p50": 0.002,
+        "p75": 0.003,
+        "p95": 0.004,
+        "average": 0.002,
+        "min": 0.001,
+        "max": 0.004,
+        "stdDev": 0.001
+      },
+      "memory": {
+        "rssStartBytes": 106201088,
+        "rssEndBytes": 106364928,
+        "rssPeakBytes": 106364928,
+        "rssDeltaBytes": 163840,
+        "heapUsedStartBytes": 10237312,
+        "heapUsedEndBytes": 10451880,
+        "heapUsedPeakBytes": 10450784,
+        "heapUsedDeltaBytes": 214568
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "fixtureModule": null
+      }
+    },
+    {
+      "id": "memory-core:extract-life-nodes",
+      "featureId": "memory-core",
+      "featureName": "Memory Dashboard and Life Graph",
+      "category": "memory",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "integration",
+      "target": "lib/memory/graph-extractor.ts#extractLifeNodes",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:48:01.704Z",
+      "finishedAt": "2026-05-01T16:48:01.704Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/memory/graph-extractor.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/memory/graph-extractor.fixture.ts"
+      }
+    },
+    {
+      "id": "visual-memory-life-story:visual-memory-page",
+      "featureId": "visual-memory-life-story",
+      "featureName": "Visual Memory and Life Story",
+      "category": "memory",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "/memory/visual",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini Vision"
+      ],
+      "startedAt": "2026-05-01T16:48:01.704Z",
+      "finishedAt": "2026-05-01T16:48:01.704Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "visual-memory-life-story:life-story-page",
+      "featureId": "visual-memory-life-story",
+      "featureName": "Visual Memory and Life Story",
+      "category": "memory",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "/memory/story",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini Vision"
+      ],
+      "startedAt": "2026-05-01T16:48:01.704Z",
+      "finishedAt": "2026-05-01T16:48:01.704Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "visual-memory-life-story:visual-memory-route",
+      "featureId": "visual-memory-life-story",
+      "featureName": "Visual Memory and Life Story",
+      "category": "memory",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "/api/v1/visual-memory/entries",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini Vision"
+      ],
+      "startedAt": "2026-05-01T16:48:01.704Z",
+      "finishedAt": "2026-05-01T16:48:01.704Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Use a concrete sub-path when the fixture suite is added.",
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "visual-memory-life-story:life-story-route",
+      "featureId": "visual-memory-life-story",
+      "featureName": "Visual Memory and Life Story",
+      "category": "memory",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "/api/v1/life-story/summary",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini Vision"
+      ],
+      "startedAt": "2026-05-01T16:48:01.704Z",
+      "finishedAt": "2026-05-01T16:48:01.704Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Catch-all route expects a concrete sub-path in fixtures.",
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "visual-memory-life-story:map-visual-memory-node",
+      "featureId": "visual-memory-life-story",
+      "featureName": "Visual Memory and Life Story",
+      "category": "memory",
+      "benchmarkType": "server-function-benchmark",
+      "targetKind": "function",
+      "target": "lib/visual-memory/image-analyzer.ts#mapExtractionToLifeNode",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini Vision"
+      ],
+      "startedAt": "2026-05-01T16:48:01.704Z",
+      "finishedAt": "2026-05-01T16:48:01.708Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          0.005,
+          0.003,
+          0.002,
+          0.002,
+          0.002,
+          0.002,
+          0.007,
+          0.006,
+          0.003,
+          0.001
+        ],
+        "p50": 0.002,
+        "p75": 0.005,
+        "p95": 0.007,
+        "average": 0.003,
+        "min": 0.001,
+        "max": 0.007,
+        "stdDev": 0.002
+      },
+      "memory": {
+        "rssStartBytes": 107364352,
+        "rssEndBytes": 107397120,
+        "rssPeakBytes": 107397120,
+        "rssDeltaBytes": 32768,
+        "heapUsedStartBytes": 10844400,
+        "heapUsedEndBytes": 10884312,
+        "heapUsedPeakBytes": 10883216,
+        "heapUsedDeltaBytes": 39912
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "fixtureModule": null
+      }
+    }
+  ]
+}

@@ -12,11 +12,17 @@
     "build:cf": "opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "start": "next start",
+    "bench": "tsx benchmarks/run-feature-benchmarks.ts",
+    "bench:features": "tsx benchmarks/run-feature-benchmarks.ts --all",
+    "bench:feature": "tsx benchmarks/run-feature-benchmarks.ts --feature",
+    "bench:baseline": "tsx benchmarks/run-feature-benchmarks.ts --all --baseline",
+    "bench:compare": "tsx benchmarks/report-writer.ts --compare",
+    "bench:build": "tsx benchmarks/bundle-benchmark.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint app/ lib/ hooks/ components/ types/"
+    "lint": "eslint app/ lib/ hooks/ components/ types/ benchmarks/"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.0",
@@ -117,6 +123,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.1.2"
   }

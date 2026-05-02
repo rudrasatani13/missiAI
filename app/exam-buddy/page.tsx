@@ -3,16 +3,8 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
+import { ExamBuddyHub } from '@/components/exam-buddy/ExamBuddyHub'
 import { ChatShell } from '@/components/shell/ChatShell'
-import dynamic from 'next/dynamic'
-
-const ExamBuddyHub = dynamic(
-  () => import('@/components/exam-buddy/ExamBuddyHub').then((mod) => mod.ExamBuddyHub),
-  {
-    ssr: false,
-    loading: () => <div className="h-[40vh] w-full animate-pulse rounded-2xl bg-white/5" />,
-  },
-)
 
 export default function ExamBuddyPage() {
   const { user, isLoaded } = useUser()

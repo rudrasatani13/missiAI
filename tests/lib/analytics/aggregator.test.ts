@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import type { KVStore } from '@/types'
 import { buildAnalyticsSnapshot, calculateGrowthRate, formatCostUsd } from '@/lib/analytics/aggregator'
 import { appendAnalyticsEventRecord, enqueueAnalyticsPendingEvent, putAnalyticsSnapshotCache } from '@/lib/analytics/analytics-record-store'
@@ -169,69 +169,79 @@ describe('aggregator', () => {
     })
 
     it('bypasses a fresh snapshot cache when append-log aggregation is not caught up', async () => {
-      const today = new Date().toISOString().split('T')[0]
-      const freshSnapshot = {
-        today: {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-04-24T12:00:00.000Z'))
+
+      try {
+        const today = new Date().toISOString().split('T')[0]
+        const freshSnapshotGeneratedAt = Date.now()
+        const freshSnapshot = {
+          today: {
+            date: today,
+            totalRequests: 99,
+            uniqueUsers: 99,
+            voiceInteractions: 99,
+            chatRequests: 99,
+            ttsRequests: 0,
+            memoryReads: 0,
+            memoryWrites: 0,
+            actionsExecuted: 0,
+            totalCostUsd: 9.9,
+            errorCount: 0,
+            newSignups: 0,
+            updatedAt: 100,
+          },
+          yesterday: {
+            date: '2026-04-23',
+            totalRequests: 0,
+            uniqueUsers: 0,
+            voiceInteractions: 0,
+            chatRequests: 0,
+            ttsRequests: 0,
+            memoryReads: 0,
+            memoryWrites: 0,
+            actionsExecuted: 0,
+            totalCostUsd: 0,
+            errorCount: 0,
+            newSignups: 0,
+            updatedAt: 90,
+          },
+          last7Days: [],
+          lifetime: {
+            totalUsers: 99,
+            totalInteractions: 99,
+            totalCostUsd: 9.9,
+            totalRevenue: 0,
+            planBreakdown: { free: 99, plus: 0, pro: 0 },
+            lastUpdatedAt: 100,
+          },
+          generatedAt: freshSnapshotGeneratedAt,
+        }
+
+        await putAnalyticsSnapshotCache(kv, freshSnapshot)
+        const eventKey = await appendAnalyticsEventRecord(kv, {
+          eventId: 'evt_backlog',
+          userId: 'user1',
           date: today,
-          totalRequests: 99,
-          uniqueUsers: 99,
-          voiceInteractions: 99,
-          chatRequests: 99,
-          ttsRequests: 0,
-          memoryReads: 0,
-          memoryWrites: 0,
-          actionsExecuted: 0,
-          totalCostUsd: 9.9,
-          errorCount: 0,
-          newSignups: 0,
-          updatedAt: 100,
-        },
-        yesterday: {
-          date: '2026-04-23',
-          totalRequests: 0,
-          uniqueUsers: 0,
-          voiceInteractions: 0,
-          chatRequests: 0,
-          ttsRequests: 0,
-          memoryReads: 0,
-          memoryWrites: 0,
-          actionsExecuted: 0,
-          totalCostUsd: 0,
-          errorCount: 0,
-          newSignups: 0,
-          updatedAt: 90,
-        },
-        last7Days: [],
-        lifetime: {
-          totalUsers: 99,
-          totalInteractions: 99,
-          totalCostUsd: 9.9,
-          totalRevenue: 0,
-          planBreakdown: { free: 99, plus: 0, pro: 0 },
-          lastUpdatedAt: 100,
-        },
-        generatedAt: Date.now(),
+          type: 'chat',
+          costUsd: 0.01,
+          markSeen: true,
+          metadata: {},
+          createdAt: Date.now(),
+        })
+        await enqueueAnalyticsPendingEvent(kv, eventKey, today)
+
+        vi.setSystemTime(new Date(freshSnapshotGeneratedAt + 1))
+
+        const snapshot = await buildAnalyticsSnapshot(kv)
+
+        expect(snapshot.today.totalRequests).toBe(1)
+        expect(snapshot.today.chatRequests).toBe(1)
+        expect(snapshot.lifetime.totalInteractions).toBe(1)
+        expect(snapshot.generatedAt).toBeGreaterThan(freshSnapshot.generatedAt)
+      } finally {
+        vi.useRealTimers()
       }
-
-      await putAnalyticsSnapshotCache(kv, freshSnapshot)
-      const eventKey = await appendAnalyticsEventRecord(kv, {
-        eventId: 'evt_backlog',
-        userId: 'user1',
-        date: today,
-        type: 'chat',
-        costUsd: 0.01,
-        markSeen: true,
-        metadata: {},
-        createdAt: Date.now(),
-      })
-      await enqueueAnalyticsPendingEvent(kv, eventKey, today)
-
-      const snapshot = await buildAnalyticsSnapshot(kv)
-
-      expect(snapshot.today.totalRequests).toBe(1)
-      expect(snapshot.today.chatRequests).toBe(1)
-      expect(snapshot.lifetime.totalInteractions).toBe(1)
-      expect(snapshot.generatedAt).not.toBe(freshSnapshot.generatedAt)
     })
   })
 })

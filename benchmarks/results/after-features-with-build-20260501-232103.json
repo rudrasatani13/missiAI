@@ -1,0 +1,1349 @@
+{
+  "schemaVersion": 1,
+  "runId": "feature-bench-2026-05-01T17-58-26-163Z",
+  "generatedAt": "2026-05-01T18:02:44.462Z",
+  "cwd": "/Users/rudrasatani/Desktop/Missi Intelligence/missi-web",
+  "baseline": false,
+  "selectedFeatures": [
+    "exam-buddy",
+    "agents-actions",
+    "chat-core",
+    "voice-live"
+  ],
+  "cli": {
+    "help": false,
+    "all": false,
+    "baseline": false,
+    "compare": false,
+    "list": false,
+    "dryRun": false,
+    "includeBuild": true,
+    "allowAuthenticated": false,
+    "allowExternalCalls": false,
+    "featureIds": [
+      "exam-buddy",
+      "agents-actions",
+      "chat-core",
+      "voice-live"
+    ],
+    "baseUrl": null,
+    "cookie": null,
+    "authHeader": null,
+    "serverCommand": null,
+    "readinessPath": "/api/health",
+    "port": 3000,
+    "timeoutMs": 15000,
+    "iterations": 10,
+    "warmupIterations": 2,
+    "outputPath": "benchmarks/results/after-features-with-build-20260501-232103.json",
+    "markdownPath": null
+  },
+  "summary": {
+    "total": 31,
+    "completed": 13,
+    "skipped": 18,
+    "failed": 0,
+    "durationMs": 258299
+  },
+  "metadata": {
+    "nodeVersion": "v24.5.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "managedServer": false,
+    "baseUrl": null
+  },
+  "results": [
+    {
+      "id": "exam-buddy:exam-buddy-page",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "/exam-buddy",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:58:26.167Z",
+      "finishedAt": "2026-05-01T17:58:26.167Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "exam-buddy:exam-buddy-profile-route",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "/api/v1/exam-buddy/profile",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:58:26.167Z",
+      "finishedAt": "2026-05-01T17:58:26.167Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "exam-buddy:exam-buddy-quiz-route",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "/api/v1/exam-buddy/quiz",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:58:26.167Z",
+      "finishedAt": "2026-05-01T17:58:26.167Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "exam-buddy:exam-quiz-generator",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "function",
+      "target": "lib/exam-buddy/quiz-generator.ts#generateQuizWithDiagnostics",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/exam-buddy/quiz-generator.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/exam-buddy/quiz-generator.fixture.ts"
+      }
+    },
+    {
+      "id": "agents-actions:agents-page",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "/agents",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "agents-actions:actions-route",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "/api/v1/actions",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "agents-actions:agents-route",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "/api/v1/agents/history",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "agents-actions:action-executor",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "function",
+      "target": "lib/actions/action-executor.ts#executeAction",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/agents/action-executor.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/agents/action-executor.fixture.ts"
+      }
+    },
+    {
+      "id": "chat-core:chat-page",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "/chat",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "chat-core:chat-route",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "/api/v1/chat",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Use mock provider fixtures for LLM latency baselines.",
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "chat-core:chat-stream-route",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "/api/v1/chat-stream",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "chat-core:chat-route-preflight",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "integration",
+      "target": "lib/server/chat/route-preflight.ts#runChatRoutePreflight",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Exercise auth, rate-limit, and payload validation without calling providers.",
+        "Fixture module not found yet: benchmarks/fixtures/chat/route-preflight.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/chat/route-preflight.fixture.ts"
+      }
+    },
+    {
+      "id": "chat-core:chat-stream-preflight",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "integration",
+      "target": "lib/server/chat/stream-preflight.ts#runChatStreamPreflight",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/chat/stream-preflight.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/chat/stream-preflight.fixture.ts"
+      }
+    },
+    {
+      "id": "voice-live:live-token-route",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "/api/v1/live-token",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "voice-live:stt-route",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "/api/v1/stt",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "voice-live:tts-route",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "/api/v1/tts",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "No base URL supplied. Use --base-url or --server-command when running HTTP/API benchmarks."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "voice-live:live-transport-session",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "integration",
+      "target": "lib/ai/live/transport.ts#getLiveTransportSession",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T17:58:26.168Z",
+      "finishedAt": "2026-05-01T17:58:26.168Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/voice/live-transport.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/voice/live-transport.fixture.ts"
+      }
+    },
+    {
+      "id": "workspace-build:build",
+      "featureId": "workspace-build",
+      "featureName": "Workspace Build Pipeline",
+      "category": "infrastructure",
+      "benchmarkType": "build-time",
+      "targetKind": "build",
+      "target": "pnpm run build",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": false,
+      "externalServices": [
+        "Next.js",
+        "OpenNext Cloudflare"
+      ],
+      "startedAt": "2026-05-01T17:58:26.169Z",
+      "finishedAt": "2026-05-01T18:00:23.953Z",
+      "stats": {
+        "count": 1,
+        "samplesMs": [
+          117644
+        ],
+        "p50": 117644,
+        "p75": 117644,
+        "p95": 117644,
+        "average": 117644,
+        "min": 117644,
+        "max": 117644,
+        "stdDev": 0
+      },
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 0,
+        "routeChunkBytes": 0,
+        "apiChunkBytes": 0,
+        "totalChunkBytes": 0,
+        "clientSourceBytes": 0,
+        "serverSourceBytes": 0,
+        "buildArtifactBytes": 1108359139,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [
+        "Build completed successfully.",
+        "warn - If this is content and not a class, replace it with `ease-&lsqb;cubic-bezier(0.22,1,0.36,1)&rsqb;` to silence this warning.   ⚠ The Next.js plugin was not detected in your ESLint configuration. See https://nextjs.org/docs/app/api-reference/config/eslint#migrating-existing-config"
+      ],
+      "metadata": {
+        "scriptName": "build",
+        "exitCode": 0,
+        "durationMs": 117644
+      }
+    },
+    {
+      "id": "workspace-build:build:cf",
+      "featureId": "workspace-build",
+      "featureName": "Workspace Build Pipeline",
+      "category": "infrastructure",
+      "benchmarkType": "build-time",
+      "targetKind": "build",
+      "target": "pnpm run build:cf",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": false,
+      "externalServices": [
+        "Next.js",
+        "OpenNext Cloudflare"
+      ],
+      "startedAt": "2026-05-01T18:00:23.953Z",
+      "finishedAt": "2026-05-01T18:02:43.462Z",
+      "stats": {
+        "count": 1,
+        "samplesMs": [
+          139253
+        ],
+        "p50": 139253,
+        "p75": 139253,
+        "p95": 139253,
+        "average": 139253,
+        "min": 139253,
+        "max": 139253,
+        "stdDev": 0
+      },
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 0,
+        "routeChunkBytes": 0,
+        "apiChunkBytes": 0,
+        "totalChunkBytes": 0,
+        "clientSourceBytes": 0,
+        "serverSourceBytes": 0,
+        "buildArtifactBytes": 1083641737,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [
+        "Build completed successfully.",
+        ".open-next/server-functions/default/.next/server/chunks/7284.js:1:147834:       1 │ ...1:return em(a,2790,2799,!0,d);case 22:return em(a,2662,2671,!0,d...         ╵                                  ~~~~"
+      ],
+      "metadata": {
+        "scriptName": "build:cf",
+        "exitCode": 0,
+        "durationMs": 139253
+      }
+    },
+    {
+      "id": "exam-buddy:bundle-size",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/exam-buddy, /api/v1/exam-buddy/profile, /api/v1/exam-buddy/quiz",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T18:02:43.625Z",
+      "finishedAt": "2026-05-01T18:02:43.625Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 16,
+        "routeChunkBytes": 544964,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 898135,
+        "clientSourceBytes": 40746,
+        "serverSourceBytes": 33632,
+        "buildArtifactBytes": 1083641737,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/exam-buddy/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/exam-buddy/profile/route",
+          "/api/v1/exam-buddy/quiz/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/app/exam-buddy/page-1ebb0b594d5cd49e.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/exam-buddy/profile/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/exam-buddy/quiz/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "agents-actions:bundle-size",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/agents, /chat, /api/v1/agents/[...path], /api/v1/actions",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T18:02:43.626Z",
+      "finishedAt": "2026-05-01T18:02:43.626Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 20,
+        "routeChunkBytes": 747029,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 1100200,
+        "clientSourceBytes": 35508,
+        "serverSourceBytes": 42099,
+        "buildArtifactBytes": 1083641737,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/agents/page",
+          "/chat/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/agents/[...path]/route",
+          "/api/v1/actions/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/app/agents/page-f0feee3b853838d8.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/2320-1d3dabd1b58aaefb.js",
+          "static/chunks/9539-2cbe7a459ec2750b.js",
+          "static/chunks/app/chat/page-dedfe5cfc53eac5a.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/agents/[...path]/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/actions/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "chat-core:bundle-size",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/chat, /api/v1/chat, /api/v1/chat-stream",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T18:02:43.626Z",
+      "finishedAt": "2026-05-01T18:02:43.626Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 16,
+        "routeChunkBytes": 685485,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 1038656,
+        "clientSourceBytes": 29215,
+        "serverSourceBytes": 34915,
+        "buildArtifactBytes": 1083641737,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/chat/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/chat/route",
+          "/api/v1/chat-stream/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/2320-1d3dabd1b58aaefb.js",
+          "static/chunks/9539-2cbe7a459ec2750b.js",
+          "static/chunks/app/chat/page-dedfe5cfc53eac5a.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/chat/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/chat-stream/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "voice-live:bundle-size",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/chat, /api/v1/live-token, /api/v1/stt, /api/v1/tts",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T18:02:43.627Z",
+      "finishedAt": "2026-05-01T18:02:43.627Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 17,
+        "routeChunkBytes": 685485,
+        "apiChunkBytes": 353682,
+        "totalChunkBytes": 1039167,
+        "clientSourceBytes": 73382,
+        "serverSourceBytes": 36225,
+        "buildArtifactBytes": 1083641737,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/chat/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/live-token/route",
+          "/api/v1/stt/route",
+          "/api/v1/tts/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/2320-1d3dabd1b58aaefb.js",
+          "static/chunks/9539-2cbe7a459ec2750b.js",
+          "static/chunks/app/chat/page-dedfe5cfc53eac5a.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/live-token/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/stt/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/tts/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "exam-buddy:import:components/exam-buddy/ExamBuddyHub.tsx",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/exam-buddy/ExamBuddyHub.tsx",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T18:02:43.627Z",
+      "finishedAt": "2026-05-01T18:02:44.003Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          3.101,
+          2.457,
+          1.924,
+          1.821,
+          1.853,
+          1.95,
+          4.47,
+          2.672,
+          1.65,
+          1.538
+        ],
+        "p50": 1.924,
+        "p75": 2.672,
+        "p95": 4.47,
+        "average": 2.344,
+        "min": 1.538,
+        "max": 4.47,
+        "stdDev": 0.848
+      },
+      "memory": {
+        "rssStartBytes": 75988992,
+        "rssEndBytes": 130105344,
+        "rssPeakBytes": 130105344,
+        "rssDeltaBytes": 54116352,
+        "heapUsedStartBytes": 24184208,
+        "heapUsedEndBytes": 22937992,
+        "heapUsedPeakBytes": 38023744,
+        "heapUsedDeltaBytes": -1246216
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "exam-buddy:import:components/exam-buddy/QuizView.tsx",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/exam-buddy/QuizView.tsx",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T18:02:44.003Z",
+      "finishedAt": "2026-05-01T18:02:44.014Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: Invalid or unexpected token"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "agents-actions:import:components/agents/AgentDashboard.tsx",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/agents/AgentDashboard.tsx",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T18:02:44.014Z",
+      "finishedAt": "2026-05-01T18:02:44.040Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.813,
+          1.582,
+          2.076,
+          1.822,
+          2.172,
+          1.659,
+          1.448,
+          1.616,
+          1.392,
+          1.356
+        ],
+        "p50": 1.616,
+        "p75": 1.822,
+        "p95": 2.172,
+        "average": 1.694,
+        "min": 1.356,
+        "max": 2.172,
+        "stdDev": 0.263
+      },
+      "memory": {
+        "rssStartBytes": 130580480,
+        "rssEndBytes": 131039232,
+        "rssPeakBytes": 131039232,
+        "rssDeltaBytes": 458752,
+        "heapUsedStartBytes": 23506800,
+        "heapUsedEndBytes": 25687984,
+        "heapUsedPeakBytes": 25686888,
+        "heapUsedDeltaBytes": 2181184
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "agents-actions:import:hooks/chat/useActionEngine.ts",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "hooks/chat/useActionEngine.ts",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T18:02:44.040Z",
+      "finishedAt": "2026-05-01T18:02:44.056Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.569,
+          1.025,
+          0.992,
+          1.039,
+          1.003,
+          1.068,
+          1.001,
+          1.064,
+          0.959,
+          0.985
+        ],
+        "p50": 1.003,
+        "p75": 1.064,
+        "p95": 1.569,
+        "average": 1.07,
+        "min": 0.959,
+        "max": 1.569,
+        "stdDev": 0.169
+      },
+      "memory": {
+        "rssStartBytes": 131055616,
+        "rssEndBytes": 131252224,
+        "rssPeakBytes": 131252224,
+        "rssDeltaBytes": 196608,
+        "heapUsedStartBytes": 25701608,
+        "heapUsedEndBytes": 26315400,
+        "heapUsedPeakBytes": 26314304,
+        "heapUsedDeltaBytes": 613792
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "chat-core:import:app/chat/page.tsx",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "app/chat/page.tsx",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T18:02:44.056Z",
+      "finishedAt": "2026-05-01T18:02:44.396Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.331,
+          1.29,
+          1.122,
+          1.105,
+          1.051,
+          1.179,
+          1.18,
+          1.047,
+          1.871,
+          1.448
+        ],
+        "p50": 1.179,
+        "p75": 1.331,
+        "p95": 1.871,
+        "average": 1.262,
+        "min": 1.047,
+        "max": 1.871,
+        "stdDev": 0.237
+      },
+      "memory": {
+        "rssStartBytes": 131252224,
+        "rssEndBytes": 149733376,
+        "rssPeakBytes": 151896064,
+        "rssDeltaBytes": 18481152,
+        "heapUsedStartBytes": 26329560,
+        "heapUsedEndBytes": 34684640,
+        "heapUsedPeakBytes": 59295720,
+        "heapUsedDeltaBytes": 8355080
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "chat-core:import:components/chat/ChatPageShell.tsx",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/chat/ChatPageShell.tsx",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T18:02:44.396Z",
+      "finishedAt": "2026-05-01T18:02:44.425Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.445,
+          1.26,
+          1.553,
+          1.076,
+          1.17,
+          1.059,
+          1.071,
+          1.154,
+          1.034,
+          1.3
+        ],
+        "p50": 1.154,
+        "p75": 1.3,
+        "p95": 1.553,
+        "average": 1.212,
+        "min": 1.034,
+        "max": 1.553,
+        "stdDev": 0.167
+      },
+      "memory": {
+        "rssStartBytes": 149733376,
+        "rssEndBytes": 152190976,
+        "rssPeakBytes": 152190976,
+        "rssDeltaBytes": 2457600,
+        "heapUsedStartBytes": 34697712,
+        "heapUsedEndBytes": 37610392,
+        "heapUsedPeakBytes": 37609296,
+        "heapUsedDeltaBytes": 2912680
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "voice-live:import:hooks/chat/useGeminiLive.ts",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "hooks/chat/useGeminiLive.ts",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T18:02:44.425Z",
+      "finishedAt": "2026-05-01T18:02:44.441Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.348,
+          1.395,
+          1.282,
+          1.306,
+          1.224,
+          1.21,
+          1.145,
+          1.127,
+          1.15,
+          1.136
+        ],
+        "p50": 1.21,
+        "p75": 1.306,
+        "p95": 1.395,
+        "average": 1.232,
+        "min": 1.127,
+        "max": 1.395,
+        "stdDev": 0.091
+      },
+      "memory": {
+        "rssStartBytes": 152207360,
+        "rssEndBytes": 153337856,
+        "rssPeakBytes": 153337856,
+        "rssDeltaBytes": 1130496,
+        "heapUsedStartBytes": 37624392,
+        "heapUsedEndBytes": 38755984,
+        "heapUsedPeakBytes": 38754888,
+        "heapUsedDeltaBytes": 1131592
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "voice-live:import:hooks/chat/useVoiceStateMachine.ts",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "hooks/chat/useVoiceStateMachine.ts",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T18:02:44.441Z",
+      "finishedAt": "2026-05-01T18:02:44.462Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.672,
+          1.637,
+          2.064,
+          1.55,
+          1.589,
+          1.532,
+          2.132,
+          1.568,
+          1.592,
+          1.7
+        ],
+        "p50": 1.592,
+        "p75": 1.7,
+        "p95": 2.132,
+        "average": 1.704,
+        "min": 1.532,
+        "max": 2.132,
+        "stdDev": 0.204
+      },
+      "memory": {
+        "rssStartBytes": 153354240,
+        "rssEndBytes": 155648000,
+        "rssPeakBytes": 155648000,
+        "rssDeltaBytes": 2293760,
+        "heapUsedStartBytes": 38770584,
+        "heapUsedEndBytes": 41812224,
+        "heapUsedPeakBytes": 41811128,
+        "heapUsedDeltaBytes": 3041640
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    }
+  ]
+}

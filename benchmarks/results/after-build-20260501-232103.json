@@ -1,0 +1,3058 @@
+{
+  "schemaVersion": 1,
+  "runId": "bundle-bench-2026-05-01T17-51-08-360Z",
+  "generatedAt": "2026-05-01T17:54:48.570Z",
+  "cwd": "/Users/rudrasatani/Desktop/Missi Intelligence/missi-web",
+  "baseline": false,
+  "selectedFeatures": [
+    "public-marketing",
+    "auth-onboarding",
+    "chat-core",
+    "voice-live",
+    "memory-core",
+    "visual-memory-life-story",
+    "spaces",
+    "budget",
+    "billing-referrals",
+    "quests-streaks",
+    "daily-brief-proactive",
+    "sleep-wind-down",
+    "exam-buddy",
+    "plugins-integrations",
+    "messaging-bots",
+    "agents-actions",
+    "profile-notifications",
+    "mood",
+    "admin-observability"
+  ],
+  "cli": {
+    "help": false,
+    "all": false,
+    "baseline": false,
+    "compare": false,
+    "list": false,
+    "dryRun": false,
+    "includeBuild": false,
+    "allowAuthenticated": false,
+    "allowExternalCalls": false,
+    "featureIds": [],
+    "baseUrl": null,
+    "cookie": null,
+    "authHeader": null,
+    "serverCommand": null,
+    "readinessPath": "/api/health",
+    "port": 3000,
+    "timeoutMs": 15000,
+    "iterations": 10,
+    "warmupIterations": 2,
+    "outputPath": "benchmarks/results/after-build-20260501-232103.json",
+    "markdownPath": null
+  },
+  "summary": {
+    "total": 53,
+    "completed": 48,
+    "skipped": 5,
+    "failed": 0,
+    "durationMs": 220210
+  },
+  "metadata": {
+    "nodeVersion": "v24.5.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "managedServer": false,
+    "baseUrl": null
+  },
+  "results": [
+    {
+      "id": "workspace-build:build",
+      "featureId": "workspace-build",
+      "featureName": "Workspace Build Pipeline",
+      "category": "infrastructure",
+      "benchmarkType": "build-time",
+      "targetKind": "build",
+      "target": "pnpm run build",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": false,
+      "externalServices": [
+        "Next.js",
+        "OpenNext Cloudflare"
+      ],
+      "startedAt": "2026-05-01T17:51:08.366Z",
+      "finishedAt": "2026-05-01T17:52:36.884Z",
+      "stats": {
+        "count": 1,
+        "samplesMs": [
+          88086
+        ],
+        "p50": 88086,
+        "p75": 88086,
+        "p95": 88086,
+        "average": 88086,
+        "min": 88086,
+        "max": 88086,
+        "stdDev": 0
+      },
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 0,
+        "routeChunkBytes": 0,
+        "apiChunkBytes": 0,
+        "totalChunkBytes": 0,
+        "clientSourceBytes": 0,
+        "serverSourceBytes": 0,
+        "buildArtifactBytes": 1013376149,
+        "openNextArtifactBytes": 62109516
+      },
+      "notes": [
+        "Build completed successfully.",
+        "warn - If this is content and not a class, replace it with `ease-&lsqb;cubic-bezier(0.22,1,0.36,1)&rsqb;` to silence this warning.   ⚠ The Next.js plugin was not detected in your ESLint configuration. See https://nextjs.org/docs/app/api-reference/config/eslint#migrating-existing-config"
+      ],
+      "metadata": {
+        "scriptName": "build",
+        "exitCode": 0,
+        "durationMs": 88086
+      }
+    },
+    {
+      "id": "workspace-build:build:cf",
+      "featureId": "workspace-build",
+      "featureName": "Workspace Build Pipeline",
+      "category": "infrastructure",
+      "benchmarkType": "build-time",
+      "targetKind": "build",
+      "target": "pnpm run build:cf",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": false,
+      "externalServices": [
+        "Next.js",
+        "OpenNext Cloudflare"
+      ],
+      "startedAt": "2026-05-01T17:52:36.887Z",
+      "finishedAt": "2026-05-01T17:54:46.999Z",
+      "stats": {
+        "count": 1,
+        "samplesMs": [
+          130010
+        ],
+        "p50": 130010,
+        "p75": 130010,
+        "p95": 130010,
+        "average": 130010,
+        "min": 130010,
+        "max": 130010,
+        "stdDev": 0
+      },
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 0,
+        "routeChunkBytes": 0,
+        "apiChunkBytes": 0,
+        "totalChunkBytes": 0,
+        "clientSourceBytes": 0,
+        "serverSourceBytes": 0,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [
+        "Build completed successfully.",
+        ".open-next/server-functions/default/.next/server/chunks/7284.js:1:147834:       1 │ ...1:return em(a,2790,2799,!0,d);case 22:return em(a,2662,2671,!0,d...         ╵                                  ~~~~"
+      ],
+      "metadata": {
+        "scriptName": "build:cf",
+        "exitCode": 0,
+        "durationMs": 130010
+      }
+    },
+    {
+      "id": "public-marketing:bundle-size",
+      "featureId": "public-marketing",
+      "featureName": "Public Marketing and Legal",
+      "category": "marketing",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/, /manifesto, /privacy, /terms",
+      "status": "completed",
+      "risk": "P3",
+      "authRequired": false,
+      "externalServices": [
+        "Static assets",
+        "Next.js App Router"
+      ],
+      "startedAt": "2026-05-01T17:54:47.097Z",
+      "finishedAt": "2026-05-01T17:54:47.097Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 11,
+        "routeChunkBytes": 675173,
+        "apiChunkBytes": 0,
+        "totalChunkBytes": 675173,
+        "clientSourceBytes": 51888,
+        "serverSourceBytes": 1480170,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [
+        "Missing route manifest keys: /privacy/page, /terms/page"
+      ],
+      "metadata": {
+        "routeManifestKeys": [
+          "/page",
+          "/manifesto/page",
+          "/privacy/page",
+          "/terms/page"
+        ],
+        "apiManifestKeys": [],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/7708-194736aba611135d.js",
+          "static/chunks/9999-c7909df01e2690e1.js",
+          "static/chunks/app/page-a76981216ac7d503.js",
+          "static/chunks/app/manifesto/page-b9954732e3acfd61.js"
+        ],
+        "apiChunkFiles": []
+      }
+    },
+    {
+      "id": "auth-onboarding:bundle-size",
+      "featureId": "auth-onboarding",
+      "featureName": "Auth, Setup, and Middleware Security",
+      "category": "auth",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/sign-in, /sign-up, /setup",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": false,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Next.js Middleware"
+      ],
+      "startedAt": "2026-05-01T17:54:47.097Z",
+      "finishedAt": "2026-05-01T17:54:47.097Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 6,
+        "routeChunkBytes": 458229,
+        "apiChunkBytes": 0,
+        "totalChunkBytes": 458229,
+        "clientSourceBytes": 19321,
+        "serverSourceBytes": 41270,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [
+        "Missing route manifest keys: /sign-in/page, /sign-up/page"
+      ],
+      "metadata": {
+        "routeManifestKeys": [
+          "/sign-in/page",
+          "/sign-up/page",
+          "/setup/page"
+        ],
+        "apiManifestKeys": [],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/app/setup/page-d4e3dae660fc9cbb.js"
+        ],
+        "apiChunkFiles": []
+      }
+    },
+    {
+      "id": "chat-core:bundle-size",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/chat, /api/v1/chat, /api/v1/chat-stream",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:47.098Z",
+      "finishedAt": "2026-05-01T17:54:47.098Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 16,
+        "routeChunkBytes": 685485,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 1038656,
+        "clientSourceBytes": 29215,
+        "serverSourceBytes": 34915,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/chat/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/chat/route",
+          "/api/v1/chat-stream/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/2320-1d3dabd1b58aaefb.js",
+          "static/chunks/9539-2cbe7a459ec2750b.js",
+          "static/chunks/app/chat/page-dedfe5cfc53eac5a.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/chat/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/chat-stream/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "voice-live:bundle-size",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/chat, /api/v1/live-token, /api/v1/stt, /api/v1/tts",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T17:54:47.098Z",
+      "finishedAt": "2026-05-01T17:54:47.098Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 17,
+        "routeChunkBytes": 685485,
+        "apiChunkBytes": 353682,
+        "totalChunkBytes": 1039167,
+        "clientSourceBytes": 73382,
+        "serverSourceBytes": 36225,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/chat/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/live-token/route",
+          "/api/v1/stt/route",
+          "/api/v1/tts/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/2320-1d3dabd1b58aaefb.js",
+          "static/chunks/9539-2cbe7a459ec2750b.js",
+          "static/chunks/app/chat/page-dedfe5cfc53eac5a.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/live-token/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/stt/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/tts/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "memory-core:bundle-size",
+      "featureId": "memory-core",
+      "featureName": "Memory Dashboard and Life Graph",
+      "category": "memory",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/memory, /memory/graph, /api/v1/memory",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:47.099Z",
+      "finishedAt": "2026-05-01T17:54:47.099Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 19,
+        "routeChunkBytes": 711664,
+        "apiChunkBytes": 352660,
+        "totalChunkBytes": 1064324,
+        "clientSourceBytes": 24482,
+        "serverSourceBytes": 45627,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/memory/page",
+          "/memory/graph/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/memory/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/8634-f8ec63484c1de357.js",
+          "static/chunks/app/memory/page-a1134d7685f617e7.js",
+          "static/chunks/8370-941446b5c9559584.js",
+          "static/chunks/app/memory/graph/page-06e5beb1071546fc.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/memory/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "visual-memory-life-story:bundle-size",
+      "featureId": "visual-memory-life-story",
+      "featureName": "Visual Memory and Life Story",
+      "category": "memory",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/memory/visual, /memory/story, /api/v1/visual-memory/[[...path]], /api/v1/life-story/[...path]",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini Vision"
+      ],
+      "startedAt": "2026-05-01T17:54:47.099Z",
+      "finishedAt": "2026-05-01T17:54:47.099Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 18,
+        "routeChunkBytes": 773550,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 1126721,
+        "clientSourceBytes": 18626,
+        "serverSourceBytes": 42181,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/memory/visual/page",
+          "/memory/story/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/visual-memory/[[...path]]/route",
+          "/api/v1/life-story/[...path]/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/921-bca715216eb4388c.js",
+          "static/chunks/app/memory/visual/page-099106626e78b77b.js",
+          "static/chunks/c132bf7d-040efa37166b4c5f.js",
+          "static/chunks/1658-be4762abc6a86249.js",
+          "static/chunks/app/memory/story/page-9087e9044176029a.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/visual-memory/[[...path]]/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/life-story/[...path]/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "spaces:bundle-size",
+      "featureId": "spaces",
+      "featureName": "Spaces Collaboration",
+      "category": "collaboration",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/spaces, /spaces/[spaceId], /join/[token], /api/v1/spaces, /api/v1/spaces/[spaceId]",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Billing plan gate"
+      ],
+      "startedAt": "2026-05-01T17:54:47.100Z",
+      "finishedAt": "2026-05-01T17:54:47.100Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 18,
+        "routeChunkBytes": 578596,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 931767,
+        "clientSourceBytes": 36196,
+        "serverSourceBytes": 45809,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/spaces/page",
+          "/spaces/[spaceId]/page",
+          "/join/[token]/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/spaces/route",
+          "/api/v1/spaces/[spaceId]/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/app/spaces/page-c0edf666cda2b1c6.js",
+          "static/chunks/app/spaces/[spaceId]/page-6b564b80defb4742.js",
+          "static/chunks/app/join/[token]/page-774cf5b286e5b613.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/spaces/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/spaces/[spaceId]/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "budget:bundle-size",
+      "featureId": "budget",
+      "featureName": "Budget Tracking",
+      "category": "finance",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/budget, /api/v1/budget/entries, /api/v1/budget/insight",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Durable Objects",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:47.100Z",
+      "finishedAt": "2026-05-01T17:54:47.100Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 18,
+        "routeChunkBytes": 732420,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 1085591,
+        "clientSourceBytes": 1398,
+        "serverSourceBytes": 49464,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/budget/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/budget/entries/route",
+          "/api/v1/budget/insight/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/437-7213762fc2a7c15e.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/app/budget/page-9a7ca2c9e22897c5.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/budget/entries/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/budget/insight/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "billing-referrals:bundle-size",
+      "featureId": "billing-referrals",
+      "featureName": "Billing, Pricing, and Referrals",
+      "category": "revenue",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/pricing, /api/v1/billing, /api/v1/referral, /api/webhooks/dodo",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Dodo Payments",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T17:54:47.101Z",
+      "finishedAt": "2026-05-01T17:54:47.101Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 19,
+        "routeChunkBytes": 693437,
+        "apiChunkBytes": 353682,
+        "totalChunkBytes": 1047119,
+        "clientSourceBytes": 42959,
+        "serverSourceBytes": 34628,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/pricing/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/billing/route",
+          "/api/v1/referral/route",
+          "/api/webhooks/dodo/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/8634-f8ec63484c1de357.js",
+          "static/chunks/app/pricing/page-d94aadc2a9e05a04.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/billing/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/referral/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/webhooks/dodo/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "quests-streaks:bundle-size",
+      "featureId": "quests-streaks",
+      "featureName": "Quests and Streaks",
+      "category": "gamification",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/quests, /streak, /api/v1/quests, /api/v1/streak",
+      "status": "completed",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:47.101Z",
+      "finishedAt": "2026-05-01T17:54:47.101Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 20,
+        "routeChunkBytes": 749252,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 1102423,
+        "clientSourceBytes": 27263,
+        "serverSourceBytes": 46088,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/quests/page",
+          "/streak/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/quests/route",
+          "/api/v1/streak/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/4961-ca214154788e042d.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/app/quests/page-9b14b2c12d6e8f9f.js",
+          "static/chunks/4595-f0ca978333efe116.js",
+          "static/chunks/app/streak/page-53929c4bc23f5f30.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/quests/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/streak/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "daily-brief-proactive:bundle-size",
+      "featureId": "daily-brief-proactive",
+      "featureName": "Daily Brief and Proactive Nudges",
+      "category": "assistant",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/today, /api/v1/daily-brief/[[...path]], /api/v1/proactive",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:47.101Z",
+      "finishedAt": "2026-05-01T17:54:47.101Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 17,
+        "routeChunkBytes": 686483,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 1039654,
+        "clientSourceBytes": 27945,
+        "serverSourceBytes": 28295,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/today/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/daily-brief/[[...path]]/route",
+          "/api/v1/proactive/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/app/today/page-a6d70d1a2a444676.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/daily-brief/[[...path]]/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/proactive/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "sleep-wind-down:bundle-size",
+      "featureId": "sleep-wind-down",
+      "featureName": "Sleep Sessions and Wind Down",
+      "category": "wellbeing",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/wind-down, /api/v1/wind-down, /api/v1/sleep-sessions/[...path]",
+      "status": "completed",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini",
+        "Gemini TTS"
+      ],
+      "startedAt": "2026-05-01T17:54:47.102Z",
+      "finishedAt": "2026-05-01T17:54:47.102Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 16,
+        "routeChunkBytes": 565256,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 918427,
+        "clientSourceBytes": 26982,
+        "serverSourceBytes": 29880,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/wind-down/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/wind-down/route",
+          "/api/v1/sleep-sessions/[...path]/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/app/wind-down/page-b68ceb6e1532baae.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/wind-down/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/sleep-sessions/[...path]/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "exam-buddy:bundle-size",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/exam-buddy, /api/v1/exam-buddy/profile, /api/v1/exam-buddy/quiz",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:47.102Z",
+      "finishedAt": "2026-05-01T17:54:47.102Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 16,
+        "routeChunkBytes": 544964,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 898135,
+        "clientSourceBytes": 40746,
+        "serverSourceBytes": 33632,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/exam-buddy/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/exam-buddy/profile/route",
+          "/api/v1/exam-buddy/quiz/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/app/exam-buddy/page-1ebb0b594d5cd49e.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/exam-buddy/profile/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/exam-buddy/quiz/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "plugins-integrations:bundle-size",
+      "featureId": "plugins-integrations",
+      "featureName": "Plugins and Productivity Integrations",
+      "category": "integrations",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/settings/integrations, /api/v1/plugins/[[...path]], /api/v1/tools/execute",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Google OAuth / Calendar",
+        "Notion API",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T17:54:47.103Z",
+      "finishedAt": "2026-05-01T17:54:47.103Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 16,
+        "routeChunkBytes": 549611,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 902782,
+        "clientSourceBytes": 17498,
+        "serverSourceBytes": 46844,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/settings/integrations/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/plugins/[[...path]]/route",
+          "/api/v1/tools/execute/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/app/settings/integrations/page-e6579df196856f60.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/plugins/[[...path]]/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/tools/execute/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "messaging-bots:bundle-size",
+      "featureId": "messaging-bots",
+      "featureName": "Messaging Bots and Public Webhooks",
+      "category": "integrations",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/settings/integrations, /profile, /api/v1/bot/link/whatsapp, /api/webhooks/telegram, /api/webhooks/whatsapp",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": false,
+      "externalServices": [
+        "WhatsApp",
+        "Telegram",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:47.103Z",
+      "finishedAt": "2026-05-01T17:54:47.103Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 20,
+        "routeChunkBytes": 717162,
+        "apiChunkBytes": 353682,
+        "totalChunkBytes": 1070844,
+        "clientSourceBytes": 0,
+        "serverSourceBytes": 61494,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/settings/integrations/page",
+          "/profile/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/bot/link/whatsapp/route",
+          "/api/webhooks/telegram/route",
+          "/api/webhooks/whatsapp/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/app/settings/integrations/page-e6579df196856f60.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/9865-af840261762ac9f0.js",
+          "static/chunks/app/profile/page-5c9f8de213ed5fd9.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/bot/link/whatsapp/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/webhooks/telegram/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/webhooks/whatsapp/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "agents-actions:bundle-size",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/agents, /chat, /api/v1/agents/[...path], /api/v1/actions",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T17:54:47.103Z",
+      "finishedAt": "2026-05-01T17:54:47.104Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 20,
+        "routeChunkBytes": 747029,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 1100200,
+        "clientSourceBytes": 35508,
+        "serverSourceBytes": 42099,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/agents/page",
+          "/chat/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/agents/[...path]/route",
+          "/api/v1/actions/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/app/agents/page-f0feee3b853838d8.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/2320-1d3dabd1b58aaefb.js",
+          "static/chunks/9539-2cbe7a459ec2750b.js",
+          "static/chunks/app/chat/page-dedfe5cfc53eac5a.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/agents/[...path]/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/actions/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "profile-notifications:bundle-size",
+      "featureId": "profile-notifications",
+      "featureName": "Profile Card, Settings, Notifications, and Push",
+      "category": "account",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/profile, /settings, /api/v1/profile/card, /api/v1/notification-prefs",
+      "status": "completed",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Web Push"
+      ],
+      "startedAt": "2026-05-01T17:54:47.104Z",
+      "finishedAt": "2026-05-01T17:54:47.104Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 20,
+        "routeChunkBytes": 749447,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 1102618,
+        "clientSourceBytes": 96202,
+        "serverSourceBytes": 28434,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/profile/page",
+          "/settings/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/profile/card/route",
+          "/api/v1/notification-prefs/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/9865-af840261762ac9f0.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/app/profile/page-5c9f8de213ed5fd9.js",
+          "static/chunks/9539-2cbe7a459ec2750b.js",
+          "static/chunks/app/settings/page-d8e50711eca2d23b.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/profile/card/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/notification-prefs/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "mood:bundle-size",
+      "featureId": "mood",
+      "featureName": "Mood Timeline",
+      "category": "wellbeing",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/mood, /api/v1/mood/timeline",
+      "status": "completed",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:47.104Z",
+      "finishedAt": "2026-05-01T17:54:47.104Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 16,
+        "routeChunkBytes": 689515,
+        "apiChunkBytes": 352660,
+        "totalChunkBytes": 1042175,
+        "clientSourceBytes": 35258,
+        "serverSourceBytes": 17832,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/mood/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/mood/timeline/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/6331-3bb9f5d3942f7e29.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/3018-b0c1fdbef98b950c.js",
+          "static/chunks/8426-bbd64bf93cbc0365.js",
+          "static/chunks/1107-23bcbb8ffb9c07e3.js",
+          "static/chunks/4579-ca76f4047d41c985.js",
+          "static/chunks/app/mood/page-9e7229718bfe4d0b.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/mood/timeline/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "admin-observability:bundle-size",
+      "featureId": "admin-observability",
+      "featureName": "Admin, Health, Analytics, and Observability",
+      "category": "operations",
+      "benchmarkType": "bundle-size",
+      "targetKind": "bundle",
+      "target": "/admin, /api/v1/health, /api/v1/admin/analytics",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare D1",
+        "Cloudflare Vectorize",
+        "Durable Objects",
+        "Providers health probes"
+      ],
+      "startedAt": "2026-05-01T17:54:47.105Z",
+      "finishedAt": "2026-05-01T17:54:47.105Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": {
+        "chunkCount": 12,
+        "routeChunkBytes": 463489,
+        "apiChunkBytes": 353171,
+        "totalChunkBytes": 816660,
+        "clientSourceBytes": 24106,
+        "serverSourceBytes": 52442,
+        "buildArtifactBytes": 1083124257,
+        "openNextArtifactBytes": 61296437
+      },
+      "notes": [],
+      "metadata": {
+        "routeManifestKeys": [
+          "/admin/page"
+        ],
+        "apiManifestKeys": [
+          "/api/v1/health/route",
+          "/api/v1/admin/analytics/route"
+        ],
+        "routeChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/2091-d7a598170f8c8af3.js",
+          "static/chunks/app/admin/page-89e6d87e0d3a2835.js"
+        ],
+        "apiChunkFiles": [
+          "static/chunks/webpack-35aba456f3a1d180.js",
+          "static/chunks/b0cbb456-ccec192aeedaa34c.js",
+          "static/chunks/2385-c4db6d0a79f7d8c7.js",
+          "static/chunks/main-app-be5972b520003d4a.js",
+          "static/chunks/app/api/v1/health/route-36a0b0d370b73983.js",
+          "static/chunks/app/api/v1/admin/analytics/route-36a0b0d370b73983.js"
+        ]
+      }
+    },
+    {
+      "id": "public-marketing:import:app/page.tsx",
+      "featureId": "public-marketing",
+      "featureName": "Public Marketing and Legal",
+      "category": "marketing",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "app/page.tsx",
+      "status": "completed",
+      "risk": "P3",
+      "authRequired": false,
+      "externalServices": [
+        "Static assets",
+        "Next.js App Router"
+      ],
+      "startedAt": "2026-05-01T17:54:47.105Z",
+      "finishedAt": "2026-05-01T17:54:47.722Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          3.912,
+          1.488,
+          3.569,
+          1.545,
+          1.166,
+          1.601,
+          1.076,
+          1.134,
+          1.065,
+          0.98
+        ],
+        "p50": 1.166,
+        "p75": 1.601,
+        "p95": 3.912,
+        "average": 1.754,
+        "min": 0.98,
+        "max": 3.912,
+        "stdDev": 1.017
+      },
+      "memory": {
+        "rssStartBytes": 83869696,
+        "rssEndBytes": 156696576,
+        "rssPeakBytes": 156696576,
+        "rssDeltaBytes": 72826880,
+        "heapUsedStartBytes": 26261632,
+        "heapUsedEndBytes": 60515576,
+        "heapUsedPeakBytes": 60514480,
+        "heapUsedDeltaBytes": 34253944
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "public-marketing:import:components/landing/AgenticMissiHome.tsx",
+      "featureId": "public-marketing",
+      "featureName": "Public Marketing and Legal",
+      "category": "marketing",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/landing/AgenticMissiHome.tsx",
+      "status": "completed",
+      "risk": "P3",
+      "authRequired": false,
+      "externalServices": [
+        "Static assets",
+        "Next.js App Router"
+      ],
+      "startedAt": "2026-05-01T17:54:47.722Z",
+      "finishedAt": "2026-05-01T17:54:47.743Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.562,
+          1.887,
+          1.646,
+          1.422,
+          1.497,
+          1.692,
+          1.522,
+          1.464,
+          1.716,
+          1.526
+        ],
+        "p50": 1.526,
+        "p75": 1.692,
+        "p95": 1.887,
+        "average": 1.593,
+        "min": 1.422,
+        "max": 1.887,
+        "stdDev": 0.134
+      },
+      "memory": {
+        "rssStartBytes": 156762112,
+        "rssEndBytes": 160694272,
+        "rssPeakBytes": 160694272,
+        "rssDeltaBytes": 3932160,
+        "heapUsedStartBytes": 60551800,
+        "heapUsedEndBytes": 63644320,
+        "heapUsedPeakBytes": 63643224,
+        "heapUsedDeltaBytes": 3092520
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "auth-onboarding:import:app/(auth)/sign-in/page.tsx",
+      "featureId": "auth-onboarding",
+      "featureName": "Auth, Setup, and Middleware Security",
+      "category": "auth",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "app/(auth)/sign-in/page.tsx",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": false,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Next.js Middleware"
+      ],
+      "startedAt": "2026-05-01T17:54:47.743Z",
+      "finishedAt": "2026-05-01T17:54:47.750Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: Cannot find module '/Users/rudrasatani/Desktop/Missi Intelligence/missi-web/node_modules/@clerk/themes/dist/index.cjs'"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "auth-onboarding:import:app/setup/page.tsx",
+      "featureId": "auth-onboarding",
+      "featureName": "Auth, Setup, and Middleware Security",
+      "category": "auth",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "app/setup/page.tsx",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": false,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Next.js Middleware"
+      ],
+      "startedAt": "2026-05-01T17:54:47.750Z",
+      "finishedAt": "2026-05-01T17:54:47.765Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.077,
+          1.048,
+          0.918,
+          0.887,
+          1.083,
+          0.93,
+          0.966,
+          0.932,
+          0.917,
+          0.989
+        ],
+        "p50": 0.932,
+        "p75": 1.048,
+        "p95": 1.083,
+        "average": 0.975,
+        "min": 0.887,
+        "max": 1.083,
+        "stdDev": 0.068
+      },
+      "memory": {
+        "rssStartBytes": 161366016,
+        "rssEndBytes": 162496512,
+        "rssPeakBytes": 162496512,
+        "rssDeltaBytes": 1130496,
+        "heapUsedStartBytes": 64226384,
+        "heapUsedEndBytes": 65182136,
+        "heapUsedPeakBytes": 65251480,
+        "heapUsedDeltaBytes": 955752
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "chat-core:import:app/chat/page.tsx",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "app/chat/page.tsx",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:47.765Z",
+      "finishedAt": "2026-05-01T17:54:47.962Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.234,
+          1.155,
+          1.112,
+          1.222,
+          1.194,
+          1.27,
+          1.122,
+          1.18,
+          1.051,
+          1.594
+        ],
+        "p50": 1.18,
+        "p75": 1.234,
+        "p95": 1.594,
+        "average": 1.213,
+        "min": 1.051,
+        "max": 1.594,
+        "stdDev": 0.141
+      },
+      "memory": {
+        "rssStartBytes": 162496512,
+        "rssEndBytes": 196378624,
+        "rssPeakBytes": 197427200,
+        "rssDeltaBytes": 33882112,
+        "heapUsedStartBytes": 65196048,
+        "heapUsedEndBytes": 49385680,
+        "heapUsedPeakBytes": 72556664,
+        "heapUsedDeltaBytes": -15810368
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "chat-core:import:components/chat/ChatPageShell.tsx",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/chat/ChatPageShell.tsx",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:47.962Z",
+      "finishedAt": "2026-05-01T17:54:48.005Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.228,
+          1.197,
+          1.206,
+          1.119,
+          1.119,
+          1.302,
+          1.287,
+          1.134,
+          1.233,
+          1.121
+        ],
+        "p50": 1.197,
+        "p75": 1.233,
+        "p95": 1.302,
+        "average": 1.195,
+        "min": 1.119,
+        "max": 1.302,
+        "stdDev": 0.066
+      },
+      "memory": {
+        "rssStartBytes": 196378624,
+        "rssEndBytes": 197328896,
+        "rssPeakBytes": 197328896,
+        "rssDeltaBytes": 950272,
+        "heapUsedStartBytes": 49399232,
+        "heapUsedEndBytes": 54463592,
+        "heapUsedPeakBytes": 54462496,
+        "heapUsedDeltaBytes": 5064360
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "voice-live:import:hooks/chat/useGeminiLive.ts",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "hooks/chat/useGeminiLive.ts",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T17:54:48.005Z",
+      "finishedAt": "2026-05-01T17:54:48.025Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.317,
+          1.532,
+          1.257,
+          1.191,
+          1.135,
+          1.206,
+          1.058,
+          1.351,
+          1.705,
+          1.273
+        ],
+        "p50": 1.257,
+        "p75": 1.351,
+        "p95": 1.705,
+        "average": 1.302,
+        "min": 1.058,
+        "max": 1.705,
+        "stdDev": 0.182
+      },
+      "memory": {
+        "rssStartBytes": 197328896,
+        "rssEndBytes": 197705728,
+        "rssPeakBytes": 197705728,
+        "rssDeltaBytes": 376832,
+        "heapUsedStartBytes": 54477560,
+        "heapUsedEndBytes": 55616848,
+        "heapUsedPeakBytes": 55615752,
+        "heapUsedDeltaBytes": 1139288
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "voice-live:import:hooks/chat/useVoiceStateMachine.ts",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "hooks/chat/useVoiceStateMachine.ts",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T17:54:48.025Z",
+      "finishedAt": "2026-05-01T17:54:48.045Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.536,
+          1.799,
+          1.528,
+          1.549,
+          1.555,
+          1.483,
+          1.582,
+          1.501,
+          1.491,
+          1.512
+        ],
+        "p50": 1.528,
+        "p75": 1.555,
+        "p95": 1.799,
+        "average": 1.554,
+        "min": 1.483,
+        "max": 1.799,
+        "stdDev": 0.087
+      },
+      "memory": {
+        "rssStartBytes": 197705728,
+        "rssEndBytes": 198918144,
+        "rssPeakBytes": 198918144,
+        "rssDeltaBytes": 1212416,
+        "heapUsedStartBytes": 55631592,
+        "heapUsedEndBytes": 58738304,
+        "heapUsedPeakBytes": 58737208,
+        "heapUsedDeltaBytes": 3106712
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "memory-core:import:app/memory/page.tsx",
+      "featureId": "memory-core",
+      "featureName": "Memory Dashboard and Life Graph",
+      "category": "memory",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "app/memory/page.tsx",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:48.045Z",
+      "finishedAt": "2026-05-01T17:54:48.052Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: React is not defined"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "memory-core:import:components/memory/MemoryGraph3D.tsx",
+      "featureId": "memory-core",
+      "featureName": "Memory Dashboard and Life Graph",
+      "category": "memory",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/memory/MemoryGraph3D.tsx",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:48.052Z",
+      "finishedAt": "2026-05-01T17:54:48.065Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          0.932,
+          0.914,
+          0.898,
+          0.872,
+          0.91,
+          0.897,
+          0.732,
+          0.726,
+          0.901,
+          0.842
+        ],
+        "p50": 0.897,
+        "p75": 0.91,
+        "p95": 0.932,
+        "average": 0.862,
+        "min": 0.726,
+        "max": 0.932,
+        "stdDev": 0.071
+      },
+      "memory": {
+        "rssStartBytes": 199639040,
+        "rssEndBytes": 200458240,
+        "rssPeakBytes": 200458240,
+        "rssDeltaBytes": 819200,
+        "heapUsedStartBytes": 59553480,
+        "heapUsedEndBytes": 60314392,
+        "heapUsedPeakBytes": 60313296,
+        "heapUsedDeltaBytes": 760912
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "visual-memory-life-story:import:components/memory/VisualMemoryGallery.tsx",
+      "featureId": "visual-memory-life-story",
+      "featureName": "Visual Memory and Life Story",
+      "category": "memory",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/memory/VisualMemoryGallery.tsx",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini Vision"
+      ],
+      "startedAt": "2026-05-01T17:54:48.065Z",
+      "finishedAt": "2026-05-01T17:54:48.078Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          0.957,
+          1.015,
+          1.015,
+          0.959,
+          1.002,
+          0.906,
+          0.883,
+          0.867,
+          0.881,
+          0.864
+        ],
+        "p50": 0.906,
+        "p75": 1.002,
+        "p95": 1.015,
+        "average": 0.935,
+        "min": 0.864,
+        "max": 1.015,
+        "stdDev": 0.059
+      },
+      "memory": {
+        "rssStartBytes": 200474624,
+        "rssEndBytes": 201637888,
+        "rssPeakBytes": 201637888,
+        "rssDeltaBytes": 1163264,
+        "heapUsedStartBytes": 60328256,
+        "heapUsedEndBytes": 61520832,
+        "heapUsedPeakBytes": 61519736,
+        "heapUsedDeltaBytes": 1192576
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "visual-memory-life-story:import:components/memory/LifeStoryView.tsx",
+      "featureId": "visual-memory-life-story",
+      "featureName": "Visual Memory and Life Story",
+      "category": "memory",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/memory/LifeStoryView.tsx",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini Vision"
+      ],
+      "startedAt": "2026-05-01T17:54:48.078Z",
+      "finishedAt": "2026-05-01T17:54:48.146Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.351,
+          1.028,
+          1.048,
+          1.001,
+          1.056,
+          1.188,
+          1.584,
+          1.229,
+          1.025,
+          0.972
+        ],
+        "p50": 1.048,
+        "p75": 1.229,
+        "p95": 1.584,
+        "average": 1.148,
+        "min": 0.972,
+        "max": 1.584,
+        "stdDev": 0.184
+      },
+      "memory": {
+        "rssStartBytes": 201654272,
+        "rssEndBytes": 209354752,
+        "rssPeakBytes": 209354752,
+        "rssDeltaBytes": 7700480,
+        "heapUsedStartBytes": 61535648,
+        "heapUsedEndBytes": 67315424,
+        "heapUsedPeakBytes": 67314328,
+        "heapUsedDeltaBytes": 5779776
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "spaces:import:components/spaces/SpacesDashboard.tsx",
+      "featureId": "spaces",
+      "featureName": "Spaces Collaboration",
+      "category": "collaboration",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/spaces/SpacesDashboard.tsx",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Billing plan gate"
+      ],
+      "startedAt": "2026-05-01T17:54:48.146Z",
+      "finishedAt": "2026-05-01T17:54:48.163Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.186,
+          1.189,
+          1.066,
+          1.079,
+          1.049,
+          1.106,
+          1.182,
+          1.043,
+          1.087,
+          1.01
+        ],
+        "p50": 1.079,
+        "p75": 1.182,
+        "p95": 1.189,
+        "average": 1.1,
+        "min": 1.01,
+        "max": 1.189,
+        "stdDev": 0.061
+      },
+      "memory": {
+        "rssStartBytes": 209371136,
+        "rssEndBytes": 210403328,
+        "rssPeakBytes": 210403328,
+        "rssDeltaBytes": 1032192,
+        "heapUsedStartBytes": 67329368,
+        "heapUsedEndBytes": 68403696,
+        "heapUsedPeakBytes": 68402600,
+        "heapUsedDeltaBytes": 1074328
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "spaces:import:components/spaces/SpaceDetailView.tsx",
+      "featureId": "spaces",
+      "featureName": "Spaces Collaboration",
+      "category": "collaboration",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/spaces/SpaceDetailView.tsx",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Billing plan gate"
+      ],
+      "startedAt": "2026-05-01T17:54:48.163Z",
+      "finishedAt": "2026-05-01T17:54:48.184Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.409,
+          1.299,
+          1.303,
+          1.398,
+          1.282,
+          1.289,
+          1.333,
+          1.254,
+          1.225,
+          1.241
+        ],
+        "p50": 1.289,
+        "p75": 1.333,
+        "p95": 1.409,
+        "average": 1.303,
+        "min": 1.225,
+        "max": 1.409,
+        "stdDev": 0.058
+      },
+      "memory": {
+        "rssStartBytes": 210419712,
+        "rssEndBytes": 212566016,
+        "rssPeakBytes": 212566016,
+        "rssDeltaBytes": 2146304,
+        "heapUsedStartBytes": 68417304,
+        "heapUsedEndBytes": 70561008,
+        "heapUsedPeakBytes": 70559912,
+        "heapUsedDeltaBytes": 2143704
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "budget:import:app/budget/page.tsx",
+      "featureId": "budget",
+      "featureName": "Budget Tracking",
+      "category": "finance",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "app/budget/page.tsx",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Durable Objects",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:48.184Z",
+      "finishedAt": "2026-05-01T17:54:48.240Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: React is not defined"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "billing-referrals:import:app/pricing/page.tsx",
+      "featureId": "billing-referrals",
+      "featureName": "Billing, Pricing, and Referrals",
+      "category": "revenue",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "app/pricing/page.tsx",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Dodo Payments",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T17:54:48.240Z",
+      "finishedAt": "2026-05-01T17:54:48.270Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          2.183,
+          1.763,
+          3.149,
+          1.745,
+          1.43,
+          1.437,
+          1.32,
+          1.301,
+          1.453,
+          1.387
+        ],
+        "p50": 1.437,
+        "p75": 1.763,
+        "p95": 3.149,
+        "average": 1.717,
+        "min": 1.301,
+        "max": 3.149,
+        "stdDev": 0.542
+      },
+      "memory": {
+        "rssStartBytes": 221052928,
+        "rssEndBytes": 227311616,
+        "rssPeakBytes": 228376576,
+        "rssDeltaBytes": 6258688,
+        "heapUsedStartBytes": 72090536,
+        "heapUsedEndBytes": 38105848,
+        "heapUsedPeakBytes": 73103744,
+        "heapUsedDeltaBytes": -33984688
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "billing-referrals:import:hooks/billing/useBilling.ts",
+      "featureId": "billing-referrals",
+      "featureName": "Billing, Pricing, and Referrals",
+      "category": "revenue",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "hooks/billing/useBilling.ts",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Dodo Payments",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T17:54:48.270Z",
+      "finishedAt": "2026-05-01T17:54:48.283Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.035,
+          1.022,
+          1.193,
+          0.962,
+          0.97,
+          0.918,
+          0.93,
+          1.007,
+          0.962,
+          0.929
+        ],
+        "p50": 0.962,
+        "p75": 1.022,
+        "p95": 1.193,
+        "average": 0.993,
+        "min": 0.918,
+        "max": 1.193,
+        "stdDev": 0.077
+      },
+      "memory": {
+        "rssStartBytes": 227311616,
+        "rssEndBytes": 227360768,
+        "rssPeakBytes": 227360768,
+        "rssDeltaBytes": 49152,
+        "heapUsedStartBytes": 38119224,
+        "heapUsedEndBytes": 38881224,
+        "heapUsedPeakBytes": 38880128,
+        "heapUsedDeltaBytes": 762000
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "quests-streaks:import:components/quests/QuestsClient.tsx",
+      "featureId": "quests-streaks",
+      "featureName": "Quests and Streaks",
+      "category": "gamification",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/quests/QuestsClient.tsx",
+      "status": "completed",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:48.283Z",
+      "finishedAt": "2026-05-01T17:54:48.305Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.237,
+          1.37,
+          1.496,
+          1.479,
+          1.413,
+          1.26,
+          1.28,
+          1.169,
+          1.23,
+          1.32
+        ],
+        "p50": 1.28,
+        "p75": 1.413,
+        "p95": 1.496,
+        "average": 1.325,
+        "min": 1.169,
+        "max": 1.496,
+        "stdDev": 0.105
+      },
+      "memory": {
+        "rssStartBytes": 227360768,
+        "rssEndBytes": 227426304,
+        "rssPeakBytes": 227426304,
+        "rssDeltaBytes": 65536,
+        "heapUsedStartBytes": 38895176,
+        "heapUsedEndBytes": 41300640,
+        "heapUsedPeakBytes": 41299544,
+        "heapUsedDeltaBytes": 2405464
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "daily-brief-proactive:import:components/daily-brief/TodayMissionClient.tsx",
+      "featureId": "daily-brief-proactive",
+      "featureName": "Daily Brief and Proactive Nudges",
+      "category": "assistant",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/daily-brief/TodayMissionClient.tsx",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:48.305Z",
+      "finishedAt": "2026-05-01T17:54:48.325Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.287,
+          1.382,
+          1.452,
+          1.352,
+          1.553,
+          1.259,
+          1.235,
+          1.214,
+          1.188,
+          1.221
+        ],
+        "p50": 1.259,
+        "p75": 1.382,
+        "p95": 1.553,
+        "average": 1.314,
+        "min": 1.188,
+        "max": 1.553,
+        "stdDev": 0.113
+      },
+      "memory": {
+        "rssStartBytes": 227426304,
+        "rssEndBytes": 227557376,
+        "rssPeakBytes": 227557376,
+        "rssDeltaBytes": 131072,
+        "heapUsedStartBytes": 41315040,
+        "heapUsedEndBytes": 43290152,
+        "heapUsedPeakBytes": 43289056,
+        "heapUsedDeltaBytes": 1975112
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "sleep-wind-down:import:app/wind-down/page.tsx",
+      "featureId": "sleep-wind-down",
+      "featureName": "Sleep Sessions and Wind Down",
+      "category": "wellbeing",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "app/wind-down/page.tsx",
+      "status": "completed",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini",
+        "Gemini TTS"
+      ],
+      "startedAt": "2026-05-01T17:54:48.325Z",
+      "finishedAt": "2026-05-01T17:54:48.345Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.633,
+          1.254,
+          1.261,
+          1.311,
+          1.08,
+          1.025,
+          1.087,
+          1.158,
+          1.117,
+          1.092
+        ],
+        "p50": 1.117,
+        "p75": 1.261,
+        "p95": 1.633,
+        "average": 1.202,
+        "min": 1.025,
+        "max": 1.633,
+        "stdDev": 0.169
+      },
+      "memory": {
+        "rssStartBytes": 227557376,
+        "rssEndBytes": 227590144,
+        "rssPeakBytes": 227590144,
+        "rssDeltaBytes": 32768,
+        "heapUsedStartBytes": 43304024,
+        "heapUsedEndBytes": 44909688,
+        "heapUsedPeakBytes": 44908592,
+        "heapUsedDeltaBytes": 1605664
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "sleep-wind-down:import:components/wind-down/SleepSessions.tsx",
+      "featureId": "sleep-wind-down",
+      "featureName": "Sleep Sessions and Wind Down",
+      "category": "wellbeing",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/wind-down/SleepSessions.tsx",
+      "status": "completed",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini",
+        "Gemini TTS"
+      ],
+      "startedAt": "2026-05-01T17:54:48.345Z",
+      "finishedAt": "2026-05-01T17:54:48.361Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.098,
+          1.192,
+          1.292,
+          1.125,
+          1.517,
+          1.27,
+          1.319,
+          1.166,
+          1.155,
+          1.258
+        ],
+        "p50": 1.192,
+        "p75": 1.292,
+        "p95": 1.517,
+        "average": 1.239,
+        "min": 1.098,
+        "max": 1.517,
+        "stdDev": 0.116
+      },
+      "memory": {
+        "rssStartBytes": 227590144,
+        "rssEndBytes": 227639296,
+        "rssPeakBytes": 227639296,
+        "rssDeltaBytes": 49152,
+        "heapUsedStartBytes": 44923000,
+        "heapUsedEndBytes": 46032952,
+        "heapUsedPeakBytes": 46031856,
+        "heapUsedDeltaBytes": 1109952
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "exam-buddy:import:components/exam-buddy/ExamBuddyHub.tsx",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/exam-buddy/ExamBuddyHub.tsx",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:48.361Z",
+      "finishedAt": "2026-05-01T17:54:48.402Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.568,
+          1.735,
+          1.241,
+          1.344,
+          1.294,
+          1.248,
+          1.308,
+          1.264,
+          1.27,
+          1.215
+        ],
+        "p50": 1.27,
+        "p75": 1.344,
+        "p95": 1.735,
+        "average": 1.349,
+        "min": 1.215,
+        "max": 1.735,
+        "stdDev": 0.16
+      },
+      "memory": {
+        "rssStartBytes": 227639296,
+        "rssEndBytes": 228671488,
+        "rssPeakBytes": 228671488,
+        "rssDeltaBytes": 1032192,
+        "heapUsedStartBytes": 46046880,
+        "heapUsedEndBytes": 51806264,
+        "heapUsedPeakBytes": 51805168,
+        "heapUsedDeltaBytes": 5759384
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "exam-buddy:import:components/exam-buddy/QuizView.tsx",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/exam-buddy/QuizView.tsx",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:48.402Z",
+      "finishedAt": "2026-05-01T17:54:48.408Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: Invalid or unexpected token"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "plugins-integrations:import:app/settings/integrations/page.tsx",
+      "featureId": "plugins-integrations",
+      "featureName": "Plugins and Productivity Integrations",
+      "category": "integrations",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "app/settings/integrations/page.tsx",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Google OAuth / Calendar",
+        "Notion API",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T17:54:48.408Z",
+      "finishedAt": "2026-05-01T17:54:48.429Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.158,
+          1.177,
+          4.111,
+          2.862,
+          2.009,
+          1.197,
+          1.106,
+          1.059,
+          1.063,
+          1.093
+        ],
+        "p50": 1.158,
+        "p75": 2.009,
+        "p95": 4.111,
+        "average": 1.683,
+        "min": 1.059,
+        "max": 4.111,
+        "stdDev": 0.981
+      },
+      "memory": {
+        "rssStartBytes": 228917248,
+        "rssEndBytes": 231374848,
+        "rssPeakBytes": 231374848,
+        "rssDeltaBytes": 2457600,
+        "heapUsedStartBytes": 52367032,
+        "heapUsedEndBytes": 53536824,
+        "heapUsedPeakBytes": 53535728,
+        "heapUsedDeltaBytes": 1169792
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "plugins-integrations:import:hooks/chat/usePlugins.ts",
+      "featureId": "plugins-integrations",
+      "featureName": "Plugins and Productivity Integrations",
+      "category": "integrations",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "hooks/chat/usePlugins.ts",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Google OAuth / Calendar",
+        "Notion API",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T17:54:48.429Z",
+      "finishedAt": "2026-05-01T17:54:48.441Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          0.995,
+          0.926,
+          0.923,
+          0.9,
+          0.917,
+          0.966,
+          1.13,
+          0.885,
+          0.899,
+          0.856
+        ],
+        "p50": 0.917,
+        "p75": 0.966,
+        "p95": 1.13,
+        "average": 0.94,
+        "min": 0.856,
+        "max": 1.13,
+        "stdDev": 0.074
+      },
+      "memory": {
+        "rssStartBytes": 231374848,
+        "rssEndBytes": 231440384,
+        "rssPeakBytes": 231440384,
+        "rssDeltaBytes": 65536,
+        "heapUsedStartBytes": 53549976,
+        "heapUsedEndBytes": 54120216,
+        "heapUsedPeakBytes": 54119120,
+        "heapUsedDeltaBytes": 570240
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "agents-actions:import:components/agents/AgentDashboard.tsx",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/agents/AgentDashboard.tsx",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T17:54:48.441Z",
+      "finishedAt": "2026-05-01T17:54:48.463Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.422,
+          1.318,
+          1.25,
+          1.886,
+          1.343,
+          1.254,
+          1.407,
+          1.853,
+          2.524,
+          1.355
+        ],
+        "p50": 1.355,
+        "p75": 1.853,
+        "p95": 2.524,
+        "average": 1.561,
+        "min": 1.25,
+        "max": 2.524,
+        "stdDev": 0.387
+      },
+      "memory": {
+        "rssStartBytes": 231440384,
+        "rssEndBytes": 231948288,
+        "rssPeakBytes": 231948288,
+        "rssDeltaBytes": 507904,
+        "heapUsedStartBytes": 54134784,
+        "heapUsedEndBytes": 56240520,
+        "heapUsedPeakBytes": 56239424,
+        "heapUsedDeltaBytes": 2105736
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "agents-actions:import:hooks/chat/useActionEngine.ts",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "hooks/chat/useActionEngine.ts",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T17:54:48.463Z",
+      "finishedAt": "2026-05-01T17:54:48.473Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          0.791,
+          0.815,
+          0.828,
+          0.764,
+          0.865,
+          0.805,
+          0.762,
+          0.819,
+          0.81,
+          0.864
+        ],
+        "p50": 0.81,
+        "p75": 0.828,
+        "p95": 0.865,
+        "average": 0.812,
+        "min": 0.762,
+        "max": 0.865,
+        "stdDev": 0.033
+      },
+      "memory": {
+        "rssStartBytes": 231948288,
+        "rssEndBytes": 231964672,
+        "rssPeakBytes": 231964672,
+        "rssDeltaBytes": 16384,
+        "heapUsedStartBytes": 56253688,
+        "heapUsedEndBytes": 56747488,
+        "heapUsedPeakBytes": 56746392,
+        "heapUsedDeltaBytes": 493800
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "profile-notifications:import:components/profile/ProfileCardClient.tsx",
+      "featureId": "profile-notifications",
+      "featureName": "Profile Card, Settings, Notifications, and Push",
+      "category": "account",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/profile/ProfileCardClient.tsx",
+      "status": "completed",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Web Push"
+      ],
+      "startedAt": "2026-05-01T17:54:48.473Z",
+      "finishedAt": "2026-05-01T17:54:48.495Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.656,
+          1.504,
+          1.532,
+          1.489,
+          1.528,
+          1.541,
+          1.641,
+          1.497,
+          1.571,
+          1.421
+        ],
+        "p50": 1.528,
+        "p75": 1.571,
+        "p95": 1.656,
+        "average": 1.538,
+        "min": 1.421,
+        "max": 1.656,
+        "stdDev": 0.067
+      },
+      "memory": {
+        "rssStartBytes": 231964672,
+        "rssEndBytes": 231981056,
+        "rssPeakBytes": 231981056,
+        "rssDeltaBytes": 16384,
+        "heapUsedStartBytes": 56761384,
+        "heapUsedEndBytes": 59480464,
+        "heapUsedPeakBytes": 59479368,
+        "heapUsedDeltaBytes": 2719080
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "profile-notifications:import:app/settings/page.tsx",
+      "featureId": "profile-notifications",
+      "featureName": "Profile Card, Settings, Notifications, and Push",
+      "category": "account",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "app/settings/page.tsx",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Web Push"
+      ],
+      "startedAt": "2026-05-01T17:54:48.495Z",
+      "finishedAt": "2026-05-01T17:54:48.502Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: React is not defined"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "mood:import:components/mood/MoodTimelineClient.tsx",
+      "featureId": "mood",
+      "featureName": "Mood Timeline",
+      "category": "wellbeing",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "components/mood/MoodTimelineClient.tsx",
+      "status": "completed",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T17:54:48.502Z",
+      "finishedAt": "2026-05-01T17:54:48.521Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.378,
+          1.239,
+          1.3,
+          1.506,
+          1.431,
+          1.361,
+          1.32,
+          1.334,
+          1.252,
+          1.27
+        ],
+        "p50": 1.32,
+        "p75": 1.378,
+        "p95": 1.506,
+        "average": 1.339,
+        "min": 1.239,
+        "max": 1.506,
+        "stdDev": 0.079
+      },
+      "memory": {
+        "rssStartBytes": 231997440,
+        "rssEndBytes": 232062976,
+        "rssPeakBytes": 232062976,
+        "rssDeltaBytes": 65536,
+        "heapUsedStartBytes": 60713256,
+        "heapUsedEndBytes": 62895344,
+        "heapUsedPeakBytes": 62894248,
+        "heapUsedDeltaBytes": 2182088
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "admin-observability:import:app/admin/page.tsx",
+      "featureId": "admin-observability",
+      "featureName": "Admin, Health, Analytics, and Observability",
+      "category": "operations",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "app/admin/page.tsx",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare D1",
+        "Cloudflare Vectorize",
+        "Durable Objects",
+        "Providers health probes"
+      ],
+      "startedAt": "2026-05-01T17:54:48.521Z",
+      "finishedAt": "2026-05-01T17:54:48.558Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          1.158,
+          1.121,
+          1.223,
+          1.18,
+          1.07,
+          1.358,
+          1.089,
+          1.036,
+          1.096,
+          1.041
+        ],
+        "p50": 1.096,
+        "p75": 1.18,
+        "p95": 1.358,
+        "average": 1.137,
+        "min": 1.036,
+        "max": 1.358,
+        "stdDev": 0.093
+      },
+      "memory": {
+        "rssStartBytes": 232079360,
+        "rssEndBytes": 232292352,
+        "rssPeakBytes": 232292352,
+        "rssDeltaBytes": 212992,
+        "heapUsedStartBytes": 62909200,
+        "heapUsedEndBytes": 42580432,
+        "heapUsedPeakBytes": 65997280,
+        "heapUsedDeltaBytes": -20328768
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    },
+    {
+      "id": "admin-observability:import:hooks/admin/useAnalytics.ts",
+      "featureId": "admin-observability",
+      "featureName": "Admin, Health, Analytics, and Observability",
+      "category": "operations",
+      "benchmarkType": "render-import-cost",
+      "targetKind": "import",
+      "target": "hooks/admin/useAnalytics.ts",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare D1",
+        "Cloudflare Vectorize",
+        "Durable Objects",
+        "Providers health probes"
+      ],
+      "startedAt": "2026-05-01T17:54:48.558Z",
+      "finishedAt": "2026-05-01T17:54:48.569Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          0.833,
+          0.941,
+          0.827,
+          0.867,
+          0.944,
+          0.882,
+          0.877,
+          0.847,
+          0.835,
+          0.864
+        ],
+        "p50": 0.864,
+        "p75": 0.882,
+        "p95": 0.944,
+        "average": 0.872,
+        "min": 0.827,
+        "max": 0.944,
+        "stdDev": 0.04
+      },
+      "memory": {
+        "rssStartBytes": 232292352,
+        "rssEndBytes": 232292352,
+        "rssPeakBytes": 232292352,
+        "rssDeltaBytes": 0,
+        "heapUsedStartBytes": 42593648,
+        "heapUsedEndBytes": 43095256,
+        "heapUsedPeakBytes": 43094160,
+        "heapUsedDeltaBytes": 501608
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2
+      }
+    }
+  ]
+}

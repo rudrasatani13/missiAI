@@ -3,20 +3,18 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useUser, useClerk } from "@clerk/nextjs"
+import { ChatPageShell } from "@/components/chat/ChatPageShell"
 import { useChatEntryFlow } from "@/hooks/chat/useChatEntryFlow"
 import { useChatHydration } from "@/hooks/chat/useChatHydration"
 import { useChatPageEffects } from "@/hooks/chat/useChatPageEffects"
 import { useChatSettingsSync } from "@/hooks/chat/useChatSettingsSync"
 import { useVoiceStateMachine } from "@/hooks/chat/useVoiceStateMachine"
 import { useGeminiLive } from "@/hooks/chat/useGeminiLive"
-import { buildVoiceSystemPrompt } from "@/lib/ai/services/ai-service"
-import { AGENT_FUNCTION_DECLARATIONS } from "@/lib/ai/agents/tools/dispatcher"
 import { useProactive } from "@/hooks/chat/useProactive"
 import { useActionEngine } from "@/hooks/chat/useActionEngine"
 import { usePlugins } from "@/hooks/chat/usePlugins"
 import { useBilling } from "@/hooks/billing/useBilling"
 import type { ConversationEntry } from "@/types/chat"
-import { ChatPageShell } from "@/components/chat/ChatPageShell"
 import { shouldShowOnboarding } from "@/components/chat/OnboardingTour"
 import { useVisualMemoryCapture } from "@/hooks/chat/useVisualMemoryCapture"
 import { useBuddyState } from "@/hooks/buddy/useBuddyState"
@@ -115,12 +113,26 @@ export default function VoiceAssistantPage() {
   const [liveMode] = useState(true)
   const [liveTranscriptIn, setLiveTranscriptIn] = useState("")
   const [liveTranscriptOut, setLiveTranscriptOut] = useState("")
+  const resolveLiveSetup = useCallback(async () => {
+    const [{ buildVoiceSystemPrompt }, { AGENT_FUNCTION_DECLARATIONS }] = await Promise.all([
+      import("@/lib/ai/services/ai-service"),
+      import("@/lib/ai/agents/tools/declarations"),
+    ])
+
+    return {
+      systemPrompt: buildVoiceSystemPrompt(
+        personalityRef.current,
+        memoriesState,
+        customPrompt,
+        sharedSettings.aiDials,
+      ),
+      toolDeclarations: AGENT_FUNCTION_DECLARATIONS,
+      voiceName: "Kore",
+    }
+  }, [customPrompt, memoriesState, personalityRef, sharedSettings.aiDials])
 
   const geminiLive = useGeminiLive({
-    systemPrompt: buildVoiceSystemPrompt(personalityRef.current, memoriesState, customPrompt, sharedSettings.aiDials),
-    voiceName: "Kore",
-    // EDITH: pass agent tool declarations for live voice tool calling
-    toolDeclarations: AGENT_FUNCTION_DECLARATIONS,
+    resolveSetup: resolveLiveSetup,
     onTranscriptIn: (text) => {
       setLiveTranscriptIn(text)
       // Add to conversation for memory
@@ -325,7 +337,6 @@ export default function VoiceAssistantPage() {
       briefing={briefing}
       clearVisualSelection={clearVisualSelection}
       completeBootSequence={completeBootSequence}
-      conversation={conversationRef.current}
       currentEmotion={currentEmotion}
       dismissOnboarding={dismissOnboarding}
       dismissVisualResult={dismissVisualResult}

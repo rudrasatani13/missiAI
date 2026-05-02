@@ -4,7 +4,7 @@ import reactHooks from "eslint-plugin-react-hooks"
 
 export default [
   {
-    files: ["app/**/*.ts", "app/**/*.tsx", "lib/**/*.ts", "hooks/**/*.ts", "hooks/**/*.tsx", "components/**/*.ts", "components/**/*.tsx", "types/**/*.ts"],
+    files: ["app/**/*.ts", "app/**/*.tsx", "lib/**/*.ts", "hooks/**/*.ts", "hooks/**/*.tsx", "components/**/*.ts", "components/**/*.tsx", "types/**/*.ts", "benchmarks/**/*.ts"],
     languageOptions: {
       parser: tsparser,
       parserOptions: {

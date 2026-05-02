@@ -1,0 +1,2863 @@
+{
+  "schemaVersion": 1,
+  "runId": "feature-bench-2026-05-01T16-39-55-918Z",
+  "generatedAt": "2026-05-01T16:39:58.064Z",
+  "cwd": "/Users/rudrasatani/Desktop/Missi Intelligence/missi-web",
+  "baseline": false,
+  "selectedFeatures": [
+    "public-marketing",
+    "auth-onboarding",
+    "chat-core",
+    "voice-live",
+    "memory-core",
+    "visual-memory-life-story",
+    "spaces",
+    "budget",
+    "billing-referrals",
+    "quests-streaks",
+    "daily-brief-proactive",
+    "sleep-wind-down",
+    "exam-buddy",
+    "plugins-integrations",
+    "messaging-bots",
+    "agents-actions",
+    "profile-notifications",
+    "mood",
+    "admin-observability"
+  ],
+  "cli": {
+    "help": false,
+    "all": true,
+    "baseline": false,
+    "compare": false,
+    "list": false,
+    "dryRun": false,
+    "includeBuild": false,
+    "allowAuthenticated": false,
+    "allowExternalCalls": false,
+    "featureIds": [],
+    "baseUrl": null,
+    "cookie": null,
+    "authHeader": null,
+    "serverCommand": "pnpm start",
+    "readinessPath": "/api/health",
+    "port": 3000,
+    "timeoutMs": 60000,
+    "iterations": 10,
+    "warmupIterations": 2,
+    "outputPath": "benchmarks/results/baseline-live-20260501-220632.json",
+    "markdownPath": null
+  },
+  "summary": {
+    "total": 82,
+    "completed": 13,
+    "skipped": 66,
+    "failed": 3,
+    "durationMs": 2146
+  },
+  "metadata": {
+    "nodeVersion": "v24.5.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "managedServer": true,
+    "baseUrl": "http://127.0.0.1:3000"
+  },
+  "results": [
+    {
+      "id": "public-marketing:landing-page",
+      "featureId": "public-marketing",
+      "featureName": "Public Marketing and Legal",
+      "category": "marketing",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/",
+      "status": "completed",
+      "risk": "P3",
+      "authRequired": false,
+      "externalServices": [
+        "Static assets",
+        "Next.js App Router"
+      ],
+      "startedAt": "2026-05-01T16:39:56.618Z",
+      "finishedAt": "2026-05-01T16:39:57.091Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          3.624,
+          4.066,
+          3.666,
+          3.265,
+          3.216,
+          3.354,
+          3.518,
+          2.982,
+          2.93,
+          2.668
+        ],
+        "p50": 3.265,
+        "p75": 3.624,
+        "p95": 4.066,
+        "average": 3.329,
+        "min": 2.668,
+        "max": 4.066,
+        "stdDev": 0.389
+      },
+      "memory": {
+        "rssStartBytes": 120389632,
+        "rssEndBytes": 90963968,
+        "rssPeakBytes": 120389632,
+        "rssDeltaBytes": -29425664,
+        "heapUsedStartBytes": null,
+        "heapUsedEndBytes": null,
+        "heapUsedPeakBytes": null,
+        "heapUsedDeltaBytes": null
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "lastStatus": 200,
+        "method": "GET",
+        "expectedStatuses": [
+          200
+        ]
+      }
+    },
+    {
+      "id": "public-marketing:manifesto-page",
+      "featureId": "public-marketing",
+      "featureName": "Public Marketing and Legal",
+      "category": "marketing",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/manifesto",
+      "status": "completed",
+      "risk": "P3",
+      "authRequired": false,
+      "externalServices": [
+        "Static assets",
+        "Next.js App Router"
+      ],
+      "startedAt": "2026-05-01T16:39:57.091Z",
+      "finishedAt": "2026-05-01T16:39:57.196Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          2.769,
+          2.775,
+          2.575,
+          2.645,
+          2.51,
+          2.507,
+          2.448,
+          2.513,
+          2.445,
+          2.467
+        ],
+        "p50": 2.51,
+        "p75": 2.645,
+        "p95": 2.775,
+        "average": 2.565,
+        "min": 2.445,
+        "max": 2.775,
+        "stdDev": 0.118
+      },
+      "memory": {
+        "rssStartBytes": 90963968,
+        "rssEndBytes": 90963968,
+        "rssPeakBytes": 90963968,
+        "rssDeltaBytes": 0,
+        "heapUsedStartBytes": null,
+        "heapUsedEndBytes": null,
+        "heapUsedPeakBytes": null,
+        "heapUsedDeltaBytes": null
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "lastStatus": 200,
+        "method": "GET",
+        "expectedStatuses": [
+          200
+        ]
+      }
+    },
+    {
+      "id": "public-marketing:privacy-page",
+      "featureId": "public-marketing",
+      "featureName": "Public Marketing and Legal",
+      "category": "marketing",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/privacy",
+      "status": "completed",
+      "risk": "P3",
+      "authRequired": false,
+      "externalServices": [
+        "Static assets",
+        "Next.js App Router"
+      ],
+      "startedAt": "2026-05-01T16:39:57.196Z",
+      "finishedAt": "2026-05-01T16:39:57.313Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          4.016,
+          3.026,
+          3.163,
+          2.905,
+          2.469,
+          2.505,
+          2.497,
+          2.469,
+          3.065,
+          2.437
+        ],
+        "p50": 2.505,
+        "p75": 3.065,
+        "p95": 4.016,
+        "average": 2.855,
+        "min": 2.437,
+        "max": 4.016,
+        "stdDev": 0.473
+      },
+      "memory": {
+        "rssStartBytes": 90963968,
+        "rssEndBytes": 90963968,
+        "rssPeakBytes": 90963968,
+        "rssDeltaBytes": 0,
+        "heapUsedStartBytes": null,
+        "heapUsedEndBytes": null,
+        "heapUsedPeakBytes": null,
+        "heapUsedDeltaBytes": null
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "lastStatus": 200,
+        "method": "GET",
+        "expectedStatuses": [
+          200
+        ]
+      }
+    },
+    {
+      "id": "public-marketing:terms-page",
+      "featureId": "public-marketing",
+      "featureName": "Public Marketing and Legal",
+      "category": "marketing",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/terms",
+      "status": "completed",
+      "risk": "P3",
+      "authRequired": false,
+      "externalServices": [
+        "Static assets",
+        "Next.js App Router"
+      ],
+      "startedAt": "2026-05-01T16:39:57.313Z",
+      "finishedAt": "2026-05-01T16:39:57.412Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          2.477,
+          2.588,
+          2.877,
+          2.551,
+          2.551,
+          2.433,
+          2.477,
+          2.684,
+          2.542,
+          2.424
+        ],
+        "p50": 2.542,
+        "p75": 2.588,
+        "p95": 2.877,
+        "average": 2.56,
+        "min": 2.424,
+        "max": 2.877,
+        "stdDev": 0.129
+      },
+      "memory": {
+        "rssStartBytes": 90963968,
+        "rssEndBytes": 90963968,
+        "rssPeakBytes": 90963968,
+        "rssDeltaBytes": 0,
+        "heapUsedStartBytes": null,
+        "heapUsedEndBytes": null,
+        "heapUsedPeakBytes": null,
+        "heapUsedDeltaBytes": null
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "lastStatus": 200,
+        "method": "GET",
+        "expectedStatuses": [
+          200
+        ]
+      }
+    },
+    {
+      "id": "auth-onboarding:sign-in-page",
+      "featureId": "auth-onboarding",
+      "featureName": "Auth, Setup, and Middleware Security",
+      "category": "auth",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/sign-in",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": false,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Next.js Middleware"
+      ],
+      "startedAt": "2026-05-01T16:39:57.412Z",
+      "finishedAt": "2026-05-01T16:39:57.507Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          2.363,
+          2.192,
+          2.835,
+          2.24,
+          2.212,
+          2.492,
+          2.236,
+          2.173,
+          2.068,
+          2.132
+        ],
+        "p50": 2.212,
+        "p75": 2.363,
+        "p95": 2.835,
+        "average": 2.294,
+        "min": 2.068,
+        "max": 2.835,
+        "stdDev": 0.213
+      },
+      "memory": {
+        "rssStartBytes": 90963968,
+        "rssEndBytes": 90963968,
+        "rssPeakBytes": 90963968,
+        "rssDeltaBytes": 0,
+        "heapUsedStartBytes": null,
+        "heapUsedEndBytes": null,
+        "heapUsedPeakBytes": null,
+        "heapUsedDeltaBytes": null
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "lastStatus": 200,
+        "method": "GET",
+        "expectedStatuses": [
+          200
+        ]
+      }
+    },
+    {
+      "id": "auth-onboarding:sign-up-page",
+      "featureId": "auth-onboarding",
+      "featureName": "Auth, Setup, and Middleware Security",
+      "category": "auth",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/sign-up",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": false,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Next.js Middleware"
+      ],
+      "startedAt": "2026-05-01T16:39:57.507Z",
+      "finishedAt": "2026-05-01T16:39:57.602Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          2.44,
+          2.204,
+          2.149,
+          2.186,
+          2.245,
+          2.418,
+          2.457,
+          2.111,
+          2.062,
+          2.369
+        ],
+        "p50": 2.204,
+        "p75": 2.418,
+        "p95": 2.457,
+        "average": 2.264,
+        "min": 2.062,
+        "max": 2.457,
+        "stdDev": 0.138
+      },
+      "memory": {
+        "rssStartBytes": 90963968,
+        "rssEndBytes": 90996736,
+        "rssPeakBytes": 90996736,
+        "rssDeltaBytes": 32768,
+        "heapUsedStartBytes": null,
+        "heapUsedEndBytes": null,
+        "heapUsedPeakBytes": null,
+        "heapUsedDeltaBytes": null
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "lastStatus": 200,
+        "method": "GET",
+        "expectedStatuses": [
+          200
+        ]
+      }
+    },
+    {
+      "id": "auth-onboarding:setup-page",
+      "featureId": "auth-onboarding",
+      "featureName": "Auth, Setup, and Middleware Security",
+      "category": "auth",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/setup",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Next.js Middleware"
+      ],
+      "startedAt": "2026-05-01T16:39:57.603Z",
+      "finishedAt": "2026-05-01T16:39:57.603Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "auth-onboarding:setup-completion-import",
+      "featureId": "auth-onboarding",
+      "featureName": "Auth, Setup, and Middleware Security",
+      "category": "auth",
+      "benchmarkType": "server-function-benchmark",
+      "targetKind": "function",
+      "target": "lib/setup/setup-completion.ts#completeSetupStep",
+      "status": "failed",
+      "risk": "P0",
+      "authRequired": false,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Next.js Middleware"
+      ],
+      "startedAt": "2026-05-01T16:39:57.606Z",
+      "finishedAt": "2026-05-01T16:39:57.606Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Enable once the setup completion fixture is added; missing export or fixture should skip cleanly.",
+        "Export completeSetupStep was not found or is not callable in lib/setup/setup-completion.ts."
+      ],
+      "metadata": {
+        "fixtureModule": null
+      }
+    },
+    {
+      "id": "chat-core:chat-page",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/chat",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.606Z",
+      "finishedAt": "2026-05-01T16:39:57.606Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "chat-core:chat-route",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "http://127.0.0.1:3000/api/v1/chat",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.607Z",
+      "finishedAt": "2026-05-01T16:39:57.607Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Use mock provider fixtures for LLM latency baselines.",
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "chat-core:chat-stream-route",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "http://127.0.0.1:3000/api/v1/chat-stream",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.607Z",
+      "finishedAt": "2026-05-01T16:39:57.607Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "chat-core:chat-route-preflight",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "integration",
+      "target": "lib/server/chat/route-preflight.ts#runChatRoutePreflight",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.607Z",
+      "finishedAt": "2026-05-01T16:39:57.607Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Exercise auth, rate-limit, and payload validation without calling providers.",
+        "Fixture module not found yet: benchmarks/fixtures/chat/route-preflight.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/chat/route-preflight.fixture.ts"
+      }
+    },
+    {
+      "id": "chat-core:chat-stream-preflight",
+      "featureId": "chat-core",
+      "featureName": "Chat Core and SSE Streaming",
+      "category": "conversation",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "integration",
+      "target": "lib/server/chat/stream-preflight.ts#runChatStreamPreflight",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.607Z",
+      "finishedAt": "2026-05-01T16:39:57.607Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/chat/stream-preflight.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/chat/stream-preflight.fixture.ts"
+      }
+    },
+    {
+      "id": "voice-live:live-token-route",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "http://127.0.0.1:3000/api/v1/live-token",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T16:39:57.607Z",
+      "finishedAt": "2026-05-01T16:39:57.607Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "voice-live:stt-route",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "http://127.0.0.1:3000/api/v1/stt",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T16:39:57.607Z",
+      "finishedAt": "2026-05-01T16:39:57.607Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "voice-live:tts-route",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "http://127.0.0.1:3000/api/v1/tts",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T16:39:57.607Z",
+      "finishedAt": "2026-05-01T16:39:57.607Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "voice-live:live-transport-session",
+      "featureId": "voice-live",
+      "featureName": "Voice, STT, TTS, and Live Relay",
+      "category": "voice",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "integration",
+      "target": "lib/ai/live/transport.ts#getLiveTransportSession",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Vertex AI / Gemini Live",
+        "Cloudflare Workers",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T16:39:57.607Z",
+      "finishedAt": "2026-05-01T16:39:57.607Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/voice/live-transport.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/voice/live-transport.fixture.ts"
+      }
+    },
+    {
+      "id": "memory-core:memory-page",
+      "featureId": "memory-core",
+      "featureName": "Memory Dashboard and Life Graph",
+      "category": "memory",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/memory",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.607Z",
+      "finishedAt": "2026-05-01T16:39:57.607Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "memory-core:memory-graph-page",
+      "featureId": "memory-core",
+      "featureName": "Memory Dashboard and Life Graph",
+      "category": "memory",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/memory/graph",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.607Z",
+      "finishedAt": "2026-05-01T16:39:57.607Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "memory-core:memory-route",
+      "featureId": "memory-core",
+      "featureName": "Memory Dashboard and Life Graph",
+      "category": "memory",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/memory",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.607Z",
+      "finishedAt": "2026-05-01T16:39:57.607Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "memory-core:format-life-graph",
+      "featureId": "memory-core",
+      "featureName": "Memory Dashboard and Life Graph",
+      "category": "memory",
+      "benchmarkType": "server-function-benchmark",
+      "targetKind": "function",
+      "target": "lib/memory/life-graph.ts#formatLifeGraphForPrompt",
+      "status": "failed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.618Z",
+      "finishedAt": "2026-05-01T16:39:57.618Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "results.slice is not a function"
+      ],
+      "metadata": {
+        "fixtureModule": null
+      }
+    },
+    {
+      "id": "memory-core:extract-life-nodes",
+      "featureId": "memory-core",
+      "featureName": "Memory Dashboard and Life Graph",
+      "category": "memory",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "integration",
+      "target": "lib/memory/graph-extractor.ts#extractLifeNodes",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Vertex AI / Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.618Z",
+      "finishedAt": "2026-05-01T16:39:57.618Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/memory/graph-extractor.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/memory/graph-extractor.fixture.ts"
+      }
+    },
+    {
+      "id": "visual-memory-life-story:visual-memory-page",
+      "featureId": "visual-memory-life-story",
+      "featureName": "Visual Memory and Life Story",
+      "category": "memory",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/memory/visual",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini Vision"
+      ],
+      "startedAt": "2026-05-01T16:39:57.618Z",
+      "finishedAt": "2026-05-01T16:39:57.618Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "visual-memory-life-story:life-story-page",
+      "featureId": "visual-memory-life-story",
+      "featureName": "Visual Memory and Life Story",
+      "category": "memory",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/memory/story",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini Vision"
+      ],
+      "startedAt": "2026-05-01T16:39:57.618Z",
+      "finishedAt": "2026-05-01T16:39:57.618Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "visual-memory-life-story:visual-memory-route",
+      "featureId": "visual-memory-life-story",
+      "featureName": "Visual Memory and Life Story",
+      "category": "memory",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/visual-memory/entries",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini Vision"
+      ],
+      "startedAt": "2026-05-01T16:39:57.618Z",
+      "finishedAt": "2026-05-01T16:39:57.618Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Use a concrete sub-path when the fixture suite is added.",
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "visual-memory-life-story:life-story-route",
+      "featureId": "visual-memory-life-story",
+      "featureName": "Visual Memory and Life Story",
+      "category": "memory",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/life-story/summary",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini Vision"
+      ],
+      "startedAt": "2026-05-01T16:39:57.618Z",
+      "finishedAt": "2026-05-01T16:39:57.618Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Catch-all route expects a concrete sub-path in fixtures.",
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "visual-memory-life-story:map-visual-memory-node",
+      "featureId": "visual-memory-life-story",
+      "featureName": "Visual Memory and Life Story",
+      "category": "memory",
+      "benchmarkType": "server-function-benchmark",
+      "targetKind": "function",
+      "target": "lib/visual-memory/image-analyzer.ts#mapExtractionToLifeNode",
+      "status": "failed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini Vision"
+      ],
+      "startedAt": "2026-05-01T16:39:57.621Z",
+      "finishedAt": "2026-05-01T16:39:57.621Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Cannot read properties of undefined (reading 'slice')"
+      ],
+      "metadata": {
+        "fixtureModule": null
+      }
+    },
+    {
+      "id": "spaces:spaces-page",
+      "featureId": "spaces",
+      "featureName": "Spaces Collaboration",
+      "category": "collaboration",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/spaces",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Billing plan gate"
+      ],
+      "startedAt": "2026-05-01T16:39:57.621Z",
+      "finishedAt": "2026-05-01T16:39:57.621Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "spaces:join-page",
+      "featureId": "spaces",
+      "featureName": "Spaces Collaboration",
+      "category": "collaboration",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/join/fake-token",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Billing plan gate"
+      ],
+      "startedAt": "2026-05-01T16:39:57.621Z",
+      "finishedAt": "2026-05-01T16:39:57.820Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          8.82,
+          8.12,
+          6.968,
+          6.558,
+          6.093,
+          6.441,
+          6.692,
+          6.312,
+          6.286,
+          19.461
+        ],
+        "p50": 6.558,
+        "p75": 8.12,
+        "p95": 19.461,
+        "average": 8.175,
+        "min": 6.093,
+        "max": 19.461,
+        "stdDev": 3.853
+      },
+      "memory": {
+        "rssStartBytes": 90996736,
+        "rssEndBytes": 90996736,
+        "rssPeakBytes": 90996736,
+        "rssDeltaBytes": 0,
+        "heapUsedStartBytes": null,
+        "heapUsedEndBytes": null,
+        "heapUsedPeakBytes": null,
+        "heapUsedDeltaBytes": null
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "lastStatus": 200,
+        "method": "GET",
+        "expectedStatuses": [
+          200,
+          404
+        ]
+      }
+    },
+    {
+      "id": "spaces:spaces-route",
+      "featureId": "spaces",
+      "featureName": "Spaces Collaboration",
+      "category": "collaboration",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/spaces",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Billing plan gate"
+      ],
+      "startedAt": "2026-05-01T16:39:57.820Z",
+      "finishedAt": "2026-05-01T16:39:57.820Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "spaces:space-detail-route",
+      "featureId": "spaces",
+      "featureName": "Spaces Collaboration",
+      "category": "collaboration",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/spaces/fixture-space",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Billing plan gate"
+      ],
+      "startedAt": "2026-05-01T16:39:57.820Z",
+      "finishedAt": "2026-05-01T16:39:57.820Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "spaces:space-role-resolution",
+      "featureId": "spaces",
+      "featureName": "Spaces Collaboration",
+      "category": "collaboration",
+      "benchmarkType": "server-function-benchmark",
+      "targetKind": "function",
+      "target": "lib/spaces/space-store.ts#roleForUser",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Billing plan gate"
+      ],
+      "startedAt": "2026-05-01T16:39:57.820Z",
+      "finishedAt": "2026-05-01T16:39:57.833Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          0.001,
+          0.001,
+          0.001,
+          0.001,
+          0.001,
+          0.001,
+          0.003,
+          0.001,
+          0.001,
+          0.001
+        ],
+        "p50": 0.001,
+        "p75": 0.001,
+        "p95": 0.003,
+        "average": 0.001,
+        "min": 0.001,
+        "max": 0.003,
+        "stdDev": 0.001
+      },
+      "memory": {
+        "rssStartBytes": 127500288,
+        "rssEndBytes": 127533056,
+        "rssPeakBytes": 127533056,
+        "rssDeltaBytes": 32768,
+        "heapUsedStartBytes": 18357808,
+        "heapUsedEndBytes": 18748768,
+        "heapUsedPeakBytes": 18747864,
+        "heapUsedDeltaBytes": 390960
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "fixtureModule": null
+      }
+    },
+    {
+      "id": "budget:budget-page",
+      "featureId": "budget",
+      "featureName": "Budget Tracking",
+      "category": "finance",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/budget",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Durable Objects",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.833Z",
+      "finishedAt": "2026-05-01T16:39:57.833Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "budget:budget-entries-route",
+      "featureId": "budget",
+      "featureName": "Budget Tracking",
+      "category": "finance",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/budget/entries",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Durable Objects",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.833Z",
+      "finishedAt": "2026-05-01T16:39:57.833Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "budget:budget-insight-route",
+      "featureId": "budget",
+      "featureName": "Budget Tracking",
+      "category": "finance",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "http://127.0.0.1:3000/api/v1/budget/insight",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Durable Objects",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.833Z",
+      "finishedAt": "2026-05-01T16:39:57.833Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "budget:budget-monthly-totals",
+      "featureId": "budget",
+      "featureName": "Budget Tracking",
+      "category": "finance",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "function",
+      "target": "lib/budget/budget-store.ts#buildMonthlyTotals",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Durable Objects",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.833Z",
+      "finishedAt": "2026-05-01T16:39:57.833Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/budget/monthly-totals.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/budget/monthly-totals.fixture.ts"
+      }
+    },
+    {
+      "id": "billing-referrals:pricing-page",
+      "featureId": "billing-referrals",
+      "featureName": "Billing, Pricing, and Referrals",
+      "category": "revenue",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/pricing",
+      "status": "completed",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Dodo Payments",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T16:39:57.833Z",
+      "finishedAt": "2026-05-01T16:39:57.937Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          2.623,
+          2.641,
+          2.738,
+          2.422,
+          2.647,
+          2.527,
+          2.502,
+          2.585,
+          2.443,
+          2.47
+        ],
+        "p50": 2.527,
+        "p75": 2.641,
+        "p95": 2.738,
+        "average": 2.56,
+        "min": 2.422,
+        "max": 2.738,
+        "stdDev": 0.098
+      },
+      "memory": {
+        "rssStartBytes": 90996736,
+        "rssEndBytes": 90996736,
+        "rssPeakBytes": 90996736,
+        "rssDeltaBytes": 0,
+        "heapUsedStartBytes": null,
+        "heapUsedEndBytes": null,
+        "heapUsedPeakBytes": null,
+        "heapUsedDeltaBytes": null
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "lastStatus": 200,
+        "method": "GET",
+        "expectedStatuses": [
+          200
+        ]
+      }
+    },
+    {
+      "id": "billing-referrals:billing-route",
+      "featureId": "billing-referrals",
+      "featureName": "Billing, Pricing, and Referrals",
+      "category": "revenue",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/billing",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Dodo Payments",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T16:39:57.937Z",
+      "finishedAt": "2026-05-01T16:39:57.937Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "billing-referrals:referral-route",
+      "featureId": "billing-referrals",
+      "featureName": "Billing, Pricing, and Referrals",
+      "category": "revenue",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/referral",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Dodo Payments",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T16:39:57.937Z",
+      "finishedAt": "2026-05-01T16:39:57.937Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "billing-referrals:dodo-webhook",
+      "featureId": "billing-referrals",
+      "featureName": "Billing, Pricing, and Referrals",
+      "category": "revenue",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "http://127.0.0.1:3000/api/webhooks/dodo",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Dodo Payments",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T16:39:57.937Z",
+      "finishedAt": "2026-05-01T16:39:57.937Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Target marked as provider-backed. Re-run with fixture support or --allow-external-calls."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "billing-referrals:referral-state-transition",
+      "featureId": "billing-referrals",
+      "featureName": "Billing, Pricing, and Referrals",
+      "category": "revenue",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "function",
+      "target": "lib/billing/referral.ts#trackReferral",
+      "status": "skipped",
+      "risk": "P0",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Dodo Payments",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T16:39:57.937Z",
+      "finishedAt": "2026-05-01T16:39:57.937Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/billing/referral.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/billing/referral.fixture.ts"
+      }
+    },
+    {
+      "id": "quests-streaks:quests-page",
+      "featureId": "quests-streaks",
+      "featureName": "Quests and Streaks",
+      "category": "gamification",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/quests",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.937Z",
+      "finishedAt": "2026-05-01T16:39:57.937Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "quests-streaks:streak-page",
+      "featureId": "quests-streaks",
+      "featureName": "Quests and Streaks",
+      "category": "gamification",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/streak",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.937Z",
+      "finishedAt": "2026-05-01T16:39:57.937Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "quests-streaks:quests-route",
+      "featureId": "quests-streaks",
+      "featureName": "Quests and Streaks",
+      "category": "gamification",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/quests",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.937Z",
+      "finishedAt": "2026-05-01T16:39:57.937Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "quests-streaks:streak-route",
+      "featureId": "quests-streaks",
+      "featureName": "Quests and Streaks",
+      "category": "gamification",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/streak",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.937Z",
+      "finishedAt": "2026-05-01T16:39:57.937Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "quests-streaks:sanitize-quest-text",
+      "featureId": "quests-streaks",
+      "featureName": "Quests and Streaks",
+      "category": "gamification",
+      "benchmarkType": "server-function-benchmark",
+      "targetKind": "function",
+      "target": "lib/quests/quest-generator.ts#sanitizeQuestText",
+      "status": "completed",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.937Z",
+      "finishedAt": "2026-05-01T16:39:57.942Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          0.006,
+          0.005,
+          0.009,
+          0.006,
+          0.004,
+          0.004,
+          0.006,
+          0.008,
+          0.007,
+          0.004
+        ],
+        "p50": 0.006,
+        "p75": 0.007,
+        "p95": 0.009,
+        "average": 0.006,
+        "min": 0.004,
+        "max": 0.009,
+        "stdDev": 0.002
+      },
+      "memory": {
+        "rssStartBytes": 129187840,
+        "rssEndBytes": 129269760,
+        "rssPeakBytes": 129269760,
+        "rssDeltaBytes": 81920,
+        "heapUsedStartBytes": 17503248,
+        "heapUsedEndBytes": 17607744,
+        "heapUsedPeakBytes": 17606840,
+        "heapUsedDeltaBytes": 104496
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "fixtureModule": null
+      }
+    },
+    {
+      "id": "daily-brief-proactive:today-page",
+      "featureId": "daily-brief-proactive",
+      "featureName": "Daily Brief and Proactive Nudges",
+      "category": "assistant",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/today",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.942Z",
+      "finishedAt": "2026-05-01T16:39:57.942Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "daily-brief-proactive:daily-brief-route",
+      "featureId": "daily-brief-proactive",
+      "featureName": "Daily Brief and Proactive Nudges",
+      "category": "assistant",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/daily-brief",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.942Z",
+      "finishedAt": "2026-05-01T16:39:57.942Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "daily-brief-proactive:proactive-route",
+      "featureId": "daily-brief-proactive",
+      "featureName": "Daily Brief and Proactive Nudges",
+      "category": "assistant",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/proactive",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.942Z",
+      "finishedAt": "2026-05-01T16:39:57.942Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "daily-brief-proactive:daily-brief-generator",
+      "featureId": "daily-brief-proactive",
+      "featureName": "Daily Brief and Proactive Nudges",
+      "category": "assistant",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "function",
+      "target": "lib/proactive/briefing-generator.ts#generateDailyBriefing",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.943Z",
+      "finishedAt": "2026-05-01T16:39:57.943Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/proactive/daily-brief.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/proactive/daily-brief.fixture.ts"
+      }
+    },
+    {
+      "id": "sleep-wind-down:wind-down-page",
+      "featureId": "sleep-wind-down",
+      "featureName": "Sleep Sessions and Wind Down",
+      "category": "wellbeing",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/wind-down",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini",
+        "Gemini TTS"
+      ],
+      "startedAt": "2026-05-01T16:39:57.943Z",
+      "finishedAt": "2026-05-01T16:39:57.943Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "sleep-wind-down:wind-down-route",
+      "featureId": "sleep-wind-down",
+      "featureName": "Sleep Sessions and Wind Down",
+      "category": "wellbeing",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/wind-down",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini",
+        "Gemini TTS"
+      ],
+      "startedAt": "2026-05-01T16:39:57.943Z",
+      "finishedAt": "2026-05-01T16:39:57.943Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "sleep-wind-down:sleep-sessions-route",
+      "featureId": "sleep-wind-down",
+      "featureName": "Sleep Sessions and Wind Down",
+      "category": "wellbeing",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/sleep-sessions/list",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini",
+        "Gemini TTS"
+      ],
+      "startedAt": "2026-05-01T16:39:57.943Z",
+      "finishedAt": "2026-05-01T16:39:57.943Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Catch-all route expects a concrete sub-path in fixtures.",
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "sleep-wind-down:sanitize-story-text",
+      "featureId": "sleep-wind-down",
+      "featureName": "Sleep Sessions and Wind Down",
+      "category": "wellbeing",
+      "benchmarkType": "server-function-benchmark",
+      "targetKind": "function",
+      "target": "lib/sleep-sessions/story-generator.ts#sanitizeStoryText",
+      "status": "completed",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini",
+        "Gemini TTS"
+      ],
+      "startedAt": "2026-05-01T16:39:57.943Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          0.005,
+          0.004,
+          0.004,
+          0.004,
+          0.004,
+          0.004,
+          0.006,
+          0.006,
+          0.004,
+          0.002
+        ],
+        "p50": 0.004,
+        "p75": 0.005,
+        "p95": 0.006,
+        "average": 0.004,
+        "min": 0.002,
+        "max": 0.006,
+        "stdDev": 0.001
+      },
+      "memory": {
+        "rssStartBytes": 129679360,
+        "rssEndBytes": 129695744,
+        "rssPeakBytes": 129695744,
+        "rssDeltaBytes": 16384,
+        "heapUsedStartBytes": 18295704,
+        "heapUsedEndBytes": 18071280,
+        "heapUsedPeakBytes": 18295704,
+        "heapUsedDeltaBytes": -224424
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "fixtureModule": null
+      }
+    },
+    {
+      "id": "exam-buddy:exam-buddy-page",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/exam-buddy",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "exam-buddy:exam-buddy-profile-route",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/exam-buddy/profile",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "exam-buddy:exam-buddy-quiz-route",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "http://127.0.0.1:3000/api/v1/exam-buddy/quiz",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "exam-buddy:exam-quiz-generator",
+      "featureId": "exam-buddy",
+      "featureName": "Exam Buddy",
+      "category": "education",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "function",
+      "target": "lib/exam-buddy/quiz-generator.ts#generateQuizWithDiagnostics",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Billing plan gate",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/exam-buddy/quiz-generator.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/exam-buddy/quiz-generator.fixture.ts"
+      }
+    },
+    {
+      "id": "plugins-integrations:integrations-page",
+      "featureId": "plugins-integrations",
+      "featureName": "Plugins and Productivity Integrations",
+      "category": "integrations",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/settings/integrations",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Google OAuth / Calendar",
+        "Notion API",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "plugins-integrations:plugins-route",
+      "featureId": "plugins-integrations",
+      "featureName": "Plugins and Productivity Integrations",
+      "category": "integrations",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/plugins",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Google OAuth / Calendar",
+        "Notion API",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "plugins-integrations:tools-execute-route",
+      "featureId": "plugins-integrations",
+      "featureName": "Plugins and Productivity Integrations",
+      "category": "integrations",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "http://127.0.0.1:3000/api/v1/tools/execute",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Google OAuth / Calendar",
+        "Notion API",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "plugins-integrations:plugin-command-builder",
+      "featureId": "plugins-integrations",
+      "featureName": "Plugins and Productivity Integrations",
+      "category": "integrations",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "function",
+      "target": "lib/plugins/plugin-executor.ts#buildPluginCommand",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Google OAuth / Calendar",
+        "Notion API",
+        "Cloudflare KV"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/plugins/plugin-command.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/plugins/plugin-command.fixture.ts"
+      }
+    },
+    {
+      "id": "messaging-bots:whatsapp-link-route",
+      "featureId": "messaging-bots",
+      "featureName": "Messaging Bots and Public Webhooks",
+      "category": "integrations",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/bot/link/whatsapp",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "WhatsApp",
+        "Telegram",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "messaging-bots:telegram-webhook-route",
+      "featureId": "messaging-bots",
+      "featureName": "Messaging Bots and Public Webhooks",
+      "category": "integrations",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "http://127.0.0.1:3000/api/webhooks/telegram",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": false,
+      "externalServices": [
+        "WhatsApp",
+        "Telegram",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Target marked as provider-backed. Re-run with fixture support or --allow-external-calls."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "messaging-bots:whatsapp-webhook-route",
+      "featureId": "messaging-bots",
+      "featureName": "Messaging Bots and Public Webhooks",
+      "category": "integrations",
+      "benchmarkType": "api-latency",
+      "targetKind": "integration",
+      "target": "http://127.0.0.1:3000/api/webhooks/whatsapp",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": false,
+      "externalServices": [
+        "WhatsApp",
+        "Telegram",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Target marked as provider-backed. Re-run with fixture support or --allow-external-calls."
+      ],
+      "metadata": {
+        "method": "POST"
+      }
+    },
+    {
+      "id": "messaging-bots:bot-pipeline",
+      "featureId": "messaging-bots",
+      "featureName": "Messaging Bots and Public Webhooks",
+      "category": "integrations",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "function",
+      "target": "lib/bot/bot-pipeline.ts#processBotMessage",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": false,
+      "externalServices": [
+        "WhatsApp",
+        "Telegram",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/bots/bot-pipeline.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/bots/bot-pipeline.fixture.ts"
+      }
+    },
+    {
+      "id": "agents-actions:agents-page",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/agents",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "agents-actions:actions-route",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/actions",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "agents-actions:agents-route",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/agents/history",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "agents-actions:action-executor",
+      "featureId": "agents-actions",
+      "featureName": "Agents, Actions, and Tool Execution",
+      "category": "automation",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "function",
+      "target": "lib/actions/action-executor.ts#executeAction",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare Vectorize",
+        "Gemini",
+        "Plugin connectors"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/agents/action-executor.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/agents/action-executor.fixture.ts"
+      }
+    },
+    {
+      "id": "profile-notifications:profile-page",
+      "featureId": "profile-notifications",
+      "featureName": "Profile Card, Settings, Notifications, and Push",
+      "category": "account",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/profile",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Web Push"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "profile-notifications:settings-page",
+      "featureId": "profile-notifications",
+      "featureName": "Profile Card, Settings, Notifications, and Push",
+      "category": "account",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/settings",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Web Push"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "profile-notifications:profile-card-route",
+      "featureId": "profile-notifications",
+      "featureName": "Profile Card, Settings, Notifications, and Push",
+      "category": "account",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/profile/card",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Web Push"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "profile-notifications:notification-prefs-route",
+      "featureId": "profile-notifications",
+      "featureName": "Profile Card, Settings, Notifications, and Push",
+      "category": "account",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/notification-prefs",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Web Push"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "mood:mood-page",
+      "featureId": "mood",
+      "featureName": "Mood Timeline",
+      "category": "wellbeing",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/mood",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "mood:mood-timeline-route",
+      "featureId": "mood",
+      "featureName": "Mood Timeline",
+      "category": "wellbeing",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/mood/timeline",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "mood:mood-analyzer",
+      "featureId": "mood",
+      "featureName": "Mood Timeline",
+      "category": "wellbeing",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "function",
+      "target": "lib/mood/mood-analyzer.ts#analyzeMoodFromConversation",
+      "status": "skipped",
+      "risk": "P2",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Gemini"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/mood/mood-analyzer.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/mood/mood-analyzer.fixture.ts"
+      }
+    },
+    {
+      "id": "admin-observability:admin-page",
+      "featureId": "admin-observability",
+      "featureName": "Admin, Health, Analytics, and Observability",
+      "category": "operations",
+      "benchmarkType": "http-route-latency",
+      "targetKind": "route",
+      "target": "http://127.0.0.1:3000/admin",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare D1",
+        "Cloudflare Vectorize",
+        "Durable Objects",
+        "Providers health probes"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:57.945Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "admin-observability:health-route",
+      "featureId": "admin-observability",
+      "featureName": "Admin, Health, Analytics, and Observability",
+      "category": "operations",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/health",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare D1",
+        "Cloudflare Vectorize",
+        "Durable Objects",
+        "Providers health probes"
+      ],
+      "startedAt": "2026-05-01T16:39:57.945Z",
+      "finishedAt": "2026-05-01T16:39:58.038Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          2.164,
+          2.147,
+          2.096,
+          2.087,
+          1.841,
+          1.858,
+          1.956,
+          1.802,
+          1.696,
+          1.845
+        ],
+        "p50": 1.858,
+        "p75": 2.096,
+        "p95": 2.164,
+        "average": 1.949,
+        "min": 1.696,
+        "max": 2.164,
+        "stdDev": 0.156
+      },
+      "memory": {
+        "rssStartBytes": 90996736,
+        "rssEndBytes": 90996736,
+        "rssPeakBytes": 90996736,
+        "rssDeltaBytes": 0,
+        "heapUsedStartBytes": null,
+        "heapUsedEndBytes": null,
+        "heapUsedPeakBytes": null,
+        "heapUsedDeltaBytes": null
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "lastStatus": 200,
+        "method": "GET",
+        "expectedStatuses": [
+          200
+        ]
+      }
+    },
+    {
+      "id": "admin-observability:admin-analytics-route",
+      "featureId": "admin-observability",
+      "featureName": "Admin, Health, Analytics, and Observability",
+      "category": "operations",
+      "benchmarkType": "api-latency",
+      "targetKind": "api",
+      "target": "http://127.0.0.1:3000/api/v1/admin/analytics",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare D1",
+        "Cloudflare Vectorize",
+        "Durable Objects",
+        "Providers health probes"
+      ],
+      "startedAt": "2026-05-01T16:39:58.038Z",
+      "finishedAt": "2026-05-01T16:39:58.038Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Auth-required target skipped because no benchmark auth headers or cookies were supplied."
+      ],
+      "metadata": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "admin-observability:analytics-growth-rate",
+      "featureId": "admin-observability",
+      "featureName": "Admin, Health, Analytics, and Observability",
+      "category": "operations",
+      "benchmarkType": "server-function-benchmark",
+      "targetKind": "function",
+      "target": "lib/analytics/aggregator.ts#calculateGrowthRate",
+      "status": "completed",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare D1",
+        "Cloudflare Vectorize",
+        "Durable Objects",
+        "Providers health probes"
+      ],
+      "startedAt": "2026-05-01T16:39:58.038Z",
+      "finishedAt": "2026-05-01T16:39:58.046Z",
+      "stats": {
+        "count": 10,
+        "samplesMs": [
+          0.001,
+          0.002,
+          0,
+          0,
+          0,
+          0.001,
+          0.001,
+          0,
+          0,
+          0
+        ],
+        "p50": 0,
+        "p75": 0.001,
+        "p95": 0.002,
+        "average": 0.001,
+        "min": 0,
+        "max": 0.002,
+        "stdDev": 0.001
+      },
+      "memory": {
+        "rssStartBytes": 131170304,
+        "rssEndBytes": 131203072,
+        "rssPeakBytes": 131203072,
+        "rssDeltaBytes": 32768,
+        "heapUsedStartBytes": 21641048,
+        "heapUsedEndBytes": 21671832,
+        "heapUsedPeakBytes": 21670928,
+        "heapUsedDeltaBytes": 30784
+      },
+      "bundleImpact": null,
+      "notes": [],
+      "metadata": {
+        "iterations": 10,
+        "warmupIterations": 2,
+        "fixtureModule": null
+      }
+    },
+    {
+      "id": "admin-observability:analytics-snapshot",
+      "featureId": "admin-observability",
+      "featureName": "Admin, Health, Analytics, and Observability",
+      "category": "operations",
+      "benchmarkType": "mocked-integration-benchmark",
+      "targetKind": "function",
+      "target": "lib/analytics/aggregator.ts#buildAnalyticsSnapshot",
+      "status": "skipped",
+      "risk": "P1",
+      "authRequired": true,
+      "externalServices": [
+        "Clerk",
+        "Cloudflare KV",
+        "Cloudflare D1",
+        "Cloudflare Vectorize",
+        "Durable Objects",
+        "Providers health probes"
+      ],
+      "startedAt": "2026-05-01T16:39:58.047Z",
+      "finishedAt": "2026-05-01T16:39:58.047Z",
+      "stats": null,
+      "memory": null,
+      "bundleImpact": null,
+      "notes": [
+        "Fixture module not found yet: benchmarks/fixtures/admin/analytics-snapshot.fixture.ts"
+      ],
+      "metadata": {
+        "fixtureModule": "benchmarks/fixtures/admin/analytics-snapshot.fixture.ts"
+      }
+    }
+  ]
+}
