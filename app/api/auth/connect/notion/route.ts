@@ -3,11 +3,12 @@ import { getVerifiedUserId, AuthenticationError } from "@/lib/server/security/au
 import { getEnv } from "@/lib/server/platform/env"
 import { getCloudflareKVBinding } from "@/lib/server/platform/bindings"
 import { randomHex } from "@/lib/bot/bot-crypto"
+import { checkRateLimit, rateLimitExceededResponse } from "@/lib/server/security/rate-limiter"
 
 
 // ─── Notion OAuth Connect ─────────────────────────────────────────────────────
 // Redirects the user to Notion's OAuth consent screen.
-// Rate limiting is handled by the middleware's IP-based limiter (100 req/min).
+// Per-user rate limited via the 'oauth' route type (5/min free, 10/min paid).
 
 // OAuth state token TTL — 10 minutes max for the user to complete consent
 const STATE_TTL_SECONDS = 600
@@ -21,6 +22,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL("/sign-in", req.url))
     }
     throw e
+  }
+
+  const rateResult = await checkRateLimit(userId, "free", "oauth")
+  if (!rateResult.allowed) {
+    return rateLimitExceededResponse(rateResult)
   }
 
   const env = getEnv()

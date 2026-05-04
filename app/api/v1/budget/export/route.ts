@@ -3,6 +3,12 @@ import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from '@/
 import { getBudgetKV } from '@/lib/budget/kv'
 import { getEntries, getOrCreateSettings } from '@/lib/budget/budget-store'
 import type { ExpenseEntry } from '@/types/budget'
+import { getUserPlan } from '@/lib/billing/tier-checker'
+import {
+  checkRateLimit,
+  rateLimitExceededResponse,
+  type UserTier,
+} from '@/lib/server/security/rate-limiter'
 
 /** Escape CSV field to prevent formula injection */
 function escapeCsvCell(value: string): string {
@@ -50,6 +56,13 @@ export async function GET(req: NextRequest) {
       JSON.stringify({ success: false, error: 'Service unavailable' }),
       { status: 503, headers: { 'Content-Type': 'application/json' } },
     )
+  }
+
+  const planId = await getUserPlan(userId)
+  const rateTier: UserTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier, 'export')
+  if (!rateResult.allowed) {
+    return rateLimitExceededResponse(rateResult)
   }
 
   const { searchParams } = new URL(req.url)

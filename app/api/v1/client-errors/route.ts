@@ -5,6 +5,12 @@ import {
   unauthorizedResponse,
 } from "@/lib/server/security/auth"
 import { log, logApiError } from "@/lib/server/observability/logger"
+import { getUserPlan } from "@/lib/billing/tier-checker"
+import {
+  checkRateLimit,
+  rateLimitExceededResponse,
+  type UserTier,
+} from "@/lib/server/security/rate-limiter"
 
 const CLIENT_ERRORS_PATH = "/api/v1/client-errors"
 
@@ -49,6 +55,13 @@ export async function POST(request: Request): Promise<Response> {
       return unauthorizedResponse()
     }
     return unauthorizedResponse()
+  }
+
+  const planId = await getUserPlan(userId)
+  const rateTier: UserTier = planId === "free" ? "free" : "paid"
+  const rateResult = await checkRateLimit(userId, rateTier, "client_error")
+  if (!rateResult.allowed) {
+    return rateLimitExceededResponse(rateResult)
   }
 
   let body: unknown

@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-const { checkAndIncrementAtomicCounterMock } = vi.hoisted(() => ({
+const { checkAndIncrementAtomicCounterMock, checkAtomicCounterMock } = vi.hoisted(() => ({
   checkAndIncrementAtomicCounterMock: vi.fn(),
+  checkAtomicCounterMock: vi.fn(),
 }))
 
 vi.mock('@opennextjs/cloudflare', () => ({ getCloudflareContext: vi.fn() }))
@@ -16,6 +17,10 @@ vi.mock('@/lib/server/security/auth', () => ({
 vi.mock('@/lib/ai/services/ai-service', () => ({ callGeminiDirect: vi.fn() }))
 vi.mock('@/lib/server/platform/atomic-quota', () => ({
   checkAndIncrementAtomicCounter: checkAndIncrementAtomicCounterMock,
+  checkAtomicCounter: checkAtomicCounterMock,
+}))
+vi.mock('@/lib/billing/tier-checker', () => ({
+  getUserPlan: vi.fn().mockResolvedValue('free'),
 }))
 
 import { getCloudflareContext } from '@opennextjs/cloudflare'
@@ -50,6 +55,7 @@ describe('budget API routes', () => {
     kv = makeKV()
     mockGetCtx.mockReturnValue({ env: { MISSI_MEMORY: kv } } as any)
     checkAndIncrementAtomicCounterMock.mockResolvedValue({ allowed: true, count: 1, remaining: 199 })
+    checkAtomicCounterMock.mockResolvedValue({ allowed: true, count: 0, remaining: 60 })
   })
 
   function makeReq(method: string, body?: unknown, url?: string) {

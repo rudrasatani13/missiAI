@@ -4,20 +4,26 @@ import { checkAndIncrementAtomicCounter, checkAtomicCounter } from '@/lib/server
 
 // ─── Tier limits (requests per minute, per route type) ────────────────────────
 //
-// 'api'  — standard data endpoints (billing, memory, plugins, etc.)
-// 'ai'   — generative AI endpoints that call Gemini or other model APIs (chat, tts, stt, actions)
+// 'api'          — standard data endpoints (billing, memory, plugins, etc.)
+// 'ai'           — generative AI endpoints (chat, tts, stt, actions)
+// 'oauth'        — OAuth connect initiation (creates KV state tokens; very tight)
+// 'export'       — bulk data-export endpoints (CSV download, etc.)
+// 'client_error' — client-side error telemetry (prevent log-flooding)
+// 'gallery'      — visual-memory gallery reads (calls getUserPlan per request)
 //
 // AI limits are deliberately tighter because each call fans out to an expensive
 // third-party model API; the lower cap prevents runaway costs from bots or
 // misbehaving clients while still giving real users a smooth experience.
+// The specialised route types are tighter still to protect sensitive or
+// expensive-per-call endpoints even when the generic api budget has headroom.
 
 const RATE_LIMITS = {
-  free: { api: 60, ai: 60 },
-  paid: { api: 200, ai: 120 },
+  free: { api: 60, ai: 60, oauth: 5, export: 5, client_error: 10, gallery: 30 },
+  paid: { api: 200, ai: 120, oauth: 10, export: 10, client_error: 20, gallery: 60 },
 } as const
 
 export type UserTier  = keyof typeof RATE_LIMITS
-export type RouteType = 'api' | 'ai'
+export type RouteType = 'api' | 'ai' | 'oauth' | 'export' | 'client_error' | 'gallery'
 
 export interface RateLimitResult {
   allowed: boolean

@@ -1,5 +1,10 @@
 import type { VisualMemoryRecord } from '@/types/visual-memory'
 import { getUserPlan } from '@/lib/billing/tier-checker'
+import {
+  checkRateLimit,
+  rateLimitExceededResponse,
+  type UserTier,
+} from '@/lib/server/security/rate-limiter'
 import { awardXP } from '@/lib/gamification/xp-engine'
 import { addOrUpdateNode } from '@/lib/memory/life-graph'
 import { waitUntil } from '@/lib/server/platform/wait-until'
@@ -34,9 +39,15 @@ export async function runVisualMemoryGalleryGetRoute(
     return kvResult.response
   }
 
+  const planId = await getUserPlan(userId)
+  const rateTier: UserTier = planId === 'free' ? 'free' : 'paid'
+  const rateResult = await checkRateLimit(userId, rateTier, 'gallery')
+  if (!rateResult.allowed) {
+    return rateLimitExceededResponse(rateResult)
+  }
+
   const limit = parseVisualMemoryGalleryLimit(req)
   const records = await getVisualRecords(kvResult.kv, userId, limit)
-  const planId = await getUserPlan(userId)
   const dailyLimit = PLAN_LIMITS[planId] ?? PLAN_LIMITS.free
   const usedToday = await getVisualRateLimit(kvResult.kv, userId)
   const remainingToday = Math.max(0, dailyLimit - usedToday)
