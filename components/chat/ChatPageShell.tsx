@@ -1,17 +1,14 @@
 "use client"
 
-import { Suspense, lazy, useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import nextDynamic from "next/dynamic"
 import { ArrowLeft, Menu } from "lucide-react"
-import type { PlanId } from "@/types/billing"
 import type { VoiceState } from "@/types/chat"
 import type { EmotionProfile } from "@/types/emotion"
-import type { PluginResult } from "@/types/plugins"
 import { VoiceButton } from "@/components/chat/VoiceButton"
 import { StatusDisplay } from "@/components/chat/StatusDisplay"
 import { ChatSidebar } from "@/components/chat/ChatSidebar"
-import { UsageBar } from "@/components/chat/UsageBar"
 import { BootSequence } from "@/components/chat/BootSequence"
 import { useGuestChat } from "@/hooks/chat/useGuestChat"
 import { GuestLimitModal } from "@/components/chat/GuestLimitModal"
@@ -21,10 +18,6 @@ import { Magnetic } from "@/components/effects/Magnetic"
 const ParticleVisualizer = nextDynamic(
   () => import("@/components/chat/ParticleVisualizer").then((m) => m.ParticleVisualizer),
   { ssr: false }
-)
-
-const ChatOptionalOverlays = lazy(() =>
-  import("@/components/chat/ChatOptionalOverlays").then((module) => ({ default: module.ChatOptionalOverlays })),
 )
 
 interface ChatPageShellProps {
@@ -49,8 +42,8 @@ interface ChatPageShellProps {
   onLogout: () => void
   onNewChat: () => void
   onUpgrade: () => void
-  planId: PlanId | undefined
-  pluginResult: PluginResult | null
+  planId: string | undefined
+  pluginResult: any | null
   showBootSequence: boolean
   showOnboarding: boolean
   streamingText: string
@@ -66,7 +59,7 @@ export function ChatPageShell({
   bootCompleted,
   completeBootSequence,
   currentEmotion,
-  dismissOnboarding,
+  _dismissOnboarding,
   displayName,
   effectiveLastResponse,
   effectiveLastTranscript,
@@ -76,20 +69,20 @@ export function ChatPageShell({
   handleTap,
   isAtLimit,
   liveMode,
-  onDismissDisplay,
+  _onDismissDisplay,
   onDismissError,
   onLogout,
   onNewChat,
-  onUpgrade,
+  _onUpgrade,
   planId,
-  pluginResult,
+  _pluginResult,
   showBootSequence,
-  showOnboarding,
+  _showOnboarding,
   streamingText,
-  usedSeconds,
-  limitSeconds,
+  _usedSeconds,
+  _limitSeconds,
   voiceState,
-}: ChatPageShellProps) {
+}: ChatPageShellProps & { _dismissOnboarding?: () => void; _onDismissDisplay?: () => void; _onUpgrade?: () => void; _pluginResult?: any | null; _showOnboarding?: boolean; _usedSeconds?: number; _limitSeconds?: number }) {
   // Sidebar width reported by ChatSidebar (0 on mobile). Used to offset fixed chat children.
   const [sidebarWidth, setSidebarWidth] = useState(240)
   // Mobile sidebar open state — lifted here so we can render the trigger inside the MISSI pill.
@@ -114,7 +107,6 @@ export function ChatPageShell({
       <style>{`[data-testid="global-footer"] { display: none !important; }`}</style>
 
       <ChatSidebar
-        plan={planId}
         onLogout={onLogout}
         onNewChat={onNewChat}
         isLiveMode={liveMode}
@@ -139,14 +131,6 @@ export function ChatPageShell({
           onComplete={completeBootSequence}
         />
       )}
-      <Suspense fallback={null}>
-        <ChatOptionalOverlays
-          dismissOnboarding={dismissOnboarding}
-          onDismissDisplay={onDismissDisplay}
-          pluginResult={pluginResult}
-          showOnboarding={showOnboarding}
-        />
-      </Suspense>
       <ParticleVisualizer state={effectiveVoiceState} isActive={effectiveVoiceState !== "idle"} audioLevel={audioLevel} />
       <div className="absolute inset-0 z-10" onClick={isGuest || isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
         style={{ cursor: isGuest || isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
@@ -268,13 +252,6 @@ export function ChatPageShell({
         </div>
 
       </div>
-
-      <UsageBar
-        usedSeconds={usedSeconds}
-        limitSeconds={limitSeconds}
-        planId={planId ?? 'free'}
-        onUpgrade={onUpgrade}
-      />
 
       </main>
 

@@ -4,7 +4,6 @@ import { useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useClerk } from "@clerk/nextjs"
 import { ChatSidebar } from "@/components/chat/ChatSidebar"
-import { useBilling } from "@/hooks/billing/useBilling"
 
 /**
  * Floating rounded chrome used on every non-/chat page.
@@ -23,7 +22,6 @@ import { useBilling } from "@/hooks/billing/useBilling"
 export function ChatShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { signOut } = useClerk()
-  const { plan } = useBilling()
   // Start at 0 so the very first client render on mobile doesn't briefly
   // allocate a 240px sidebar column (which would squish <main> into a
   // sliver since fixed-positioned grid items are ignored by auto-flow).
@@ -76,7 +74,6 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
       <style>{`[data-testid="global-footer"] { display: none !important; }`}</style>
 
       <ChatSidebar
-        plan={plan?.id}
         onLogout={handleLogout}
         onNewChat={handleNewChat}
         isLiveMode={false}

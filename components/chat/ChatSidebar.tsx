@@ -39,7 +39,6 @@ import { LEDLogo } from "@/components/brand/LEDLogo"
 // ──────────────────────────────────────────────────────────────────────────────
 
 export interface ChatSidebarProps {
-  plan: "free" | "plus" | "pro" | undefined
   onLogout: () => void
   onNewChat: () => void
   isLiveMode: boolean
@@ -631,7 +630,6 @@ function MoreSubPanel() {
 // ──────────────────────────────────────────────────────────────────────────────
 
 function ChatSidebarInner({
-  plan,
   onLogout,
   onNewChat,
   isLiveMode,
@@ -823,14 +821,6 @@ function ChatSidebarInner({
       onWidthChange(desktopWidth)
     }
   }, [desktopWidth, isMobile, onWidthChange])
-
-  // Plan badge resolution (used by the top account row)
-  const resolvedPlan = useMemo<"pro" | "free">(() => {
-    if (plan === "plus" || plan === "pro") return "pro"
-    const meta = (user?.publicMetadata as { plan?: string } | undefined)?.plan
-    if (meta === "plus" || meta === "pro") return "pro"
-    return "free"
-  }, [plan, user])
 
   const firstName = user?.firstName ?? ""
   const avatarUrl = user?.imageUrl ?? null
@@ -1114,26 +1104,6 @@ function ChatSidebarInner({
               style={{ fontSize: 12, fontWeight: 500, color: "var(--missi-nav-text-active)", maxWidth: 110 }}
             >
               {firstName || "Guest"}
-            </span>
-            <span
-              className={resolvedPlan === "pro" ? "missi-pro-pill" : ""}
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                padding: "2px 7px",
-                borderRadius: 999,
-                background: resolvedPlan === "pro" ? undefined : "var(--missi-surface)",
-                color: resolvedPlan === "pro" ? undefined : "var(--missi-text-secondary)",
-                border:
-                  resolvedPlan === "pro"
-                    ? "1px solid rgba(251,191,36,0.28)"
-                    : "1px solid var(--missi-border)",
-                flexShrink: 0,
-              }}
-            >
-              {resolvedPlan === "pro" ? "Pro" : "Free"}
             </span>
           </div>
         </div>
