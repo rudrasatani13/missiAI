@@ -100,10 +100,22 @@ export const sttSchema = z.object({
     .max(10_000_000, "Audio file too large (max 10 MB)"),
   type: z
     .string()
-    // Safari/iOS may report video/mp4, application/octet-stream, or empty type
+    // Normalise codec params (e.g. "audio/webm;codecs=opus") before checking.
+    // Only specific video/* containers are allowed — Safari/iOS legitimately
+    // reports video/mp4 or video/webm for audio-only MediaRecorder tracks.
+    // Broad video/* acceptance is intentionally avoided to reject video/avi, etc.
     .refine(
-      (t) => !t || t.startsWith("audio/") || t.startsWith("video/") || t === "application/octet-stream",
-      "File must be an audio MIME type"
+      (t) => {
+        const normalized = t.split(";")[0].trim().toLowerCase()
+        return (
+          normalized === "" ||
+          normalized.startsWith("audio/") ||
+          normalized === "video/mp4" ||
+          normalized === "video/webm" ||
+          normalized === "application/octet-stream"
+        )
+      },
+      "Unsupported audio file type"
     ),
 })
 

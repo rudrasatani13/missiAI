@@ -7,6 +7,10 @@ import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/l
 import { logRequest, logError, logApiError } from "@/lib/server/observability/logger"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
+import {
+  validateAudioMagicBytes,
+  estimateAudioDurationMs,
+} from "@/lib/server/routes/stt/helpers"
 
 const STT_TIMEOUT_MS = 15_000
 
@@ -70,7 +74,7 @@ export async function POST(req: NextRequest) {
     return jsonResponse({ success: false, error: "No audio file provided", code: "VALIDATION_ERROR" }, 400)
   }
 
-  // ── 5. Validate audio file with Zod ──────────────────────────────────────
+  // ── 5. Validate audio file metadata with Zod ────────────────────────────
   const parsed = sttSchema.safeParse({
     name: audioFile.name,
     size: audioFile.size,
@@ -81,26 +85,35 @@ export async function POST(req: NextRequest) {
     return validationErrorResponse(parsed.error)
   }
 
-  // ── 6. Voice-time check-and-increment (H3 fix) ───────────────────────────
+  // ── 6. Read bytes and validate audio magic bytes ─────────────────────────
   //
-  // Previously this endpoint only did a read-only check, which meant a client
-  // could hammer STT without ever hitting the daily voice quota tracked by
-  // /api/v1/chat(-stream). We now debit the user's voice-time budget here
-  // using either the client-reported `voiceDurationMs` (clamped server-side
-  // to [3s, 120s] by sanitizeDuration) or a conservative estimate derived
-  // from the audio file size (assume 64 kbps → ~8 KB/s).
-  const rawDurationField = formData.get("voiceDurationMs")
-  const clientDurationMs =
-    typeof rawDurationField === "string" && rawDurationField.trim().length > 0
-      ? Number.parseInt(rawDurationField, 10)
-      : NaN
-  const estimatedDurationMs = Math.max(
-    3000,
-    Math.round((audioFile.size / 8000) * 1000), // ~64 kbps audio
-  )
-  const effectiveDurationMs = Number.isFinite(clientDurationMs) && clientDurationMs > 0
-    ? clientDurationMs
-    : estimatedDurationMs
+  // The browser-supplied MIME type cannot be trusted on its own. Read the
+  // leading bytes of the upload and verify they match known audio file
+  // signatures. This rejects disguised non-audio content (e.g. a JPEG
+  // declared as audio/wav) before the bytes reach the AI provider.
+  let audioBytes: Uint8Array
+  try {
+    audioBytes = new Uint8Array(await audioFile.arrayBuffer())
+  } catch {
+    logRequest("stt.read_error", userId, startTime)
+    return jsonResponse({ success: false, error: "Failed to read audio file", code: "VALIDATION_ERROR" }, 400)
+  }
+
+  if (!validateAudioMagicBytes(audioBytes, audioFile.type)) {
+    logRequest("stt.invalid_magic_bytes", userId, startTime, { declaredType: audioFile.type })
+    return jsonResponse({ success: false, error: "File content does not match declared audio type", code: "INVALID_FILE" }, 400)
+  }
+
+  // ── 7. Voice-time check-and-increment ────────────────────────────────────
+  //
+  // Duration is derived server-side from the file's byte size (64 kbps CBR
+  // assumption), clamped to [3 s, 120 s]. The client-supplied voiceDurationMs
+  // field is intentionally ignored: trusting it would allow under-reporting
+  // (e.g. sending 1 ms for a 10 MB file) to drain quota at near-zero cost.
+  //
+  // The sanitizeDuration function inside checkAndIncrementVoiceTime also
+  // applies [3 s, 120 s] clamping as a defence-in-depth second layer.
+  const effectiveDurationMs = estimateAudioDurationMs(audioFile.size)
 
   if (kv) {
     const voiceLimit = await checkAndIncrementVoiceTime(kv, userId, planId, effectiveDurationMs)
