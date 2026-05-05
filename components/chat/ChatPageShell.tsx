@@ -3,7 +3,7 @@
 import { Suspense, lazy, useState, useEffect, type ChangeEventHandler, type RefObject } from "react"
 import Link from "next/link"
 import nextDynamic from "next/dynamic"
-import { ArrowLeft, X } from "lucide-react"
+import { ArrowLeft, Menu, X } from "lucide-react"
 import type { ActionResult } from "@/types/actions"
 import type { PlanId } from "@/types/billing"
 import type { VoiceState } from "@/types/chat"
@@ -140,6 +140,8 @@ export function ChatPageShell({
 }: ChatPageShellProps) {
   // Sidebar width reported by ChatSidebar (0 on mobile). Used to offset fixed chat children.
   const [sidebarWidth, setSidebarWidth] = useState(240)
+  // Mobile sidebar open state — lifted here so we can render the trigger inside the MISSI pill.
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   // Guest chat state
   const guestChat = useGuestChat()
@@ -171,6 +173,8 @@ export function ChatPageShell({
         isGuest={isGuest}
         onPickImage={() => fileInputRef.current?.click()}
         onWidthChange={setSidebarWidth}
+        mobileSidebarOpen={mobileSidebarOpen}
+        onMobileSidebarChange={setMobileSidebarOpen}
       />
 
       <main
@@ -204,10 +208,10 @@ export function ChatPageShell({
       <ParticleVisualizer state={effectiveVoiceState} isActive={effectiveVoiceState !== "idle"} audioLevel={audioLevel} avatarTier={avatarTier} />
       <div className="absolute inset-0 z-10" onClick={isGuest || isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
         style={{ cursor: isGuest || isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
-      {/* On mobile: offset from left to clear the fixed sidebar hamburger (48px).
+      {/* On mobile: full-width pill with hamburger on the left.
           On desktop: 600px centered. */}
-      <div className="relative w-auto md:w-[600px] ml-12 mr-3 md:mx-auto z-[100] pointer-events-none">
-        <nav className="flex items-center justify-between w-full mt-12 md:mt-6 px-4 py-2.5 pointer-events-auto rounded-[32px] shadow-2xl"
+      <div className="relative w-auto md:w-[600px] mx-3 md:mx-auto z-[100] pointer-events-none">
+        <nav className="flex items-center justify-between w-full mt-4 md:mt-6 px-3 md:px-4 py-2 md:py-2.5 pointer-events-auto rounded-[32px] shadow-2xl"
           style={{
             background: "var(--missi-sidebar-bg)",
             backdropFilter: "blur(24px)",
@@ -215,8 +219,17 @@ export function ChatPageShell({
             border: "1px solid var(--missi-border-strong)",
             boxShadow: "0 4px 24px var(--missi-shadow)",
           }}>
-          {/* Left: Back */}
-          <div className="flex items-center flex-1 justify-start gap-2">
+          {/* Left: hamburger on mobile, back-arrow on desktop */}
+          <div className="flex items-center flex-1 justify-start gap-1">
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(true)}
+              aria-label="Open sidebar"
+              className="md:hidden flex items-center justify-center w-8 h-8 rounded-full transition-colors focus-visible:outline-none"
+              style={{ background: "transparent", border: "1px solid var(--missi-border)", color: "var(--missi-text-secondary)", cursor: "pointer" }}
+            >
+              <Menu className="w-4 h-4" />
+            </button>
             <Magnetic>
               <Link href="/chat" className="hidden md:flex items-center justify-center p-2 rounded-full transition-all" style={{ color: "var(--missi-text-secondary)", opacity: 0.7 }} data-testid="home-link">
                 <ArrowLeft className="w-4 h-4" />
@@ -247,10 +260,10 @@ export function ChatPageShell({
 
           {/* Right: Login/Signup for guests, empty spacer for auth users */}
           {isGuest ? (
-            <div className="flex items-center flex-1 justify-end gap-2">
+            <div className="flex items-center flex-1 justify-end gap-1.5">
               <Link
                 href="/sign-in"
-                className="flex items-center justify-center h-8 px-4 rounded-full text-[12px] font-medium transition-all active:scale-[0.97]"
+                className="flex items-center justify-center h-8 px-3 rounded-full text-[12px] font-medium transition-all active:scale-[0.97] whitespace-nowrap"
                 style={{
                   background: "transparent",
                   border: "1px solid var(--missi-border-strong)",
@@ -262,7 +275,7 @@ export function ChatPageShell({
               </Link>
               <Link
                 href="/sign-up"
-                className="flex items-center justify-center h-8 px-5 rounded-full text-[12px] font-semibold transition-all active:scale-[0.97]"
+                className="flex items-center justify-center h-8 px-3 rounded-full text-[12px] font-semibold transition-all active:scale-[0.97] whitespace-nowrap"
                 style={{
                   background: "var(--missi-text-primary)",
                   color: "var(--missi-bg)",

@@ -55,6 +55,10 @@ export interface ChatSidebarProps {
   onPickImage: () => void
   /** Called whenever the desktop sidebar width resolves, so the page can offset fixed children. */
   onWidthChange?: (pxWidth: number) => void
+  /** When provided, the parent controls mobile sidebar open state — the built-in fixed hamburger is hidden. */
+  mobileSidebarOpen?: boolean
+  /** Called when the sidebar wants to change its mobile open state. When provided, built-in hamburger is hidden. */
+  onMobileSidebarChange?: (open: boolean) => void
 }
 
 type SubPanelKey = "voice" | "integrations" | "more" | null
@@ -648,6 +652,8 @@ function ChatSidebarInner({
   isGuest = false,
   onPickImage,
   onWidthChange,
+  mobileSidebarOpen: externalMobileOpen,
+  onMobileSidebarChange,
 }: ChatSidebarProps) {
   const { user } = useUser()
   const pathname = usePathname()
@@ -774,8 +780,13 @@ function ChatSidebarInner({
     setSubPanelForcedExpand(false)
   }, [setActiveSub, setSubPanelForcedExpand])
 
-  // Mobile drawer
-  const [mobileOpen, setMobileOpen] = useState(false)
+  // Mobile drawer — controlled externally when onMobileSidebarChange is provided
+  const [localMobileOpen, setLocalMobileOpen] = useState(false)
+  const mobileOpen = externalMobileOpen !== undefined ? externalMobileOpen : localMobileOpen
+  const setMobileOpen = useCallback((v: boolean) => {
+    setLocalMobileOpen(v)
+    onMobileSidebarChange?.(v)
+  }, [onMobileSidebarChange])
   useEffect(() => {
     // Close the mobile drawer after navigation so the page is visible, but
     // keep the currently active sub-panel + forced-expand state so that when
@@ -1390,8 +1401,9 @@ function ChatSidebarInner({
 
   return (
     <>
-      {/* Mobile hamburger — fixed at top-left, only visible below md */}
-      {isMobile && !mobileOpen && (
+      {/* Mobile hamburger — fixed at top-left, only visible below md.
+           Hidden when onMobileSidebarChange is provided (parent renders the trigger). */}
+      {isMobile && !mobileOpen && !onMobileSidebarChange && (
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
