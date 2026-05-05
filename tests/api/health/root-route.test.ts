@@ -175,7 +175,6 @@ describe("GET /api/v1/health", () => {
     expect(body.status).toBe("healthy")
     expect(body.checks.kv.status).toBe("ok")
     expect(body.checks.d1.status).toBe("ok")
-    expect(body.checks.vectorize.status).toBe("ok")
     expect(body.checks.durable_object.status).toBe("ok")
     expect(checkRateLimitMock).toHaveBeenCalledWith("__health_internal__", "free", "api")
     expect(authMock).not.toHaveBeenCalled()
@@ -264,13 +263,11 @@ describe("GET /api/v1/health", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.status).toBe("healthy")
-    expect(body.checks.vectorize.status).toBe("ok")
     expect(body.checks.durable_object.status).toBe("ok")
     expect(body.checks.vertex.status).toBe("ok")
     expect(body.checks.openai.status).toBe("ok")
     expect(checkProviderHealthMock).toHaveBeenCalledWith({ forceOpenAIProbe: true })
     expect(durableFetchMock).toHaveBeenCalledTimes(1)
-    expect(vectorizeQueryMock).toHaveBeenCalledTimes(1)
   })
 
   it("still probes providers when OpenAI is not configured so Vertex health is live", async () => {
