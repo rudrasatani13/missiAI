@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { getDisplayName } from "@/lib/chat/page-helpers"
-import { getBootFlowState, isChatSetupComplete } from "@/lib/chat/page-lifecycle"
-import { hasCompletedSetupLocally, markSetupCompleteLocally } from "@/lib/setup/setup-completion"
+import { getBootFlowState } from "@/lib/chat/page-lifecycle"
 
 interface ChatEntryUser {
   firstName?: string | null
@@ -38,17 +37,8 @@ export function useChatEntryFlow(options: UseChatEntryFlowOptions) {
     if (!isLoaded) return
     if (!user) return
 
-    const setupDone = isChatSetupComplete(
-      user.publicMetadata?.setupComplete,
-      hasCompletedSetupLocally(),
-    )
-
-    if (setupDone) {
-      markSetupCompleteLocally()
-      return
-    }
-
-    router.replace("/setup")
+    // Setup was removed - no longer redirect to /setup
+    // Users go directly to the chat page
   }, [isLoaded, user, router])
 
   useEffect(() => {
