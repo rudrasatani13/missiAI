@@ -1,4 +1,3 @@
-import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { CloudflareD1Database } from "@/lib/server/platform/bindings"
 import type { KVStore } from "@/types"
 
@@ -34,11 +33,4 @@ export async function getCloudflareKVBindingAsync(): Promise<KVStore | null> {
 
 export async function getCloudflareD1BindingAsync(): Promise<CloudflareD1Database | null> {
   return getFirstBinding<CloudflareD1Database>(await getCloudflareBindingsAsync(), CLOUDFLARE_D1_BINDING_NAMES)
-}
-
-export async function getCloudflareVectorizeEnvAsync(): Promise<VectorizeEnv | null> {
-  const env = await getCloudflareBindingsAsync()
-  const lifeGraph = (env?.LIFE_GRAPH ?? env?.VECTORIZE_INDEX) as VectorizeEnv["LIFE_GRAPH"] | undefined
-  if (!lifeGraph) return null
-  return { LIFE_GRAPH: lifeGraph }
 }

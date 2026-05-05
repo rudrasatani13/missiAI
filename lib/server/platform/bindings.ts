@@ -1,5 +1,4 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare"
-import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { KVStore } from "@/types"
 
 export interface CloudflareDurableObjectId {}
@@ -75,13 +74,6 @@ export function getCloudflareD1Binding(): CloudflareD1Database | null {
 export function getCloudflareAtomicCounterBinding(): CloudflareDurableObjectNamespace | null {
   const env = getCloudflareBindings()
   return (env?.ATOMIC_COUNTER as CloudflareDurableObjectNamespace) ?? null
-}
-
-export function getCloudflareVectorizeEnv(): VectorizeEnv | null {
-  const env = getCloudflareBindings()
-  const lifeGraph = (env?.LIFE_GRAPH ?? env?.VECTORIZE_INDEX) as VectorizeEnv["LIFE_GRAPH"] | undefined
-  if (!lifeGraph) return null
-  return { LIFE_GRAPH: lifeGraph }
 }
 
 export function getCloudflareExecutionContext(): { waitUntil: (promise: Promise<unknown>) => void } | null {

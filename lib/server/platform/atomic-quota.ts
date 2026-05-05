@@ -1,18 +1,9 @@
 import { getCloudflareAtomicCounterBinding, type CloudflareDurableObjectNamespace } from '@/lib/server/platform/bindings'
-import type { PlanId } from '@/types/billing'
 
 interface AtomicCounterResult {
   allowed: boolean
   count: number
   remaining: number
-}
-
-interface AtomicVoiceResult {
-  allowed: boolean
-  usedSeconds: number
-  limitSeconds: number
-  remainingSeconds: number
-  voiceInteractions: number
 }
 
 function getAtomicCounterNamespace(): CloudflareDurableObjectNamespace | null {
@@ -66,37 +57,5 @@ export async function decrementAtomicCounter(
   return callAtomicCounter<AtomicCounterResult>(name, '/counter/decrement', {
     limit,
     amount,
-  })
-}
-
-export async function checkVoiceUsageAtomic(
-  userId: string,
-  date: string,
-  planId: PlanId,
-  limitSeconds: number,
-): Promise<AtomicVoiceResult | null> {
-  return callAtomicCounter<AtomicVoiceResult>(`voice:${userId}:${date}`, '/voice/check', {
-    userId,
-    date,
-    planId,
-    limitSeconds,
-  })
-}
-
-export async function checkAndIncrementVoiceUsageAtomic(
-  userId: string,
-  date: string,
-  planId: PlanId,
-  limitSeconds: number,
-  addSeconds: number,
-  ttlSeconds: number,
-): Promise<AtomicVoiceResult | null> {
-  return callAtomicCounter<AtomicVoiceResult>(`voice:${userId}:${date}`, '/voice/check-increment', {
-    userId,
-    date,
-    planId,
-    limitSeconds,
-    addSeconds,
-    ttlSeconds,
   })
 }
