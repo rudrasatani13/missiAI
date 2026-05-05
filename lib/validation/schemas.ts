@@ -11,7 +11,14 @@ const messageSchema = z.object({
     .min(1, "Message content cannot be empty")
     .max(2000, "Message too long (max 2000 chars)")
     .transform(sanitizeInput),
-  image: z.string().optional(),
+  image: z
+    .string()
+    .max(5_242_880, "Image payload too large (max 5 MB base64)")
+    .refine(
+      (v) => !v.startsWith("data:") || /^data:image\/(jpeg|png|gif|webp|avif);base64,/.test(v),
+      "image must be a valid base64 data URI (jpeg, png, gif, webp, or avif)",
+    )
+    .optional(),
 })
 
 // ─── /api/v1/chat ────────────────────────────────────────────────────────────────

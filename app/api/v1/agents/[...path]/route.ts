@@ -139,6 +139,8 @@ async function handleHistory(): Promise<Response> {
 
 // ─── Plan Handler (POST /plan) ────────────────────────────────────────────────
 
+const AGENT_PLAN_MAX_BODY_BYTES = 65_536 // 64 KB — message is max 500 chars; no large payloads expected
+
 const FREE_DAILY_LIMIT = 100
 const PAID_DAILY_LIMIT = 500
 
@@ -155,6 +157,12 @@ async function checkAgentRateLimit(kv: KVStore, userId: string, plan: string) {
 
 async function handlePlan(req: Request): Promise<Response> {
   const startTime = Date.now()
+
+  const contentLength = req.headers.get("content-length")
+  if (contentLength && parseInt(contentLength, 10) > AGENT_PLAN_MAX_BODY_BYTES) {
+    return jsonResponse({ error: "Payload too large" }, 413)
+  }
+
   const auth = await getAuthenticatedAgentUserId()
   if (!auth.ok) return auth.response
   const { userId } = auth

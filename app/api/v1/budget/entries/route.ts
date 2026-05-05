@@ -17,8 +17,10 @@ const VALID_CATEGORIES: readonly string[] = [
   'subscriptions', 'gifts', 'other',
 ]
 
+const BUDGET_MAX_AMOUNT = 1_000_000_000
+
 const createEntrySchema = z.object({
-  amount: z.number().positive(),
+  amount: z.number().positive().finite().max(BUDGET_MAX_AMOUNT, "Amount too large (max 1,000,000,000)"),
   currency: z.string().min(3).max(5),
   category: z.string().min(1),
   description: z.string().max(200).optional(),

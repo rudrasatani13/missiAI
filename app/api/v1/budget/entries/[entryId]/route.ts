@@ -16,8 +16,10 @@ const VALID_CATEGORIES: readonly string[] = [
   'subscriptions', 'gifts', 'other',
 ]
 
+const BUDGET_MAX_AMOUNT = 1_000_000_000
+
 const patchSchema = z.object({
-  amount: z.number().positive().optional(),
+  amount: z.number().positive().finite().max(BUDGET_MAX_AMOUNT, "Amount too large (max 1,000,000,000)").optional(),
   currency: z.string().min(3).max(5).optional(),
   category: z.string().min(1).optional(),
   description: z.string().max(200).optional(),

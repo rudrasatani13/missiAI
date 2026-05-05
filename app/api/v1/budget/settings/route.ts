@@ -12,13 +12,15 @@ const VALID_CATEGORIES: readonly string[] = [
   'subscriptions', 'gifts', 'other',
 ]
 
+const BUDGET_MAX_AMOUNT = 1_000_000_000
+
 const updateSettingsSchema = z.object({
   preferredCurrency: z.string().min(3).max(5).optional(),
   defaultView: z.enum(['overview', 'entries', 'budgets', 'insights', 'settings']).optional(),
   limits: z.array(
     z.object({
       category: z.string().min(1),
-      amount: z.number().positive(),
+      amount: z.number().positive().finite().max(BUDGET_MAX_AMOUNT, "Limit amount too large (max 1,000,000,000)"),
       currency: z.string().min(3).max(5),
     }),
   ).optional(),
