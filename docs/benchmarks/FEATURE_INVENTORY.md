@@ -8,7 +8,7 @@ This inventory reflects the current repo surface after the deleted-feature clean
 - Main app routes/pages: `/`, `/manifesto`, `/privacy`, `/terms`
 - API endpoints: none
 - Key server files: `app/layout.tsx`, `next.config.mjs`, static assets under `public/`
-- Key client components/hooks: `app/page.tsx`, `components/landing/AgenticMissiHome.tsx`, `components/landing/ProductShowcase.tsx`
+- Key client components/hooks: `app/page.tsx`, `components/landing/ProductShowcase.tsx`
 - External dependencies/services involved: Next.js App Router, static assets
 - Required benchmark types: HTTP route latency, build time, bundle size, render/import cost
 
@@ -62,37 +62,17 @@ This inventory reflects the current repo surface after the deleted-feature clean
 - External dependencies/services involved: Clerk, Dodo Payments, Cloudflare KV
 - Required benchmark types: HTTP route latency, API latency, server-function benchmark, bundle size, render/import cost, memory usage, mocked integration benchmark
 
-## 7. Daily Brief and Proactive Nudges
-
-- Feature name: Daily Brief and Proactive Nudges
-- Main app routes/pages: `/today`
-- API endpoints: `/api/v1/daily-brief/[[...path]]`, `/api/v1/proactive`
-- Key server files: `app/api/v1/daily-brief/[[...path]]/route.ts`, `app/api/v1/proactive/route.ts`, `lib/server/routes/daily-brief/runner.ts`, `lib/server/routes/proactive/runner.ts`, `lib/proactive/briefing-generator.ts`, `lib/proactive/nudge-engine.ts`
-- Key client components/hooks: `app/today/page.tsx`, `components/daily-brief/TodayMissionClient.tsx`, `hooks/chat/useProactive.ts`
-- External dependencies/services involved: Clerk, Cloudflare KV, Gemini
-- Required benchmark types: HTTP route latency, API latency, server-function benchmark, bundle size, render/import cost, memory usage, mocked integration benchmark
-
-## 8. Exam Buddy
-
-- Feature name: Exam Buddy
-- Main app routes/pages: `/exam-buddy`
-- API endpoints: `/api/v1/exam-buddy/profile`, `/api/v1/exam-buddy/sessions`, `/api/v1/exam-buddy/weak-topics`, `/api/v1/exam-buddy/quiz`, `/api/v1/exam-buddy/quiz/[sessionId]/submit`
-- Key server files: `app/api/v1/exam-buddy/quiz/route.ts`, `lib/exam-buddy/quiz-generator.ts`, `lib/exam-buddy/profile-store.ts`, `lib/exam-buddy/limits.ts`, `lib/exam-buddy/session-token.ts`
-- Key client components/hooks: `app/exam-buddy/page.tsx`, `components/exam-buddy/ExamBuddyHub.tsx`, `components/exam-buddy/QuizCreator.tsx`, `components/exam-buddy/QuizView.tsx`, `components/exam-buddy/WeakTopicsCard.tsx`
-- External dependencies/services involved: Clerk, Cloudflare KV, billing plan gate, Gemini
-- Required benchmark types: HTTP route latency, API latency, server-function benchmark, bundle size, render/import cost, memory usage, mocked integration benchmark
-
-## 9. Plugins and Productivity Integrations
+## 8. Plugins and Productivity Integrations
 
 - Feature name: Plugins and Productivity Integrations
 - Main app routes/pages: `/settings/integrations`
-- API endpoints: `/api/v1/plugins/[[...path]]`, `/api/auth/connect/google`, `/api/auth/callback/google`, `/api/auth/connect/notion`, `/api/auth/callback/notion`, `/api/v1/tools/execute`
-- Key server files: `app/api/v1/plugins/[[...path]]/route.ts`, `app/api/v1/tools/execute/route.ts`, `lib/server/routes/plugins/runner.ts`, `lib/server/routes/tools/execute-helpers.ts`, `lib/plugins/plugin-executor.ts`, `lib/plugins/plugin-store.ts`, `lib/plugins/notion-plugin.ts`, `lib/plugins/calendar-plugin.ts`
-- Key client components/hooks: `app/settings/integrations/page.tsx`, `hooks/chat/usePlugins.ts`, `components/chat/ActionCard.tsx`
+- API endpoints: `/api/v1/plugins/[[...path]]`, `/api/auth/connect/google`, `/api/auth/callback/google`, `/api/auth/connect/notion`, `/api/auth/callback/notion`
+- Key server files: `app/api/v1/plugins/[[...path]]/route.ts`, `lib/server/routes/plugins/runner.ts`, `lib/plugins/plugin-executor.ts`, `lib/plugins/plugin-store.ts`, `lib/plugins/notion-plugin.ts`, `lib/plugins/calendar-plugin.ts`
+- Key client components/hooks: `app/settings/integrations/page.tsx`, `hooks/chat/usePlugins.ts`
 - External dependencies/services involved: Clerk, Google OAuth / Calendar, Notion API, Cloudflare KV
 - Required benchmark types: HTTP route latency, API latency, server-function benchmark, bundle size, render/import cost, memory usage, mocked integration benchmark
 
-## 10. Messaging Bots and Public Webhooks
+## 9. Messaging Bots and Public Webhooks
 
 - Feature name: Messaging Bots and Public Webhooks
 - Main app routes/pages: `/settings/integrations`
@@ -102,17 +82,7 @@ This inventory reflects the current repo surface after the deleted-feature clean
 - External dependencies/services involved: WhatsApp, Telegram, Cloudflare KV, Cloudflare Vectorize, Gemini
 - Required benchmark types: API latency, server-function benchmark, bundle size, memory usage, mocked integration benchmark
 
-## 11. Agents, Actions, and Tool Execution
-
-- Feature name: Agents, Actions, and Tool Execution
-- Main app routes/pages: `/agents`, `/chat`
-- API endpoints: `/api/v1/agents/[...path]`, `/api/v1/actions`, `/api/v1/tools/execute`
-- Key server files: `app/api/v1/agents/[...path]/route.ts`, `app/api/v1/actions/route.ts`, `lib/server/routes/agents/plan-helpers.ts`, `lib/server/routes/agents/confirm-runner.ts`, `lib/actions/action-executor.ts`, `lib/actions/action-registry.ts`, `lib/ai/agents/planner.ts`, `lib/ai/agents/tools/dispatcher.ts`
-- Key client components/hooks: `app/agents/page.tsx`, `components/agents/AgentDashboard.tsx`, `hooks/chat/useActionEngine.ts`, `components/chat/AgentSteps.tsx`
-- External dependencies/services involved: Clerk, Cloudflare KV, Cloudflare Vectorize, Gemini, plugin connectors
-- Required benchmark types: HTTP route latency, API latency, server-function benchmark, bundle size, render/import cost, memory usage, mocked integration benchmark
-
-## 12. Settings, Notifications, and Push
+## 10. Settings, Notifications, and Push
 
 - Feature name: Settings, Notifications, and Push
 - Main app routes/pages: `/settings`
@@ -122,7 +92,7 @@ This inventory reflects the current repo surface after the deleted-feature clean
 - External dependencies/services involved: Clerk, Cloudflare KV, Web Push
 - Required benchmark types: HTTP route latency, API latency, server-function benchmark, bundle size, render/import cost, memory usage
 
-## 13. Admin, Health, Analytics, and Observability
+## 12. Admin, Health, Analytics, and Observability
 
 - Feature name: Admin, Health, Analytics, and Observability
 - Main app routes/pages: `/admin`

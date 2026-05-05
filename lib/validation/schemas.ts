@@ -53,7 +53,7 @@ export const chatSchema = z.object({
   maxOutputTokens: z.number().min(100).max(2000).optional(),
   memories: z.string().max(10000, "Memories payload too large").transform(sanitizeInput).optional(),
   voiceEnabled: z.boolean().optional(),
-  /** When true, enables EDITH autonomous agent mode — voice-first, no typing */
+  /** When true, enables EDITH voice-first mode */
   voiceMode: z.boolean().optional(),
   /** Client-reported recording duration in milliseconds (server clamps to 3–120s) */
   voiceDurationMs: z.number().min(0).max(300000).optional(),
@@ -63,15 +63,6 @@ export const chatSchema = z.object({
   incognito: z.boolean().optional(),
   /** Mirror of Privacy → "Opt out of analytics". Gates server-side recordEvent. */
   analyticsOptOut: z.boolean().optional(),
-  /** Exam Buddy mode context — when present activates Hinglish tutor modifier */
-  examBuddy: z.object({
-    examTarget: z.enum([
-      'jee_mains', 'jee_advanced', 'neet', 'upsc',
-      'cbse_10', 'cbse_12', 'cat', 'gate',
-    ]),
-    subject: z.string().max(50).optional(),
-    topic: z.string().max(100).optional(),
-  }).optional(),
 })
 
 export type ChatInput = z.infer<typeof chatSchema>
@@ -138,50 +129,6 @@ export const memorySchema = z.object({
 })
 
 export type MemoryInput = z.infer<typeof memorySchema>
-
-// ─── /api/v1/proactive ───────────────────────────────────────────────────────
-
-export const proactiveConfigSchema = z.object({
-  enabled: z.boolean(),
-  briefingTime: z
-    .string()
-    .regex(/^\d{2}:\d{2}$/, 'Must be HH:MM 24-hour format'),
-  // Max 64 chars covers all valid IANA timezone IDs (e.g. "America/New_York")
-  timezone: z.string().min(1, 'Timezone is required').max(64, 'Timezone too long').transform(sanitizeInput),
-  nudgesEnabled: z.boolean(),
-  maxItemsPerBriefing: z
-    .number()
-    .int()
-    .min(1)
-    .max(10)
-    .default(5),
-})
-
-export type ProactiveConfigInput = z.infer<typeof proactiveConfigSchema>
-
-export const nudgeRequestSchema = z.object({
-  lastInteractionAt: z.number(),
-})
-
-export type NudgeRequestInput = z.infer<typeof nudgeRequestSchema>
-
-export const dismissSchema = z.object({
-  // nodeId follows the same constraint as other node IDs in the codebase
-  nodeId: z.string().max(50).optional(),
-  // type is an internal briefing-item type; cap to prevent oversized strings
-  type: z.string().min(1, 'type is required').max(50, 'type too long').transform(sanitizeInput),
-})
-
-export type DismissInput = z.infer<typeof dismissSchema>
-
-// ─── /api/v1/actions ──────────────────────────────────────────────────────────
-
-export const actionSchema = z.object({
-  userMessage: z.string().min(1, "User message required").max(2000, "User message too long").transform(sanitizeInput),
-  conversationContext: z.string().max(3000, "Context too long").transform(sanitizeInput).optional(),
-})
-
-export type ActionInput = z.infer<typeof actionSchema>
 
 // ─── /api/v1/plugins ──────────────────────────────────────────────────────────
 

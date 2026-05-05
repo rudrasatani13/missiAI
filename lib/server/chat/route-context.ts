@@ -91,7 +91,7 @@ export async function buildChatRouteContext({
   const clientMemories = incognito ? "" : (input.memories ?? "")
 
   // ── Try context cache first ────────────────────────────────────────────────
-  const cacheable = isContextCacheable(input.voiceMode, !!input.examBuddy)
+  const cacheable = isContextCacheable(input.voiceMode)
   if (cacheable && kv) {
     const cached = await getCachedChatContext(kv, userId, personality, messages, incognito)
     if (cached) {
@@ -166,7 +166,6 @@ export async function buildChatRouteContext({
       systemPrompt,
       model: "", // model selected downstream in runner, not cached here
       maxOutputTokens,
-      availableDeclarations: [],
     })
   }
 

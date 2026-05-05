@@ -1,4 +1,4 @@
-// Chat context cache — avoid re-computing memories + system prompt + declarations
+// Chat context cache — avoid re-computing memories + system prompt
 // for rapid successive turns with the same user state.
 //
 // Cache key:  hash(userId + personality + lastUserMessage + incognito)
@@ -13,7 +13,6 @@ const CACHE_KEY_PREFIX = "chat:ctx"
 interface CachedContextData {
   memories: string
   systemPrompt: string
-  availableDeclarations: unknown[]
   model: string
   maxOutputTokens: number
   /** Messages are NOT cached — client always sends fresh history */
@@ -41,15 +40,12 @@ function buildCacheKey(
 
 /**
  * Check if the context is cacheable for this request.
- * Voice mode and exam-buddy mode have dynamic modifiers that change
- * frequently, so skip caching to avoid stale prompts.
+ * Voice mode has dynamic modifiers that change frequently, so skip caching to avoid stale prompts.
  */
 export function isContextCacheable(
   voiceMode: boolean | undefined,
-  examBuddy: boolean | undefined,
 ): boolean {
   if (voiceMode) return false
-  if (examBuddy) return false
   return true
 }
 

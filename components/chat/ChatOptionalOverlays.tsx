@@ -1,59 +1,50 @@
 "use client"
 
-import type { ActionResult } from "@/types/actions"
-import { ActionCard } from "@/components/chat/ActionCard"
-import { AgentSteps, type AgentStep } from "@/components/chat/AgentSteps"
-import { DailyBriefBanner } from "@/components/chat/DailyBriefBanner"
 import { OnboardingTour } from "@/components/chat/OnboardingTour"
+import type { PluginResult } from "@/types/plugins"
 
 interface ChatOptionalOverlaysProps {
-  actionCopyEnabled: boolean
-  agentSteps: AgentStep[]
-  displayResult: ActionResult | null
   dismissOnboarding: () => void
-  onActionCopy: () => void
   onDismissDisplay: () => void
+  pluginResult: PluginResult | null
   showOnboarding: boolean
 }
 
 export function ChatOptionalOverlays({
-  actionCopyEnabled,
-  agentSteps,
-  displayResult,
   dismissOnboarding,
-  onActionCopy,
   onDismissDisplay,
+  pluginResult,
   showOnboarding,
 }: ChatOptionalOverlaysProps) {
   return (
     <>
-      <div
-        className="absolute top-0 left-0 right-0 z-[200] p-3 md:p-4 pointer-events-auto"
-        style={{ maxWidth: 600, margin: "0 auto" }}
-      >
-        <DailyBriefBanner />
-      </div>
-
       {showOnboarding && (
         <OnboardingTour onComplete={dismissOnboarding} />
       )}
 
-      {displayResult && (
+      {pluginResult && (
         <div
           className="absolute bottom-32 md:bottom-36 left-0 right-0 z-50 flex justify-center pointer-events-none"
-          data-testid="action-card-container"
+          data-testid="plugin-result-container"
         >
-          <ActionCard
-            result={displayResult}
-            onDismiss={onDismissDisplay}
-            onCopy={actionCopyEnabled ? onActionCopy : undefined}
-          />
-        </div>
-      )}
-
-      {agentSteps.length > 0 && (
-        <div className="absolute bottom-48 md:bottom-52 left-0 right-0 z-30 flex justify-center pointer-events-none">
-          <AgentSteps steps={agentSteps} />
+          <div className="pointer-events-auto w-max min-w-[280px] max-w-[380px] rounded-[14px] border border-[var(--missi-border)] bg-[var(--missi-border)] px-4 py-3">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <span className="text-xs font-semibold uppercase tracking-[0.5px] text-[var(--missi-text-secondary)]">
+                {pluginResult.pluginId}
+              </span>
+              <button
+                type="button"
+                onClick={onDismissDisplay}
+                aria-label="Dismiss plugin result"
+                className="text-sm text-[var(--missi-text-muted)] transition-colors hover:text-[var(--missi-text-secondary)]"
+              >
+                ×
+              </button>
+            </div>
+            <p className="m-0 break-words text-[13px] leading-normal text-[var(--missi-text-secondary)]">
+              {pluginResult.output}
+            </p>
+          </div>
         </div>
       )}
     </>

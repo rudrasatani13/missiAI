@@ -48,9 +48,8 @@ export async function buildChatRouteSseResponse({
     memories,
     currentModel,
     maxOutputTokens,
-    undefined,
     customPrompt,
-    undefined,
+    systemPrompt,
     aiDials,
   )
 

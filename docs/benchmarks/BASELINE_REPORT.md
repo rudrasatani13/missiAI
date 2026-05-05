@@ -53,12 +53,9 @@ Source JSON: `benchmarks/results/baseline-20260501-222503.json`
 | Budget Tracking | finance | 1 | 5 | 0 | — | — | 1.03 MB | Auth-gated coverage |
 | Billing, Pricing, and Referrals | revenue | 4 | 4 | 0 | http://127.0.0.1:3000/pricing | 4.301 | 1019 KB | Auth-gated coverage |
 | Quests and Streaks | gamification | 3 | 4 | 0 | components/quests/QuestsClient.tsx | 0.656 | 1.04 MB | Auth-gated coverage |
-| Daily Brief and Proactive Nudges | assistant | 2 | 4 | 0 | components/daily-brief/TodayMissionClient.tsx | 1.001 | 1012 KB | Auth-gated coverage |
 | Sleep Sessions and Wind Down | wellbeing | 4 | 3 | 0 | components/wind-down/SleepSessions.tsx | 0.959 | 893 KB | Auth-gated coverage |
-| Exam Buddy | education | 1 | 6 | 0 | — | — | 1.32 MB | Auth-gated coverage |
 | Plugins and Productivity Integrations | integrations | 3 | 4 | 0 | app/settings/integrations/page.tsx | 0.755 | 878 KB | Auth-gated coverage |
 | Messaging Bots and Public Webhooks | integrations | 1 | 4 | 0 | — | — | 1.01 MB | Auth-gated coverage |
-| Agents, Actions, and Tool Execution | automation | 3 | 4 | 0 | hooks/chat/useActionEngine.ts | 0.963 | 1.13 MB | Auth-gated coverage |
 | Profile Card, Settings, Notifications, and Push | account | 2 | 5 | 0 | components/profile/ProfileCardClient.tsx | 0.778 | 1.04 MB | Auth-gated coverage |
 | Mood Timeline | wellbeing | 2 | 3 | 0 | components/mood/MoodTimelineClient.tsx | 0.696 | 1014 KB | Auth-gated coverage |
 | Admin, Health, Analytics, and Observability | operations | 5 | 3 | 0 | http://127.0.0.1:3000/api/v1/health | 3.206 | 794 KB | Auth-gated coverage |
@@ -91,13 +88,9 @@ Source JSON: `benchmarks/results/baseline-20260501-222503.json`
 | Memory Dashboard and Life Graph | Render Import Cost | components/memory/MemoryGraph3D.tsx | 0.686 | 0.810 | 1.305 | 0.756 | 0.534 | 1.305 | 0.201 | peak 168 MB; delta 112 KB | completed | — |
 | Visual Memory and Life Story | Render Import Cost | components/memory/VisualMemoryGallery.tsx | 0.848 | 1.050 | 1.231 | 0.901 | 0.585 | 1.231 | 0.193 | peak 169 MB; delta 144 KB | completed | — |
 | Public Marketing and Legal | Render Import Cost | app/page.tsx | 0.611 | 0.969 | 1.135 | 0.762 | 0.475 | 1.135 | 0.236 | peak 151 MB; delta 63.4 MB | completed | — |
-| Public Marketing and Legal | Render Import Cost | components/landing/AgenticMissiHome.tsx | 1.008 | 1.090 | 1.116 | 1.031 | 0.929 | 1.116 | 0.063 | peak 152 MB; delta 784 KB | completed | — |
-| Daily Brief and Proactive Nudges | Render Import Cost | components/daily-brief/TodayMissionClient.tsx | 0.621 | 0.676 | 1.001 | 0.671 | 0.589 | 1.001 | 0.117 | peak 178 MB; delta 128 KB | completed | — |
 | Admin, Health, Analytics, and Observability | Render Import Cost | app/admin/page.tsx | 0.567 | 0.598 | 0.963 | 0.638 | 0.535 | 0.963 | 0.145 | peak 192 MB; delta 1.53 MB | completed | — |
-| Agents, Actions, and Tool Execution | Render Import Cost | hooks/chat/useActionEngine.ts | 0.476 | 0.518 | 0.963 | 0.525 | 0.408 | 0.963 | 0.151 | peak 185 MB; delta 496 KB | completed | — |
 | Sleep Sessions and Wind Down | Render Import Cost | components/wind-down/SleepSessions.tsx | 0.558 | 0.574 | 0.959 | 0.594 | 0.527 | 0.959 | 0.123 | peak 179 MB; delta 736 KB | completed | — |
 | Profile Card, Settings, Notifications, and Push | Render Import Cost | components/profile/ProfileCardClient.tsx | 0.741 | 0.755 | 0.778 | 0.746 | 0.723 | 0.778 | 0.017 | peak 188 MB; delta 2.34 MB | completed | — |
-| Agents, Actions, and Tool Execution | Render Import Cost | components/agents/AgentDashboard.tsx | 0.673 | 0.702 | 0.758 | 0.688 | 0.648 | 0.758 | 0.031 | peak 185 MB; delta 1.97 MB | completed | — |
 | Plugins and Productivity Integrations | Render Import Cost | app/settings/integrations/page.tsx | 0.545 | 0.601 | 0.755 | 0.573 | 0.512 | 0.755 | 0.068 | peak 182 MB; delta 1.14 MB | completed | — |
 | Mood Timeline | Render Import Cost | components/mood/MoodTimelineClient.tsx | 0.660 | 0.678 | 0.696 | 0.669 | 0.653 | 0.696 | 0.014 | peak 190 MB; delta 1.98 MB | completed | — |
 | Auth, Setup, and Middleware Security | Render Import Cost | app/setup/page.tsx | 0.530 | 0.565 | 0.679 | 0.556 | 0.508 | 0.679 | 0.052 | peak 153 MB; delta 272 KB | completed | — |
@@ -128,8 +121,6 @@ Build output size below is the artifact size measured by the benchmark script fo
 
 | Feature | Targets | Total Chunk Bytes | Approx Chunk Size | Build Output | Notes |
 | --- | --- | ---: | ---: | ---: | --- |
-| Exam Buddy | /exam-buddy, /api/v1/exam-buddy/profile, /api/v1/exam-buddy/quiz | 1382772 | 1.32 MB | — | — |
-| Agents, Actions, and Tool Execution | /agents, /chat, /api/v1/agents/[...path], /api/v1/actions | 1187714 | 1.13 MB | — | — |
 | Voice, STT, TTS, and Live Relay | /chat, /api/v1/live-token, /api/v1/stt, /api/v1/tts | 1159976 | 1.11 MB | — | — |
 | Chat Core and SSE Streaming | /chat, /api/v1/chat, /api/v1/chat-stream | 1159465 | 1.11 MB | — | — |
 | Visual Memory and Life Story | /memory/visual, /memory/story, /api/v1/visual-memory/[[...path]], /api/v1/life-story/[...path] | 1123045 | 1.07 MB | — | — |
@@ -140,10 +131,9 @@ Build output size below is the artifact size measured by the benchmark script fo
 | Memory Dashboard and Life Graph | /memory, /memory/graph, /api/v1/memory | 1060584 | 1.01 MB | — | — |
 | Billing, Pricing, and Referrals | /pricing, /api/v1/billing, /api/v1/referral, /api/webhooks/dodo | 1043408 | 1019 KB | — | — |
 | Mood Timeline | /mood, /api/v1/mood/timeline | 1038458 | 1014 KB | — | — |
-| Daily Brief and Proactive Nudges | /today, /api/v1/daily-brief/[[...path]], /api/v1/proactive | 1035937 | 1012 KB | — | — |
 | Spaces Collaboration | /spaces, /spaces/[spaceId], /join/[token], /api/v1/spaces, /api/v1/spaces/[spaceId] | 923511 | 902 KB | — | — |
 | Sleep Sessions and Wind Down | /wind-down, /api/v1/wind-down, /api/v1/sleep-sessions/[...path] | 914710 | 893 KB | — | — |
-| Plugins and Productivity Integrations | /settings/integrations, /api/v1/plugins/[[...path]], /api/v1/tools/execute | 899065 | 878 KB | — | — |
+| Plugins and Productivity Integrations | /settings/integrations, /api/v1/plugins/[[...path]] | 899065 | 878 KB | — | — |
 | Admin, Health, Analytics, and Observability | /admin, /api/v1/health, /api/v1/admin/analytics | 813101 | 794 KB | — | — |
 | Public Marketing and Legal | /, /manifesto, /privacy, /terms | 673335 | 658 KB | — | Missing route manifest keys: /privacy/page, /terms/page |
 | Auth, Setup, and Middleware Security | /sign-in, /sign-up, /setup | 456391 | 446 KB | — | Missing route manifest keys: /sign-in/page, /sign-up/page |
@@ -156,13 +146,10 @@ Build output size below is the artifact size measured by the benchmark script fo
 | Admin, Health, Analytics, and Observability | app/admin/page.tsx | 192 MB | 1.53 MB |
 | Mood Timeline | components/mood/MoodTimelineClient.tsx | 190 MB | 1.98 MB |
 | Profile Card, Settings, Notifications, and Push | components/profile/ProfileCardClient.tsx | 188 MB | 2.34 MB |
-| Agents, Actions, and Tool Execution | hooks/chat/useActionEngine.ts | 185 MB | 496 KB |
-| Agents, Actions, and Tool Execution | components/agents/AgentDashboard.tsx | 185 MB | 1.97 MB |
 | Plugins and Productivity Integrations | hooks/chat/usePlugins.ts | 183 MB | 608 KB |
 | Plugins and Productivity Integrations | app/settings/integrations/page.tsx | 182 MB | 1.14 MB |
 | Sleep Sessions and Wind Down | components/wind-down/SleepSessions.tsx | 179 MB | 736 KB |
 | Sleep Sessions and Wind Down | app/wind-down/page.tsx | 178 MB | 160 KB |
-| Daily Brief and Proactive Nudges | components/daily-brief/TodayMissionClient.tsx | 178 MB | 128 KB |
 | Quests and Streaks | components/quests/QuestsClient.tsx | 178 MB | 80.0 KB |
 | Billing, Pricing, and Referrals | hooks/billing/useBilling.ts | 178 MB | 16.0 KB |
 | Billing, Pricing, and Referrals | app/pricing/page.tsx | 178 MB | 272 KB |
@@ -185,11 +172,8 @@ Build output size below is the artifact size measured by the benchmark script fo
 | Use a concrete sub-path when the fixture suite is added. / Auth-required target skipped because no benchmark auth headers or cookies were supplied. | 1 |
 | Fixture module not found yet: benchmarks/fixtures/budget/monthly-totals.fixture.ts | 1 |
 | Fixture module not found yet: benchmarks/fixtures/billing/referral.fixture.ts | 1 |
-| Fixture module not found yet: benchmarks/fixtures/proactive/daily-brief.fixture.ts | 1 |
-| Fixture module not found yet: benchmarks/fixtures/exam-buddy/quiz-generator.fixture.ts | 1 |
 | Fixture module not found yet: benchmarks/fixtures/plugins/plugin-command.fixture.ts | 1 |
 | Fixture module not found yet: benchmarks/fixtures/bots/bot-pipeline.fixture.ts | 1 |
-| Fixture module not found yet: benchmarks/fixtures/agents/action-executor.fixture.ts | 1 |
 | Fixture module not found yet: benchmarks/fixtures/mood/mood-analyzer.fixture.ts | 1 |
 | Fixture module not found yet: benchmarks/fixtures/admin/analytics-snapshot.fixture.ts | 1 |
 | Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: Cannot find module 'node_modules/@clerk/themes/dist/index.cjs' | 1 |
@@ -231,29 +215,17 @@ Build output size below is the artifact size measured by the benchmark script fo
 | Quests and Streaks | HTTP Route Latency | http://127.0.0.1:3000/streak | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
 | Quests and Streaks | API Latency | http://127.0.0.1:3000/api/v1/quests | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
 | Quests and Streaks | API Latency | http://127.0.0.1:3000/api/v1/streak | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
-| Daily Brief and Proactive Nudges | HTTP Route Latency | http://127.0.0.1:3000/today | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
-| Daily Brief and Proactive Nudges | API Latency | http://127.0.0.1:3000/api/v1/daily-brief | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
-| Daily Brief and Proactive Nudges | API Latency | http://127.0.0.1:3000/api/v1/proactive | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
-| Daily Brief and Proactive Nudges | Mocked Integration Benchmark | lib/proactive/briefing-generator.ts#generateDailyBriefing | Fixture module not found yet: benchmarks/fixtures/proactive/daily-brief.fixture.ts |
 | Sleep Sessions and Wind Down | HTTP Route Latency | http://127.0.0.1:3000/wind-down | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
 | Sleep Sessions and Wind Down | API Latency | http://127.0.0.1:3000/api/v1/wind-down | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
 | Sleep Sessions and Wind Down | API Latency | http://127.0.0.1:3000/api/v1/sleep-sessions/list | Catch-all route expects a concrete sub-path in fixtures. / Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
-| Exam Buddy | HTTP Route Latency | http://127.0.0.1:3000/exam-buddy | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
-| Exam Buddy | API Latency | http://127.0.0.1:3000/api/v1/exam-buddy/profile | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
-| Exam Buddy | API Latency | http://127.0.0.1:3000/api/v1/exam-buddy/quiz | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
-| Exam Buddy | Mocked Integration Benchmark | lib/exam-buddy/quiz-generator.ts#generateQuizWithDiagnostics | Fixture module not found yet: benchmarks/fixtures/exam-buddy/quiz-generator.fixture.ts |
 | Plugins and Productivity Integrations | HTTP Route Latency | http://127.0.0.1:3000/settings/integrations | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
 | Plugins and Productivity Integrations | API Latency | http://127.0.0.1:3000/api/v1/plugins | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
-| Plugins and Productivity Integrations | API Latency | http://127.0.0.1:3000/api/v1/tools/execute | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
+| Plugins and Productivity Integrations | API Latency | http://127.0.0.1:3000 | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
 | Plugins and Productivity Integrations | Mocked Integration Benchmark | lib/plugins/plugin-executor.ts#buildPluginCommand | Fixture module not found yet: benchmarks/fixtures/plugins/plugin-command.fixture.ts |
 | Messaging Bots and Public Webhooks | API Latency | http://127.0.0.1:3000/api/v1/bot/link/whatsapp | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
 | Messaging Bots and Public Webhooks | API Latency | http://127.0.0.1:3000/api/webhooks/telegram | Target marked as provider-backed. Re-run with fixture support or --allow-external-calls. |
 | Messaging Bots and Public Webhooks | API Latency | http://127.0.0.1:3000/api/webhooks/whatsapp | Target marked as provider-backed. Re-run with fixture support or --allow-external-calls. |
 | Messaging Bots and Public Webhooks | Mocked Integration Benchmark | lib/bot/bot-pipeline.ts#processBotMessage | Fixture module not found yet: benchmarks/fixtures/bots/bot-pipeline.fixture.ts |
-| Agents, Actions, and Tool Execution | HTTP Route Latency | http://127.0.0.1:3000/agents | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
-| Agents, Actions, and Tool Execution | API Latency | http://127.0.0.1:3000/api/v1/actions | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
-| Agents, Actions, and Tool Execution | API Latency | http://127.0.0.1:3000/api/v1/agents/history | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
-| Agents, Actions, and Tool Execution | Mocked Integration Benchmark | lib/actions/action-executor.ts#executeAction | Fixture module not found yet: benchmarks/fixtures/agents/action-executor.fixture.ts |
 | Profile Card, Settings, Notifications, and Push | HTTP Route Latency | http://127.0.0.1:3000/profile | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
 | Profile Card, Settings, Notifications, and Push | HTTP Route Latency | http://127.0.0.1:3000/settings | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
 | Profile Card, Settings, Notifications, and Push | API Latency | http://127.0.0.1:3000/api/v1/profile/card | Auth-required target skipped because no benchmark auth headers or cookies were supplied. |
@@ -267,8 +239,6 @@ Build output size below is the artifact size measured by the benchmark script fo
 | Auth, Setup, and Middleware Security | Render Import Cost | app/(auth)/sign-in/page.tsx | Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: Cannot find module 'node_modules/@clerk/themes/dist/index.cjs' |
 | Memory Dashboard and Life Graph | Render Import Cost | app/memory/page.tsx | Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: React is not defined |
 | Budget Tracking | Render Import Cost | app/budget/page.tsx | Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: React is not defined |
-| Exam Buddy | Render Import Cost | components/exam-buddy/ExamBuddyHub.tsx | Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: Invalid or unexpected token |
-| Exam Buddy | Render Import Cost | components/exam-buddy/QuizView.tsx | Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: Invalid or unexpected token |
 | Profile Card, Settings, Notifications, and Push | Render Import Cost | app/settings/page.tsx | Import benchmark skipped because the module is not safe to load in the Node benchmark runtime: React is not defined |
 
 ## Top 10 Bottlenecks
@@ -277,13 +247,10 @@ Build output size below is the artifact size measured by the benchmark script fo
 | ---: | --- | --- | --- | --- | --- |
 | 1 | Workspace Build Pipeline | Build Time | pnpm run build | 51608.000 ms p95 / 51608.000 ms avg | next.config.mjs, app/layout.tsx, app/chat/page.tsx, components/chat/ChatPageShell.tsx |
 | 2 | Workspace Build Pipeline | Build Time | pnpm run build:cf | 41141.000 ms p95 / 41141.000 ms avg | open-next.config.ts, workers/entry.ts, middleware.ts, next.config.mjs |
-| 3 | Exam Buddy | Bundle Size | /exam-buddy, /api/v1/exam-buddy/profile, /api/v1/exam-buddy/quiz | 1.32 MB chunks | app/exam-buddy/page.tsx, components/exam-buddy/ExamBuddyHub.tsx, components/exam-buddy/QuizView.tsx, lib/exam-buddy/quiz-generator.ts |
-| 4 | Agents, Actions, and Tool Execution | Bundle Size | /agents, /chat, /api/v1/agents/[...path], /api/v1/actions | 1.13 MB chunks | app/agents/page.tsx, components/agents/AgentDashboard.tsx, hooks/chat/useActionEngine.ts, lib/actions/action-executor.ts |
 | 5 | Voice, STT, TTS, and Live Relay | Bundle Size | /chat, /api/v1/live-token, /api/v1/stt, /api/v1/tts | 1.11 MB chunks | app/chat/page.tsx, hooks/chat/useGeminiLive.ts, hooks/chat/useVoiceStateMachine.ts, app/api/v1/live-token/route.ts, lib/ai/services/voice-service.ts |
 | 6 | Chat Core and SSE Streaming | Bundle Size | /chat, /api/v1/chat, /api/v1/chat-stream | 1.11 MB chunks | app/chat/page.tsx, components/chat/ChatPageShell.tsx, components/chat/ConversationLog.tsx |
 | 7 | Visual Memory and Life Story | Bundle Size | /memory/visual, /memory/story, /api/v1/visual-memory/[[...path]], /api/v1/life-story/[...path] | 1.07 MB chunks | components/memory/VisualMemoryGallery.tsx, components/memory/LifeStoryView.tsx, app/memory/page.tsx |
 | 8 | Public Marketing and Legal | HTTP Route Latency | http://127.0.0.1:3000/privacy | 32.702 ms p95 / 9.414 ms avg | app/(legal)/privacy/page.tsx, app/layout.tsx |
-| 9 | Public Marketing and Legal | HTTP Route Latency | http://127.0.0.1:3000/ | 17.451 ms p95 / 7.545 ms avg | app/page.tsx, components/landing/AgenticMissiHome.tsx, components/landing/ProductShowcase.tsx |
 | 10 | Spaces Collaboration | HTTP Route Latency | http://127.0.0.1:3000/join/fake-token | 14.189 ms p95 / 10.406 ms avg | app/join/[token]/page.tsx, lib/spaces/space-store.ts, lib/spaces/space-api-helpers.ts |
 
 ## Interpretation
@@ -291,4 +258,4 @@ Build output size below is the artifact size measured by the benchmark script fo
 - The first optimization pass should target build time and chunk weight. `pnpm run build` and `pnpm run build:cf` dominate every other measurement by orders of magnitude, and several feature bundles are already above ~1 MB of chunk output.
 - Route and API coverage is partial by design in this baseline. Public endpoints were measured live; auth-gated features were skipped rather than forced with secrets or fake auth.
 - Mocked integration coverage is still incomplete because several fixture modules under `benchmarks/fixtures/` have not been implemented yet. Those targets were skipped cleanly, not faked.
-- The highest live route outliers in this run were `/privacy`, `/`, and `/join/fake-token`. The heaviest client surfaces were Exam Buddy, Agents/Actions, Voice/Live, Chat Core, and Visual Memory/Life Story.
+- The highest live route outliers in this run were `/privacy`, `/`, and `/join/fake-token`. The heaviest client surfaces were Voice/Live, Chat Core, and Visual Memory/Life Story.

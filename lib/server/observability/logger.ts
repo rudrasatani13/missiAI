@@ -14,7 +14,6 @@
 //   chat.*          — AI chat events
 //   tts.*           — text-to-speech events
 //   stt.*           — speech-to-text events
-//   proactive.*     — proactive briefing and nudge events
 //   middleware.*    — edge middleware events
 
 export interface LogEvent {

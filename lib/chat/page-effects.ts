@@ -1,5 +1,4 @@
 import type { ConversationEntry, VoiceState } from "@/types/chat"
-import type { BriefingItem } from "@/types/proactive"
 import type { PluginConfig, PluginId } from "@/types/plugins"
 
 export function shouldHandleChatHotkey(event: KeyboardEvent): boolean {
@@ -24,10 +23,6 @@ export function getGreetingMessage(displayName: string, isNewUser: boolean): { m
     message: greetings[Math.floor(Math.random() * greetings.length)],
     delayMs: 1200,
   }
-}
-
-export function getHighPriorityBriefingItem(briefingItems: BriefingItem[] | undefined): BriefingItem | null {
-  return briefingItems?.find((item) => item.priority === "high" && !item.dismissedAt) ?? null
 }
 
 export function shouldTrackLastInteraction(voiceState: VoiceState): boolean {

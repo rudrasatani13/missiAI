@@ -1,7 +1,7 @@
 /**
  * Contact Store — KV-based contact name→email resolution
  *
- * Stores contacts per user in KV for the agent to resolve
+ * Stores contacts per user in KV to resolve
  * names like "Rahul" to email addresses for sending emails.
  */
 

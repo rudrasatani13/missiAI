@@ -3,24 +3,18 @@
 import { useEffect, useRef, type MutableRefObject } from "react"
 import { detectPluginCommand } from "@/lib/plugins/plugin-registry"
 import {
-  buildRecentConversationContext,
   getConnectedPluginIds,
   getGreetingMessage,
-  getHighPriorityBriefingItem,
   shouldHandleChatHotkey,
   shouldTrackLastInteraction,
 } from "@/lib/chat/page-effects"
-import type { ConversationEntry, VoiceState } from "@/types/chat"
-import type { DailyBriefing } from "@/types/proactive"
+import type { VoiceState } from "@/types/chat"
 import type { PluginConfig, PluginId } from "@/types/plugins"
 
 interface UseChatPageEffectsOptions {
   billingLoading: boolean
   bootCompleted: boolean
-  briefing: DailyBriefing | null
   cancelAll: () => void
-  conversationRef: MutableRefObject<ConversationEntry[]>
-  detectAndExecute: (userMessage: string, conversationContext: string) => Promise<unknown>
   displayName: string
   effectiveVoiceState: VoiceState
   executeVoiceCommand: (pluginId: PluginId, userMessage: string) => Promise<unknown>
@@ -35,7 +29,6 @@ interface UseChatPageEffectsOptions {
   lastTranscript: string
   liveMode: boolean
   plugins: Array<Pick<PluginConfig, "id" | "status">>
-  proactiveSpokenRef: MutableRefObject<boolean>
   saveMemoryBeacon: () => void
   showBootSequence: boolean
   voiceEnabled: boolean
@@ -46,10 +39,7 @@ export function useChatPageEffects(options: UseChatPageEffectsOptions) {
   const {
     billingLoading,
     bootCompleted,
-    briefing,
     cancelAll,
-    conversationRef,
-    detectAndExecute,
     displayName,
     effectiveVoiceState,
     executeVoiceCommand,
@@ -64,13 +54,11 @@ export function useChatPageEffects(options: UseChatPageEffectsOptions) {
     lastTranscript,
     liveMode,
     plugins,
-    proactiveSpokenRef,
     saveMemoryBeacon,
     showBootSequence,
     voiceEnabled,
     voiceState,
   } = options
-  const lastResponseForActionRef = useRef("")
   const lastResponseForPluginRef = useRef("")
   const effectiveVoiceStateRef = useRef<VoiceState>(effectiveVoiceState)
 
@@ -138,42 +126,12 @@ export function useChatPageEffects(options: UseChatPageEffectsOptions) {
   }, [isLoaded, greet, isAtLimit, billingLoading, showBootSequence, bootCompleted, liveMode, displayName, greetedRef])
 
   useEffect(() => {
-    if (liveMode) return
-    if (!briefing || proactiveSpokenRef.current || !voiceEnabled || isAtLimit || billingLoading) return
-
-    const highItem = getHighPriorityBriefingItem(briefing.items)
-    if (!highItem) return
-
-    const timer = setTimeout(() => {
-      if (effectiveVoiceStateRef.current === "idle") {
-        proactiveSpokenRef.current = true
-        try {
-          sessionStorage.setItem("missi-proactive-spoken", "1")
-        } catch {}
-        void greet(highItem.message)
-      }
-    }, 2000)
-
-    return () => clearTimeout(timer)
-  }, [briefing, voiceEnabled, greet, isAtLimit, billingLoading, liveMode, proactiveSpokenRef])
-
-  useEffect(() => {
     if (shouldTrackLastInteraction(voiceState)) {
       try {
         localStorage.setItem("missi-last-interaction-at", String(Date.now()))
       } catch {}
     }
   }, [voiceState])
-
-  useEffect(() => {
-    if (!lastTranscript || lastTranscript === lastResponseForActionRef.current) return
-    lastResponseForActionRef.current = lastTranscript
-
-    const conversationContext = buildRecentConversationContext(conversationRef.current)
-    void detectAndExecute(lastTranscript, conversationContext).catch((error) => {
-      console.error("[ChatPageEffects] Unexpected action execution failure", error)
-    })
-  }, [lastTranscript, detectAndExecute, conversationRef, lastResponseForActionRef])
 
   useEffect(() => {
     if (!lastResponse || lastResponse === lastResponseForPluginRef.current) return

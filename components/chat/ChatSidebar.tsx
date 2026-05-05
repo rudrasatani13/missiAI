@@ -20,10 +20,8 @@ import {
   Settings,
   Sun,
   UserPlus,
-  Target,
   User as UserIcon,
   X as XIcon,
-  Zap,
   Calendar,
   BookOpen,
   RefreshCw,
@@ -592,8 +590,6 @@ function MoreSubPanel() {
     | { kind: "link"; label: string; icon: React.ReactNode; href: string; color?: string }
     | { kind: "button"; label: string; icon: React.ReactNode; onClick: () => void; color?: string }
   > = [
-    { kind: "link", label: "Agents", icon: <Zap className="w-4 h-4" />, href: "/agents", color: "#a78bfa" },
-    { kind: "link", label: "Mission", icon: <Target className="w-4 h-4" />, href: "/today", color: "#fbbf24" },
     { kind: "link", label: "WhatsApp & Telegram", icon: <MessageSquare className="w-4 h-4" />, href: "/settings/integrations", color: "#25D366" },
     { kind: "link", label: "Upgrade", icon: <Crown className="w-4 h-4" />, href: "/pricing", color: "#F59E0B" },
   ]
@@ -779,7 +775,7 @@ function ChatSidebarInner({
   useEffect(() => {
     // Close the mobile drawer after navigation so the page is visible, but
     // keep the currently active sub-panel + forced-expand state so that when
-    // a user clicks, say, "Mission" inside the "More" sub-panel, the sidebar
+    // a user clicks inside the "More" sub-panel, the sidebar
     // stays on the More panel instead of flipping back to the root nav.
     setMobileOpen(false)
   }, [pathname, setMobileOpen])
@@ -1216,14 +1212,6 @@ function ChatSidebarInner({
               testId="sidebar-memory-btn"
             />
             <NavRow
-              icon={<BookOpen className="w-4 h-4" />}
-              label="Exam Buddy"
-              href="/exam-buddy"
-              active={pathname?.startsWith("/exam-buddy")}
-              showLabel={showLabels}
-              testId="sidebar-exam-buddy-btn"
-            />
-            <NavRow
               icon={<Plug className="w-4 h-4" />}
               label="Integrations"
               showLabel={showLabels}
@@ -1373,8 +1361,7 @@ function ChatSidebarInner({
           //
           //   • Everywhere else the app uses ChatShell, whose mobile main card
           //     reserves a 44px top safe zone (see `.missi-shell-main` CSS in
-          //     ChatShell). A top-of-card header (e.g. "Saved Memory",
-          //     "Missi Agent") sits right below that safe zone, so a button
+          //     ChatShell). A top-of-card header sits right below that safe zone, so a button
           //     at y ≈ 80 would land on top of it. We therefore move the
           //     hamburger into the safe zone at `top: 14px` on ChatShell
           //     routes, keeping it comfortably above the page header.

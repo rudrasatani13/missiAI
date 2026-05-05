@@ -13,7 +13,6 @@
 - **Speaks and listens** — real-time voice conversations with speech-to-text and text-to-speech, plus real-time streaming via Gemini Live
 - **Adapts to you** — context-aware responses with custom behavior dials and memory grounding
 - **Connects your tools** — Google Calendar, Notion, and a growing plugin ecosystem
-- **Proactive check-ins** — push notifications with reminders and context-aware suggestions
 - **Saved memory** — review, search, filter, and delete memories Missi has stored for you
 
 ---
@@ -165,8 +164,6 @@ Set via `wrangler secret put <NAME>` or the Cloudflare dashboard → Settings �
 | POST | `/api/v1/chat-stream` | Stream AI chat response via SSE |
 | POST | `/api/v1/stt` | Speech-to-text transcription |
 | POST | `/api/v1/tts` | Text-to-speech audio generation |
-| POST | `/api/v1/actions` | Execute AI-driven actions |
-| POST | `/api/v1/proactive` | Trigger proactive suggestions |
 
 ### Memory
 

@@ -4,7 +4,6 @@ import { memo, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X } from "lucide-react"
 import type { VoiceState } from "@/types/chat"
-import type { DailyBriefing, BriefingItem } from "@/types/proactive"
 import type { EmotionProfile } from "@/types/emotion"
 
 // Animates text letter-by-letter: each char fades+blurs in with stagger
@@ -53,36 +52,6 @@ const EMOTION_DOT_COLORS: Record<string, string> = {
   hesitant: '#9CA3AF',
 }
 
-interface NudgePillProps {
-  item: BriefingItem
-  onDismiss?: (item: BriefingItem) => void
-  hasBriefing?: boolean
-}
-
-function NudgePill({ item, onDismiss, hasBriefing }: NudgePillProps) {
-  return (
-    <button
-      onClick={(e) => {
-        e.stopPropagation()
-        onDismiss?.(item)
-      }}
-      className={`${hasBriefing ? "mt-1" : "mt-2"} px-3 py-1 rounded-full pointer-events-auto`}
-      data-testid="nudge-pill"
-      style={{
-        background: "var(--missi-surface)",
-        border: "1px solid var(--missi-border)",
-        color: hasBriefing ? "var(--missi-text-muted)" : "var(--missi-text-muted)",
-        fontSize: "10px",
-        fontWeight: 300,
-        cursor: "pointer",
-        animation: `fadeIn ${hasBriefing ? "0.7s" : "0.6s"} ease-out both`,
-      }}
-    >
-      {item.message}
-    </button>
-  )
-}
-
 interface ErrorDisplayProps {
   message: string
   onDismiss: () => void
@@ -114,51 +83,6 @@ function ErrorDisplay({ message, onDismiss }: ErrorDisplayProps) {
   )
 }
 
-interface BriefingCardProps {
-  item: BriefingItem
-  onDismiss?: (item: BriefingItem) => void
-}
-
-function BriefingCard({ item, onDismiss }: BriefingCardProps) {
-  return (
-    <div
-      className="flex items-center gap-2 mt-3 max-w-[300px] rounded-lg px-3 py-2 pointer-events-auto"
-      data-testid="briefing-card"
-      style={{
-        background: "var(--missi-border)",
-        border: "1px solid var(--missi-border)",
-        animation: "fadeIn 0.5s ease-out both",
-      }}
-    >
-      <p
-        className="text-[11px] font-light flex-1 leading-snug"
-        data-testid="briefing-card-message"
-        style={{ color: "var(--missi-text-secondary)" }}
-      >
-        {item.message}
-      </p>
-      <button
-        onClick={(e) => {
-          e.stopPropagation()
-          onDismiss?.(item)
-        }}
-        data-testid="briefing-card-dismiss-btn"
-        aria-label="Dismiss suggestion"
-        style={{
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          color: "var(--missi-text-muted)",
-          padding: "2px",
-          flexShrink: 0,
-        }}
-      >
-        <X className="w-3 h-3" />
-      </button>
-    </div>
-  )
-}
-
 interface StatusDisplayProps {
   state: VoiceState
   streamingText: string
@@ -168,10 +92,6 @@ interface StatusDisplayProps {
   userName: string
   statusText: string
   lastTranscript: string
-  briefing?: DailyBriefing | null
-  nudges?: BriefingItem[]
-  onDismissItem?: (item: BriefingItem) => void
-  onBriefingDelivered?: () => void
   currentEmotion?: EmotionProfile | null
   isLiveMode?: boolean
 }
@@ -184,35 +104,9 @@ function StatusDisplayInner({
   statusText,
   lastTranscript: _lastTranscript,
   lastResponse: _lastResponse,
-  briefing,
-  nudges = [],
-  onDismissItem,
-  onBriefingDelivered,
   currentEmotion,
   isLiveMode,
 }: StatusDisplayProps) {
-  const deliveredRef = useRef(false)
-
-  // Find first high-priority undismissed briefing item
-  const topBriefingItem =
-    briefing?.items.find(
-      (item) => item.priority === "high" && !item.dismissedAt,
-    ) ?? null
-
-  // Mark delivered once on first render with visible item
-  useEffect(() => {
-    if (
-      state === "idle" &&
-      topBriefingItem &&
-      !deliveredRef.current &&
-      !briefing?.deliveredAt
-    ) {
-      deliveredRef.current = true
-      onBriefingDelivered?.()
-    }
-  }, [state, topBriefingItem, briefing?.deliveredAt, onBriefingDelivered])
-
-  const firstNudge = nudges[0] ?? null
 
   return (
     <>
@@ -246,20 +140,6 @@ function StatusDisplayInner({
         >
           {statusText}
         </p>
-      )}
-
-      {/* ── Proactive briefing card ─────────────────────────────────────── */}
-      {state === "idle" && topBriefingItem && (
-        <BriefingCard item={topBriefingItem} onDismiss={onDismissItem} />
-      )}
-
-      {/* ── Nudge pill ──────────────────────────────────────────────────── */}
-      {state === "idle" && firstNudge && (
-        <NudgePill
-          item={firstNudge}
-          onDismiss={onDismissItem}
-          hasBriefing={!!topBriefingItem}
-        />
       )}
 
       {state === "recording" && (

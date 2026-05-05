@@ -3,15 +3,9 @@ import { streamChat } from "@/lib/ai/providers/router"
 import { logError, logLatency, createTimer } from "@/lib/server/observability/logger"
 import { classifyChatError } from "@/lib/server/chat/errors"
 import { runChatPostResponseTasks } from "@/lib/server/chat/post-response"
-import { getToolLabel, type AgentToolCall } from "@/lib/ai/agents/tools/dispatcher"
-import { executeToolGuarded } from "@/lib/ai/agents/tools/execution"
-import type { AppEnv } from "@/lib/server/platform/env"
-import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { ChatInput } from "@/lib/validation/schemas"
 import type { KVStore, Message, PersonalityKey } from "@/types"
 
-const MAX_AGENT_LOOPS = 8
-const MAX_TOTAL_TOOL_CALLS = 12
 const REQUEST_TIMEOUT_MS = 45_000
 const NEEDS_INPUT_PATTERN = /\b(kya|kise|kisko|kab|kahan|kaun|kitna|konsa|which|what|who|where|when|how)\b/i
 
@@ -30,10 +24,7 @@ export interface ChatStreamRunnerParams {
   memories: string
   systemPrompt: string
   model: string
-  availableDeclarations: Record<string, unknown>[]
   maxOutputTokens: number
-  vectorizeEnv: VectorizeEnv | null
-  appEnv: AppEnv
 }
 
 function shouldEmitNeedsInput(voiceMode: boolean | undefined, responseText: string): boolean {
@@ -60,24 +51,19 @@ export function buildChatStreamSseStream({
   memories,
   systemPrompt,
   model: initialModel,
-  availableDeclarations,
   maxOutputTokens,
-  vectorizeEnv,
-  appEnv,
 }: ChatStreamRunnerParams): ReadableStream<Uint8Array> {
-  let model = initialModel
-  const buildRequest = (currentModel: string) => buildGeminiRequest(
+  const model = initialModel
+  const requestBody = buildGeminiRequest(
     messages,
     personality,
     memories,
-    currentModel,
+    model,
     maxOutputTokens,
-    availableDeclarations,
     customPrompt,
     systemPrompt,
     aiDials,
   )
-  let requestBody = buildRequest(model)
 
   const encoder = new TextEncoder()
 
@@ -87,11 +73,7 @@ export function buildChatStreamSseStream({
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
       }
 
-      let currentRequestBody = requestBody
-      let loopCount = 0
-      let totalToolCalls = 0
       let sessionResponseText = ""
-      let agentContents: any[] = [...(currentRequestBody.contents as any[])]
       let firstTokenLogged = false
       const firstTokenTimer = createTimer()
 
@@ -99,21 +81,19 @@ export function buildChatStreamSseStream({
       const deadlineTimer = setTimeout(() => deadlineController.abort(), REQUEST_TIMEOUT_MS)
 
       try {
-      while (loopCount < MAX_AGENT_LOOPS && totalToolCalls < MAX_TOTAL_TOOL_CALLS) {
         if (deadlineController.signal.aborted) {
           sendSSE({
-            text: "\n\n[Agent loop timed out — returning what I have so far.]",
-            code: "CHAT_TOOL_LOOP_TIMEOUT",
+            text: "\n\n[Response timed out — returning what I have so far.]",
+            code: "CHAT_RESPONSE_TIMEOUT",
           })
-          break
+          return
         }
-        loopCount++
 
         let eventStream: ReadableStream<any>
         try {
           eventStream = await streamChat({
             model,
-            requestBody: currentRequestBody,
+            requestBody,
             signal: deadlineController.signal,
             userId,
           })
@@ -126,13 +106,11 @@ export function buildChatStreamSseStream({
         }
 
         const reader = eventStream.getReader()
-        let pendingFunctionCall: AgentToolCall | null = null
-        let loopText = ""
 
         try {
           while (true) {
             if (deadlineController.signal.aborted) {
-              sendSSE({ text: "\n\n[Response timed out.]", code: "CHAT_TOOL_LOOP_TIMEOUT" })
+              sendSSE({ text: "\n\n[Response timed out.]", code: "CHAT_RESPONSE_TIMEOUT" })
               reader.cancel().catch(() => {})
               break
             }
@@ -145,93 +123,19 @@ export function buildChatStreamSseStream({
                 firstTokenLogged = true
                 logLatency("chat.latency.first_token", userId, firstTokenTimer(), {
                   model,
-                  loop: loopCount,
                   fallback: model !== initialModel,
                 })
               }
-              loopText += value.text
               sessionResponseText += value.text
               sendSSE({ text: value.text })
-            } else if (value.type === "functionCall") {
-              pendingFunctionCall = value.call
             }
           }
         } catch (readErr) {
           const classified = classifyChatError(readErr)
           logError("chat_stream.read_error", classified.message, userId)
           sendSSE({ error: classified.message, code: classified.code })
-          break
+          return
         }
-
-        if (!pendingFunctionCall) {
-          break
-        }
-
-        totalToolCalls++
-        const toolLabel = getToolLabel(pendingFunctionCall.name)
-        const guardedResult = await executeToolGuarded(
-          pendingFunctionCall,
-          {
-            kv,
-            vectorizeEnv,
-            userId,
-            googleClientId: appEnv.GOOGLE_CLIENT_ID,
-            googleClientSecret: appEnv.GOOGLE_CLIENT_SECRET,
-            resendApiKey: appEnv.RESEND_API_KEY,
-          },
-          {
-            userId,
-            logPrefix: "chat_stream",
-            executionSurface: "chat_loop",
-            blockedLogEvent: "chat_stream.tool_blocked",
-            blockedLogMessage: `Blocked destructive tool "${pendingFunctionCall.name}" from agent loop`,
-          },
-        )
-        const toolResult = guardedResult.result
-
-        sendSSE({
-          agentStep: {
-            toolName: pendingFunctionCall.name,
-            status: toolResult.status,
-            label: toolLabel,
-            summary: toolResult.summary,
-          },
-        })
-
-        const modelParts: any[] = []
-        if (loopText.length > 0) {
-          modelParts.push({ text: loopText })
-        }
-        modelParts.push({
-          functionCall: {
-            name: pendingFunctionCall.name,
-            args: pendingFunctionCall.args,
-          },
-        })
-
-        const modelEntry = {
-          role: "model",
-          parts: modelParts,
-        }
-        const userEntry = {
-          role: "user",
-          parts: [{
-            functionResponse: {
-              name: pendingFunctionCall.name,
-              response: {
-                result: toolResult.output,
-              },
-            },
-          }],
-        }
-        agentContents.push(modelEntry)
-        agentContents.push(userEntry)
-
-        currentRequestBody = {
-          ...currentRequestBody,
-          contents: agentContents,
-        }
-      }
       } finally {
         clearTimeout(deadlineTimer)
       }
@@ -254,7 +158,6 @@ export function buildChatStreamSseStream({
         messages,
         incognito,
         analyticsOptOut,
-        toolCalls: totalToolCalls,
       })
     },
   })

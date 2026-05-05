@@ -36,7 +36,6 @@ export interface AnalyticsSnapshot {
 }
 
 export interface FeatureUsage {
-  proactiveBriefings: number
   nudgesDelivered: number
   actionsExecuted: number
   pluginsConnected: number

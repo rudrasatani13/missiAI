@@ -16,10 +16,6 @@ export interface PlanConfig {
   dodoProductId: string
   /** Max daily brief generations per day (includes initial + regenerations) */
   briefGenerationsPerDay: number
-  examBuddyQuizGenerationsPerHour: number
-  examBuddyQuizGenerationsPerDay: number
-  examBuddyQuizGenerationsPerMonth: number
-  examBuddyMaxQuestionsPerQuiz: number
 }
 
 // Server-side code resolves Dodo product IDs via process.env directly.
@@ -35,10 +31,6 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     apiAccess: false,
     dodoProductId: '',
     briefGenerationsPerDay: 1, // 1 generation, no regeneration
-    examBuddyQuizGenerationsPerHour: 3,
-    examBuddyQuizGenerationsPerDay: 8,
-    examBuddyQuizGenerationsPerMonth: 120,
-    examBuddyMaxQuestionsPerQuiz: 5,
   },
   plus: {
     id: 'plus',
@@ -51,10 +43,6 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     apiAccess: false,
     dodoProductId: '',
     briefGenerationsPerDay: 3, // 1 initial + 2 regenerations
-    examBuddyQuizGenerationsPerHour: 10,
-    examBuddyQuizGenerationsPerDay: 30,
-    examBuddyQuizGenerationsPerMonth: 600,
-    examBuddyMaxQuestionsPerQuiz: 10,
   },
   pro: {
     id: 'pro',
@@ -67,10 +55,6 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     apiAccess: true,
     dodoProductId: '',
     briefGenerationsPerDay: 10, // generous limit for pro users
-    examBuddyQuizGenerationsPerHour: 25,
-    examBuddyQuizGenerationsPerDay: 100,
-    examBuddyQuizGenerationsPerMonth: 2000,
-    examBuddyMaxQuestionsPerQuiz: 20,
   },
 }
 

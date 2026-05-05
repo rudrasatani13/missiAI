@@ -5,7 +5,7 @@
  *
  * Replaces the old "Settings" sliding sub-panel that used to live inside
  * ChatSidebar. All existing functionality (personality, voice engine toggle,
- * proactive check-ins, manage subscription, profile name edit) is preserved,
+ * manage subscription, profile name edit) is preserved,
  * plus four new sections surfaced here for the first time:
  *   • AI Behavior Dials   — sliders (response length, warmth, humor, formality, creativity)
  *   • Notifications       — quiet hours + granular event toggles
@@ -867,7 +867,7 @@ function NotificationsSection({
         toast.error("Permission denied")
         return
       }
-      toast.loading("Enabling check-ins...", { id: "push" })
+      toast.loading("Enabling notifications...", { id: "push" })
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -879,7 +879,7 @@ function NotificationsSection({
         body: JSON.stringify(sub),
       })
       if (!res.ok) throw new Error("Failed to save subscription")
-      toast.success("Proactive Check-ins enabled!", { id: "push" })
+      toast.success("Notifications enabled!", { id: "push" })
     } catch (err) {
       console.error(err)
       toast.error("Failed to enable notifications", { id: "push" })
@@ -891,12 +891,12 @@ function NotificationsSection({
   return (
     <Card
       title="Notifications"
-      description="Proactive check-ins and quiet hours."
+      description="Quiet hours and notification preferences."
       icon={<Bell className="w-4 h-4" />}
     >
       <Row
-        label="Proactive check-ins"
-        description="Missi nudges you at thoughtful moments."
+        label="Push notifications"
+        description="Enable push notifications for updates."
         icon={<Bell className="w-4 h-4" />}
       >
         <button

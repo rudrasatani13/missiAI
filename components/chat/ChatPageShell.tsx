@@ -4,13 +4,10 @@ import { Suspense, lazy, useState, useEffect } from "react"
 import Link from "next/link"
 import nextDynamic from "next/dynamic"
 import { ArrowLeft, Menu } from "lucide-react"
-import type { ActionResult } from "@/types/actions"
 import type { PlanId } from "@/types/billing"
 import type { VoiceState } from "@/types/chat"
 import type { EmotionProfile } from "@/types/emotion"
 import type { PluginResult } from "@/types/plugins"
-import type { BriefingItem, DailyBriefing } from "@/types/proactive"
-import type { AgentStep } from "@/components/chat/AgentSteps"
 import { VoiceButton } from "@/components/chat/VoiceButton"
 import { StatusDisplay } from "@/components/chat/StatusDisplay"
 import { ChatSidebar } from "@/components/chat/ChatSidebar"
@@ -19,7 +16,6 @@ import { BootSequence } from "@/components/chat/BootSequence"
 import { useGuestChat } from "@/hooks/chat/useGuestChat"
 import { GuestLimitModal } from "@/components/chat/GuestLimitModal"
 import { Magnetic } from "@/components/effects/Magnetic"
-import { pluginResultToActionResult as mapPluginResultToActionResult } from "@/lib/chat/page-helpers"
 
 // Dynamic import — keeps visual effects out of the server/edge bundle
 const ParticleVisualizer = nextDynamic(
@@ -31,17 +27,11 @@ const ChatOptionalOverlays = lazy(() =>
   import("@/components/chat/ChatOptionalOverlays").then((module) => ({ default: module.ChatOptionalOverlays })),
 )
 
-/** Convert a PluginResult to an ActionResult shape for display in ActionCard. */
-const pluginResultToActionResult = mapPluginResultToActionResult
-
 interface ChatPageShellProps {
   isGuest?: boolean
-  actionResult: ActionResult | null
-  agentSteps: AgentStep[]
   audioLevel?: number
   billingLoading: boolean
   bootCompleted: boolean
-  briefing: DailyBriefing | null
   completeBootSequence: () => void
   currentEmotion?: EmotionProfile | null
   dismissOnboarding: () => void
@@ -53,14 +43,9 @@ interface ChatPageShellProps {
   errorMessage: string | null
   handleTap: () => void
   isAtLimit: boolean
-  lastResult: ActionResult | null
   liveMode: boolean
-  markDelivered: () => void
-  nudges: BriefingItem[]
-  onActionCopy: () => void
   onDismissDisplay: () => void
   onDismissError: () => void
-  onDismissItem: (item: BriefingItem) => void
   onLogout: () => void
   onNewChat: () => void
   onUpgrade: () => void
@@ -76,12 +61,9 @@ interface ChatPageShellProps {
 
 export function ChatPageShell({
   isGuest = false,
-  actionResult,
-  agentSteps,
   audioLevel,
   billingLoading,
   bootCompleted,
-  briefing,
   completeBootSequence,
   currentEmotion,
   dismissOnboarding,
@@ -93,14 +75,9 @@ export function ChatPageShell({
   errorMessage,
   handleTap,
   isAtLimit,
-  lastResult,
   liveMode,
-  markDelivered,
-  nudges,
-  onActionCopy,
   onDismissDisplay,
   onDismissError,
-  onDismissItem,
   onLogout,
   onNewChat,
   onUpgrade,
@@ -129,11 +106,6 @@ export function ChatPageShell({
       clearGuestChatError()
     }
   }, [clearGuestChatError, guestChatError, guestIsAtLimit, isGuest])
-
-  // Determine what to show in ActionCard: prefer plugin result if present, else action result
-  const displayResult = pluginResult
-    ? pluginResultToActionResult(pluginResult)
-    : actionResult
 
   return (
     <div className="fixed inset-0 flex gap-2 md:gap-3 p-2 md:p-3 overflow-hidden select-none"
@@ -169,14 +141,9 @@ export function ChatPageShell({
       )}
       <Suspense fallback={null}>
         <ChatOptionalOverlays
-          actionCopyEnabled={
-            !pluginResult && (lastResult?.type === "draft_email" || lastResult?.type === "draft_message")
-          }
-          agentSteps={agentSteps}
           dismissOnboarding={dismissOnboarding}
-          displayResult={displayResult}
-          onActionCopy={onActionCopy}
           onDismissDisplay={onDismissDisplay}
+          pluginResult={pluginResult}
           showOnboarding={showOnboarding}
         />
       </Suspense>
@@ -290,10 +257,6 @@ export function ChatPageShell({
           userName={displayName}
           statusText={effectiveStatusText}
           lastTranscript={effectiveLastTranscript}
-          briefing={briefing}
-          nudges={nudges}
-          onDismissItem={onDismissItem}
-          onBriefingDelivered={markDelivered}
           currentEmotion={currentEmotion}
           isLiveMode={liveMode}
         />

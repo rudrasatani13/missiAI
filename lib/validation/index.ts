@@ -5,9 +5,6 @@ export {
   ttsSchema,
   sttSchema,
   memorySchema,
-  proactiveConfigSchema,
-  nudgeRequestSchema,
-  dismissSchema,
   validationErrorResponse,
 } from "@/lib/validation/schemas"
 
@@ -16,9 +13,6 @@ export type {
   TTSInput,
   STTFileInput,
   MemoryInput,
-  ProactiveConfigInput,
-  NudgeRequestInput,
-  DismissInput,
 } from "@/lib/validation/schemas"
 
 // memoryPostSchema alias — kept for backwards compatibility with memory route

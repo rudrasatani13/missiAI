@@ -9,9 +9,6 @@ const {
   estimateRequestTokensMock,
   truncateToTokenLimitMock,
   selectGeminiModelMock,
-  getGoogleTokensMock,
-  getProfileMock,
-  buildExamBuddyModifierMock,
 } = vi.hoisted(() => ({
   searchLifeGraphMock: vi.fn(),
   formatLifeGraphForPromptMock: vi.fn(),
@@ -20,9 +17,6 @@ const {
   estimateRequestTokensMock: vi.fn(),
   truncateToTokenLimitMock: vi.fn(),
   selectGeminiModelMock: vi.fn(),
-  getGoogleTokensMock: vi.fn(),
-  getProfileMock: vi.fn(),
-  buildExamBuddyModifierMock: vi.fn(),
 }))
 
 vi.mock("@/lib/memory/life-graph", () => ({
@@ -44,30 +38,6 @@ vi.mock("@/lib/memory/token-counter", () => ({
 
 vi.mock("@/lib/ai/providers/model-router", () => ({
   selectGeminiModel: selectGeminiModelMock,
-}))
-
-vi.mock("@/lib/ai/agents/tools/dispatcher", () => ({
-  AGENT_FUNCTION_DECLARATIONS: [
-    { name: "searchMemory", description: "search", parameters: {} },
-    { name: "readCalendar", description: "read", parameters: {} },
-    { name: "deleteCalendarEvent", description: "delete", parameters: {} },
-  ],
-}))
-
-vi.mock("@/lib/ai/agents/tools/policy", () => ({
-  AGENT_DESTRUCTIVE_TOOL_NAMES: new Set(["deleteCalendarEvent"]),
-}))
-
-vi.mock("@/lib/plugins/data-fetcher", () => ({
-  getGoogleTokens: getGoogleTokensMock,
-}))
-
-vi.mock("@/lib/exam-buddy/profile-store", () => ({
-  getProfile: getProfileMock,
-}))
-
-vi.mock("@/lib/exam-buddy/exam-prompt", () => ({
-  buildExamBuddyModifier: buildExamBuddyModifierMock,
 }))
 
 import { buildChatStreamContext } from "@/lib/server/chat/stream-context"
@@ -94,16 +64,12 @@ describe("buildChatStreamContext", () => {
     estimateRequestTokensMock.mockReset()
     truncateToTokenLimitMock.mockImplementation((messages) => messages)
     selectGeminiModelMock.mockReturnValue("gemini-2.5-pro")
-    getGoogleTokensMock.mockResolvedValue(null)
-    getProfileMock.mockResolvedValue(null)
-    buildExamBuddyModifierMock.mockReturnValue("exam-modifier")
   })
 
-  it("assembles memories, prompt modifiers, token budgeting, and tool availability for voice mode", async () => {
+  it("assembles memories, voice prompt modifier, and token budgeting for voice mode", async () => {
     const truncatedMessages = [{ role: "user", content: "trimmed question" }] as const
 
     formatLifeGraphForPromptMock.mockReturnValue("life-memory")
-    getProfileMock.mockResolvedValue({ board: "cbse" })
     estimateRequestTokensMock
       .mockReturnValueOnce(1200)
       .mockReturnValueOnce(700)
@@ -118,11 +84,6 @@ describe("buildChatStreamContext", () => {
         voiceMode: true,
         voiceDurationMs: 3000,
         memories: "client-memory",
-        examBuddy: {
-          examTarget: "jee_mains",
-          subject: "physics",
-          topic: "waves",
-        },
       },
       vectorizeEnv: null,
     })
@@ -141,18 +102,7 @@ describe("buildChatStreamContext", () => {
       undefined,
       undefined,
     )
-    expect(buildExamBuddyModifierMock).toHaveBeenCalledWith(
-      { board: "cbse" },
-      {
-        examTarget: "jee_mains",
-        mode: "doubt",
-        currentSubject: "physics",
-        currentTopic: "waves",
-      },
-    )
     expect(result.systemPrompt).toContain("voice-prompt")
-    expect(result.systemPrompt).toContain("EDITH MODE — VOICE-FIRST AUTONOMOUS AGENT")
-    expect(result.systemPrompt).toContain("exam-modifier")
     expect(truncateToTokenLimitMock).toHaveBeenCalledWith(
       [{ role: "user", content: "what should I study next?" }],
       1000,
@@ -162,11 +112,9 @@ describe("buildChatStreamContext", () => {
     expect(result.maxOutputTokens).toBe(800)
     expect(selectGeminiModelMock).toHaveBeenCalledWith(truncatedMessages, "life-memory\nclient-memory")
     expect(result.model).toBe("gemini-2.5-pro")
-    expect(result.availableDeclarations.map((declaration) => declaration.name)).toEqual(["searchMemory"])
   })
 
-  it("skips memory loading in incognito while preserving connected calendar tools", async () => {
-    getGoogleTokensMock.mockResolvedValue({ accessToken: "token" })
+  it("skips memory loading in incognito", async () => {
     estimateRequestTokensMock
       .mockReturnValueOnce(200)
       .mockReturnValueOnce(180)
@@ -192,51 +140,31 @@ describe("buildChatStreamContext", () => {
     expect(result.maxOutputTokens).toBe(900)
     expect(result.inputTokens).toBe(180)
     expect(result.model).toBe("gemini-2.5-flash")
-    expect(result.availableDeclarations.map((declaration) => declaration.name)).toEqual([
-      "searchMemory",
-      "readCalendar",
-    ])
   })
 
   it("parallelizes independent context fetches and resolves the fastest combined path", async () => {
     let memoryResolved = false
-    let googleResolved = false
-    let profileResolved = false
 
     searchLifeGraphMock.mockImplementation(async () => {
       memoryResolved = true
       return [{ id: "node-1" }]
     })
-    getGoogleTokensMock.mockImplementation(async () => {
-      googleResolved = true
-      return { accessToken: "tok" }
-    })
-    getProfileMock.mockImplementation(async () => {
-      profileResolved = true
-      return { board: "cbse" }
-    })
-
     const result = await buildChatStreamContext({
       userId: "user_3",
       kv,
       input: {
         messages: [{ role: "user", content: "hi" }],
         personality: "assistant",
-        examBuddy: { examTarget: "jee_mains", subject: "physics", topic: "waves" },
       },
       vectorizeEnv: null,
     })
 
     expect(memoryResolved).toBe(true)
-    expect(googleResolved).toBe(true)
-    expect(profileResolved).toBe(true)
-    expect(result.availableDeclarations.map((d) => d.name)).toContain("readCalendar")
+    expect(result.model).toBe("gemini-2.5-pro")
   })
 
   it("survives a partial fetch failure and still assembles usable context", async () => {
     formatLifeGraphForPromptMock.mockReturnValue("life-memory")
-    getProfileMock.mockRejectedValue(new Error("profile boom"))
-    getGoogleTokensMock.mockResolvedValue({ accessToken: "tok" })
     searchLifeGraphMock.mockResolvedValue([{ id: "m1" }])
 
     const result = await buildChatStreamContext({
@@ -245,13 +173,11 @@ describe("buildChatStreamContext", () => {
       input: {
         messages: [{ role: "user", content: "hello" }],
         personality: "assistant",
-        examBuddy: { examTarget: "jee_mains" },
       },
       vectorizeEnv: null,
     })
 
     expect(result.memories).toContain("life-memory")
-    expect(result.availableDeclarations.map((d) => d.name)).toContain("readCalendar")
-    expect(result.systemPrompt).toBe("base-prompt\n\nexam-modifier")
+    expect(result.systemPrompt).toBe("base-prompt")
   })
 })

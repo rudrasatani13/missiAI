@@ -3,7 +3,6 @@ import { rateLimitHeaders } from "@/lib/server/security/rate-limiter"
 import { getChatVectorizeEnv } from "@/lib/server/chat/shared"
 import { logError } from "@/lib/server/observability/logger"
 import { classifyChatError } from "@/lib/server/chat/errors"
-import { getEnv } from "@/lib/server/platform/env"
 import { buildChatStreamContext } from "@/lib/server/chat/stream-context"
 import { runChatStreamPreflight } from "@/lib/server/chat/stream-preflight"
 import { buildChatStreamSseStream } from "@/lib/server/chat/stream-runner"
@@ -30,7 +29,6 @@ export async function POST(req: NextRequest) {
       systemPrompt,
       inputTokens,
       model: selectedModel,
-      availableDeclarations,
       maxOutputTokens,
     } = await buildChatStreamContext({
       userId,
@@ -39,7 +37,6 @@ export async function POST(req: NextRequest) {
       vectorizeEnv,
     })
 
-    const appEnv = getEnv()
     const sseStream = buildChatStreamSseStream({
       kv,
       userId,
@@ -55,10 +52,7 @@ export async function POST(req: NextRequest) {
       memories,
       systemPrompt,
       model: selectedModel,
-      availableDeclarations,
       maxOutputTokens,
-      vectorizeEnv,
-      appEnv,
     })
 
     return new Response(sseStream, {

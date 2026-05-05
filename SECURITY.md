@@ -23,7 +23,7 @@ All non-public routes are protected by Clerk middleware (`middleware.ts`).
 - `/api/webhooks/telegram` (verified via secret-token header; see §13)
 
 **Protected routes** (Clerk session required):
-- `/chat`, `/memory`, `/setup`, `/agents`, `/exam-buddy`, `/settings`, `/today`
+- `/chat`, `/memory`, `/setup`, `/settings`, `/today`
 - All `/api/v1/*` endpoints
 - `/admin` (additionally requires `ADMIN_USER_ID` match)
 
@@ -170,10 +170,9 @@ Also set `VERTEX_AI_PROJECT_ID` as a runtime environment variable. `VERTEX_AI_LO
 
 ### Runtime behavior
 
-- `MISSI_KV_ENCRYPTION_SECRET` is required in production for KV encryption, agent confirmation tokens, boss tokens, and live relay tickets.
+- `MISSI_KV_ENCRYPTION_SECRET` is required in production for KV encryption, boss tokens, and live relay tickets.
 - Missing or empty `MISSI_KV_ENCRYPTION_SECRET` now fails closed with a 503 on routes that need it.
 - Confirmation tokens are single-use and are not generated with fallback secrets.
-- The live tools endpoint does not allow direct outbound email; confirmation is required for any send.
 - Per-isolate IP rate limiting is a burst guard only; Cloudflare WAF / Rate Limiting rules are still required for distributed abuse.
 
 ---
@@ -523,13 +522,6 @@ Validation is enforced in strict order before any KV, memory, or AI operation:
 - All security events (failed signatures, replay attempts, unknown senders, plan blocks) are logged with `logSecurityEvent` from `lib/server/logger.ts`
 - Webhook endpoints are public (no Clerk auth) but still subject to IP-based rate limiting via `middleware.ts`
 - WhatsApp 6-digit link codes are rate-limited to 10 attempts per sender phone per day (`bot:wa:link-attempts:{phone}:{date}`) to prevent brute-forcing the 1M-combination space within the 15-minute code TTL.
-
-### Live Tools Endpoint (`/api/v1/tools/execute`)
-
-This endpoint is called by the Gemini Live WebSocket client. It uses an explicit **safe-tool allowlist** rather than a general function-declaration allowlist:
-
-- **Allowed**: read-only and non-destructive tools (`searchMemory`, `readCalendar`, `findFreeSlot`, `draftEmail`, `searchWeb`, `searchNews`, `searchYouTube`, `logExpense`, `getWeekSummary`, `updateGoalProgress`, `lookupContact`, `saveContact`, `setReminder`, `takeNote`, `createNote`).
-- **Blocked** (return 400): `sendEmail`, `confirmSendEmail`, `createCalendarEvent`, `deleteCalendarEvent`, `updateCalendarEvent`. These require a server-issued confirmation token via the agent-confirm flow (`POST /api/v1/agents/plan` → `POST /api/v1/agents/confirm`).
 
 ### Admin Authorization
 

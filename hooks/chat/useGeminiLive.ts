@@ -10,21 +10,16 @@ export type LiveState = "disconnected" | "connecting" | "connected" | "speaking"
 export interface GeminiLiveConfig {
   systemPrompt?: string
   voiceName?: string // Default: "Kore"
-  /** Tool declarations for Gemini Live — enables agent tools in real-time voice */
-  toolDeclarations?: Array<{ name: string; description: string; parameters: Record<string, unknown> }>
   /** Lazily resolve heavy setup inputs right before connecting. */
   resolveSetup?: () => Promise<{
     systemPrompt?: string
     voiceName?: string
-    toolDeclarations?: Array<{ name: string; description: string; parameters: Record<string, unknown> }>
   }>
   onTranscriptIn?: (text: string) => void   // What user said
   onTranscriptOut?: (text: string) => void  // What Gemini said
   onStateChange?: (state: LiveState) => void
   onError?: (error: string) => void
   onAudioLevel?: (level: number) => void
-  /** Called when Gemini invokes a tool — caller must execute and call sendToolResponse */
-  onToolCall?: (toolName: string, args: Record<string, unknown>) => void
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -55,7 +50,6 @@ export function useGeminiLive(config: GeminiLiveConfig) {
   const resolvedSetupRef = useRef<{
     systemPrompt: string
     voiceName: string
-    toolDeclarations?: Array<{ name: string; description: string; parameters: Record<string, unknown> }>
   } | null>(null)
 
   // Refs for callbacks to avoid stale closures
@@ -217,7 +211,6 @@ export function useGeminiLive(config: GeminiLiveConfig) {
       resolvedSetupRef.current = {
         systemPrompt,
         voiceName: resolvedSetup?.voiceName ?? configRef.current.voiceName ?? "Kore",
-        toolDeclarations: resolvedSetup?.toolDeclarations ?? configRef.current.toolDeclarations,
       }
 
       // 1. Get WebSocket URL from our backend
@@ -304,54 +297,6 @@ export function useGeminiLive(config: GeminiLiveConfig) {
             configRef.current.onTranscriptOut?.(outputTranscriptRef.current)
           }
 
-          // Tool call from model — execute via /api/v1/tools/execute
-          // BUG-C1 fix: Gemini Live requires ALL function responses for a single toolCall
-          // to be sent together in ONE toolResponse message. Sending separate messages per
-          // tool causes the model to stall waiting for remaining responses.
-          if (msg.toolCall?.functionCalls) {
-            for (const fc of msg.toolCall.functionCalls) {
-              configRef.current.onToolCall?.(fc.name, fc.args || {})
-            }
-
-            // Execute all tools in parallel, then send one batched toolResponse
-            const functionResponses = await Promise.all(
-              msg.toolCall.functionCalls.map(async (fc: { id?: string; name: string; args?: Record<string, unknown> }) => {
-                try {
-                  const toolRes = await fetch("/api/v1/tools/execute", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ name: fc.name, args: fc.args || {} }),
-                  })
-                  const toolResult = await toolRes.json() as {
-                    output?: string
-                    summary?: string
-                    status?: string
-                    error?: string
-                    success?: boolean
-                  }
-                  const toolMessage = toolResult.success === false
-                    ? (toolResult.error || "Tool execution failed")
-                    : (toolResult.output || toolResult.summary || "Done")
-                  return {
-                    name: fc.name,
-                    response: { result: toolMessage },
-                  }
-                } catch (toolErr) {
-                  console.error("[GeminiLive] Tool execution error:", fc.name, toolErr)
-                  return {
-                    name: fc.name,
-                    response: { result: "Tool execution failed" },
-                  }
-                }
-              })
-            )
-
-            // Send all responses in a single message as required by the Gemini Live protocol
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ toolResponse: { functionResponses } }))
-            }
-          }
-
           // Interrupted — user spoke while model was talking
           if (msg.serverContent?.interrupted) {
             if (turnCompleteTimeoutRef.current) clearTimeout(turnCompleteTimeoutRef.current)
@@ -401,15 +346,6 @@ export function useGeminiLive(config: GeminiLiveConfig) {
         const liveSetup = resolvedSetupRef.current ?? {
           systemPrompt: configRef.current.systemPrompt ?? "",
           voiceName: configRef.current.voiceName || "Kore",
-          toolDeclarations: configRef.current.toolDeclarations,
-        }
-
-        // Build tools array for Gemini Live
-        const liveTools: Record<string, unknown>[] = [{ google_search: {} }]
-        if (liveSetup.toolDeclarations && liveSetup.toolDeclarations.length > 0) {
-          liveTools.push({
-            function_declarations: liveSetup.toolDeclarations,
-          })
         }
 
         // Send setup config with server-side VAD for instant turn detection
@@ -437,8 +373,7 @@ export function useGeminiLive(config: GeminiLiveConfig) {
                 endOfSpeechSensitivity: "END_SENSITIVITY_HIGH",
               },
             },
-            // Agent tools for EDITH mode
-            tools: liveTools,
+            tools: [{ google_search: {} }],
             systemInstruction: {
               parts: [{ text: liveSetup.systemPrompt }],
             },

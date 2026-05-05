@@ -3,7 +3,6 @@ import {
   buildRecentConversationContext,
   getConnectedPluginIds,
   getGreetingMessage,
-  getHighPriorityBriefingItem,
   shouldTrackLastInteraction,
 } from "@/lib/chat/page-effects"
 
@@ -18,14 +17,6 @@ describe("chat page effect helpers", () => {
       { role: "assistant", content: "6" },
       { role: "user", content: "7" },
     ])).toBe("assistant: 2\nuser: 3\nassistant: 4\nuser: 5\nassistant: 6\nuser: 7")
-  })
-
-  it("selects the first undismissed high-priority briefing item", () => {
-    expect(getHighPriorityBriefingItem([
-      { type: "habit_check", priority: "medium", message: "medium", actionable: true },
-      { type: "goal_nudge", priority: "high", message: "first high", actionable: true },
-      { type: "memory_insight", priority: "high", message: "dismissed", actionable: true, dismissedAt: 1 },
-    ])?.message).toBe("first high")
   })
 
   it("maps connected plugin ids only", () => {

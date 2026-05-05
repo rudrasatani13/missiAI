@@ -763,7 +763,6 @@ export default function PricingPage() {
               'Real-time Gemini Live voice',
               'Default Missi assistant',
               'Basic memory — up to 20 facts',
-              'Exam Buddy trial access',
             ]}
             disabledFeatures={[
               'Extended voice (2hr/day)',
@@ -788,7 +787,6 @@ export default function PricingPage() {
             features={[
               '2 hours of voice per day',
               'Full memory — unlimited facts',
-              'Exam Buddy access',
               'Proactive nudges & smart reminders',
               'Plugin integrations (Notion, Calendar)',
             ]}

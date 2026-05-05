@@ -256,9 +256,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const [streamingText, setStreamingText] = useState("")
   const [lastResponse, setLastResponse] = useState("")
 
-  /* ── Agentic workflow steps ────────────────────────────────────────────── */
-  const [agentSteps, setAgentSteps] = useState<{ toolName: string; status: string; label: string; summary?: string }[]>([])
-
   /* ── Emotion detection ────────────────────────────────────────────────── */
   const { analyzeRecording, getSmoothedAdaptation, resetEmotion, currentEmotion }
     = useEmotionDetector()
@@ -290,7 +287,7 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
   const ttsAnalyserRef = useRef<AnalyserNode | null>(null)
   const stopTTSMonitorRef = useRef<() => void>(() => {})
   const continuousRef = useRef(false)
-  /** EDITH mode: agent asked a follow-up question — extend silence timeout & auto-record */
+  /** EDITH mode: follow-up question — extend silence timeout & auto-record */
   const expectingResponseRef = useRef(false)
   /** EDITH mode: always active — auto-restart recording after every response.
    *  BUG-004 fix: Defaults to false. Set to true when user explicitly enables continuous mode. */
@@ -808,7 +805,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     cancelAbort()
     setState("thinking")
     setStatusText("Thinking...")
-    setAgentSteps([]) // Clear previous agent steps
     const ctrl = freshAbort()
 
     const MAX_RETRIES = 2
@@ -843,11 +839,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
               aiDials: aiDialsRef?.current ?? undefined,
               incognito: incognito || undefined,
               analyticsOptOut: analyticsOptOut || undefined,
-              // BUG-H1 fix: only enable EDITH mode when the user has explicitly turned
-              // it on. Previously hardcoded true, which always injected the full EDITH
-              // system prompt (autonomous execution, Hinglish tone, tool chaining) even
-              // for simple one-off voice queries — increasing token cost and causing
-              // unexpectedly aggressive autonomous behaviour.
               voiceMode: edithModeRef.current,
               voiceDurationMs: lastRecordingDurationMsRef.current || undefined,
             }),
@@ -908,18 +899,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
                 full += p.text
                 setStreamingText(full)
               }
-              // ── Agentic step event ──
-              if (p.agentStep) {
-                setAgentSteps(prev => {
-                  const existing = prev.findIndex(s => s.toolName === p.agentStep.toolName)
-                  if (existing >= 0) {
-                    const updated = [...prev]
-                    updated[existing] = p.agentStep
-                    return updated
-                  }
-                  return [...prev, p.agentStep]
-                })
-              }
               // ── EDITH: needsInput event — auto-restart recording after TTS ──
               if (p.needsInput) {
                 expectingResponseRef.current = true
@@ -958,9 +937,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
           incognitoRef,
           analyticsOptOutRef,
         })
-
-        // Clear agent steps after response completes
-        setAgentSteps([])
 
         // Speak the full response — simple, reliable, no stream interruption
         if (shouldUseTTS(full, true)) {
@@ -1449,7 +1425,6 @@ export function useVoiceStateMachine(options: UseVoiceStateMachineOptions) {
     greet,
     saveMemoryBeacon,
     currentEmotion,
-    agentSteps,
     /** Get duration of the last voice recording in ms (for billing) */
     getLastRecordingDurationMs: () => lastRecordingDurationMsRef.current,
   }

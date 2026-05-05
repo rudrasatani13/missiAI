@@ -10,8 +10,6 @@ import { useChatPageEffects } from "@/hooks/chat/useChatPageEffects"
 import { useChatSettingsSync } from "@/hooks/chat/useChatSettingsSync"
 import { useVoiceStateMachine } from "@/hooks/chat/useVoiceStateMachine"
 import { useGeminiLive } from "@/hooks/chat/useGeminiLive"
-import { useProactive } from "@/hooks/chat/useProactive"
-import { useActionEngine } from "@/hooks/chat/useActionEngine"
 import { usePlugins } from "@/hooks/chat/usePlugins"
 import { useBilling } from "@/hooks/billing/useBilling"
 import type { ConversationEntry } from "@/types/chat"
@@ -39,7 +37,6 @@ export default function VoiceAssistantPage() {
     dismissOnboarding,
     displayName,
     greetedRef,
-    proactiveSpokenRef,
     resetGreetingSession,
     showBootSequence,
     showOnboarding,
@@ -74,7 +71,7 @@ export default function VoiceAssistantPage() {
   const {
     state: voiceState, audioLevel, statusText, lastTranscript,
     error, setError, streamingText, lastResponse, cancelAll, greet, saveMemoryBeacon,
-    currentEmotion, agentSteps, getLastRecordingDurationMs,
+    currentEmotion, getLastRecordingDurationMs,
   } = useVoiceStateMachine({
     userId: user?.id,
     personalityRef,
@@ -91,10 +88,7 @@ export default function VoiceAssistantPage() {
   const [liveTranscriptIn, setLiveTranscriptIn] = useState("")
   const [liveTranscriptOut, setLiveTranscriptOut] = useState("")
   const resolveLiveSetup = useCallback(async () => {
-    const [{ buildVoiceSystemPrompt }, { AGENT_FUNCTION_DECLARATIONS }] = await Promise.all([
-      import("@/lib/ai/services/ai-service"),
-      import("@/lib/ai/agents/tools/declarations"),
-    ])
+    const { buildVoiceSystemPrompt } = await import("@/lib/ai/services/ai-service")
 
     return {
       systemPrompt: buildVoiceSystemPrompt(
@@ -103,7 +97,6 @@ export default function VoiceAssistantPage() {
         customPrompt,
         sharedSettings.aiDials,
       ),
-      toolDeclarations: AGENT_FUNCTION_DECLARATIONS,
       voiceName: "Kore",
     }
   }, [customPrompt, memoriesState, personalityRef, sharedSettings.aiDials])
@@ -232,12 +225,6 @@ export default function VoiceAssistantPage() {
     }
   }, [liveMode, geminiLive.state, liveTranscriptIn, liveTranscriptOut])
 
-  // Proactive intelligence
-  const { briefing, nudges, dismissItem, markDelivered } = useProactive()
-
-  // Action engine
-  const { detectAndExecute, lastResult, clearResult } = useActionEngine()
-
   // Plugin system
   const {
     plugins,
@@ -249,10 +236,7 @@ export default function VoiceAssistantPage() {
   useChatPageEffects({
     billingLoading,
     bootCompleted,
-    briefing,
     cancelAll,
-    conversationRef,
-    detectAndExecute,
     displayName,
     effectiveVoiceState,
     executeVoiceCommand,
@@ -267,7 +251,6 @@ export default function VoiceAssistantPage() {
     lastTranscript,
     liveMode,
     plugins,
-    proactiveSpokenRef,
     saveMemoryBeacon,
     showBootSequence,
     voiceEnabled,
@@ -292,26 +275,16 @@ export default function VoiceAssistantPage() {
     router.push('/chat')
   }, [cancelAll, liveMode, geminiLive, resetGreetingSession, router])
 
-  const handleActionCopy = useCallback(() => {
-    if (!lastResult) return
-    const text = (lastResult.data?.fullDraft as string) ?? lastResult.output
-    navigator.clipboard.writeText(text).catch(() => { })
-  }, [lastResult])
-
   const handleDismissDisplay = useCallback(() => {
     if (pluginResult) clearPluginResult()
-    else clearResult()
-  }, [pluginResult, clearPluginResult, clearResult])
+  }, [pluginResult, clearPluginResult])
 
   return (
     <ChatPageShell
       isGuest={isGuest}
-      actionResult={lastResult}
-      agentSteps={agentSteps}
       audioLevel={audioLevel}
       billingLoading={billingLoading}
       bootCompleted={bootCompleted}
-      briefing={briefing}
       completeBootSequence={completeBootSequence}
       currentEmotion={currentEmotion}
       dismissOnboarding={dismissOnboarding}
@@ -323,18 +296,13 @@ export default function VoiceAssistantPage() {
       errorMessage={effectiveErrorMessage}
       handleTap={handleTap}
       isAtLimit={isAtLimit}
-      lastResult={lastResult}
       limitSeconds={limitSeconds}
       liveMode={liveMode}
-      markDelivered={markDelivered}
-      nudges={nudges}
-      onActionCopy={handleActionCopy}
       onDismissDisplay={handleDismissDisplay}
       onDismissError={() => {
         geminiLive.clearError()
         setError(null)
       }}
-      onDismissItem={dismissItem}
       onLogout={isGuest ? () => {} : handleLogout}
       onNewChat={handleNewChat}
       onUpgrade={() => initiateCheckout('pro')}

@@ -1,7 +1,6 @@
 import { buildSystemPrompt, dialsToTemperature, dialsToMaxTokens, type AIDialsInput } from "@/lib/ai/services/ai-service"
 import type { Message, PersonalityKey } from "@/types"
 import { vertexGeminiGenerate, vertexGeminiGenerateStream } from "@/lib/ai/providers/vertex-client"
-import type { AgentToolCall } from "@/lib/ai/agents/tools/dispatcher"
 
 const DEFAULT_MODEL = "gemini-2.5-pro"
 const HEALTH_CHECK_MODEL = "gemini-2.5-flash"
@@ -10,16 +9,12 @@ const HEALTH_CHECK_MODEL = "gemini-2.5-flash"
 
 export type GeminiStreamEvent =
   | { type: "text"; text: string }
-  | { type: "functionCall"; call: AgentToolCall }
   | { type: "done" }
 
 /**
  * Constructs the full Gemini REST request body.
  * Injects sanitized memories via buildSystemPrompt which wraps them
  * between [MEMORY START] / [MEMORY END] and applies personality system prompt.
- *
- * When `toolDeclarations` is provided, they are injected as Gemini native
- * function calling tools alongside google_search.
  */
 export function buildGeminiRequest(
   messages: Message[],
@@ -27,7 +22,6 @@ export function buildGeminiRequest(
   memories: string,
   _model: string = DEFAULT_MODEL,
   maxOutputTokens: number = 600,
-  toolDeclarations?: Record<string, unknown>[],
   customPrompt?: string,
   /** Pre-built system prompt — skips buildSystemPrompt if provided */
   systemPromptOverride?: string,
@@ -82,17 +76,11 @@ export function buildGeminiRequest(
     },
   }
 
-  // Build tools array combining Google Search + Function Declarations
   const tools: Record<string, unknown>[] = []
 
   // Google Search grounding is incompatible with Multimodal/Vision requests
   if (!hasImage) {
     tools.push({ google_search: {} })
-  }
-
-  // Inject agent tool declarations when provided
-  if (toolDeclarations && toolDeclarations.length > 0) {
-    tools.push({ function_declarations: toolDeclarations })
   }
 
   if (tools.length > 0) {
@@ -127,11 +115,6 @@ export async function vertexHealthCheck(): Promise<{ healthy: boolean; latencyMs
 /**
  * Calls Gemini's streamGenerateContent SSE endpoint and returns a
  * ReadableStream that emits GeminiStreamEvent objects.
- *
- * This replaces the old text-only stream. Events can be:
- * - { type: "text", text: "..." }       — partial text chunk
- * - { type: "functionCall", call: ... }  — model wants to call a tool
- * - { type: "done" }                     — stream finished
  */
 export async function streamGeminiResponse(
   model: string,
@@ -201,7 +184,6 @@ export async function streamGeminiResponseViaVertex(
 
 /**
  * Parse a single SSE line from Gemini's streamGenerateContent response.
- * Returns an array of GeminiStreamEvents (text and/or functionCall).
  */
 function parseSSELine(line: string): GeminiStreamEvent[] {
   if (!line.startsWith("data: ")) return []
@@ -218,16 +200,6 @@ function parseSSELine(line: string): GeminiStreamEvent[] {
       // Text part
       if (typeof part.text === "string" && part.text) {
         events.push({ type: "text", text: part.text })
-      }
-      // Function call part
-      if (part.functionCall) {
-        events.push({
-          type: "functionCall",
-          call: {
-            name: part.functionCall.name,
-            args: part.functionCall.args || {},
-          },
-        })
       }
     }
 

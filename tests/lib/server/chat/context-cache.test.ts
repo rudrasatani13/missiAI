@@ -32,21 +32,16 @@ const cachedData = {
   systemPrompt: "test system prompt",
   model: "gemini-2.5-pro",
   maxOutputTokens: 600,
-  availableDeclarations: [{ name: "test" }],
 }
 
 describe("isContextCacheable", () => {
   it("returns true for normal text chat", () => {
-    expect(isContextCacheable(false, false)).toBe(true)
-    expect(isContextCacheable(undefined, undefined)).toBe(true)
+    expect(isContextCacheable(false)).toBe(true)
+    expect(isContextCacheable(undefined)).toBe(true)
   })
 
   it("returns false for voice mode", () => {
-    expect(isContextCacheable(true, false)).toBe(false)
-  })
-
-  it("returns false for exam buddy mode", () => {
-    expect(isContextCacheable(false, true)).toBe(false)
+    expect(isContextCacheable(true)).toBe(false)
   })
 })
 

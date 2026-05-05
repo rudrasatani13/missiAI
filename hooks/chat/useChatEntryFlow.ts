@@ -24,7 +24,6 @@ export function useChatEntryFlow(options: UseChatEntryFlowOptions) {
   const [bootCompleted, setBootCompleted] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const greetedRef = useRef(false)
-  const proactiveSpokenRef = useRef(false)
 
   useEffect(() => {
     try {
@@ -76,7 +75,6 @@ export function useChatEntryFlow(options: UseChatEntryFlowOptions) {
   useEffect(() => {
     try {
       greetedRef.current = sessionStorage.getItem("missi-greeted") === "1"
-      proactiveSpokenRef.current = sessionStorage.getItem("missi-proactive-spoken") === "1"
     } catch {}
   }, [])
 
@@ -108,7 +106,6 @@ export function useChatEntryFlow(options: UseChatEntryFlowOptions) {
     dismissOnboarding,
     displayName: getDisplayName(user?.firstName, localName),
     greetedRef,
-    proactiveSpokenRef,
     resetGreetingSession,
     showBootSequence,
     showOnboarding,

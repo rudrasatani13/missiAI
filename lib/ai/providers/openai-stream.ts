@@ -10,8 +10,7 @@
  *   gemini-2.5-pro    → gpt-4o
  *   everything else   → gpt-4o
  *
- * ⚠️  This is a **degraded fallback** — agent tool calling is not supported
- *     in OpenAI mode yet. Only text streaming is available.
+ * ⚠️  This is a **degraded fallback**. Only text streaming is available.
  */
 
 import type { GeminiStreamEvent } from "@/lib/ai/providers/gemini-stream"
