@@ -5,7 +5,7 @@ import { vertexGeminiGenerate } from "@/lib/ai/providers/vertex-client"
 //
 // Single safe default. Custom prompts and multi-personality selection were
 // removed in 2026-05 (see docs/audits/BRUTAL_CTO_AUDIT_2026-05-05.md). The
-// previous "BRUTALLY HONEST" framing was a safety liability without eval
+// previous overly harsh framing was a safety liability without eval
 // coverage; replaced with a helpful, direct, emotionally safe baseline that
 // also carries explicit guidance for sensitive topics (mental health, self-
 // harm, medical, legal, minors).

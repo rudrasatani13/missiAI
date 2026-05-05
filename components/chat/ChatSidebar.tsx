@@ -1373,7 +1373,7 @@ function ChatSidebarInner({
           //
           //   • Everywhere else the app uses ChatShell, whose mobile main card
           //     reserves a 44px top safe zone (see `.missi-shell-main` CSS in
-          //     ChatShell). A top-of-card header (e.g. "Memory Graph",
+          //     ChatShell). A top-of-card header (e.g. "Saved Memory",
           //     "Missi Agent") sits right below that safe zone, so a button
           //     at y ≈ 80 would land on top of it. We therefore move the
           //     hamburger into the safe zone at `top: 14px` on ChatShell

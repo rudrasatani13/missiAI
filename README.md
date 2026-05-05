@@ -14,7 +14,7 @@
 - **Adapts to you** — context-aware responses with custom behavior dials and memory grounding
 - **Connects your tools** — Google Calendar, Notion, and a growing plugin ecosystem
 - **Proactive check-ins** — push notifications with reminders and context-aware suggestions
-- **3D memory graph** — visualize your knowledge graph with an interactive Three.js force-directed graph
+- **Saved memory** — review, search, filter, and delete memories Missi has stored for you
 
 ---
 
@@ -24,7 +24,6 @@
 |--------------|----------------------------------------------|
 | Framework | Next.js 15 (App Router), React 19, TypeScript 5 |
 | Styling | Tailwind CSS 3.4, Framer Motion |
-| Visualization | Three.js, react-force-graph-3d |
 | AI (Chat) | Google Gemini 2.5 Flash, Gemini Live (real-time voice) |
 | AI (Memory) | Gemini Flash Lite (fact extraction) |
 | Voice | Gemini STT + Gemini TTS via Vertex AI |
@@ -42,7 +41,7 @@ missiAI is an edge-first Next.js application deployed on Cloudflare with OpenNex
 
 **Voice flow:** User audio is transcribed with Gemini STT via Vertex AI → transcript is sent to Gemini with memory context + personality → response streams back via SSE → audio responses are generated with Gemini TTS via Vertex AI. For real-time conversations, Gemini Live runs through the app's same-origin `/api/v1/voice-relay` path.
 
-**Memory system:** Every few interactions, Gemini Flash Lite extracts key facts from the conversation and persists them as nodes in a knowledge graph stored in Cloudflare KV (keyed by Clerk user ID). Cloudflare Vectorize provides semantic search over stored memories. The memory graph is visualized as an interactive 3D force-directed graph.
+**Memory system:** Every few interactions, Gemini Flash Lite extracts key facts from the conversation and persists them as saved memory records in Cloudflare KV (keyed by Clerk user ID). Cloudflare Vectorize provides semantic search over stored memories.
 
 **Plugin system:** OAuth-based integrations (Google Calendar, Notion) fetch context that gets injected into the AI prompt. An action engine lets the AI draft emails, create calendar events, and execute tasks on the user's behalf.
 
@@ -173,7 +172,7 @@ Set via `wrangler secret put <NAME>` or the Cloudflare dashboard → Settings �
 
 | Method | Route | Description |
 |--------|--------------------------------|-------------------------------------------|
-| GET | `/api/v1/memory` | Retrieve user's stored memory graph |
+| GET | `/api/v1/memory` | Retrieve user's saved memories |
 | POST | `/api/v1/memory` | Save conversation and extract memories |
 | DELETE | `/api/v1/memory/[nodeId]` | Delete a memory node |
 
@@ -229,7 +228,7 @@ missi-web/
 │   │   ├── v1/             # Versioned API endpoints
 │   │   └── webhooks/       # Payment webhooks
 │   ├── chat/               # Main voice chat interface
-│   ├── memory/             # Memory dashboard + 3D graph
+│   ├── memory/             # Saved memory dashboard
 │   ├── pricing/            # Subscription plans
 │   ├── admin/              # Admin dashboard
 │   └── setup/              # Onboarding flow

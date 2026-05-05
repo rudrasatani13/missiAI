@@ -1,7 +1,7 @@
-# missiAI - PRD & Implementation Log
+# missiAI - Current Product Scope
 
 ## Overview
-missiAI is an AI voice companion application built with Next.js 15, Clerk authentication, Cloudflare KV storage, Dodo billing integration, and Gemini voice/chat via Vertex AI.
+missiAI is a chat-first AI companion with voice, saved memory, Exam Buddy, messaging bot foundations, billing, and secure admin/health operations.
 
 ## Architecture
 - **Frontend**: Next.js 15 (React, TypeScript)
@@ -11,16 +11,17 @@ missiAI is an AI voice companion application built with Next.js 15, Clerk authen
 - **Deployment**: OpenNext Cloudflare + custom worker entry
 - **AI**: Gemini via Vertex AI (chat, STT, TTS, Gemini Live)
 
-## What's Been Implemented
+## Kept Features
 
-### Session 1 — Bug Fix (28 Fixes)
-All 28 bugs from PDF audit fixed: security (timing attacks, plan tampering, data leaks), client-side (SDK errors, race conditions, orphaned subs), server-side (orphan cleanup, status validation, webhook handlers), config (legacy billing/provider drift), validation (regex, length limits), error handling (generic client errors, parsed API errors).
-
-### Session 2 — UX Improvements
-- Navbar pricing link always visible (Upgrade to Plus / Pro / current plan management)
-- Celebration animation on upgrade (confetti + Crown + welcome text)
-- Better pricing page for paid users (Current Plan badge, manage options)
-- Dodo checkout/customer creation fix
+- **Core chat**: authenticated chat, guest chat, streaming responses, and action surfaces.
+- **Voice**: STT, TTS, Gemini Live relay, and the main voice UI.
+- **Saved memory**: memory extraction, storage, search, filtering, deletion, prompt grounding, and export.
+- **Exam Buddy**: quiz generation, sessions, weak-topic tracking, and plan-aware limits.
+- **Messaging bots**: WhatsApp and Telegram linking/webhook foundations.
+- **Billing core**: Dodo checkout, subscriptions, pricing, webhooks, and plan checks.
+- **Integrations**: Google Calendar, Notion, plugin refresh, and safe tool execution.
+- **Daily brief/proactive**: current daily brief and proactive nudge surfaces.
+- **Operations**: auth, security, admin analytics, health checks, observability, and AI spend controls.
 
 ## Backlog / Future
 - P1: Subscription status sync cron job

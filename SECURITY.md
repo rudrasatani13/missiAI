@@ -23,7 +23,7 @@ All non-public routes are protected by Clerk middleware (`middleware.ts`).
 - `/api/webhooks/telegram` (verified via secret-token header; see §13)
 
 **Protected routes** (Clerk session required):
-- `/chat`, `/memory`, `/streak`, `/wind-down`, `/setup`
+- `/chat`, `/memory`, `/setup`, `/agents`, `/exam-buddy`, `/settings`, `/today`
 - All `/api/v1/*` endpoints
 - `/admin` (additionally requires `ADMIN_USER_ID` match)
 
@@ -247,10 +247,10 @@ missiAI uses **dual-layer rate limiting**:
 2. **Per-user KV-backed limits** — applied in route handlers. Tracks usage per
    authenticated Clerk user ID with configurable windows and thresholds.
 
-### Budget Controls
+### AI Spend Controls
 
 A daily API spend tracker (`DAILY_BUDGET_USD`, default: $5.00) monitors
-Gemini model usage and text-to-speech spend. When the budget threshold is approached,
+Gemini model usage and text-to-speech spend. When the configured threshold is approached,
 the system throttles non-essential API calls.
 
 ---

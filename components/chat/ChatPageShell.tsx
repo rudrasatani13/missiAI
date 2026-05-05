@@ -21,7 +21,7 @@ import { GuestLimitModal } from "@/components/chat/GuestLimitModal"
 import { Magnetic } from "@/components/effects/Magnetic"
 import { pluginResultToActionResult as mapPluginResultToActionResult } from "@/lib/chat/page-helpers"
 
-// Dynamic import — keeps three.js OUT of the server/edge bundle (~5MB saved)
+// Dynamic import — keeps visual effects out of the server/edge bundle
 const ParticleVisualizer = nextDynamic(
   () => import("@/components/chat/ParticleVisualizer").then((m) => m.ParticleVisualizer),
   { ssr: false }

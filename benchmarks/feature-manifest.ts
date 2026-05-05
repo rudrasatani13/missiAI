@@ -305,9 +305,9 @@ const featureManifest = [
   },
   {
     id: "memory-core",
-    name: "Memory Dashboard and Life Graph",
+    name: "Saved Memory",
     category: "memory",
-    routes: ["/memory", "/memory/graph"],
+    routes: ["/memory"],
     apiEndpoints: ["/api/v1/memory", "/api/v1/memory/[nodeId]"],
     serverFiles: [
       "app/api/v1/memory/route.ts",
@@ -319,10 +319,8 @@ const featureManifest = [
     ],
     clientFiles: [
       "app/memory/page.tsx",
-      "app/memory/graph/page.tsx",
       "hooks/memory/useMemoryDashboard.ts",
       "components/memory/GroupedMemoryView.tsx",
-      "components/memory/MemoryGraph3D.tsx",
     ],
     benchmarkTypes: [
       "http-route-latency",
@@ -336,10 +334,9 @@ const featureManifest = [
     authRequired: true,
     externalServices: ["Clerk", "Cloudflare KV", "Cloudflare Vectorize", "Vertex AI / Gemini"],
     benchmarkPriority: "P0",
-    notes: "Graph formatting can run locally, but extraction and vector search should default to mock fixtures.",
+    notes: "Memory formatting can run locally, but extraction and vector search should default to mock fixtures.",
     httpBenchmarks: [
       { id: "memory-page", target: "/memory", authMode: "required", expectedStatus: 200 },
-      { id: "memory-graph-page", target: "/memory/graph", authMode: "required", expectedStatus: 200 },
     ],
     apiBenchmarks: [
       {
@@ -413,9 +410,9 @@ const featureManifest = [
     bundleBenchmarks: [
       {
         id: "memory-bundle",
-        routes: ["/memory", "/memory/graph"],
+        routes: ["/memory"],
         apiRoutes: ["/api/v1/memory"],
-        importTargets: ["app/memory/page.tsx", "components/memory/MemoryGraph3D.tsx"],
+        importTargets: ["app/memory/page.tsx", "components/memory/GroupedMemoryView.tsx"],
       },
     ],
   },

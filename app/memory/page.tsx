@@ -157,7 +157,7 @@ export default function MemoryPage() {
             <div className="flex items-center gap-2.5">
               <Brain className="w-5 h-5" style={{ color: 'var(--missi-text-muted)' }} />
               <h1 className="text-base md:text-lg font-medium m-0" style={{ color: 'var(--missi-text-primary)' }}>
-                Memory Graph
+                Saved Memory
               </h1>
             </div>
 
