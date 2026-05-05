@@ -5,13 +5,9 @@ import { useRouter } from "next/navigation"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { ChatPageShell } from "@/components/chat/ChatPageShell"
 import { useChatEntryFlow } from "@/hooks/chat/useChatEntryFlow"
-import { useChatHydration } from "@/hooks/chat/useChatHydration"
-import { useChatPageEffects } from "@/hooks/chat/useChatPageEffects"
 import { useChatSettingsSync } from "@/hooks/chat/useChatSettingsSync"
 import { useVoiceStateMachine } from "@/hooks/chat/useVoiceStateMachine"
 import { useGeminiLive } from "@/hooks/chat/useGeminiLive"
-import { usePlugins } from "@/hooks/chat/usePlugins"
-import { useBilling } from "@/hooks/billing/useBilling"
 import type { ConversationEntry } from "@/types/chat"
 import { shouldShowOnboarding } from "@/components/chat/OnboardingTour"
 import { useBuddyState } from "@/hooks/buddy/useBuddyState"
@@ -26,7 +22,6 @@ export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
   const isGuest = isLoaded && !user
   const { signOut } = useClerk()
-  const { plan, isAtLimit, usedSeconds, limitSeconds, isLoading: billingLoading, initiateCheckout, incrementUsageLocally } = useBilling()
   const router = useRouter()
   const memoriesRef = useRef("")
   const conversationRef = useRef<ConversationEntry[]>([])
@@ -36,7 +31,6 @@ export default function VoiceAssistantPage() {
     completeBootSequence,
     dismissOnboarding,
     displayName,
-    greetedRef,
     resetGreetingSession,
     showBootSequence,
     showOnboarding,
@@ -54,24 +48,16 @@ export default function VoiceAssistantPage() {
     incognitoRef,
     personalityRef,
     sharedSettings,
-    voiceEnabled,
   } = useChatSettingsSync({
-    billingLoading,
+    billingLoading: false,
     isLoaded,
-    planId: plan?.id,
-  })
-  const {
-    memoriesState,
-  } = useChatHydration({
-    isLoaded,
-    memoriesRef,
-    userId: user?.id,
+    planId: undefined,
   })
 
   const {
     state: voiceState, audioLevel, statusText, lastTranscript,
-    error, setError, streamingText, lastResponse, cancelAll, greet, saveMemoryBeacon,
-    currentEmotion, getLastRecordingDurationMs,
+    error, setError, streamingText, lastResponse, cancelAll,
+    currentEmotion,
   } = useVoiceStateMachine({
     userId: user?.id,
     personalityRef,
@@ -93,13 +79,13 @@ export default function VoiceAssistantPage() {
     return {
       systemPrompt: buildVoiceSystemPrompt(
         personalityRef.current,
-        memoriesState,
+        "", // memories removed
         customPrompt,
         sharedSettings.aiDials,
       ),
       voiceName: "Kore",
     }
-  }, [customPrompt, memoriesState, personalityRef, sharedSettings.aiDials])
+  }, [customPrompt, personalityRef, sharedSettings.aiDials])
 
   const geminiLive = useGeminiLive({
     resolveSetup: resolveLiveSetup,
@@ -225,37 +211,8 @@ export default function VoiceAssistantPage() {
     }
   }, [liveMode, geminiLive.state, liveTranscriptIn, liveTranscriptOut])
 
-  // Plugin system
-  const {
-    plugins,
-    executeVoiceCommand,
-    lastResult: pluginResult,
-    clearResult: clearPluginResult,
-  } = usePlugins()
-
-  useChatPageEffects({
-    billingLoading,
-    bootCompleted,
-    cancelAll,
-    displayName,
-    effectiveVoiceState,
-    executeVoiceCommand,
-    getLastRecordingDurationMs,
-    greet,
-    greetedRef,
-    handleTap,
-    incrementUsageLocally,
-    isAtLimit,
-    isLoaded,
-    lastResponse,
-    lastTranscript,
-    liveMode,
-    plugins,
-    saveMemoryBeacon,
-    showBootSequence,
-    voiceEnabled,
-    voiceState,
-  })
+  const pluginResult: any = null
+  const clearPluginResult = useCallback(() => {}, [])
 
   const handleLogout = useCallback(() => {
     cancelAll()
@@ -283,7 +240,7 @@ export default function VoiceAssistantPage() {
     <ChatPageShell
       isGuest={isGuest}
       audioLevel={audioLevel}
-      billingLoading={billingLoading}
+      billingLoading={false}
       bootCompleted={bootCompleted}
       completeBootSequence={completeBootSequence}
       currentEmotion={currentEmotion}
@@ -295,8 +252,8 @@ export default function VoiceAssistantPage() {
       effectiveVoiceState={effectiveVoiceState}
       errorMessage={effectiveErrorMessage}
       handleTap={handleTap}
-      isAtLimit={isAtLimit}
-      limitSeconds={limitSeconds}
+      isAtLimit={false}
+      limitSeconds={0}
       liveMode={liveMode}
       onDismissDisplay={handleDismissDisplay}
       onDismissError={() => {
@@ -305,13 +262,13 @@ export default function VoiceAssistantPage() {
       }}
       onLogout={isGuest ? () => {} : handleLogout}
       onNewChat={handleNewChat}
-      onUpgrade={() => initiateCheckout('pro')}
-      planId={plan?.id}
+      onUpgrade={() => {}}
+      planId={undefined}
       pluginResult={pluginResult}
       showBootSequence={showBootSequence}
       showOnboarding={showOnboarding}
       streamingText={streamingText}
-      usedSeconds={usedSeconds}
+      usedSeconds={0}
       voiceState={voiceState}
     />)
 }
