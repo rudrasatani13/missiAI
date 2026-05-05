@@ -22,6 +22,12 @@ function requireConfirmSecret(secret: string | undefined): string {
   if (!secret || secret.trim().length === 0) {
     throw new Error("MISSI_KV_ENCRYPTION_SECRET is required")
   }
+  if (process.env.NODE_ENV === 'production' && secret.length < 32) {
+    throw new Error(
+      "MISSI_KV_ENCRYPTION_SECRET must be at least 32 characters in production. " +
+      "Generate one with: openssl rand -base64 32"
+    )
+  }
   return secret
 }
 

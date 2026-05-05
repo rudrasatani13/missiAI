@@ -92,7 +92,10 @@ export function getEnv(): AppEnv {
   try {
     const env = envSchema.parse(process.env);
     if (env.NODE_ENV === 'production' && !env.MISSI_KV_ENCRYPTION_SECRET) {
-      throw new Error('Missing or invalid required environment variable(s): MISSI_KV_ENCRYPTION_SECRET');
+      throw new Error(
+        'Missing required secret in production: MISSI_KV_ENCRYPTION_SECRET. ' +
+        'Must be at least 32 characters. Generate with: openssl rand -base64 32',
+      );
     }
     return env;
   } catch (error) {

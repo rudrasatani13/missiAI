@@ -294,10 +294,33 @@ If a secret is suspected to be compromised, follow the steps below.
 4. Update in Cloudflare dashboard environment settings (Production + Preview)
 
 ### MISSI_KV_ENCRYPTION_SECRET
-1. Generate a fresh random secret with at least 32 characters
+
+**Format requirement:** Minimum 32 characters. Recommended: 44+ characters from
+`openssl rand -base64 32` (256-bit entropy). Shorter values are **rejected in
+production** (fail closed — returns 500/503, not a degraded fallback).
+
+**Secret format rules:**
+- Do NOT use short passphrases, repeated characters, or dictionary words
+- Do NOT log or print the secret value anywhere
+- Do NOT use `openssl rand -hex 16` (gives only 128-bit entropy)
+- **Use:** `openssl rand -base64 32` → 44-char string, 256-bit entropy
+
+**Migration risk:** The `enc:v1:` key derivation uses the first 32 bytes of the
+secret as the raw AES-256 key (truncates longer secrets; rejects shorter ones).
+Changing or rotating the secret **does not break existing** `enc:v1:` KV values
+as long as the new secret's first 32 chars are identical to the old secret's
+first 32 chars. If the first 32 chars change, existing `enc:v1:` ciphertext
+will fail to decrypt. Plan a re-encryption pass for OAuth tokens and plugin
+credentials before rotating if the first 32 chars will differ.
+
+**Rotation steps:**
+1. `openssl rand -base64 32` → copy the 44-char result
 2. `wrangler secret put MISSI_KV_ENCRYPTION_SECRET`
 3. Update in Cloudflare dashboard environment settings (Production + Preview)
-4. **Impact:** Existing confirmation, boss-token, and live relay tickets signed with the old secret will stop validating
+4. **Impact:** Existing confirmation, boss-token, and live relay tickets signed
+   with the old secret will stop validating (users retry; no data loss).
+   OAuth tokens stored as `enc:v1:` will fail to decrypt if first 32 chars
+   changed — affected users must reconnect their integrations.
 
 ### Dodo Payments API Key
 1. Revoke at https://app.dodopayments.com > Developer > API

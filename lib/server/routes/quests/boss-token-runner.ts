@@ -9,7 +9,12 @@ import type { Quest } from '@/types/quests'
 
 function getEncryptionSecret(): string | null {
   try {
-    return process.env.MISSI_KV_ENCRYPTION_SECRET ?? null
+    const secret = process.env.MISSI_KV_ENCRYPTION_SECRET ?? null
+    if (!secret) return null
+    if (process.env.NODE_ENV === 'production' && secret.length < 32) {
+      return null
+    }
+    return secret
   } catch {
     return null
   }

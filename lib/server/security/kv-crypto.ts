@@ -12,12 +12,33 @@
 //    and for decrypting encrypted values.
 // 3. Per-value unique IV: Each encryption uses a fresh 12-byte random IV,
 //    concatenated with the ciphertext for storage.
+// 4. Minimum entropy: In production the secret MUST be at least 32 characters.
+//    Secrets shorter than 32 characters are rejected at call time in production.
+//    In development a short secret is permitted but emits no padding silently.
 //
 // FORMAT: enc:v1:<base64(iv[12] + ciphertext + authTag)>
 //
 // DEPLOYMENT: Add `MISSI_KV_ENCRYPTION_SECRET` as a Cloudflare secret:
 //   wrangler secret put MISSI_KV_ENCRYPTION_SECRET
-//   (use a 32-character random string; e.g. from `openssl rand -hex 16`)
+//
+// SECRET FORMAT:
+//   - Minimum:     32 characters (enforced hard in production, allowed in dev)
+//   - Recommended: 44+ characters from `openssl rand -base64 32` (256-bit entropy)
+//   - Do NOT use predictable values, repeated characters, or short passphrases
+//   - Do NOT log or expose the secret value
+//
+// KEY DERIVATION (v1 — enc:v1: prefix):
+//   The first 32 bytes of the UTF-8-encoded secret are used as the AES-256 key.
+//   Secrets longer than 32 bytes are silently truncated to 32 bytes.
+//   Secrets shorter than 32 bytes would be zero-padded, which reduces effective
+//   key entropy — this is why they are rejected in production.
+//   IMPORTANT: Changing this derivation would invalidate all existing enc:v1
+//   ciphertext in KV. The v2 path (encv2: prefix) uses HKDF-SHA-256 instead.
+//
+// MIGRATION NOTE:
+//   There is no planned migration from v1 to v2 key derivation for enc:v1
+//   values. The correct fix is to enforce strong secrets (>= 32 chars) so
+//   zero-padding never applies in practice.
 
 import type { KVStore } from '@/types'
 
@@ -33,10 +54,28 @@ const ENCRYPTED_PREFIX = 'enc:v1:'
 let _cachedKey: CryptoKey | null = null
 let _cachedSecretHash: string | null = null
 
+// Minimum byte-length for the encryption secret.
+// AES-256 uses a 32-byte key. The v1 derivation zero-pads secrets shorter than
+// this, which would reduce effective entropy. Production rejects such secrets.
+export const MIN_SECRET_LENGTH = 32
+
 function getSecret(): string {
   const secret = process.env.MISSI_KV_ENCRYPTION_SECRET
   if (!secret || secret.trim().length === 0) {
     throw new Error('MISSI_KV_ENCRYPTION_SECRET is required')
+  }
+  // In production, fail closed for weak short secrets rather than silently
+  // reducing entropy by zero-padding the key material.
+  if (secret.length < MIN_SECRET_LENGTH) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        `MISSI_KV_ENCRYPTION_SECRET must be at least ${MIN_SECRET_LENGTH} characters ` +
+        `in production (got ${secret.length}). ` +
+        'Generate one with: openssl rand -base64 32',
+      )
+    }
+    // Development: allow short secrets so devs can start quickly, but the
+    // zero-padding risk still applies — use a full-length secret in dev too.
   }
   return secret
 }
@@ -148,16 +187,24 @@ async function hkdfSha256(
   salt: Uint8Array,
   info: Uint8Array,
   length: number,
-): Promise<Uint8Array> {
+): Promise<Uint8Array<ArrayBuffer>> {
+  // Cast to Uint8Array<ArrayBuffer>: TextEncoder.encode() always produces a
+  // plain ArrayBuffer (never SharedArrayBuffer), so this narrowing is safe.
+  // Required because Web Crypto's BufferSource expects ArrayBufferView<ArrayBuffer>.
   const baseKey = await crypto.subtle.importKey(
     'raw',
-    ikm,
+    ikm as Uint8Array<ArrayBuffer>,
     { name: 'HKDF' },
     false,
     ['deriveBits'],
   )
   const bits = await crypto.subtle.deriveBits(
-    { name: 'HKDF', hash: 'SHA-256', salt, info },
+    {
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt: salt as Uint8Array<ArrayBuffer>,
+      info: info as Uint8Array<ArrayBuffer>,
+    },
     baseKey,
     length * 8,
   )
