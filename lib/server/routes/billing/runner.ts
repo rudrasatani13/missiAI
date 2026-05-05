@@ -2,7 +2,6 @@ import { clerkClient } from '@clerk/nextjs/server'
 import { getUserBillingData, setUserPlan } from '@/lib/billing/tier-checker'
 import { getDailyUsage } from '@/lib/billing/usage-tracker'
 import { createDodoCheckoutSession, cancelDodoSubscription } from '@/lib/billing/dodo-client'
-import { getReferrer } from '@/lib/billing/referral'
 import { log, logApiError } from '@/lib/server/observability/logger'
 import { rateLimitHeaders } from '@/lib/server/security/rate-limiter'
 import { PLANS, getServerDodoProductId } from '@/types/billing'
@@ -81,16 +80,6 @@ export async function runBillingPostRoute(req: Request): Promise<Response> {
   const email = user.emailAddresses[0]?.emailAddress ?? ''
   const name = ((user.firstName ?? '') + ' ' + (user.lastName ?? '')).trim()
 
-  let hasReferralDiscount = false
-  const kv = getBillingKV()
-  if (kv) {
-    try {
-      const referrer = await getReferrer(kv, userId)
-      hasReferralDiscount = !!referrer
-    } catch {
-    }
-  }
-
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://missi.space'
   const returnUrl = `${appUrl}/pricing?success=true&plan=${planId}`
 
@@ -104,7 +93,6 @@ export async function runBillingPostRoute(req: Request): Promise<Response> {
       metadata: {
         userId,
         planId,
-        ...(hasReferralDiscount ? { referralDiscount: 'true' } : {}),
       },
     })
   } catch (error) {
@@ -128,7 +116,6 @@ export async function runBillingPostRoute(req: Request): Promise<Response> {
       success: true,
       checkout_url: checkoutSession.checkout_url,
       session_id: checkoutSession.session_id,
-      referralDiscount: hasReferralDiscount,
     },
     200,
     rateLimitHeaders(ratePreflight.rateResult),

@@ -10,8 +10,6 @@ const {
   getUserPlanMock,
   checkAndIncrementVoiceTimeMock,
   checkHardBudgetMock,
-  awardXPMock,
-  waitUntilMock,
   AuthenticationErrorMock,
 } = vi.hoisted(() => {
   class AuthenticationErrorMock extends Error {
@@ -42,10 +40,6 @@ const {
     getUserPlanMock: vi.fn(),
     checkAndIncrementVoiceTimeMock: vi.fn(),
     checkHardBudgetMock: vi.fn(async () => ({ allowed: true, spendUsd: 0, budgetUsd: 5.0 })),
-    awardXPMock: vi.fn(async () => {}),
-    waitUntilMock: vi.fn((promise: Promise<unknown>) => {
-      void promise
-    }),
     AuthenticationErrorMock,
   }
 })
@@ -75,14 +69,6 @@ vi.mock("@/lib/billing/tier-checker", () => ({
 
 vi.mock("@/lib/billing/usage-tracker", () => ({
   checkAndIncrementVoiceTime: checkAndIncrementVoiceTimeMock,
-}))
-
-vi.mock("@/lib/gamification/xp-engine", () => ({
-  awardXP: awardXPMock,
-}))
-
-vi.mock("@/lib/server/platform/wait-until", () => ({
-  waitUntil: waitUntilMock,
 }))
 
 vi.mock("@/lib/server/observability/cost-tracker", async () => {
@@ -202,7 +188,6 @@ describe("runChatStreamPreflight", () => {
     expect(result.data.input.voiceDurationMs).toBe(3000)
     expect(checkRateLimitMock).toHaveBeenCalledWith("user_123", "free", "ai")
     expect(checkAndIncrementVoiceTimeMock).toHaveBeenCalledWith(kv, "user_123", "free", 3000)
-    expect(waitUntilMock).toHaveBeenCalledTimes(1)
   })
 
   it("does not charge voice quota for non-voice requests", async () => {

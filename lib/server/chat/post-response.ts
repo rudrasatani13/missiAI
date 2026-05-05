@@ -3,8 +3,6 @@ import { buildCacheKey, isCacheable, setCachedResponse } from "@/lib/server/cach
 import { calculateTotalCost, checkBudgetAlert, incrementDailySpend } from "@/lib/server/observability/cost-tracker"
 import { waitUntil } from "@/lib/server/platform/wait-until"
 import { recordAnalyticsUsage } from "@/lib/analytics/event-store"
-import { analyzeMoodFromConversation } from "@/lib/mood/mood-analyzer"
-import { addMoodEntry } from "@/lib/mood/mood-store"
 import { logError, logRequest } from "@/lib/server/observability/logger"
 import type { KVStore } from "@/types"
 
@@ -33,7 +31,6 @@ interface ChatPostResponseOptions {
 }
 
 const POST_RESPONSE_TASK_TIMEOUT_MS = 5_000
-const MOOD_ANALYSIS_TIMEOUT_MS = 3_000
 
 function scheduleTimedTask(
   taskName: string,
@@ -126,22 +123,8 @@ export function runChatPostResponseTasks(options: ChatPostResponseOptions): void
     }
   }
 
-  const userMessages = options.messages.filter((message) => message.role === "user")
-  if (options.kv && !options.incognito && userMessages.length >= 3) {
-    const moodTranscript = options.messages
-      .map((message) => (message.role === "user" ? `User: ${message.content}` : `Missi: ${message.content}`))
-      .join("\n")
-    const today = new Date().toISOString().slice(0, 10)
-    const sessionId = crypto.randomUUID().slice(0, 8)
-    scheduleTimedTask(
-      "mood_analysis",
-      options.userId,
-      async (hasTimedOut) => {
-        const entry = await analyzeMoodFromConversation(moodTranscript, today, sessionId)
-        if (hasTimedOut()) return
-        await addMoodEntry(options.kv!, options.userId, entry)
-      },
-      MOOD_ANALYSIS_TIMEOUT_MS,
-    )
-  }
+  // Mood auto-extraction was removed in 2026-05. Auto-derived mental-health
+  // signals from chat were a privacy/regulatory liability under India DPDPA
+  // and GDPR sensitive-category rules. Any future mood capture must be
+  // explicitly opt-in by the user, never default-on.
 }

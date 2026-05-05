@@ -7,7 +7,7 @@ Recommended layout:
 - `chat/`: request bodies, mocked SSE payloads, auth context builders
 - `memory/`: graph fixtures, vector search stubs, extraction payloads
 - `voice/`: STT/TTS inputs, live relay session mocks
-- `billing/`: checkout, webhook, and referral state fixtures
+- `billing/`: checkout and webhook fixtures
 - `plugins/`: connected plugin configs, OAuth callback payloads, tool execution mocks
 
 Each fixture module can export `fixture` or `default` with the shape expected by `server-function-benchmark.ts`:

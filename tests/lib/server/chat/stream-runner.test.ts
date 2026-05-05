@@ -8,11 +8,9 @@ const {
   logLatencyMock,
   createTimerMock,
   runChatPostResponseTasksMock,
-  waitUntilMock,
   executeAgentToolMock,
   getToolLabelMock,
   classifyAgentToolMock,
-  awardXPMock,
 } = vi.hoisted(() => ({
   buildGeminiRequestMock: vi.fn(),
   streamChatMock: vi.fn(),
@@ -20,13 +18,9 @@ const {
   logLatencyMock: vi.fn(),
   createTimerMock: vi.fn(() => () => 0),
   runChatPostResponseTasksMock: vi.fn(),
-  waitUntilMock: vi.fn((promise: Promise<unknown>) => {
-    void promise
-  }),
   executeAgentToolMock: vi.fn(),
   getToolLabelMock: vi.fn(),
   classifyAgentToolMock: vi.fn(),
-  awardXPMock: vi.fn(async () => {}),
 }))
 
 vi.mock("@/lib/ai/providers/gemini-stream", () => ({
@@ -47,10 +41,6 @@ vi.mock("@/lib/server/chat/post-response", () => ({
   runChatPostResponseTasks: runChatPostResponseTasksMock,
 }))
 
-vi.mock("@/lib/server/platform/wait-until", () => ({
-  waitUntil: waitUntilMock,
-}))
-
 vi.mock("@/lib/ai/agents/tools/dispatcher", () => ({
   executeAgentTool: executeAgentToolMock,
   getToolLabel: getToolLabelMock,
@@ -58,10 +48,6 @@ vi.mock("@/lib/ai/agents/tools/dispatcher", () => ({
 
 vi.mock("@/lib/ai/agents/tools/policy", () => ({
   classifyAgentTool: classifyAgentToolMock,
-}))
-
-vi.mock("@/lib/gamification/xp-engine", () => ({
-  awardXP: awardXPMock,
 }))
 
 import { buildChatStreamSseStream } from "@/lib/server/chat/stream-runner"
@@ -255,8 +241,6 @@ describe("buildChatStreamSseStream", () => {
       'Blocked destructive tool "deleteCalendarEvent" from agent loop',
       "user_2",
     )
-    expect(awardXPMock).toHaveBeenCalledWith(kv, "user_2", "agent", 3)
-    expect(waitUntilMock).toHaveBeenCalledTimes(1)
     expect(runChatPostResponseTasksMock).toHaveBeenCalledWith(expect.objectContaining({
       userId: "user_2",
       responseText: "I need your confirmation first.",

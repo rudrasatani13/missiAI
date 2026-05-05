@@ -1,14 +1,13 @@
 "use client"
 
-import { Suspense, lazy, useState, useEffect, type ChangeEventHandler, type RefObject } from "react"
+import { Suspense, lazy, useState, useEffect } from "react"
 import Link from "next/link"
 import nextDynamic from "next/dynamic"
-import { ArrowLeft, Menu, X } from "lucide-react"
+import { ArrowLeft, Menu } from "lucide-react"
 import type { ActionResult } from "@/types/actions"
 import type { PlanId } from "@/types/billing"
 import type { VoiceState } from "@/types/chat"
 import type { EmotionProfile } from "@/types/emotion"
-import type { AvatarTier } from "@/types/gamification"
 import type { PluginResult } from "@/types/plugins"
 import type { BriefingItem, DailyBriefing } from "@/types/proactive"
 import type { AgentStep } from "@/components/chat/AgentSteps"
@@ -17,11 +16,9 @@ import { StatusDisplay } from "@/components/chat/StatusDisplay"
 import { ChatSidebar } from "@/components/chat/ChatSidebar"
 import { UsageBar } from "@/components/chat/UsageBar"
 import { BootSequence } from "@/components/chat/BootSequence"
-import { ChatTextInput } from "@/components/chat/ChatTextInput"
 import { useGuestChat } from "@/hooks/chat/useGuestChat"
 import { GuestLimitModal } from "@/components/chat/GuestLimitModal"
 import { Magnetic } from "@/components/effects/Magnetic"
-import type { VisualMemoryResult } from "@/lib/chat/visual-memory"
 import { pluginResultToActionResult as mapPluginResultToActionResult } from "@/lib/chat/page-helpers"
 
 // Dynamic import — keeps three.js OUT of the server/edge bundle (~5MB saved)
@@ -42,26 +39,19 @@ interface ChatPageShellProps {
   actionResult: ActionResult | null
   agentSteps: AgentStep[]
   audioLevel?: number
-  avatarTier?: AvatarTier
   billingLoading: boolean
   bootCompleted: boolean
   briefing: DailyBriefing | null
-  clearVisualSelection: () => void
   completeBootSequence: () => void
   currentEmotion?: EmotionProfile | null
   dismissOnboarding: () => void
-  dismissVisualResult: () => void
   displayName: string
   effectiveLastResponse: string
   effectiveLastTranscript: string
   effectiveStatusText: string
   effectiveVoiceState: VoiceState
   errorMessage: string | null
-  fileInputRef: RefObject<HTMLInputElement | null>
-  handleImageSelect: ChangeEventHandler<HTMLInputElement>
-  handleSaveToMemory: () => void
   handleTap: () => void
-  isAnalyzing: boolean
   isAtLimit: boolean
   lastResult: ActionResult | null
   liveMode: boolean
@@ -76,15 +66,11 @@ interface ChatPageShellProps {
   onUpgrade: () => void
   planId: PlanId | undefined
   pluginResult: PluginResult | null
-  setVisualNote: (value: string) => void
   showBootSequence: boolean
   showOnboarding: boolean
   streamingText: string
-  thumbnail: string | null
   usedSeconds: number
   limitSeconds: number
-  visualNote: string
-  visualResult: VisualMemoryResult | null
   voiceState: VoiceState
 }
 
@@ -93,26 +79,19 @@ export function ChatPageShell({
   actionResult,
   agentSteps,
   audioLevel,
-  avatarTier,
   billingLoading,
   bootCompleted,
   briefing,
-  clearVisualSelection,
   completeBootSequence,
   currentEmotion,
   dismissOnboarding,
-  dismissVisualResult,
   displayName,
   effectiveLastResponse,
   effectiveLastTranscript,
   effectiveStatusText,
   effectiveVoiceState,
   errorMessage,
-  fileInputRef,
-  handleImageSelect,
-  handleSaveToMemory,
   handleTap,
-  isAnalyzing,
   isAtLimit,
   lastResult,
   liveMode,
@@ -127,15 +106,11 @@ export function ChatPageShell({
   onUpgrade,
   planId,
   pluginResult,
-  setVisualNote,
   showBootSequence,
   showOnboarding,
   streamingText,
-  thumbnail,
   usedSeconds,
   limitSeconds,
-  visualNote,
-  visualResult,
   voiceState,
 }: ChatPageShellProps) {
   // Sidebar width reported by ChatSidebar (0 on mobile). Used to offset fixed chat children.
@@ -145,14 +120,15 @@ export function ChatPageShell({
 
   // Guest chat state
   const guestChat = useGuestChat()
+  const { error: guestChatError, isAtLimit: guestIsAtLimit, clearError: clearGuestChatError } = guestChat
   const [showGuestLimitModal, setShowGuestLimitModal] = useState(false)
 
   useEffect(() => {
-    if (guestChat.error === "GUEST_LIMIT_REACHED" || (isGuest && guestChat.isAtLimit)) {
+    if (guestChatError === "GUEST_LIMIT_REACHED" || (isGuest && guestIsAtLimit)) {
       setShowGuestLimitModal(true)
-      guestChat.clearError()
+      clearGuestChatError()
     }
-  }, [guestChat.error, guestChat.isAtLimit, isGuest])
+  }, [clearGuestChatError, guestChatError, guestIsAtLimit, isGuest])
 
   // Determine what to show in ActionCard: prefer plugin result if present, else action result
   const displayResult = pluginResult
@@ -171,7 +147,6 @@ export function ChatPageShell({
         onNewChat={onNewChat}
         isLiveMode={liveMode}
         isGuest={isGuest}
-        onPickImage={() => fileInputRef.current?.click()}
         onWidthChange={setSidebarWidth}
         mobileSidebarOpen={mobileSidebarOpen}
         onMobileSidebarChange={setMobileSidebarOpen}
@@ -205,7 +180,7 @@ export function ChatPageShell({
           showOnboarding={showOnboarding}
         />
       </Suspense>
-      <ParticleVisualizer state={effectiveVoiceState} isActive={effectiveVoiceState !== "idle"} audioLevel={audioLevel} avatarTier={avatarTier} />
+      <ParticleVisualizer state={effectiveVoiceState} isActive={effectiveVoiceState !== "idle"} audioLevel={audioLevel} />
       <div className="absolute inset-0 z-10" onClick={isGuest || isAtLimit || billingLoading ? undefined : handleTap} data-testid="voice-tap-area"
         style={{ cursor: isGuest || isAtLimit || billingLoading ? "default" : voiceState === "idle" || voiceState === "speaking" ? "pointer" : "default" }} />
       {/* On mobile: full-width pill with hamburger on the left.
@@ -299,96 +274,6 @@ export function ChatPageShell({
             : 'calc(2.5rem + env(safe-area-inset-bottom))',
         }}>
 
-        {/* Visual Memory Result Card — shown after successful analysis or on error */}
-        {visualResult && (
-          <div className="mb-3 pointer-events-auto w-72 rounded-2xl px-4 py-3 shadow-xl"
-            style={{ background: 'rgba(0,255,140,0.07)', border: '1px solid rgba(0,255,140,0.15)', backdropFilter: 'blur(20px)' }}>
-            <p className="text-[11px] font-medium mb-0.5" style={{ color: 'rgba(0,255,140,0.9)' }}>
-              {visualResult.recallHint ? `Got it! I've saved this to your visual memory.` : visualResult.title}
-            </p>
-            {visualResult.recallHint && (
-              <>
-                <p className="text-[11px] font-light" style={{ color: 'var(--missi-text-secondary)' }}>
-                  {visualResult.title} ✨
-                </p>
-                <p className="text-[10px] italic mt-1" style={{ color: 'var(--missi-text-muted)' }}>
-                  Try asking: "{visualResult.recallHint}"
-                </p>
-                {visualResult.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {visualResult.tags.slice(0, 5).map((tag) => (
-                      <span key={tag} className="text-[9px] px-2 py-0.5 rounded-full"
-                        style={{ background: 'var(--missi-surface)', color: 'var(--missi-text-secondary)', border: '1px solid var(--missi-border)' }}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-            <button onClick={dismissVisualResult}
-              className="absolute top-2 right-2 text-[var(--missi-text-muted)] hover:text-[var(--missi-text-secondary)] transition-colors"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'absolute' }}>
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        )}
-
-        {/* Thumbnail Preview — shown when image is attached, before saving */}
-        {thumbnail && !isAnalyzing && (
-          <div className="mb-3 pointer-events-auto flex flex-col items-center gap-2">
-            <div className="relative">
-              <img src={thumbnail} alt="Upload preview" className="w-16 h-16 object-cover rounded-xl border border-[var(--missi-border)]" />
-              <button onClick={(e) => {
-                e.stopPropagation()
-                clearVisualSelection()
-              }}
-                className="absolute -top-2 -right-2 bg-[var(--missi-bg)] text-[var(--missi-text-primary)] rounded-full p-0.5 border border-[var(--missi-border)] hover:scale-110 transition-transform">
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-            {/* Optional note field */}
-            <input
-              type="text"
-              value={visualNote}
-              onChange={(e) => setVisualNote(e.target.value)}
-              maxLength={200}
-              placeholder="Add a note (optional)"
-              className="w-64 text-[11px] px-3 py-1.5 rounded-full outline-none"
-              style={{
-                background: 'var(--missi-input-bg)',
-                border: '1px solid var(--missi-input-border)',
-                color: 'var(--missi-input-text)',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            />
-            {/* Save to Memory button */}
-            <button
-              onClick={(e) => { e.stopPropagation(); handleSaveToMemory() }}
-              className="px-4 py-1.5 rounded-full text-[11px] font-medium transition-all hover:scale-105 active:scale-95"
-              style={{
-                background: 'linear-gradient(135deg, rgba(0,255,140,0.2), rgba(0,200,100,0.1))',
-                border: '1px solid rgba(0,255,140,0.25)',
-                color: 'rgba(0,255,140,0.9)',
-                cursor: 'pointer',
-              }}
-            >
-              Save to Memory
-            </button>
-          </div>
-        )}
-
-        {/* Loading state — while Gemini analyzes the image */}
-        {isAnalyzing && (
-          <div className="mb-3 pointer-events-none flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full border-2 border-[var(--missi-border)] border-t-[var(--missi-text-secondary)]"
-              style={{ animation: 'spin 0.8s linear infinite' }} />
-            <p className="text-[11px] font-light" style={{ color: 'var(--missi-text-secondary)' }}>
-              Missi is saving this to memory...
-            </p>
-          </div>
-        )}
-
         <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center", pointerEvents: "auto" }}>
           <VoiceButton
             state={effectiveVoiceState}
@@ -426,16 +311,6 @@ export function ChatPageShell({
         limitSeconds={limitSeconds}
         planId={planId ?? 'free'}
         onUpgrade={onUpgrade}
-      />
-
-      {/* Hidden file input — triggered by sidebar More → Vision */}
-      <input
-        type="file"
-        accept="image/*"
-        capture="environment"
-        ref={fileInputRef}
-        className="hidden"
-        onChange={handleImageSelect}
       />
 
       </main>

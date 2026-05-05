@@ -12,7 +12,7 @@ import type { KVStore } from "@/types"
 
 const BASE_TOOLS = [
   "searchMemory", "takeNote", "createNote", "searchWeb",
-  "getWeekSummary", "logExpense", "updateGoalProgress", "draftEmail", "setReminder",
+  "getWeekSummary", "updateGoalProgress", "draftEmail", "setReminder",
 ]
 const CALENDAR_TOOLS = ["readCalendar", "createCalendarEvent"]
 const PLAN_MEMORY_TOP_K = 3

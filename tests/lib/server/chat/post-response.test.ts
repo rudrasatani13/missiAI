@@ -9,8 +9,6 @@ const {
   incrementDailySpendMock,
   recordAnalyticsUsageMock,
   setCachedResponseMock,
-  addMoodEntryMock,
-  analyzeMoodFromConversationMock,
 } = vi.hoisted(() => ({
   logErrorMock: vi.fn(),
   logRequestMock: vi.fn(),
@@ -21,14 +19,6 @@ const {
   incrementDailySpendMock: vi.fn(async () => {}),
   recordAnalyticsUsageMock: vi.fn(async () => {}),
   setCachedResponseMock: vi.fn(async () => {}),
-  addMoodEntryMock: vi.fn(async () => {}),
-  analyzeMoodFromConversationMock: vi.fn(async () => ({
-    date: "2026-04-23",
-    score: 7,
-    label: "calm",
-    trigger: "shipping fixes",
-    recordedAt: Date.now(),
-  })),
 }))
 
 vi.mock("@/lib/server/observability/logger", () => ({
@@ -61,14 +51,6 @@ vi.mock("@/lib/server/cache/response-cache", async () => {
   }
 })
 
-vi.mock("@/lib/mood/mood-analyzer", () => ({
-  analyzeMoodFromConversation: analyzeMoodFromConversationMock,
-}))
-
-vi.mock("@/lib/mood/mood-store", () => ({
-  addMoodEntry: addMoodEntryMock,
-}))
-
 import { runChatPostResponseTasks } from "@/lib/server/chat/post-response"
 
 function createMockKV(): KVStore {
@@ -93,7 +75,7 @@ describe("runChatPostResponseTasks", () => {
     vi.useRealTimers()
   })
 
-  it("logs completion and schedules analytics, budget, cache, and mood work", async () => {
+  it("logs completion and schedules analytics, budget, and cache work", async () => {
     const kv = createMockKV()
 
     runChatPostResponseTasks({
@@ -136,12 +118,10 @@ describe("runChatPostResponseTasks", () => {
       }),
     )
     expect(setCachedResponseMock).toHaveBeenCalledTimes(1)
-    expect(analyzeMoodFromConversationMock).toHaveBeenCalledTimes(1)
-    expect(addMoodEntryMock).toHaveBeenCalledTimes(1)
     expect(waitUntilMock).toHaveBeenCalled()
   })
 
-  it("skips analytics and mood work when opted out or incognito", async () => {
+  it("skips analytics work when opted out", async () => {
     const kv = createMockKV()
 
     runChatPostResponseTasks({
@@ -170,80 +150,8 @@ describe("runChatPostResponseTasks", () => {
     await Promise.resolve()
 
     expect(recordAnalyticsUsageMock).not.toHaveBeenCalled()
-    expect(analyzeMoodFromConversationMock).not.toHaveBeenCalled()
-    expect(addMoodEntryMock).not.toHaveBeenCalled()
     expect(incrementDailySpendMock).toHaveBeenCalledTimes(1)
     expect(checkBudgetAlertMock).toHaveBeenCalledTimes(1)
-  })
-
-  it("logs timeout and skips late mood write when mood analysis exceeds cutoff", async () => {
-    vi.useFakeTimers()
-    const kv = createMockKV()
-    type MoodResult = {
-      date: string
-      score: number
-      label: string
-      trigger: string
-      recordedAt: number
-    }
-    let resolveMood: ((value: MoodResult) => void) | undefined
-
-    analyzeMoodFromConversationMock.mockImplementationOnce(
-      () => new Promise<MoodResult>((resolve) => {
-        resolveMood = resolve
-      }),
-    )
-
-    runChatPostResponseTasks({
-      kv,
-      userId: "user_3",
-      startTime: Date.now() - 500,
-      logEvent: "chat.completed",
-      model: "gemini-2.5-flash",
-      inputTokens: 100,
-      responseText: "Here is your answer.",
-      messages: [
-        { role: "user", content: "One" },
-        { role: "assistant", content: "Two" },
-        { role: "user", content: "Three" },
-        { role: "assistant", content: "Four" },
-        { role: "user", content: "Five" },
-      ],
-      analyticsOptOut: true,
-      cache: {
-        enabled: false,
-        message: "One",
-        personality: "assistant",
-      },
-    })
-
-    await Promise.resolve()
-    await Promise.resolve()
-
-    expect(addMoodEntryMock).not.toHaveBeenCalled()
-
-    await vi.advanceTimersByTimeAsync(3_000)
-
-    expect(logErrorMock).toHaveBeenCalledWith(
-      "chat_post_response.mood_analysis_timeout",
-      "mood_analysis timed out after 3000ms",
-      "user_3",
-    )
-
-    if (resolveMood) {
-      resolveMood({
-        date: "2026-04-23",
-        score: 7,
-        label: "calm",
-        trigger: "late result",
-        recordedAt: Date.now(),
-      })
-    }
-
-    await Promise.resolve()
-    await Promise.resolve()
-
-    expect(addMoodEntryMock).not.toHaveBeenCalled()
   })
 
   it("logs partial task failures without blocking other background work", async () => {

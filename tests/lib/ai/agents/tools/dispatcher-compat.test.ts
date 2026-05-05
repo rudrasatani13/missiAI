@@ -21,23 +21,16 @@ vi.mock("@/lib/memory/life-graph", () => ({
   formatLifeGraphForPrompt: vi.fn(),
 }))
 
-vi.mock("@/lib/gamification/streak", () => ({
-  getGamificationData: vi.fn(),
-}))
-
 vi.mock("nanoid", () => ({
   nanoid: vi.fn(() => "mock-id"),
 }))
 
 import { executeAgentTool } from "@/lib/ai/agents/tools/dispatcher"
-import { getEntries } from "@/lib/budget/budget-store"
-import { getGamificationData } from "@/lib/gamification/streak"
 import { getGoogleTokens } from "@/lib/plugins/data-fetcher"
 import { createCalendarEvent as gcalCreateEvent } from "@/lib/plugins/calendar-plugin"
 import { addOrUpdateNode, getLifeGraphReadSnapshot, searchLifeGraph } from "@/lib/memory/life-graph"
 
 const mockGetGoogleTokens = vi.mocked(getGoogleTokens)
-const mockGetGamificationData = vi.mocked(getGamificationData)
 const mockGcalCreate = vi.mocked(gcalCreateEvent)
 const mockAddOrUpdateNode = vi.mocked(addOrUpdateNode)
 const mockGetLifeGraphReadSnapshot = vi.mocked(getLifeGraphReadSnapshot)
@@ -150,96 +143,9 @@ describe("executeAgentTool — createCalendarEvent", () => {
   })
 })
 
-describe("executeAgentTool — logExpense", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    mockAddOrUpdateNode.mockResolvedValue({
-      id: "node-123",
-      userId: "user_test123",
-      category: "event",
-      title: "Expense: lunch",
-      detail: "Amount: 350 INR on 2026-04-15. Category: food.",
-      tags: ["expense", "food", "inr"],
-      people: [],
-      emotionalWeight: 0.2,
-      confidence: 0.9,
-      source: "explicit",
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      accessCount: 0,
-      lastAccessedAt: 0,
-    })
-  })
-
-  it("creates a LifeNode with correct structure", async () => {
-    const result = await executeAgentTool({
-      name: "logExpense",
-      args: { amount: 350, currency: "INR", category: "food", description: "lunch", date: "2026-04-15" },
-    }, makeCtx())
-
-    expect(result.status).toBe("done")
-    expect(mockAddOrUpdateNode).toHaveBeenCalledOnce()
-
-    const nodeArg = mockAddOrUpdateNode.mock.calls[0][3]
-    expect(nodeArg.category).toBe("event")
-    expect(nodeArg.title).toBe("Expense: lunch")
-    expect(nodeArg.tags).toContain("expense")
-    expect(nodeArg.tags).toContain("food")
-    expect(nodeArg.source).toBe("explicit")
-  })
-
-  it("logs the expense into the shared budget store", async () => {
-    const mockKV = makeMockKV()
-    const ctx = makeCtx(mockKV)
-
-    await executeAgentTool({
-      name: "logExpense",
-      args: { amount: 500, currency: "INR", category: "transport", description: "taxi", date: "2026-04-15" },
-    }, ctx)
-
-    const entries = await getEntries(mockKV, "user_test123", "2026-04")
-    expect(entries).toHaveLength(1)
-    expect(entries[0].amount).toBe(500)
-    expect(entries[0].category).toBe("transport")
-    expect(entries[0].source).toBe("agent")
-  })
-
-  it("returns error for zero/invalid amount", async () => {
-    const result = await executeAgentTool({
-      name: "logExpense",
-      args: { amount: 0, category: "food", description: "something" },
-    }, makeCtx())
-
-    expect(result.status).toBe("error")
-  })
-
-  it("defaults to 'other' category for unknown categories", async () => {
-    await executeAgentTool({
-      name: "logExpense",
-      args: { amount: 100, category: "invalidCategory", description: "misc" },
-    }, makeCtx())
-
-    const nodeArg = mockAddOrUpdateNode.mock.calls[0][3]
-    expect(nodeArg.tags).toContain("other")
-  })
-})
-
 describe("executeAgentTool — getWeekSummary", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetGamificationData.mockResolvedValue({
-      userId: "user_test123",
-      totalXP: 0,
-      level: 1,
-      avatarTier: 1,
-      habits: [],
-      achievements: [],
-      xpLog: [],
-      xpLogDate: "",
-      loginStreak: 0,
-      lastLoginDate: "",
-      lastUpdatedAt: 0,
-    })
   })
 
   it("returns a formatted summary even with no data (new user)", async () => {

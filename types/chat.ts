@@ -7,6 +7,10 @@ export interface ConversationEntry {
   image?: string
 }
 
+// Personality multi-select was removed in 2026-05 (see audit). The union
+// retains its previous shape for backward compatibility with stored chat
+// sessions and validation schemas — the server collapses every value to the
+// single safe assistant prompt. Custom prompts are deprecated and ignored.
 export type PersonalityKey = "assistant" | "bestfriend" | "professional" | "playful" | "mentor" | "custom"
 
 export interface PersonalityOption {
@@ -18,10 +22,5 @@ export interface PersonalityOption {
 }
 
 export const PERSONALITY_OPTIONS: PersonalityOption[] = [
-  { key: "assistant", label: "Helpful Assistant", iconName: "Sparkles", desc: "Helpful, precise, and objective AI", requiredPlan: "free" },
-  { key: "bestfriend", label: "Best Friend", iconName: "Heart", desc: "Warm, supportive, friendly", requiredPlan: "free" },
-  { key: "professional", label: "Professional", iconName: "Briefcase", desc: "Sharp, efficient, direct", requiredPlan: "plus" },
-  { key: "playful", label: "Playful", iconName: "Zap", desc: "Fun, witty, high energy", requiredPlan: "plus" },
-  { key: "mentor", label: "Mentor", iconName: "BrainCircuit", desc: "Wise, thoughtful, guiding", requiredPlan: "plus" },
-  { key: "custom", label: "Custom Personality", iconName: "Wand2", desc: "Create your own rules", requiredPlan: "plus" },
+  { key: "assistant", label: "Missi", iconName: "Sparkles", desc: "Helpful, direct, honest, emotionally safe", requiredPlan: "free" },
 ]

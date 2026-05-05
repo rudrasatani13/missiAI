@@ -3,13 +3,11 @@
 import { memo, useRef, useEffect } from "react"
 import * as THREE from "three"
 import type { VoiceState } from "@/types/chat"
-import type { AvatarTier } from "@/types/gamification"
 
 interface ParticleVisualizerProps {
   state: VoiceState
   isActive: boolean
   audioLevel?: number
-  avatarTier?: AvatarTier
 }
 
 function getQualityTier(): "low" | "high" {
@@ -296,7 +294,7 @@ function gaussianRandom(): number {
   return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v)
 }
 
-function ParticleVisualizerInner({ state, isActive: _isActive, audioLevel = 0, avatarTier = 1 }: ParticleVisualizerProps) {
+function ParticleVisualizerInner({ state, isActive: _isActive, audioLevel = 0 }: ParticleVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const vizRef = useRef<{
     scene: THREE.Scene
@@ -325,7 +323,7 @@ function ParticleVisualizerInner({ state, isActive: _isActive, audioLevel = 0, a
     const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
     const particleCount = quality === "low"
       ? (isMobile ? 3000 : 5000)
-      : Math.min(15000, 8000 + avatarTier * 1000)
+      : 9000
 
     let renderer: THREE.WebGLRenderer
     try {
@@ -559,8 +557,8 @@ function ParticleVisualizerInner({ state, isActive: _isActive, audioLevel = 0, a
     // This effect intentionally runs once (mount-only initialization).
     // Three.js WebGL contexts are expensive to create/destroy — re-initializing
     // on every prop change would cause GPU resource leaks. State-driven updates
-    // (voiceState, audioLevel, avatarTier) are handled in the separate useEffect below.
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // (voiceState and audioLevel) are handled in the separate useEffect below.
+  }, [])
 
   // ── State-driven behavior ──
   useEffect(() => {

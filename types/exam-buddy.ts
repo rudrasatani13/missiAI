@@ -41,8 +41,6 @@ export interface ExamBuddyProfile {
   examTarget: ExamTarget
   targetYear: number | null
   weakSubjects: ExamSubject[]
-  studyStreak: number
-  lastStudyDate: string  // YYYY-MM-DD
   totalQuizzesCompleted: number
   totalCorrectAnswers: number
   totalQuestionsAttempted: number
@@ -77,7 +75,6 @@ export interface QuizSession {
   totalMarks: number | null
   completedAt: number | null
   createdAt: number
-  xpEarned: number
 }
 
 // ─── Weak Topics ──────────────────────────────────────────────────────────────

@@ -4,7 +4,6 @@ import {
   saveProfile,
   getOrCreateProfile,
   updateWeakTopic,
-  updateStudyStreak,
   createDefaultProfile,
 } from '@/lib/exam-buddy/profile-store'
 import type { KVStore } from '@/types'
@@ -83,39 +82,5 @@ describe('exam-buddy profile-store', () => {
     for (let i = 0; i < records.length - 1; i++) {
       expect(records[i].wrongCount).toBeGreaterThanOrEqual(records[i + 1].wrongCount)
     }
-  })
-
-  it('updateStudyStreak increments on consecutive days', () => {
-    const today = new Date().toISOString().slice(0, 10)
-    const yesterday = (() => {
-      const d = new Date()
-      d.setDate(d.getDate() - 1)
-      return d.toISOString().slice(0, 10)
-    })()
-
-    const profile = createDefaultProfile('user-6', 'cbse_12')
-    profile.lastStudyDate = yesterday
-    profile.studyStreak = 3
-
-    updateStudyStreak(profile)
-
-    expect(profile.studyStreak).toBe(4)
-    expect(profile.lastStudyDate).toBe(today)
-  })
-
-  it('updateStudyStreak resets streak on gap', () => {
-    const twoDaysAgo = (() => {
-      const d = new Date()
-      d.setDate(d.getDate() - 2)
-      return d.toISOString().slice(0, 10)
-    })()
-
-    const profile = createDefaultProfile('user-7', 'upsc')
-    profile.lastStudyDate = twoDaysAgo
-    profile.studyStreak = 10
-
-    updateStudyStreak(profile)
-
-    expect(profile.studyStreak).toBe(1)
   })
 })

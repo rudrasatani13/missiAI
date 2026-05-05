@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import Link from 'next/link'
-import { Check, RefreshCw, Flame, Zap, MessageCircle } from 'lucide-react'
+import { Check, RefreshCw, Zap } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { DailyBrief, DailyTask } from '@/types/daily-brief'
 
@@ -10,7 +9,6 @@ import type { DailyBrief, DailyTask } from '@/types/daily-brief'
 
 const SOURCE_BADGES: Record<DailyTask['source'], { label: string }> = {
   goal: { label: 'Goal' },
-  habit: { label: 'Habit' },
   calendar: { label: 'Calendar' },
   challenge: { label: 'Challenge' },
   missi: { label: 'Missi' },
@@ -538,77 +536,6 @@ export default function TodayMissionClient() {
                 </AnimatePresence>
               </div>
             </div>
-
-            {/* Streak Nudge */}
-            {brief.streakNudge && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-                className="flex items-start gap-3 px-5 py-4 rounded-xl"
-                style={{
-                  background: 'var(--missi-surface)',
-                  border: '1px solid var(--missi-border)',
-                }}
-              >
-                <Flame
-                  className="w-3.5 h-3.5 mt-[3px] flex-shrink-0"
-                  style={{ color: 'var(--missi-text-secondary)' }}
-                />
-                <div className="flex-1">
-                  <p
-                    className="mb-1 text-[10px] font-semibold uppercase"
-                    style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
-                  >
-                    Streak
-                  </p>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--missi-text-secondary)' }}>
-                    {brief.streakNudge}
-                  </p>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Mood Prompt */}
-            {brief.moodPrompt && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.25 }}
-                className="flex items-start gap-3 px-5 py-4 rounded-xl"
-                style={{
-                  background: 'var(--missi-surface)',
-                  border: '1px solid var(--missi-border)',
-                }}
-              >
-                <MessageCircle
-                  className="w-3.5 h-3.5 mt-[3px] flex-shrink-0"
-                  style={{ color: 'var(--missi-text-secondary)' }}
-                />
-                <div className="flex-1">
-                  <p
-                    className="mb-1 text-[10px] font-semibold uppercase"
-                    style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
-                  >
-                    Mood
-                  </p>
-                  <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--missi-text-secondary)' }}>
-                    {brief.moodPrompt}
-                  </p>
-                  <Link
-                    href="/chat?prefill=mood-checkin"
-                    className="inline-flex items-center text-[11px] font-medium transition-colors"
-                    style={{
-                      color: 'var(--missi-text-secondary)',
-                      borderBottom: '1px solid var(--missi-border-strong)',
-                      paddingBottom: '1px',
-                    }}
-                  >
-                    Tell Missi →
-                  </Link>
-                </div>
-              </motion.div>
-            )}
 
             {/* Challenge */}
             {brief.challenge && (

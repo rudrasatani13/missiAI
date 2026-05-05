@@ -9,9 +9,7 @@ import {
   getOrCreateProfile,
   saveProfile,
   updateWeakTopics,
-  updateStudyStreak,
 } from '@/lib/exam-buddy/profile-store'
-import { awardXP } from '@/lib/gamification/xp-engine'
 import { sanitizeMemories } from '@/lib/memory/memory-sanitizer'
 import { waitUntil } from '@/lib/server/platform/wait-until'
 
@@ -137,22 +135,14 @@ export async function POST(
   const pct = attempted > 0 ? Math.round((correct / attempted) * 100) : 0
   const encouragement = getEncouragement(pct)
 
-  // XP calculation: +3 per correct, -2 per wrong, +5 for attempt, +10 bonus if ≥80%
-  const xpEarned =
-    correct * 3 +
-    incorrect * -2 +
-    (attempted > 0 ? 5 : 0) +
-    (pct >= 80 ? 10 : 0)
-
   // Persist completed session
   session.userAnswers = sanitizedAnswers
   session.score = correct
   session.totalMarks = totalMarks
   session.completedAt = Date.now()
-  session.xpEarned = xpEarned
   await saveQuizSession(kv, userId, session)
 
-  // Fire-and-forget: update weak topics, award XP, update streak + profile stats
+  // Fire-and-forget: update weak topics and profile stats
   waitUntil(
     (async () => {
       try {
@@ -161,14 +151,7 @@ export async function POST(
           await updateWeakTopics(kv, userId, wrongTopics as any)
         }
 
-        // Award or deduct XP based on performance
-        if (xpEarned !== 0) {
-          await awardXP(kv, userId, 'achievement', xpEarned)
-        }
-
-        // Update study streak & profile stats
         const { profile } = await getOrCreateProfile(kv, userId)
-        updateStudyStreak(profile)
         profile.totalQuizzesCompleted += 1
         profile.totalCorrectAnswers += correct
         profile.totalQuestionsAttempted += attempted
@@ -183,7 +166,6 @@ export async function POST(
     JSON.stringify({
       success: true,
       session,
-      xpEarned,
       weakTopicsUpdated: wrongTopics.length,
       encouragement,
       score: { correct, incorrect, total: session.questions.length, pct, totalMarks },

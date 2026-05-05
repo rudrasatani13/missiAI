@@ -31,8 +31,6 @@ export interface NotificationSettings {
   quietHoursEnabled: boolean
   quietHoursStart: string // "22:00"
   quietHoursEnd: string // "08:00"
-  notifyMood: boolean
-  notifyStreak: boolean
   notifyCheckIn: boolean
 }
 
@@ -63,8 +61,6 @@ export const DEFAULT_NOTIFICATIONS: NotificationSettings = {
   quietHoursEnabled: false,
   quietHoursStart: "22:00",
   quietHoursEnd: "08:00",
-  notifyMood: true,
-  notifyStreak: true,
   notifyCheckIn: true,
 }
 

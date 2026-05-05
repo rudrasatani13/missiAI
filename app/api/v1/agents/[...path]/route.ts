@@ -1,14 +1,12 @@
 // ─── Agents — Consolidated Catch-All Route ────────────────────────────────────
 //
-// Handles: confirm, expenses, history, plan
+// Handles: confirm, history, plan
 // Consolidation reduces 4 separate edge function bundles into 1.
 
 import { getCloudflareKVBinding, getCloudflareVectorizeEnv } from "@/lib/server/platform/bindings"
 import { getVerifiedUserId, AuthenticationError } from "@/lib/server/security/auth"
 import { getUserPlan } from "@/lib/billing/tier-checker"
-import { getLifeGraphReadSnapshot } from "@/lib/memory/life-graph"
 import { getAgentHistory } from "@/lib/ai/agents/history"
-import { buildMonthlyTotals } from "@/lib/budget/budget-store"
 import { getTodayDate } from "@/lib/billing/usage-tracker"
 import { checkAndIncrementAtomicCounter } from "@/lib/server/platform/atomic-quota"
 import { parseConfirmRequest, prepareConfirmedAgentExecution } from "@/lib/server/routes/agents/confirm-helpers"
@@ -16,7 +14,6 @@ import { runConfirmedAgentExecution } from "@/lib/server/routes/agents/confirm-r
 import { parsePlanRequest, prepareAgentPlan } from "@/lib/server/routes/agents/plan-helpers"
 import { logRequest, logError } from "@/lib/server/observability/logger"
 import type { KVStore } from "@/types"
-import type { LifeNode } from "@/types/memory"
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -92,35 +89,6 @@ async function handleConfirm(req: Request): Promise<Response> {
   return new Response(stream, {
     headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "X-Accel-Buffering": "no" },
   })
-}
-
-// ─── Expenses Handler (GET /expenses) ─────────────────────────────────────────
-
-interface ExpenseTotal { total: number; byCategory: Record<string, number> }
-
-async function handleExpenses(): Promise<Response> {
-  const auth = await getAuthenticatedAgentUserId()
-  if (!auth.ok) return auth.response
-  const { userId } = auth
-
-  const kv = getCloudflareKVBinding()
-  if (!kv) return jsonResponse({ monthlyTotal: 0, currency: "INR", byCategory: {}, recentEntries: [] })
-
-  const yearMonth = new Date().toISOString().slice(0, 7)
-  const [totals, graph] = await Promise.all([
-    buildMonthlyTotals(kv, userId, yearMonth).then<ExpenseTotal>((report) => ({
-      total: report.total,
-      byCategory: report.byCategory,
-    })).catch(() => ({ total: 0, byCategory: {} })),
-    getLifeGraphReadSnapshot(kv, userId),
-  ])
-
-  const recentEntries: LifeNode[] = graph.nodes
-    .filter(n => Array.isArray(n.tags) && n.tags.includes("expense"))
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 30)
-
-  return jsonResponse({ monthlyTotal: totals.total, currency: "INR", byCategory: totals.byCategory, recentEntries })
 }
 
 // ─── History Handler (GET /history) ───────────────────────────────────────────
@@ -223,7 +191,6 @@ export async function GET(
   const segment = path[0]
 
   switch (segment) {
-    case 'expenses': return handleExpenses()
     case 'history': return handleHistory()
     default: return jsonResponse({ error: 'Not found' }, 404)
   }

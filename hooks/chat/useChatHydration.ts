@@ -1,8 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState, type MutableRefObject } from "react"
-import { formatMemoryNodesForChat, getAvatarFetchDelayMs } from "@/lib/chat/page-lifecycle"
-import type { AvatarTier } from "@/types/gamification"
+import { formatMemoryNodesForChat } from "@/lib/chat/page-lifecycle"
 
 interface MemoryResponseNode {
   category: string
@@ -11,15 +10,13 @@ interface MemoryResponseNode {
 }
 
 interface UseChatHydrationOptions {
-  isFullDevBootstrap: boolean
   isLoaded: boolean
   memoriesRef: MutableRefObject<string>
   userId: string | undefined
 }
 
 export function useChatHydration(options: UseChatHydrationOptions) {
-  const { isFullDevBootstrap, isLoaded, memoriesRef, userId } = options
-  const [avatarTier, setAvatarTier] = useState<AvatarTier>(1)
+  const { isLoaded, memoriesRef, userId } = options
   const [memoriesState, setMemoriesState] = useState("")
 
   const fetchMemories = useCallback(async () => {
@@ -43,42 +40,7 @@ export function useChatHydration(options: UseChatHydrationOptions) {
     fetchMemories()
   }, [isLoaded, userId, fetchMemories])
 
-  useEffect(() => {
-    if (!isLoaded || !userId) return
-
-    let cancelled = false
-    const loadAvatarTier = () => {
-      fetch("/api/v1/streak")
-        .then((response) => response.json())
-        .then((data) => {
-          if (cancelled) return
-          if (data?.success && data.data) {
-            setAvatarTier(data.data.avatarTier ?? 1)
-          }
-        })
-        .catch((error) => {
-          console.error("[ChatHydration] Failed to load avatar tier", error)
-        })
-    }
-
-    const delayMs = getAvatarFetchDelayMs(isFullDevBootstrap)
-    if (delayMs === 0) {
-      loadAvatarTier()
-    } else {
-      const timer = setTimeout(loadAvatarTier, delayMs)
-      return () => {
-        cancelled = true
-        clearTimeout(timer)
-      }
-    }
-
-    return () => {
-      cancelled = true
-    }
-  }, [isFullDevBootstrap, isLoaded, userId])
-
   return {
-    avatarTier,
     fetchMemories,
     memoriesState,
   }

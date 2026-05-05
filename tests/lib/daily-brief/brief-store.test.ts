@@ -48,8 +48,6 @@ function makeBrief(overrides: Partial<DailyBrief> = {}): DailyBrief {
         completedAt: null,
       },
     ],
-    streakNudge: null,
-    moodPrompt: null,
     challenge: 'Do something cool.',
     viewed: false,
     generatedAt: Date.now(),

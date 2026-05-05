@@ -5,7 +5,7 @@
  * Consumers:
  *   • `lib/push/push-sender.ts#notifyUser` — skips sends based on
  *     quiet-hours + per-event toggle.
- *   • Any future cron dispatcher that emits mood/streak/check-in pushes.
+ *   • Any future cron dispatcher that emits opt-in check-in pushes.
  *
  * Storage: KV key  `notif-prefs:{userId}`
  * Shape:   `StoredNotificationPrefs` (JSON-stringified).
@@ -20,7 +20,7 @@ import type { KVStore } from "@/types"
  * these on every `notifyUser` call; prefs gate whether the push actually
  * fires.
  */
-export type NotificationEventType = "mood" | "streak" | "checkin" | "generic"
+export type NotificationEventType = "checkin" | "generic"
 
 export interface StoredNotificationPrefs {
   quietHoursEnabled: boolean
@@ -28,8 +28,6 @@ export interface StoredNotificationPrefs {
   quietHoursStart: string
   /** "HH:MM" 24-hour */
   quietHoursEnd: string
-  notifyMood: boolean
-  notifyStreak: boolean
   notifyCheckIn: boolean
   /** IANA timezone name, e.g. "Asia/Kolkata" — used for quiet-hours math. */
   timezone: string
@@ -39,8 +37,6 @@ export const DEFAULT_NOTIFICATION_PREFS: StoredNotificationPrefs = {
   quietHoursEnabled: false,
   quietHoursStart: "22:00",
   quietHoursEnd: "08:00",
-  notifyMood: true,
-  notifyStreak: true,
   notifyCheckIn: true,
   timezone: "UTC",
 }
@@ -136,10 +132,6 @@ export function shouldSendNotification(
 ): boolean {
   if (isInQuietHours(prefs, nowUtcMs)) return false
   switch (eventType) {
-    case "mood":
-      return prefs.notifyMood
-    case "streak":
-      return prefs.notifyStreak
     case "checkin":
       return prefs.notifyCheckIn
     case "generic":

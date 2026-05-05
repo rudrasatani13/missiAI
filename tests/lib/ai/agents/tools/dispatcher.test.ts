@@ -2,21 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { ToolContext } from "@/lib/ai/agents/tools/types"
 
 const {
-  executeBudgetToolMock,
   executeCalendarToolMock,
   executeCommunicationToolMock,
   executeMemoryProductivityToolMock,
   executeSearchToolMock,
 } = vi.hoisted(() => ({
-  executeBudgetToolMock: vi.fn(),
   executeCalendarToolMock: vi.fn(),
   executeCommunicationToolMock: vi.fn(),
   executeMemoryProductivityToolMock: vi.fn(),
   executeSearchToolMock: vi.fn(),
-}))
-
-vi.mock("@/lib/ai/agents/tools/executors/budget", () => ({
-  executeBudgetTool: executeBudgetToolMock,
 }))
 
 vi.mock("@/lib/ai/agents/tools/executors/calendar", () => ({
@@ -48,7 +42,6 @@ function makeCtx(): ToolContext {
 describe("agent-tools dispatcher", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    executeBudgetToolMock.mockResolvedValue({ toolName: "logExpense", status: "done", summary: "budget", output: "budget" })
     executeCalendarToolMock.mockResolvedValue({ toolName: "readCalendar", status: "done", summary: "calendar", output: "calendar" })
     executeCommunicationToolMock.mockResolvedValue({ toolName: "draftEmail", status: "done", summary: "communication", output: "communication" })
     executeMemoryProductivityToolMock.mockResolvedValue({ toolName: "searchMemory", status: "done", summary: "memory", output: "memory" })
@@ -64,7 +57,6 @@ describe("agent-tools dispatcher", () => {
     ["saveContact", executeCommunicationToolMock],
     ["searchWeb", executeSearchToolMock],
     ["searchNews", executeSearchToolMock],
-    ["logExpense", executeBudgetToolMock],
   ])("routes %s to the correct split executor", async (toolName, expectedExecutor) => {
     const result = await executeAgentTool({ name: toolName, args: {} }, makeCtx())
 
@@ -81,7 +73,6 @@ describe("agent-tools dispatcher", () => {
       summary: 'Unknown tool "unknownTool"',
       output: 'Tool "unknownTool" is not recognized.',
     })
-    expect(executeBudgetToolMock).not.toHaveBeenCalled()
     expect(executeCalendarToolMock).not.toHaveBeenCalled()
     expect(executeCommunicationToolMock).not.toHaveBeenCalled()
     expect(executeMemoryProductivityToolMock).not.toHaveBeenCalled()

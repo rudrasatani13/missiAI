@@ -17,7 +17,6 @@ const {
   rateLimitExceededResponseMock,
   rateLimitHeadersMock,
   clerkClientMock,
-  getReferrerMock,
   AuthenticationErrorMock,
 } = vi.hoisted(() => {
   class AuthenticationErrorMock extends Error {
@@ -53,7 +52,6 @@ const {
     ),
     rateLimitHeadersMock: vi.fn(() => ({ 'x-ratelimit-remaining': '59' })),
     clerkClientMock: vi.fn(),
-    getReferrerMock: vi.fn(),
     AuthenticationErrorMock,
   }
 })
@@ -96,10 +94,6 @@ vi.mock('@/lib/server/security/rate-limiter', () => ({
 
 vi.mock('@clerk/nextjs/server', () => ({
   clerkClient: clerkClientMock,
-}))
-
-vi.mock('@/lib/billing/referral', () => ({
-  getReferrer: getReferrerMock,
 }))
 
 import { DELETE, GET, POST } from '@/app/api/v1/billing/route'
@@ -171,7 +165,6 @@ describe('billing parent route', () => {
         }),
       },
     })
-    getReferrerMock.mockResolvedValue(null)
   })
 
   it('returns 401 when auth fails on GET', async () => {
@@ -223,9 +216,7 @@ describe('billing parent route', () => {
     await expect(res.json()).resolves.toEqual({ success: false, error: 'Internal server error' })
   })
 
-  it('creates a checkout session with referral metadata on POST', async () => {
-    getReferrerMock.mockResolvedValueOnce('referrer_123')
-
+  it('creates a checkout session on POST', async () => {
     const res = await POST(makeRequest('POST', JSON.stringify({ planId: 'plus' })))
 
     expect(res.status).toBe(200)
@@ -234,7 +225,6 @@ describe('billing parent route', () => {
       success: true,
       checkout_url: 'https://checkout.example/session_123',
       session_id: 'session_123',
-      referralDiscount: true,
     })
     expect(createDodoCheckoutSessionMock).toHaveBeenCalledWith({
       productId: 'plus-product',
@@ -244,7 +234,6 @@ describe('billing parent route', () => {
       metadata: {
         userId: 'user_123',
         planId: 'plus',
-        referralDiscount: 'true',
       },
     })
   })

@@ -3,7 +3,6 @@ import type { LifeGraph, MemorySearchResult } from "@/types/memory"
 import type { KVStore } from "@/types"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import { recordAnalyticsUsage } from "@/lib/analytics/event-store"
-import { awardXP } from "@/lib/gamification/xp-engine"
 import { extractLifeNodes } from "@/lib/memory/graph-extractor"
 import {
   addOrUpdateNodes,
@@ -126,8 +125,8 @@ export async function scheduleMemoryWriteFollowUps(
   kv: KVStore,
   userId: string,
   analyticsOptOut: boolean | undefined,
-  interactionCount: number,
-  added: number,
+  _interactionCount: number,
+  _added: number,
 ): Promise<void> {
   if (!analyticsOptOut) {
     scheduleLoggedBackgroundTask(
@@ -135,30 +134,6 @@ export async function scheduleMemoryWriteFollowUps(
       userId,
       recordAnalyticsUsage(kv, { type: "memory_write", userId }),
     )
-  }
-
-  if (interactionCount >= 4) {
-    const cooldownKey = `xp-cooldown:chat:${userId}`
-    scheduleLoggedBackgroundTask(
-      "memory.write.chat_xp_error",
-      userId,
-      (async () => {
-        const cooldownHit = await kv.get(cooldownKey)
-        if (cooldownHit) return
-        await awardXP(kv, userId, "chat", 3)
-        await kv.put(cooldownKey, "1", { expirationTtl: 300 })
-      })(),
-    )
-  }
-
-  if (added > 0) {
-    for (let i = 0; i < Math.min(added, 10); i++) {
-      scheduleLoggedBackgroundTask(
-        "memory.write.memory_xp_error",
-        userId,
-        awardXP(kv, userId, "memory", 2),
-      )
-    }
   }
 }
 

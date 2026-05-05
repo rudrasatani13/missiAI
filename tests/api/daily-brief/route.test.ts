@@ -51,10 +51,6 @@ vi.mock('@/lib/plugins/data-fetcher', () => ({
   getGoogleTokens: vi.fn(() => Promise.resolve(null)),
 }))
 
-vi.mock('@/lib/gamification/xp-engine', () => ({
-  awardXP: vi.fn(() => Promise.resolve(0)),
-}))
-
 vi.mock('@/lib/billing/tier-checker', () => ({
   getUserPlan: vi.fn(),
 }))
@@ -88,7 +84,6 @@ import {
   buildGenerationContext,
   generateBriefWithGemini,
 } from '@/lib/daily-brief/generator'
-import { awardXP } from '@/lib/gamification/xp-engine'
 import { getUserPlan } from '@/lib/billing/tier-checker'
 
 const mockGetRequestContext = vi.mocked(getCloudflareContext)
@@ -121,8 +116,6 @@ function makeBrief(overrides: Partial<DailyBrief> = {}): DailyBrief {
         completedAt: null,
       },
     ],
-    streakNudge: null,
-    moodPrompt: null,
     challenge: 'Try one new thing today.',
     viewed: false,
     generatedAt: Date.now(),
@@ -227,19 +220,13 @@ describe('POST /api/v1/daily-brief', () => {
     mockBuildContext.mockResolvedValueOnce({
       userName: 'Test',
       topGoals: ['Learn TypeScript'],
-      activeHabits: ['Meditation'],
-      bestStreak: { title: 'Meditation', days: 7 },
-      yesterdayMood: 'calm',
       calendarEvents: [],
-      loginStreak: 5,
     })
     mockGenerateBrief.mockResolvedValueOnce({
       greeting: 'Hey Test! Ready to crush it?',
       tasks: [
         { id: 'x', title: 'Practice TS', context: 'Keep learning', source: 'goal', completed: false, completedAt: null },
       ],
-      streakNudge: '7 days strong!',
-      moodPrompt: null,
       challenge: 'Write 10 lines of code.',
     })
 
@@ -286,19 +273,13 @@ describe('POST /api/v1/daily-brief', () => {
     mockBuildContext.mockResolvedValueOnce({
       userName: 'Test',
       topGoals: [],
-      activeHabits: [],
-      bestStreak: null,
-      yesterdayMood: null,
       calendarEvents: [],
-      loginStreak: 1,
     })
     mockGenerateBrief.mockResolvedValueOnce({
       greeting: 'Fresh morning brief!',
       tasks: [
         { id: 'y', title: 'New task', context: 'Refreshed', source: 'missi', completed: false, completedAt: null },
       ],
-      streakNudge: null,
-      moodPrompt: null,
       challenge: null,
     })
 
@@ -316,19 +297,13 @@ describe('POST /api/v1/daily-brief', () => {
     mockBuildContext.mockResolvedValueOnce({
       userName: 'Test',
       topGoals: [],
-      activeHabits: [],
-      bestStreak: null,
-      yesterdayMood: null,
       calendarEvents: [],
-      loginStreak: 2,
     })
     mockGenerateBrief.mockResolvedValueOnce({
       greeting: 'Timezone aware brief',
       tasks: [
         { id: 'tz-1', title: 'Look outside', context: 'Notice your morning', source: 'missi', completed: false, completedAt: null },
       ],
-      streakNudge: null,
-      moodPrompt: null,
       challenge: null,
     })
 
@@ -403,8 +378,6 @@ describe('PATCH /api/v1/daily-brief/tasks/[taskId]', () => {
     expect(res.status).toBe(200)
     expect(body.success).toBe(true)
     expect(body.data.brief.tasks[0].completed).toBe(true)
-    // XP should be awarded fire-and-forget
-    expect(awardXP).toHaveBeenCalled()
   })
 })
 

@@ -4,11 +4,10 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Zap, Calendar, FileText, Mail, TrendingUp, Target,
-  Brain, Search, DollarSign, ChevronDown, ChevronUp,
+  Brain, Search, ChevronDown, ChevronUp,
   CheckCircle, XCircle, Loader2, AlertCircle, Clock,
-  Sparkles, ArrowRight,
+  Sparkles,
 } from 'lucide-react'
-import { formatMoney } from '@/lib/budget/currency'
 import type { AgentPlan, AgentPlanStep } from '@/lib/ai/agents/planner'
 import type { AgentHistoryEntry } from '@/lib/ai/agents/history'
 
@@ -94,12 +93,6 @@ interface PlanResponse {
   remaining: number
 }
 
-interface ExpenseSnapshot {
-  monthlyTotal: number
-  currency: string
-  byCategory: Record<string, number>
-}
-
 // ─── Tool icons map ───────────────────────────────────────────────────────────
 
 function ToolIcon({ toolName }: { toolName: string }) {
@@ -117,8 +110,6 @@ function ToolIcon({ toolName }: { toolName: string }) {
       return <Brain {...iconProps} />
     case 'searchWeb':
       return <Search {...iconProps} />
-    case 'logExpense':
-      return <DollarSign {...iconProps} />
     case 'getWeekSummary':
       return <TrendingUp {...iconProps} />
     case 'updateGoalProgress':
@@ -131,7 +122,6 @@ function ToolIcon({ toolName }: { toolName: string }) {
 // ─── Suggestion chips ─────────────────────────────────────────────────────────
 
 const BASE_CHIPS = [
-  { label: 'Log an expense', value: 'Log an expense of 500 rupees on food today' },
   { label: 'Save a note', value: 'Save a note: ' },
   { label: 'Draft an email', value: 'Draft a friendly email to ' },
   { label: 'Summarize my week', value: 'Give me a summary of my week' },
@@ -154,17 +144,14 @@ export default function AgentDashboardContent() {
   const [completedCount, setCompletedCount] = useState(0)
   const [history, setHistory] = useState<AgentHistoryEntry[]>([])
   const [historyOpen, setHistoryOpen] = useState(false)
-  const [expenses, setExpenses] = useState<ExpenseSnapshot | null>(null)
   const [hasCalendar] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [xpAnimation, setXpAnimation] = useState(false)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Load history and expenses on mount
+  // Load history on mount
   useEffect(() => {
     void loadHistory()
-    void loadExpenses()
   }, [])
 
   const loadHistory = async () => {
@@ -173,18 +160,6 @@ export default function AgentDashboardContent() {
       if (res.ok) {
         const data = await res.json() as { entries: AgentHistoryEntry[] }
         setHistory(data.entries ?? [])
-      }
-    } catch {}
-  }
-
-  const loadExpenses = async () => {
-    try {
-      const res = await fetch('/api/v1/agents/expenses')
-      if (res.ok) {
-        const data = await res.json() as ExpenseSnapshot & { monthlyTotal: number }
-        setExpenses(data)
-        // If we got expense data with calendar check embedded, check calendar
-        // We infer calendar availability from expenses endpoint response
       }
     } catch {}
   }
@@ -233,7 +208,7 @@ export default function AgentDashboardContent() {
       // If plan has no steps or no token, show error — don't flash the empty plan UI
       if (data.plan.steps.length === 0) {
         setError(data.plan.summary === "I can't do that yet"
-          ? "I can't handle that request yet. Try something like: save a note, log an expense, or draft an email."
+          ? "I can't handle that request yet. Try something like: save a note, draft an email, or check your calendar."
           : 'Could not create a plan. Please try a more specific request.')
         return
       }
@@ -360,12 +335,7 @@ export default function AgentDashboardContent() {
               setCompletedCount(event.stepsCompleted ?? 0)
               setIsComplete(true)
               setIsExecuting(false)
-              if ((event.stepsCompleted ?? 0) > 0) {
-                setXpAnimation(true)
-                setTimeout(() => setXpAnimation(false), 3000)
-              }
               void loadHistory()
-              void loadExpenses()
             }
           } catch {}
         }
@@ -685,19 +655,7 @@ export default function AgentDashboardContent() {
               </div>
 
               {isComplete && (
-                <div className="border-t border-[var(--missi-border)] px-5 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {xpAnimation && (
-                      <motion.span
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="text-xs text-yellow-400/80"
-                      >
-                        +{completedCount * 2} XP earned ✨
-                      </motion.span>
-                    )}
-                  </div>
+                <div className="border-t border-[var(--missi-border)] px-5 py-4 flex items-center justify-end">
                   <button
                     onClick={handleReset}
                     className="text-sm text-[var(--missi-text-muted)] hover:text-[var(--missi-text-secondary)] transition-colors"
@@ -760,51 +718,6 @@ export default function AgentDashboardContent() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-        )}
-
-        {/* Section 5 — Expense Snapshot */}
-        {expenses && expenses.monthlyTotal > 0 && (
-          <div className="bg-[var(--missi-surface)] border border-[var(--missi-border)] rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <DollarSign size={14} className="text-[var(--missi-text-muted)]" />
-              <span className="text-sm text-[var(--missi-text-secondary)]">This month</span>
-              <span className="ml-auto text-[var(--missi-text-secondary)] font-medium">
-                {formatMoney(expenses.monthlyTotal, expenses.currency || 'INR')}
-              </span>
-            </div>
-            {Object.keys(expenses.byCategory).length > 0 && (
-              <div className="space-y-1.5">
-                {Object.entries(expenses.byCategory)
-                  .sort(([, a], [, b]) => b - a)
-                  .slice(0, 5)
-                  .map(([cat, amount]) => {
-                    const pct = expenses.monthlyTotal > 0 ? (amount / expenses.monthlyTotal) * 100 : 0
-                    return (
-                      <div key={cat} className="space-y-1">
-                        <div className="flex justify-between text-xs text-[var(--missi-text-muted)]">
-                          <span className="capitalize">{cat}</span>
-                          <span>{formatMoney(amount, expenses.currency || 'INR')}</span>
-                        </div>
-                        <div className="h-1 bg-[var(--missi-surface)] rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-purple-500/50 rounded-full transition-all duration-500"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-              </div>
-            )}
-            <a
-              href="/budget"
-              className="mt-3 flex items-center gap-1 text-[10px] font-medium transition-colors hover:opacity-100"
-              style={{ color: 'var(--missi-text-muted)' }}
-            >
-              View full dashboard
-              <ArrowRight size={10} />
-            </a>
           </div>
         )}
 

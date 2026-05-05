@@ -1,6 +1,6 @@
 # missiAI
 
-> Your personal voice AI companion with persistent memory, gamification, and deep integrations.
+> Your personal voice AI companion with persistent memory and deep integrations.
 > Speak naturally in Hindi, English, or Hinglish — Missi remembers everything that matters.
 
 **Live at [missi.space](https://missi.space)**
@@ -11,11 +11,9 @@
 
 - **Remembers you** — extracts and stores key facts from conversations into a knowledge graph, so every interaction builds on the last
 - **Speaks and listens** — real-time voice conversations with speech-to-text and text-to-speech, plus real-time streaming via Gemini Live
-- **Adapts to you** — multiple personality modes (friendly, professional, creative, coach, custom), emotional awareness, and context-aware responses
-- **Tracks your habits** — gamification with streaks, XP, achievements, and an evolving avatar tier system
+- **Adapts to you** — context-aware responses with custom behavior dials and memory grounding
 - **Connects your tools** — Google Calendar, Notion, and a growing plugin ecosystem
 - **Proactive check-ins** — push notifications with reminders and context-aware suggestions
-- **Wind-down mode** — evening routine features for winding down at night
 - **3D memory graph** — visualize your knowledge graph with an interactive Three.js force-directed graph
 
 ---
@@ -109,7 +107,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web push public key (client-side) |
 | `NEXT_PUBLIC_APP_URL` | Public app origin used in billing return URLs and OAuth redirects |
 | `ADMIN_USER_ID` | Clerk user ID for admin dashboard access |
-| `DAILY_BUDGET_USD` | Max daily API spend in USD (default: 5.0) |
+| `DAILY_BUDGET_USD` | Max daily AI provider spend in USD (default: 5.0) |
 | `DODO_PAYMENTS_MODE` | `"test_mode"` or `"live_mode"` |
 
 ### WhatsApp & Telegram Bot (Feature 10)
@@ -188,13 +186,6 @@ Set via `wrangler secret put <NAME>` or the Cloudflare dashboard → Settings �
 | GET | `/api/auth/connect/google` | Start Google Calendar OAuth flow |
 | GET | `/api/auth/connect/notion` | Start Notion OAuth flow |
 
-### Gamification
-
-| Method | Route | Description |
-|--------|--------------------------------|-------------------------------------------|
-| GET | `/api/v1/streak` | Get current streak and avatar data |
-| POST | `/api/v1/streak` | Check in to a habit streak |
-
 ### Billing
 
 | Method | Route | Description |
@@ -219,9 +210,7 @@ Set via `wrangler secret put <NAME>` or the Cloudflare dashboard → Settings �
 
 | Method | Route | Description |
 |--------|--------------------------------|-------------------------------------------|
-| POST | `/api/v1/wind-down` | Evening routine features |
 | POST | `/api/v1/setup` | Save onboarding data |
-| POST | `/api/v1/referral` | Referral tracking |
 | POST | `/api/push/subscribe` | Register push subscription |
 | GET | `/api/v1/admin/analytics` | Admin analytics dashboard |
 | GET | `/api/health` | Service health check (public) |
@@ -241,8 +230,6 @@ missi-web/
 │   │   └── webhooks/       # Payment webhooks
 │   ├── chat/               # Main voice chat interface
 │   ├── memory/             # Memory dashboard + 3D graph
-│   ├── streak/             # Gamification & habits
-│   ├── wind-down/          # Evening routine
 │   ├── pricing/            # Subscription plans
 │   ├── admin/              # Admin dashboard
 │   └── setup/              # Onboarding flow
@@ -256,7 +243,6 @@ missi-web/
 │   ├── memory/             # KV storage, graph extraction, vectorize
 │   ├── plugins/            # Plugin registry & executors
 │   ├── billing/            # Dodo client & tier checking
-│   ├── gamification/       # Streaks, XP engine, achievements
 │   └── server/             # Platform, security, observability, chat, route helpers
 ├── types/                  # TypeScript type definitions
 ├── middleware.ts            # Clerk auth + rate limiting
@@ -314,7 +300,7 @@ See [SECURITY.md](SECURITY.md) for the full production security runbook.
 - Memory sanitization before KV storage
 - HSTS with preload, X-Frame-Options DENY, CSP
 - Standard Webhooks verification for payment events
-- Daily API budget controls with alerts
+- Daily AI spend controls with alerts
 - Secret scanning in CI via TruffleHog
 
 ---

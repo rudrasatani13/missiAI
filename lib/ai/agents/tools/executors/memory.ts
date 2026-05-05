@@ -1,9 +1,7 @@
 import type { AgentToolCall, AgentStepResult, ToolContext } from "@/lib/ai/agents/tools/types"
 import { abortedToolResult } from "@/lib/ai/agents/tools/shared"
 import { searchLifeGraph, formatLifeGraphForPrompt, addOrUpdateNode, getLifeGraphReadSnapshot } from "@/lib/memory/life-graph"
-import { getGamificationData } from "@/lib/gamification/streak"
 import { getNotionTokens } from "@/lib/plugins/data-fetcher"
-import { getQuests } from "@/lib/quests/quest-store"
 import { addNote, addReminder } from "@/lib/actions/store"
 import { stripHtml } from "@/lib/validation/sanitizer"
 
@@ -173,51 +171,18 @@ export async function executeMemoryProductivityTool(
         return { toolName: name, status: "done", summary: "Week summary", output: "No data available yet — start using Missi to build your week summary!" }
       }
 
-      const [graph, gamif] = await Promise.all([
-        getLifeGraphReadSnapshot(ctx.kv, ctx.userId, WEEK_SUMMARY_GRAPH_READ_OPTIONS),
-        getGamificationData(ctx.kv, ctx.userId).catch(() => null),
-      ])
+      const graph = await getLifeGraphReadSnapshot(ctx.kv, ctx.userId, WEEK_SUMMARY_GRAPH_READ_OPTIONS)
 
       const goalNodes = graph.nodes.filter((node) => node.category === "goal")
-      const habitNodes = graph.nodes.filter((node) => node.category === "habit")
-      const totalXP = gamif?.totalXP ?? 0
-      const topHabit = gamif?.habits?.reduce(
-        (best: { title: string; currentStreak: number } | null, habit) =>
-          habit.currentStreak > (best?.currentStreak ?? 0) ? habit : best,
-        null,
-      )
 
       const parts: string[] = ["📅 Your Week Summary\n"]
-      parts.push(`✨ Total XP earned: ${totalXP}`)
       if (goalNodes.length > 0) {
         parts.push(`🎯 Active goals: ${goalNodes.length}`)
         parts.push(goalNodes.slice(0, 3).map((goal) => `  • ${goal.title}`).join("\n"))
       } else {
         parts.push("🎯 No goals set yet")
       }
-      if (habitNodes.length > 0) {
-        parts.push(`💪 Habits tracked: ${habitNodes.length}`)
-      }
-      if (topHabit) {
-        parts.push(`🔥 Best streak: ${topHabit.title} — ${topHabit.currentStreak} days`)
-      }
       parts.push(`🧠 Total memories: ${graph.nodes.length}`)
-
-      try {
-        const quests = await getQuests(ctx.kv, ctx.userId)
-        const activeQuests = quests.filter((quest) => quest.status === "active")
-        if (activeQuests.length > 0) {
-          parts.push(`\n🗺️ Active quests: ${activeQuests.length}`)
-          for (const quest of activeQuests.slice(0, 3)) {
-            const pct = quest.totalMissions > 0 ? Math.round((quest.completedMissions / quest.totalMissions) * 100) : 0
-            parts.push(`  • ${quest.title} — ${pct}% done`)
-          }
-        }
-        const completedQuests = quests.filter((quest) => quest.status === "completed").length
-        if (completedQuests > 0) {
-          parts.push(`🏆 Quests completed: ${completedQuests}`)
-        }
-      } catch {}
 
       return {
         toolName: name,

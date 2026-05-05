@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useChatSettings, type AIDialSettings } from "@/hooks/chat/useChatSettings"
-import { getTierSafePersonality } from "@/lib/chat/page-lifecycle"
 import { PERSONALITY_OPTIONS, type PersonalityKey } from "@/types/chat"
 
 interface UseChatSettingsSyncOptions {
@@ -12,7 +11,7 @@ interface UseChatSettingsSyncOptions {
 }
 
 export function useChatSettingsSync(options: UseChatSettingsSyncOptions) {
-  const { billingLoading, isLoaded, planId } = options
+  void options
   const sharedSettings = useChatSettings()
   const [personality, setPersonality] = useState<PersonalityKey>("assistant")
   const [customPrompt, setCustomPrompt] = useState("")
@@ -68,19 +67,6 @@ export function useChatSettingsSync(options: UseChatSettingsSyncOptions) {
       }
     } catch {}
   }, [])
-
-  useEffect(() => {
-    if (billingLoading || !isLoaded) return
-
-    const safePersonality = getTierSafePersonality(personality, planId)
-    if (safePersonality !== personality) {
-      setPersonality(safePersonality)
-      personalityRef.current = safePersonality
-      try {
-        localStorage.setItem("missi-personality", safePersonality)
-      } catch {}
-    }
-  }, [billingLoading, isLoaded, personality, planId])
 
   return {
     aiDialsRef,

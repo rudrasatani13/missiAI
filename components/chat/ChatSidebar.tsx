@@ -6,11 +6,8 @@ import { usePathname, useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
 import {
   Brain,
-  Camera,
   ChevronLeft,
   Crown,
-  Flame,
-  Heart,
   Lock,
   LogIn,
   LogOut,
@@ -23,10 +20,7 @@ import {
   Settings,
   Sun,
   UserPlus,
-  Wallet,
-  Sword,
   Target,
-  Users,
   User as UserIcon,
   X as XIcon,
   Zap,
@@ -52,7 +46,6 @@ export interface ChatSidebarProps {
   onNewChat: () => void
   isLiveMode: boolean
   isGuest?: boolean
-  onPickImage: () => void
   /** Called whenever the desktop sidebar width resolves, so the page can offset fixed children. */
   onWidthChange?: (pxWidth: number) => void
   /** When provided, the parent controls mobile sidebar open state — the built-in fixed hamburger is hidden. */
@@ -594,16 +587,13 @@ function IntegrationsSubPanel() {
 // More sub-panel
 // ──────────────────────────────────────────────────────────────────────────────
 
-function MoreSubPanel({ onPickImage, onClose }: { onPickImage: () => void; onClose: () => void }) {
+function MoreSubPanel() {
   const items: Array<
     | { kind: "link"; label: string; icon: React.ReactNode; href: string; color?: string }
     | { kind: "button"; label: string; icon: React.ReactNode; onClick: () => void; color?: string }
   > = [
-    { kind: "button", label: "Vision", icon: <Camera className="w-4 h-4" />, onClick: () => { onPickImage(); onClose() } },
     { kind: "link", label: "Agents", icon: <Zap className="w-4 h-4" />, href: "/agents", color: "#a78bfa" },
     { kind: "link", label: "Mission", icon: <Target className="w-4 h-4" />, href: "/today", color: "#fbbf24" },
-    { kind: "link", label: "Wind Down", icon: <Moon className="w-4 h-4" />, href: "/wind-down" },
-    { kind: "link", label: "Quests", icon: <Sword className="w-4 h-4" />, href: "/quests", color: "#FBBF24" },
     { kind: "link", label: "WhatsApp & Telegram", icon: <MessageSquare className="w-4 h-4" />, href: "/settings/integrations", color: "#25D366" },
     { kind: "link", label: "Upgrade", icon: <Crown className="w-4 h-4" />, href: "/pricing", color: "#F59E0B" },
   ]
@@ -650,7 +640,6 @@ function ChatSidebarInner({
   onNewChat,
   isLiveMode,
   isGuest = false,
-  onPickImage,
   onWidthChange,
   mobileSidebarOpen: externalMobileOpen,
   onMobileSidebarChange,
@@ -793,7 +782,7 @@ function ChatSidebarInner({
     // a user clicks, say, "Mission" inside the "More" sub-panel, the sidebar
     // stays on the More panel instead of flipping back to the root nav.
     setMobileOpen(false)
-  }, [pathname])
+  }, [pathname, setMobileOpen])
 
   // Effective desktop width.
   //
@@ -839,7 +828,7 @@ function ChatSidebarInner({
     }
   }, [desktopWidth, isMobile, onWidthChange])
 
-  // Plan badge resolution (used by the top profile card)
+  // Plan badge resolution (used by the top account row)
   const resolvedPlan = useMemo<"pro" | "free">(() => {
     if (plan === "plus" || plan === "pro") return "pro"
     const meta = (user?.publicMetadata as { plan?: string } | undefined)?.plan
@@ -854,7 +843,7 @@ function ChatSidebarInner({
     closeSub()
     onNewChat()
     setMobileOpen(false)
-  }, [closeSub, onNewChat])
+  }, [closeSub, onNewChat, setMobileOpen])
 
   const isOnChat = pathname === "/chat"
 
@@ -984,8 +973,8 @@ function ChatSidebarInner({
            each NavRow, so icons animate in sync with the sidebar width. No
            extra delay — keeps the expand animation tight.) */
 
-        /* Avatar ring on hover (profile card) */
-        .missi-profile-card:hover .missi-avatar { box-shadow: 0 0 0 3px var(--missi-border); }
+        /* Avatar ring on hover (account row) */
+        .missi-account-row:hover .missi-avatar { box-shadow: 0 0 0 3px var(--missi-border); }
         .missi-avatar { transition: box-shadow 240ms cubic-bezier(0.32, 0.72, 0, 1); }
 
         /* Mobile hamburger rotate */
@@ -1049,7 +1038,7 @@ function ChatSidebarInner({
         )}
       </div>
 
-      {/* Profile card — guest gets a simple welcome row */}
+      {/* Account row — guest gets a simple welcome row */}
       {isGuest && showLabels && (
         <div
           className="flex items-center h-14 px-3"
@@ -1069,10 +1058,10 @@ function ChatSidebarInner({
       )}
       {!isGuest && (
       <Link
-        href="/profile"
-        className="missi-profile-card block focus-visible:outline-none"
-        aria-label="Open profile"
-        data-testid="sidebar-profile-card"
+        href="/settings"
+        className="missi-account-row block focus-visible:outline-none"
+        aria-label="Open settings"
+        data-testid="sidebar-account-row"
       >
         <div
               className="flex items-center h-14 hover:bg-[var(--missi-nav-hover)] transition-colors duration-[220ms]"
@@ -1178,10 +1167,6 @@ function ChatSidebarInner({
                 {[
                   { icon: <Mic2 className="w-3.5 h-3.5" />, label: "Voice mode" },
                   { icon: <Brain className="w-3.5 h-3.5" />, label: "Memory" },
-                  { icon: <Flame className="w-3.5 h-3.5" />, label: "Streaks" },
-                  { icon: <Heart className="w-3.5 h-3.5" />, label: "Mood & Wellness" },
-                  { icon: <Users className="w-3.5 h-3.5" />, label: "Spaces" },
-                  { icon: <Wallet className="w-3.5 h-3.5" />, label: "Budget Buddy" },
                 ].map(({ icon, label }) => (
                   <div key={label} className="flex items-center gap-3 h-8 px-1 rounded-lg opacity-35" style={{ cursor: "not-allowed" }}>
                     <div className="flex-shrink-0" style={{ color: "var(--missi-nav-text)", width: 20, display: "flex", justifyContent: "center" }}>{icon}</div>
@@ -1231,30 +1216,6 @@ function ChatSidebarInner({
               testId="sidebar-memory-btn"
             />
             <NavRow
-              icon={<Users className="w-4 h-4" />}
-              label="Spaces"
-              href="/spaces"
-              active={pathname?.startsWith("/spaces")}
-              showLabel={showLabels}
-              testId="sidebar-spaces-btn"
-            />
-            <NavRow
-              icon={<Heart className="w-4 h-4" />}
-              label="Mood"
-              href="/mood"
-              active={pathname?.startsWith("/mood")}
-              showLabel={showLabels}
-              testId="sidebar-mood-btn"
-            />
-            <NavRow
-              icon={<Flame className="w-4 h-4" />}
-              label="Streaks"
-              href="/streak"
-              active={pathname?.startsWith("/streak")}
-              showLabel={showLabels}
-              testId="sidebar-streaks-btn"
-            />
-            <NavRow
               icon={<BookOpen className="w-4 h-4" />}
               label="Exam Buddy"
               href="/exam-buddy"
@@ -1263,21 +1224,12 @@ function ChatSidebarInner({
               testId="sidebar-exam-buddy-btn"
             />
             <NavRow
-              icon={<Wallet className="w-4 h-4" />}
-              label="Budget Buddy"
-              href="/budget"
-              active={pathname?.startsWith("/budget")}
-              showLabel={showLabels}
-              testId="sidebar-budget-buddy-btn"
-            />
-            <NavRow
               icon={<Plug className="w-4 h-4" />}
               label="Integrations"
               showLabel={showLabels}
               onClick={() => openSub("integrations")}
               testId="sidebar-integrations-btn"
             />
-            {/* Profile row removed — the top profile card already links to /profile. */}
             <NavRow
               icon={<MoreHorizontal className="w-4 h-4" />}
               label="More"
@@ -1332,7 +1284,7 @@ function ChatSidebarInner({
               />
             )}
             {activeSub === "integrations" && <IntegrationsSubPanel />}
-            {activeSub === "more" && <MoreSubPanel onPickImage={onPickImage} onClose={closeSub} />}
+            {activeSub === "more" && <MoreSubPanel />}
           </div>
         </div>
         </>

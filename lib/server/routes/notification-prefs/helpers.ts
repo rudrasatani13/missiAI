@@ -14,8 +14,6 @@ export const notificationPrefsSchema = z.object({
   quietHoursEnabled: z.boolean(),
   quietHoursStart: z.string().regex(/^\d{2}:\d{2}$/, "Expected HH:MM"),
   quietHoursEnd: z.string().regex(/^\d{2}:\d{2}$/, "Expected HH:MM"),
-  notifyMood: z.boolean(),
-  notifyStreak: z.boolean(),
   notifyCheckIn: z.boolean(),
   timezone: z.string().min(1).max(64),
 })

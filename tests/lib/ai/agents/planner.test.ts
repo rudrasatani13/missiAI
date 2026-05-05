@@ -12,7 +12,7 @@ import { buildAgentPlan } from "@/lib/ai/agents/planner"
 
 const AVAILABLE_TOOLS = [
   "searchMemory", "readCalendar", "createCalendarEvent",
-  "createNote", "draftEmail", "logExpense", "getWeekSummary",
+  "createNote", "draftEmail", "getWeekSummary",
 ]
 
 const VALID_GEMINI_RESPONSE = {

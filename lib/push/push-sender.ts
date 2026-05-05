@@ -40,8 +40,8 @@ export interface PushPayload {
  * Returns `true` if actually sent. Returns `false` when:
  *   • The user has no push subscription.
  *   • VAPID keys are not configured.
- *   • The user has muted this category (e.g. `notifyMood = false`) or is
- *     currently inside their quiet-hours window.
+ *   • The user has muted this category or is currently inside their
+ *     quiet-hours window.
  *   • The push request failed at the provider.
  */
 export async function notifyUser(

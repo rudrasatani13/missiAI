@@ -7,7 +7,7 @@ import { ChatSidebar } from "@/components/chat/ChatSidebar"
 import { useBilling } from "@/hooks/billing/useBilling"
 
 /**
- * Floating rounded chrome used on every non-/chat page (Memory, Mood, Streaks, etc.).
+ * Floating rounded chrome used on every non-/chat page.
  *
  * Layout:
  *   [ ChatSidebar ] — [ rounded main card containing {children} ]
@@ -80,10 +80,6 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
         onLogout={handleLogout}
         onNewChat={handleNewChat}
         isLiveMode={false}
-        onPickImage={() => {
-          /* No vision input outside /chat — route users there. */
-          router.push("/chat")
-        }}
         onWidthChange={setSidebarWidth}
       />
 

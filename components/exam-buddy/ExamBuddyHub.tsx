@@ -2,7 +2,7 @@
 
 import { Suspense, lazy, useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, BookOpen, Flame, MessageCircle, Sparkles, TrendingUp, Trophy } from 'lucide-react'
+import { ArrowRight, BookOpen, MessageCircle, Sparkles, TrendingUp, Trophy } from 'lucide-react'
 import Link from 'next/link'
 import { WeakTopicsCard } from './WeakTopicsCard'
 import type { ExamBuddyProfile, WeakTopicRecord, ExamTarget, ExamSubject, QuizSession } from '@/types/exam-buddy'
@@ -273,16 +273,6 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
             </p>
           </div>
 
-          {profile.studyStreak > 0 && (
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-[22px] shrink-0"
-              style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.22)' }}>
-              <Flame className="w-4 h-4" style={{ color: '#F97316' }} />
-              <div>
-                <p className="text-sm font-medium" style={{ color: '#FDBA74' }}>{profile.studyStreak} day streak</p>
-                <p className="text-[11px] font-light" style={{ color: 'var(--missi-text-muted)' }}>Keep the rhythm going</p>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3 mt-8">

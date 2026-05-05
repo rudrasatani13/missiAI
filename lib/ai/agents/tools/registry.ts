@@ -32,7 +32,6 @@ export type ToolExecutorFamily =
   | "calendar"
   | "communication"
   | "search"
-  | "budget"
 
 export interface ToolCapability {
   /** Unique tool name — must match Gemini function declaration name */
@@ -590,45 +589,6 @@ const TOOL_CAPABILITIES: readonly ToolCapability[] = [
     executorFamily: "search",
   },
 
-  // ── Budget ────────────────────────────────────────────────────────────────
-  {
-    name: "logExpense",
-    description:
-      "Log an expense or spending record to the user's expense memory. Use when user says 'aaj 500 rupees spend kiye food pe', 'spent money on', 'bought X for Y rupees'.",
-    parameters: {
-      type: "object",
-      properties: {
-        amount: {
-          type: "number",
-          description: "Amount spent (must be positive).",
-        },
-        currency: {
-          type: "string",
-          description: "Currency code (default: INR).",
-        },
-        category: {
-          type: "string",
-          enum: ["food", "transport", "shopping", "entertainment", "health", "utilities", "other"],
-          description: "Expense category.",
-        },
-        description: {
-          type: "string",
-          description: "What was spent on (max 100 chars).",
-        },
-        date: {
-          type: "string",
-          description: "Date in YYYY-MM-DD format (defaults to today).",
-        },
-      },
-      required: ["amount", "category", "description"],
-    },
-    label: "Logging expense",
-    riskClass: "safe",
-    allowedSurfaces: ["chat_loop", "live_execute", "confirmed_agent"],
-    requiresConfirmation: false,
-    executionMode: "sequential",
-    executorFamily: "budget",
-  },
 ]
 
 // ─── Lookups ─────────────────────────────────────────────────────────────────

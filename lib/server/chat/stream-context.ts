@@ -6,8 +6,6 @@ import { selectGeminiModel } from "@/lib/ai/providers/model-router"
 import { AGENT_FUNCTION_DECLARATIONS } from "@/lib/ai/agents/tools/dispatcher"
 import { AGENT_DESTRUCTIVE_TOOL_NAMES } from "@/lib/ai/agents/tools/policy"
 import { getGoogleTokens } from "@/lib/plugins/data-fetcher"
-import { getSpace, getSpaceGraph, getUserSpaces } from "@/lib/spaces/space-store"
-import { formatSpaceContextForPrompt } from "@/lib/spaces/space-context"
 import { getProfile } from "@/lib/exam-buddy/profile-store"
 import { buildExamBuddyModifier } from "@/lib/exam-buddy/exam-prompt"
 import type { ChatInput } from "@/lib/validation/schemas"
@@ -21,7 +19,6 @@ import {
 } from "@/lib/server/chat/context-cache"
 
 const CALENDAR_TOOLS = new Set(["readCalendar", "createCalendarEvent", "updateCalendarEvent", "deleteCalendarEvent", "findFreeSlot"])
-const SPACE_CONTEXT_GRAPH_LIMIT = 20
 
 // ── EDITH Mode System Prompt ─────────────────────────────────────────────────
 // Appended when voiceMode=true to make Missi fully autonomous via voice
@@ -121,10 +118,9 @@ export async function buildChatStreamContext({
   }
 
   // ── Phase 1: Parallel independent fetches ──────────────────────────────────
-  // Memory, space IDs, Google tokens, and exam profile can all start
-  // simultaneously. Each has its own error boundary so one failure does not
-  // block the others.
-  const [rawMemories, rawSpaceIds, googleTokens, ebProfile] = await Promise.all([
+  // Memory, Google tokens, and exam profile run in parallel with their own
+  // error boundaries. Spaces fan-out was removed in 2026-05.
+  const [rawMemories, googleTokens, ebProfile] = await Promise.all([
     loadLifeGraphMemoryContext({
       kv,
       vectorizeEnv,
@@ -132,7 +128,6 @@ export async function buildChatStreamContext({
       messages,
       skip: incognito,
     }),
-    (kv && !incognito) ? getUserSpaces(kv, userId).catch(() => []) : Promise.resolve([]),
     kv ? getGoogleTokens(kv, userId).catch(() => null) : Promise.resolve(null),
     (kv && input.examBuddy) ? getProfile(kv, userId).catch(() => null) : Promise.resolve(null),
   ])
@@ -140,31 +135,7 @@ export async function buildChatStreamContext({
   let memories = rawMemories
   if (clientMemories) memories = memories ? `${memories}\n${clientMemories}` : clientMemories
 
-  // ── Phase 2: Space detail fetch (depends on space IDs) ─────────────────────
-  // Space meta + graph are fetched in parallel per space.
-  let spaceBlock = ""
-  if (rawSpaceIds.length > 0) {
-    try {
-      const spaceIds = rawSpaceIds.slice(0, 3)
-      const spaceDetails = await Promise.all(
-        spaceIds.map(async (sid) => {
-          const [meta, graph] = await Promise.all([
-            getSpace(kv!, sid),
-            getSpaceGraph(kv!, sid, { limit: SPACE_CONTEXT_GRAPH_LIMIT, newestFirst: true }),
-          ])
-          return { meta, graph }
-        }),
-      )
-      const blocks = spaceDetails
-        .filter((d) => d.meta && d.graph.nodes.length > 0)
-        .map((d) => ({ graph: d.graph, name: d.meta!.name }))
-
-      spaceBlock = formatSpaceContextForPrompt(blocks) || ""
-    } catch {}
-  }
-  if (spaceBlock) memories = memories ? `${memories}\n\n${spaceBlock}` : spaceBlock
-
-  // ── Phase 3: Build system prompt (depends on memories) ─────────────────────
+  // ── Phase 2: Build system prompt (depends on memories) ─────────────────────
   let systemPrompt = voiceMode
     ? buildVoiceSystemPrompt(personality, memories, customPrompt, aiDials)
     : buildSystemPrompt(personality, memories, customPrompt, aiDials)
@@ -204,7 +175,6 @@ export async function buildChatStreamContext({
   logLatency("chat.latency.context_build", userId, ctxTimer(), {
     voiceMode,
     incognito,
-    hasSpaces: rawSpaceIds.length > 0,
     hasExamBuddy: !!input.examBuddy,
     hasGoogleTokens: !!googleTokens,
     cacheHit: false,

@@ -416,7 +416,6 @@ describe('exam-buddy API routes', () => {
       totalMarks: 1,
       completedAt: Date.now() - 1000,
       createdAt: Date.now() - 2000,
-      xpEarned: 8,
     }
     kv._store.set('exam-buddy:session:user-done:completed-sess', JSON.stringify(completedSession))
 
@@ -444,7 +443,6 @@ describe('exam-buddy API routes', () => {
       totalMarks: null,
       completedAt: null,
       createdAt: Date.now(),
-      xpEarned: 0,
     }
     kv._store.set('exam-buddy:session:user-submit:active-sess', JSON.stringify(session))
 
@@ -480,7 +478,6 @@ describe('exam-buddy API routes', () => {
       totalMarks: null,
       completedAt: null,
       createdAt: Date.now(),
-      xpEarned: 0,
     }
     kv._store.set('exam-buddy:session:user-jee:jee-sess', JSON.stringify(jeeSession))
 
@@ -513,7 +510,6 @@ describe('exam-buddy API routes', () => {
       totalMarks: null,
       completedAt: null,
       createdAt: Date.now(),
-      xpEarned: 0,
     }
     kv._store.set('exam-buddy:session:user-weak:weak-sess', JSON.stringify(session))
 

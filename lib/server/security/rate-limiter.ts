@@ -9,7 +9,6 @@ import { checkAndIncrementAtomicCounter, checkAtomicCounter } from '@/lib/server
 // 'oauth'        — OAuth connect initiation (creates KV state tokens; very tight)
 // 'export'       — bulk data-export endpoints (CSV download, etc.)
 // 'client_error' — client-side error telemetry (prevent log-flooding)
-// 'gallery'      — visual-memory gallery reads (calls getUserPlan per request)
 //
 // AI limits are deliberately tighter because each call fans out to an expensive
 // third-party model API; the lower cap prevents runaway costs from bots or
@@ -18,12 +17,12 @@ import { checkAndIncrementAtomicCounter, checkAtomicCounter } from '@/lib/server
 // expensive-per-call endpoints even when the generic api budget has headroom.
 
 const RATE_LIMITS = {
-  free: { api: 60, ai: 60, oauth: 5, export: 5, client_error: 10, gallery: 30 },
-  paid: { api: 200, ai: 120, oauth: 10, export: 10, client_error: 20, gallery: 60 },
+  free: { api: 60, ai: 60, oauth: 5, export: 5, client_error: 10 },
+  paid: { api: 200, ai: 120, oauth: 10, export: 10, client_error: 20 },
 } as const
 
 export type UserTier  = keyof typeof RATE_LIMITS
-export type RouteType = 'api' | 'ai' | 'oauth' | 'export' | 'client_error' | 'gallery'
+export type RouteType = 'api' | 'ai' | 'oauth' | 'export' | 'client_error'
 
 export interface RateLimitResult {
   allowed: boolean

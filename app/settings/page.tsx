@@ -34,7 +34,6 @@ import {
   Download,
   Eye,
   EyeOff,
-  Heart,
   Lock,
   LogOut,
   Mic,
@@ -53,7 +52,6 @@ import {
   Volume2,
   Wand2,
   X as XIcon,
-  Zap,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -105,9 +103,7 @@ const sectionDesc: React.CSSProperties = {
 
 const PERSONALITY_ICON_MAP: Record<string, React.ReactNode> = {
   Sparkles: <Sparkles className="w-4 h-4" />,
-  Heart: <Heart className="w-4 h-4" />,
   Briefcase: <Briefcase className="w-4 h-4" />,
-  Zap: <Zap className="w-4 h-4" />,
   BrainCircuit: <BrainCircuit className="w-4 h-4" />,
   Wand2: <Wand2 className="w-4 h-4" />,
 }
@@ -141,7 +137,6 @@ function SettingsPageInner() {
   const settings = useChatSettings()
 
   const planId = plan?.id
-  const isFreePlan = !planId || planId === "free"
 
   const userName = user?.firstName ?? user?.fullName ?? ""
   const userEmail = user?.primaryEmailAddress?.emailAddress ?? ""
@@ -184,7 +179,7 @@ function SettingsPageInner() {
           <div>
             <h1 className="text-xl md:text-2xl font-semibold tracking-tight">Settings</h1>
             <p className="text-xs text-[var(--missi-text-muted)]">
-              Manage your account, personality, voice, notifications and privacy.
+              Manage your account, assistant behavior, voice, notifications and privacy.
             </p>
           </div>
         </div>
@@ -198,13 +193,7 @@ function SettingsPageInner() {
             onNameSaved={settings.setUserName}
           />
 
-          <PersonalitySection
-            personality={settings.personality}
-            onPersonalityChange={settings.setPersonality}
-            customPrompt={settings.customPrompt}
-            onCustomPromptChange={settings.setCustomPrompt}
-            isFreePlan={isFreePlan}
-          />
+          <PersonalitySection personality={settings.personality} />
 
           <AIBehaviorSection
             aiDials={settings.aiDials}
@@ -610,44 +599,25 @@ function ProfileSection({
 
 function PersonalitySection({
   personality,
-  onPersonalityChange,
-  customPrompt,
-  onCustomPromptChange,
-  isFreePlan,
 }: {
   personality: PersonalityKey
-  onPersonalityChange: (p: PersonalityKey) => void
-  customPrompt: string
-  onCustomPromptChange: (s: string) => void
-  isFreePlan: boolean
 }) {
-  const router = useRouter()
-
   return (
     <Card
-      title="Personality"
-      description="How Missi talks to you by default. Switch any time."
+      title="Assistant"
+      description="Missi uses one safe default assistant style."
       icon={<Sparkles className="w-4 h-4" />}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {PERSONALITY_OPTIONS.map((p) => {
           const Icon = PERSONALITY_ICON_MAP[p.iconName] ?? <Sparkles className="w-4 h-4" />
-          const isPremium = p.requiredPlan === "plus" || p.requiredPlan === "pro"
-          const isLocked = isPremium && isFreePlan
           const isActive = personality === p.key
 
           return (
             <button
               key={p.key}
               type="button"
-              onClick={() => {
-                if (isLocked) {
-                  toast.error(`Upgrade to Plus/Pro to unlock ${p.label}`)
-                  router.push("/pricing")
-                } else {
-                  onPersonalityChange(p.key)
-                }
-              }}
+              disabled
               data-testid={`settings-personality-${p.key}-btn`}
               className="relative flex items-center gap-3 text-left transition-colors hover:bg-[var(--missi-nav-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--missi-border)]"
                 style={{
@@ -655,8 +625,7 @@ function PersonalitySection({
                   borderRadius: 12,
                   background: isActive ? "var(--missi-nav-active-bg)" : "var(--missi-surface)",
                   border: isActive ? "1px solid var(--missi-border-strong)" : "1px solid var(--missi-border)",
-                  cursor: "pointer",
-                  opacity: isLocked ? 0.5 : 1,
+                  cursor: "default",
               }}
             >
               <div
@@ -677,9 +646,7 @@ function PersonalitySection({
                   {p.desc}
                 </p>
               </div>
-              {isLocked ? (
-                <Lock className="w-3.5 h-3.5 text-[var(--missi-text-secondary)] flex-shrink-0" />
-              ) : isActive ? (
+              {isActive ? (
                 <Check className="w-3.5 h-3.5 text-[var(--missi-text-secondary)] flex-shrink-0" />
               ) : null}
             </button>
@@ -687,27 +654,6 @@ function PersonalitySection({
         })}
       </div>
 
-      {personality === "custom" && (
-        <div className="mt-4">
-          <p style={{ ...eyebrow, marginBottom: 8 }}>System Instructions</p>
-          <textarea
-            value={customPrompt}
-            onChange={(e) => onCustomPromptChange(e.target.value)}
-            placeholder="E.g. You are a sarcastic AI that answers in riddles..."
-            className="w-full resize-none outline-none"
-            rows={4}
-            style={{
-              fontSize: 13,
-              background: "var(--missi-surface)",
-              border: "1px solid var(--missi-border)",
-              borderRadius: 10,
-              padding: "10px 12px",
-              color: "var(--missi-text-primary)",
-              lineHeight: 1.6,
-            }}
-          />
-        </div>
-      )}
     </Card>
   )
 }
@@ -741,7 +687,7 @@ function AIBehaviorSection({
   return (
     <Card
       title="AI Behavior"
-      description="Fine-tune Missi's voice. Overrides personality defaults."
+      description="Fine-tune Missi's response style."
       icon={<BrainCircuit className="w-4 h-4" />}
       trailing={
         <button
@@ -873,8 +819,6 @@ function NotificationsSection({
           quietHoursEnabled: !!res.data.quietHoursEnabled,
           quietHoursStart: res.data.quietHoursStart ?? "22:00",
           quietHoursEnd: res.data.quietHoursEnd ?? "08:00",
-          notifyMood: !!res.data.notifyMood,
-          notifyStreak: !!res.data.notifyStreak,
           notifyCheckIn: !!res.data.notifyCheckIn,
         })
       })
@@ -947,7 +891,7 @@ function NotificationsSection({
   return (
     <Card
       title="Notifications"
-      description="Proactive check-ins, streaks and quiet hours."
+      description="Proactive check-ins and quiet hours."
       icon={<Bell className="w-4 h-4" />}
     >
       <Row
@@ -977,22 +921,6 @@ function NotificationsSection({
       </Row>
 
       <Divider />
-
-      <Row label="Mood reminders" description="Daily prompt to log how you feel." icon={<Heart className="w-4 h-4" />}>
-        <Toggle
-          checked={notifications.notifyMood}
-          onChange={() => updateNotifications({ notifyMood: !notifications.notifyMood })}
-          ariaLabel="Toggle mood reminders"
-        />
-      </Row>
-
-      <Row label="Streak alerts" description="Nudge before your streak breaks." icon={<Zap className="w-4 h-4" />}>
-        <Toggle
-          checked={notifications.notifyStreak}
-          onChange={() => updateNotifications({ notifyStreak: !notifications.notifyStreak })}
-          ariaLabel="Toggle streak alerts"
-        />
-      </Row>
 
       <Row
         label="Check-in notifications"
@@ -1435,7 +1363,7 @@ function SubscriptionSection({ planId }: { planId: string | undefined }) {
   return (
     <Card
       title="Subscription"
-      description={isFreePlan ? "Upgrade to unlock premium personalities, voices and more." : "Your current Missi plan."}
+      description={isFreePlan ? "Upgrade for higher limits and premium access." : "Your current Missi plan."}
       icon={<Crown className="w-4 h-4" style={{ color: "var(--missi-accent)" }} />}
     >
       <Link

@@ -58,10 +58,6 @@ vi.mock("@/lib/analytics/event-store", () => ({
   recordAnalyticsUsage: vi.fn().mockResolvedValue(undefined),
 }))
 
-vi.mock("@/lib/gamification/xp-engine", () => ({
-  awardXP: vi.fn().mockResolvedValue(undefined),
-}))
-
 vi.mock("@/lib/memory/vectorize", () => ({
   deleteUserVectors: vi.fn().mockResolvedValue(undefined),
 }))
@@ -82,7 +78,6 @@ import { checkRateLimit } from "@/lib/server/security/rate-limiter"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { waitUntil } from "@/lib/server/platform/wait-until"
 import { recordAnalyticsUsage } from "@/lib/analytics/event-store"
-import { awardXP } from "@/lib/gamification/xp-engine"
 import { deleteUserVectors } from "@/lib/memory/vectorize"
 import { logError } from "@/lib/server/observability/logger"
 
@@ -99,7 +94,6 @@ const mockCheckRateLimit = vi.mocked(checkRateLimit)
 const mockGetUserPlan = vi.mocked(getUserPlan)
 const mockWaitUntil = vi.mocked(waitUntil)
 const mockRecordAnalyticsUsage = vi.mocked(recordAnalyticsUsage)
-const mockAwardXP = vi.mocked(awardXP)
 const mockSyncLifeGraphMetaToV2 = vi.mocked(syncLifeGraphMetaToV2)
 const mockDeleteUserVectors = vi.mocked(deleteUserVectors)
 const mockLogError = vi.mocked(logError)
@@ -379,8 +373,6 @@ describe("memory parent route", () => {
         [expect.objectContaining({ userId: "user_test123", title: "Learn TypeScript" })],
       )
       expect(mockRecordAnalyticsUsage).toHaveBeenCalledWith(mockKV, { type: "memory_write", userId: "user_test123" })
-      expect(mockAwardXP).toHaveBeenCalledWith(mockKV, "user_test123", "chat", 3)
-      expect(mockAwardXP).toHaveBeenCalledWith(mockKV, "user_test123", "memory", 2)
       expect(mockWaitUntil).toHaveBeenCalled()
     })
   })

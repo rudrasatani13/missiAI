@@ -7,7 +7,6 @@
 
 import type { AgentToolCall, AgentStepResult, ToolContext } from "@/lib/ai/agents/tools/types"
 import { getToolCapability } from "@/lib/ai/agents/tools/registry"
-import { executeBudgetTool } from "@/lib/ai/agents/tools/executors/budget"
 import { executeCalendarTool } from "@/lib/ai/agents/tools/executors/calendar"
 import { executeCommunicationTool } from "@/lib/ai/agents/tools/executors/communication"
 import { executeMemoryProductivityTool } from "@/lib/ai/agents/tools/executors/memory"
@@ -66,9 +65,6 @@ export async function executeAgentTool(
 
       case "search":
         return (await executeSearchTool(call, ctx))!
-
-      case "budget":
-        return (await executeBudgetTool(call, ctx))!
 
       default:
         // Exhaustiveness guard — should never happen for registry-backed tools

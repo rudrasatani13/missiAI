@@ -16,7 +16,6 @@ import { usePlugins } from "@/hooks/chat/usePlugins"
 import { useBilling } from "@/hooks/billing/useBilling"
 import type { ConversationEntry } from "@/types/chat"
 import { shouldShowOnboarding } from "@/components/chat/OnboardingTour"
-import { useVisualMemoryCapture } from "@/hooks/chat/useVisualMemoryCapture"
 import { useBuddyState } from "@/hooks/buddy/useBuddyState"
 
 import {
@@ -24,8 +23,6 @@ import {
   getEffectiveTranscriptValue,
   getEffectiveVoiceState,
 } from "@/lib/chat/page-helpers"
-
-const isFullDevBootstrap = process.env.NODE_ENV !== 'development' || process.env.NEXT_PUBLIC_ENABLE_CF_DEV === '1'
 
 export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
@@ -67,31 +64,12 @@ export default function VoiceAssistantPage() {
     planId: plan?.id,
   })
   const {
-    avatarTier,
-    fetchMemories,
     memoriesState,
   } = useChatHydration({
-    isFullDevBootstrap,
     isLoaded,
     memoriesRef,
     userId: user?.id,
   })
-
-  // Vision State
-  const {
-    clearVisualSelection,
-    dismissVisualResult,
-    fileInputRef,
-    handleImageConsumed,
-    handleImageSelect,
-    handleSaveToMemory,
-    imagePayloadRef,
-    isAnalyzing,
-    setVisualNote,
-    thumbnail,
-    visualNote,
-    visualResult,
-  } = useVisualMemoryCapture({ onSaveSuccess: fetchMemories })
 
   const {
     state: voiceState, audioLevel, statusText, lastTranscript,
@@ -103,8 +81,6 @@ export default function VoiceAssistantPage() {
     customPromptRef,
     memoriesRef,
     conversationRef,
-    imagePayloadRef,
-    onImageConsumed: handleImageConsumed,
     aiDialsRef,
     incognitoRef,
     analyticsOptOutRef,
@@ -333,26 +309,19 @@ export default function VoiceAssistantPage() {
       actionResult={lastResult}
       agentSteps={agentSteps}
       audioLevel={audioLevel}
-      avatarTier={avatarTier}
       billingLoading={billingLoading}
       bootCompleted={bootCompleted}
       briefing={briefing}
-      clearVisualSelection={clearVisualSelection}
       completeBootSequence={completeBootSequence}
       currentEmotion={currentEmotion}
       dismissOnboarding={dismissOnboarding}
-      dismissVisualResult={dismissVisualResult}
       displayName={displayName}
       effectiveLastResponse={effectiveLastResponse}
       effectiveLastTranscript={effectiveLastTranscript}
       effectiveStatusText={effectiveStatusText}
       effectiveVoiceState={effectiveVoiceState}
       errorMessage={effectiveErrorMessage}
-      fileInputRef={fileInputRef}
-      handleImageSelect={handleImageSelect}
-      handleSaveToMemory={handleSaveToMemory}
       handleTap={handleTap}
-      isAnalyzing={isAnalyzing}
       isAtLimit={isAtLimit}
       lastResult={lastResult}
       limitSeconds={limitSeconds}
@@ -371,14 +340,10 @@ export default function VoiceAssistantPage() {
       onUpgrade={() => initiateCheckout('pro')}
       planId={plan?.id}
       pluginResult={pluginResult}
-      setVisualNote={setVisualNote}
       showBootSequence={showBootSequence}
       showOnboarding={showOnboarding}
       streamingText={streamingText}
-      thumbnail={thumbnail}
       usedSeconds={usedSeconds}
-      visualNote={visualNote}
-      visualResult={visualResult}
       voiceState={voiceState}
     />)
 }

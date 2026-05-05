@@ -164,7 +164,6 @@ export async function POST(req: NextRequest) {
     totalMarks: null,
     completedAt: null,
     createdAt: Date.now(),
-    xpEarned: 0,
   }
 
   await saveQuizSession(kv, userId, session)

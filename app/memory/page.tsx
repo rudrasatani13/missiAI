@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Brain, RefreshCw, Network, Plus, X, Camera, BookOpen } from 'lucide-react'
+import { Brain, RefreshCw, Plus, X } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
 import { useMemoryDashboard } from '@/hooks/memory/useMemoryDashboard'
@@ -180,26 +180,8 @@ export default function MemoryPage() {
             </button>
           </div>
 
-          {/* Bottom row on mobile / right-aligned on desktop: view chips + add + refresh */}
+          {/* Bottom row on mobile / right-aligned on desktop: add + refresh */}
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 md:overflow-visible">
-            {[
-              { href: '/memory/visual', icon: <Camera className="w-3 h-3" />, label: 'Visual' },
-              { href: '/memory/graph', icon: <Network className="w-3 h-3" />, label: '3D' },
-              { href: '/memory/story', icon: <BookOpen className="w-3 h-3" />, label: 'Story' },
-            ].map(({ href, icon, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors no-underline hover:bg-[var(--missi-nav-hover)] active:scale-[0.97] flex-shrink-0"
-                style={{
-                  background: 'var(--missi-surface)',
-                  border: '1px solid var(--missi-border)',
-                  color: 'var(--missi-text-secondary)',
-                }}
-              >
-                {icon} {label}
-              </Link>
-            ))}
             <button
               onClick={() => setShowAddForm((v) => !v)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors active:scale-[0.97] flex-shrink-0"

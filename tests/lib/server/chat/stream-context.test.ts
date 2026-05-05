@@ -10,10 +10,6 @@ const {
   truncateToTokenLimitMock,
   selectGeminiModelMock,
   getGoogleTokensMock,
-  getUserSpacesMock,
-  getSpaceMock,
-  getSpaceGraphMock,
-  formatSpaceContextForPromptMock,
   getProfileMock,
   buildExamBuddyModifierMock,
 } = vi.hoisted(() => ({
@@ -25,10 +21,6 @@ const {
   truncateToTokenLimitMock: vi.fn(),
   selectGeminiModelMock: vi.fn(),
   getGoogleTokensMock: vi.fn(),
-  getUserSpacesMock: vi.fn(),
-  getSpaceMock: vi.fn(),
-  getSpaceGraphMock: vi.fn(),
-  formatSpaceContextForPromptMock: vi.fn(),
   getProfileMock: vi.fn(),
   buildExamBuddyModifierMock: vi.fn(),
 }))
@@ -70,16 +62,6 @@ vi.mock("@/lib/plugins/data-fetcher", () => ({
   getGoogleTokens: getGoogleTokensMock,
 }))
 
-vi.mock("@/lib/spaces/space-store", () => ({
-  getUserSpaces: getUserSpacesMock,
-  getSpace: getSpaceMock,
-  getSpaceGraph: getSpaceGraphMock,
-}))
-
-vi.mock("@/lib/spaces/space-context", () => ({
-  formatSpaceContextForPrompt: formatSpaceContextForPromptMock,
-}))
-
 vi.mock("@/lib/exam-buddy/profile-store", () => ({
   getProfile: getProfileMock,
 }))
@@ -113,10 +95,6 @@ describe("buildChatStreamContext", () => {
     truncateToTokenLimitMock.mockImplementation((messages) => messages)
     selectGeminiModelMock.mockReturnValue("gemini-2.5-pro")
     getGoogleTokensMock.mockResolvedValue(null)
-    getUserSpacesMock.mockResolvedValue([])
-    getSpaceMock.mockResolvedValue(null)
-    getSpaceGraphMock.mockResolvedValue({ nodes: [] })
-    formatSpaceContextForPromptMock.mockReturnValue("")
     getProfileMock.mockResolvedValue(null)
     buildExamBuddyModifierMock.mockReturnValue("exam-modifier")
   })
@@ -125,10 +103,6 @@ describe("buildChatStreamContext", () => {
     const truncatedMessages = [{ role: "user", content: "trimmed question" }] as const
 
     formatLifeGraphForPromptMock.mockReturnValue("life-memory")
-    getUserSpacesMock.mockResolvedValue(["space-1"])
-    getSpaceMock.mockResolvedValue({ name: "Study Space" })
-    getSpaceGraphMock.mockResolvedValue({ nodes: [{ id: "node-1" }] })
-    formatSpaceContextForPromptMock.mockReturnValue("space-memory")
     getProfileMock.mockResolvedValue({ board: "cbse" })
     estimateRequestTokensMock
       .mockReturnValueOnce(1200)
@@ -160,15 +134,10 @@ describe("buildChatStreamContext", () => {
       "what should I study next?",
       { topK: 5 },
     )
-    expect(getSpaceGraphMock).toHaveBeenCalledWith(
-      kv,
-      "space-1",
-      { limit: 20, newestFirst: true },
-    )
-    expect(result.memories).toBe("life-memory\nclient-memory\n\nspace-memory")
+    expect(result.memories).toBe("life-memory\nclient-memory")
     expect(buildVoiceSystemPromptMock).toHaveBeenCalledWith(
       "assistant",
-      "life-memory\nclient-memory\n\nspace-memory",
+      "life-memory\nclient-memory",
       undefined,
       undefined,
     )
@@ -191,12 +160,12 @@ describe("buildChatStreamContext", () => {
     expect(result.messages).toBe(truncatedMessages)
     expect(result.inputTokens).toBe(700)
     expect(result.maxOutputTokens).toBe(800)
-    expect(selectGeminiModelMock).toHaveBeenCalledWith(truncatedMessages, "life-memory\nclient-memory\n\nspace-memory")
+    expect(selectGeminiModelMock).toHaveBeenCalledWith(truncatedMessages, "life-memory\nclient-memory")
     expect(result.model).toBe("gemini-2.5-pro")
     expect(result.availableDeclarations.map((declaration) => declaration.name)).toEqual(["searchMemory"])
   })
 
-  it("skips memory and space loading in incognito while preserving connected calendar tools", async () => {
+  it("skips memory loading in incognito while preserving connected calendar tools", async () => {
     getGoogleTokensMock.mockResolvedValue({ accessToken: "token" })
     estimateRequestTokensMock
       .mockReturnValueOnce(200)
@@ -217,7 +186,6 @@ describe("buildChatStreamContext", () => {
     })
 
     expect(searchLifeGraphMock).not.toHaveBeenCalled()
-    expect(getUserSpacesMock).not.toHaveBeenCalled()
     expect(result.memories).toBe("")
     expect(buildSystemPromptMock).toHaveBeenCalledWith("assistant", "", undefined, undefined)
     expect(result.systemPrompt).toBe("base-prompt")
@@ -232,7 +200,6 @@ describe("buildChatStreamContext", () => {
 
   it("parallelizes independent context fetches and resolves the fastest combined path", async () => {
     let memoryResolved = false
-    let spacesResolved = false
     let googleResolved = false
     let profileResolved = false
 
@@ -240,17 +207,6 @@ describe("buildChatStreamContext", () => {
       memoryResolved = true
       return [{ id: "node-1" }]
     })
-    getUserSpacesMock.mockImplementation(async () => {
-      spacesResolved = true
-      return ["space-1"]
-    })
-    getSpaceMock.mockImplementation(async () => {
-      expect(memoryResolved).toBe(true)
-      expect(googleResolved).toBe(true)
-      expect(profileResolved).toBe(true)
-      return { name: "Space A" }
-    })
-    getSpaceGraphMock.mockResolvedValue({ nodes: [{ id: "n1" }] })
     getGoogleTokensMock.mockImplementation(async () => {
       googleResolved = true
       return { accessToken: "tok" }
@@ -272,20 +228,13 @@ describe("buildChatStreamContext", () => {
     })
 
     expect(memoryResolved).toBe(true)
-    expect(spacesResolved).toBe(true)
     expect(googleResolved).toBe(true)
     expect(profileResolved).toBe(true)
-    expect(getSpaceGraphMock).toHaveBeenCalledWith(
-      kv,
-      "space-1",
-      { limit: 20, newestFirst: true },
-    )
     expect(result.availableDeclarations.map((d) => d.name)).toContain("readCalendar")
   })
 
   it("survives a partial fetch failure and still assembles usable context", async () => {
     formatLifeGraphForPromptMock.mockReturnValue("life-memory")
-    getUserSpacesMock.mockRejectedValue(new Error("spaces boom"))
     getProfileMock.mockRejectedValue(new Error("profile boom"))
     getGoogleTokensMock.mockResolvedValue({ accessToken: "tok" })
     searchLifeGraphMock.mockResolvedValue([{ id: "m1" }])
@@ -304,25 +253,5 @@ describe("buildChatStreamContext", () => {
     expect(result.memories).toContain("life-memory")
     expect(result.availableDeclarations.map((d) => d.name)).toContain("readCalendar")
     expect(result.systemPrompt).toBe("base-prompt\n\nexam-modifier")
-  })
-
-  it("survives space detail fetch failure and still returns memory + tools", async () => {
-    formatLifeGraphForPromptMock.mockReturnValue("life-memory")
-    getUserSpacesMock.mockResolvedValue(["space-1"])
-    getSpaceMock.mockRejectedValue(new Error("space meta boom"))
-    getGoogleTokensMock.mockResolvedValue(null)
-
-    const result = await buildChatStreamContext({
-      userId: "user_5",
-      kv,
-      input: {
-        messages: [{ role: "user", content: "hey" }],
-        personality: "assistant",
-      },
-      vectorizeEnv: null,
-    })
-
-    expect(result.memories).toBe("life-memory")
-    expect(result.availableDeclarations.map((d) => d.name)).toEqual(["searchMemory"])
   })
 })

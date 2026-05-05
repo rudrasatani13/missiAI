@@ -24,7 +24,7 @@ describe("chat page effect helpers", () => {
     expect(getHighPriorityBriefingItem([
       { type: "habit_check", priority: "medium", message: "medium", actionable: true },
       { type: "goal_nudge", priority: "high", message: "first high", actionable: true },
-      { type: "daily_win", priority: "high", message: "dismissed", actionable: true, dismissedAt: 1 },
+      { type: "memory_insight", priority: "high", message: "dismissed", actionable: true, dismissedAt: 1 },
     ])?.message).toBe("first high")
   })
 

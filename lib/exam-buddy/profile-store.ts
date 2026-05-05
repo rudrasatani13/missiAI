@@ -32,8 +32,6 @@ export function createDefaultProfile(userId: string, examTarget: ExamTarget): Ex
     examTarget,
     targetYear: null,
     weakSubjects: [],
-    studyStreak: 0,
-    lastStudyDate: '',
     totalQuizzesCompleted: 0,
     totalCorrectAnswers: 0,
     totalQuestionsAttempted: 0,
@@ -77,26 +75,6 @@ export async function getOrCreateProfile(
   const fresh = createDefaultProfile(userId, examTarget)
   await saveProfile(kv, userId, fresh)
   return { profile: fresh, isNew: true }
-}
-
-// ─── Study Streak ─────────────────────────────────────────────────────────────
-
-export function updateStudyStreak(profile: ExamBuddyProfile): void {
-  const today = new Date().toISOString().slice(0, 10)
-  if (profile.lastStudyDate === today) return
-
-  const todayDate = new Date(today)
-  const yesterdayDate = new Date(todayDate)
-  yesterdayDate.setDate(todayDate.getDate() - 1)
-  const yesterday = yesterdayDate.toISOString().slice(0, 10)
-
-  if (profile.lastStudyDate === yesterday) {
-    profile.studyStreak += 1
-  } else {
-    profile.studyStreak = 1
-  }
-
-  profile.lastStudyDate = today
 }
 
 // ─── Weak Topics ──────────────────────────────────────────────────────────────

@@ -67,10 +67,6 @@ vi.mock("@/lib/ai/agents/tools/dispatcher", () => ({
   ],
 }))
 
-vi.mock("@/lib/gamification/xp-engine", () => ({
-  awardXP: vi.fn().mockResolvedValue(2),
-}))
-
 vi.mock("@/lib/server/observability/logger", () => ({
   logRequest: vi.fn(),
   logError: vi.fn(),
@@ -89,9 +85,7 @@ import { executeAgentTool } from "@/lib/ai/agents/tools/dispatcher"
 import { logRequest, logError } from "@/lib/server/observability/logger"
 import { searchLifeGraph, formatLifeGraphForPrompt } from "@/lib/memory/life-graph"
 import { getGoogleTokens } from "@/lib/plugins/data-fetcher"
-import { buildBudgetMonthLinkRecord, putBudgetEntryRecord, putBudgetMonthLink } from "@/lib/budget/budget-record-store"
 import { checkAndIncrementAtomicCounter } from "@/lib/server/platform/atomic-quota"
-import type { ExpenseEntry } from "@/types/budget"
 
 import { GET, POST } from "@/app/api/v1/agents/[...path]/route"
 
@@ -99,7 +93,6 @@ import { GET, POST } from "@/app/api/v1/agents/[...path]/route"
 const planPost = (req: Request) => POST(req, { params: Promise.resolve({ path: ['plan'] }) })
 const confirmPost = (req: Request) => POST(req, { params: Promise.resolve({ path: ['confirm'] }) })
 const historyGet = () => GET(new Request('http://localhost/api/v1/agents/history'), { params: Promise.resolve({ path: ['history'] }) })
-const expensesGet = () => GET(new Request('http://localhost/api/v1/agents/expenses'), { params: Promise.resolve({ path: ['expenses'] }) })
 
 const mockGetRequestContext = vi.mocked(getCloudflareContext)
 const mockGetVerifiedUserId = vi.mocked(getVerifiedUserId)
@@ -650,72 +643,5 @@ describe("GET /api/v1/agents/history", () => {
     expect(res.status).toBe(200)
     expect(body.entries).toHaveLength(1)
     expect((body.entries[0] as { id: string }).id).toBe("h1")
-  })
-})
-
-// ─── GET /api/v1/agents/expenses ─────────────────────────────────────────────
-
-describe("GET /api/v1/agents/expenses", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    mockGetVerifiedUserId.mockResolvedValue("user_test")
-    setupMockContext()
-  })
-
-  it("returns 401 without a Clerk session", async () => {
-    mockGetVerifiedUserId.mockRejectedValueOnce(new AuthenticationError())
-    const res = await expensesGet()
-    expect(res.status).toBe(401)
-  })
-
-  it("returns zero totals for a new user with no expenses", async () => {
-    const res = await expensesGet()
-    const body = await res.json() as { monthlyTotal: number; currency: string; byCategory: Record<string, number>; recentEntries: unknown[] }
-
-    expect(res.status).toBe(200)
-    expect(body.currency).toBe("INR")
-    expect(body.recentEntries).toEqual([])
-  })
-
-  it("returns expense totals from shared budget data when present", async () => {
-    const kv = makeMockKV()
-    const yearMonth = new Date().toISOString().slice(0, 7)
-    const foodEntry: ExpenseEntry = {
-      id: 'entry_food',
-      userId: 'user_test',
-      amount: 700,
-      currency: 'INR',
-      category: 'food',
-      description: 'Lunch',
-      date: `${yearMonth}-10`,
-      createdAt: 1,
-      updatedAt: 1,
-      source: 'manual',
-    }
-    const transportEntry: ExpenseEntry = {
-      id: 'entry_transport',
-      userId: 'user_test',
-      amount: 500,
-      currency: 'INR',
-      category: 'transport',
-      description: 'Taxi',
-      date: `${yearMonth}-11`,
-      createdAt: 2,
-      updatedAt: 2,
-      source: 'manual',
-    }
-    await putBudgetEntryRecord(kv, foodEntry)
-    await putBudgetEntryRecord(kv, transportEntry)
-    await putBudgetMonthLink(kv, buildBudgetMonthLinkRecord(foodEntry)!)
-    await putBudgetMonthLink(kv, buildBudgetMonthLinkRecord(transportEntry)!)
-    setupMockContext(kv)
-
-    const res = await expensesGet()
-    const body = await res.json() as { monthlyTotal: number; byCategory: Record<string, number> }
-
-    expect(res.status).toBe(200)
-    expect(body.monthlyTotal).toBe(1200)
-    expect(body.byCategory.food).toBe(700)
-    expect(body.byCategory.transport).toBe(500)
   })
 })

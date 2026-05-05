@@ -79,9 +79,6 @@ export function buildExamBuddyModifier(
 
   // Study stats for personalization
   if (profile) {
-    if (profile.studyStreak > 0) {
-      lines.push('', `Study Streak: ${profile.studyStreak} day(s) — acknowledge this and keep the user motivated.`)
-    }
     if (profile.totalQuizzesCompleted > 0) {
       lines.push(`Total Quizzes Completed: ${profile.totalQuizzesCompleted}`)
     }

@@ -5,8 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useBilling } from '@/hooks/billing/useBilling'
-import { useReferral } from '@/hooks/billing/useReferral'
-import { Check, X, Sparkles, ChevronDown, AlertTriangle, Crown, ArrowRight, Gift, Copy, Users, Award } from 'lucide-react'
+import { Check, X, Sparkles, ChevronDown, AlertTriangle, Crown, ArrowRight } from 'lucide-react'
 import { CelebrationOverlay } from '@/components/feedback/CelebrationOverlay'
 import { ScrollReveal } from '@/components/effects/ScrollReveal'
 import { ChatShell } from '@/components/shell/ChatShell'
@@ -437,10 +436,6 @@ export default function PricingPage() {
     error: billingError, initiateCheckout, cancelSubscription,
   } = useBilling()
 
-  const {
-    referral, copied, getReferralLink, copyReferralLink, hasReferralDiscount,
-  } = useReferral()
-
   const [successMessage] = useState<string | null>(null)
   const prevPlanRef = useRef<string | null>(null)
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
@@ -766,11 +761,9 @@ export default function PricingPage() {
             features={[
               '10 minutes of voice per day',
               'Real-time Gemini Live voice',
-              '1 personality mode',
+              'Default Missi assistant',
               'Basic memory — up to 20 facts',
-              'Visual Memory — 10 images/day',
-              'Daily mission (1 per day)',
-              'Mood & streak tracking',
+              'Exam Buddy trial access',
             ]}
             disabledFeatures={[
               'Extended voice (2hr/day)',
@@ -794,13 +787,10 @@ export default function PricingPage() {
             showPaymentBadges={currentPlanId !== 'plus'}
             features={[
               '2 hours of voice per day',
-              'All 4 personality profiles',
-              'Full memory graph — unlimited facts',
-              'Visual Memory — 50 images/day',
-              'Daily missions (3 per day)',
+              'Full memory — unlimited facts',
+              'Exam Buddy access',
               'Proactive nudges & smart reminders',
               'Plugin integrations (Notion, Calendar)',
-              'Mood insights & streak rewards',
             ]}
             onSelect={handlePlusPlan}
             isLoading={isLoading || (isUpgrading && upgradingPlan === 'plus') || isCancelling}
@@ -819,9 +809,7 @@ export default function PricingPage() {
             features={[
               'Unlimited voice interactions',
               'Everything in Plus',
-              'Unlimited daily missions (10/day)',
               'Priority response speed',
-              'Visual Memory — 50 images/day',
               'API access for custom integrations',
               'Dedicated priority support',
             ]}
@@ -845,186 +833,6 @@ export default function PricingPage() {
         >
           Powered by Dodo Payments
         </div>
-
-        {/* Referral Discount Banner — shown if user came via referral link and is on free plan */}
-        {hasReferralDiscount() && currentPlanId === 'free' && (
-          <div
-            data-testid="referral-discount-banner"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              marginBottom: 32,
-              padding: '12px 20px',
-              borderRadius: 12,
-              background: 'var(--missi-surface)',
-              border: '1px solid var(--missi-border)',
-            }}
-          >
-            <Gift style={{ width: 14, height: 14, color: 'var(--missi-text-secondary)', flexShrink: 0 }} />
-            <p style={{ fontSize: 13, color: 'var(--missi-text-primary)', margin: 0, textAlign: 'center' }}>
-              <span style={{ fontWeight: 500, color: 'var(--missi-text-primary)' }}>20% referral discount</span>
-              <span style={{ color: 'var(--missi-text-secondary)' }}>
-                {' '}· 6 extra free days on your first month
-              </span>
-            </p>
-          </div>
-        )}
-
-        {/* Referral Section — thin glass strip */}
-        {isSignedIn && (
-          <div
-            data-testid="referral-section"
-            style={{
-              marginBottom: 48,
-              padding: '14px 18px',
-              borderRadius: 14,
-              background: 'var(--missi-surface)',
-              backdropFilter: 'blur(24px) saturate(140%)',
-              WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-              border: '1px solid var(--missi-border)',
-              boxShadow:
-                '0 20px 50px -20px rgba(0,0,0,0.5), inset 0 1px 0 var(--missi-border)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                flexWrap: 'wrap',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                <Gift style={{ width: 14, height: 14, color: 'var(--missi-text-secondary)', flexShrink: 0 }} />
-                <div style={{ minWidth: 0 }}>
-                  <p
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 500,
-                      color: 'var(--missi-text-primary)',
-                      margin: 0,
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    Invite friends, earn rewards
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 11,
-                      color: 'var(--missi-text-secondary)',
-                      margin: '2px 0 0',
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    You get 7 free days, they get 20% off
-                  </p>
-                </div>
-              </div>
-
-              {referral && (
-                <div
-                  data-testid="referral-stats"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    fontSize: 11,
-                    color: 'var(--missi-text-secondary)',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <Users style={{ width: 11, height: 11, color: 'var(--missi-text-muted)' }} />
-                    <strong style={{ color: 'var(--missi-text-primary)', fontWeight: 600 }}>
-                      {referral.successfulReferred}
-                    </strong>{' '}
-                    joined
-                  </span>
-                  <span style={{ color: 'var(--missi-text-muted)' }}>·</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <Award style={{ width: 11, height: 11, color: 'var(--missi-text-muted)' }} />
-                    <strong style={{ color: 'var(--missi-text-primary)', fontWeight: 600 }}>
-                      {referral.rewardDaysEarned}
-                    </strong>{' '}
-                    days
-                  </span>
-                  <span style={{ color: 'var(--missi-text-muted)' }}>·</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <Gift style={{ width: 11, height: 11, color: 'var(--missi-text-muted)' }} />
-                    <strong style={{ color: 'var(--missi-text-primary)', fontWeight: 600 }}>
-                      {referral.remainingSlots}
-                    </strong>{' '}
-                    slots
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Referral Link */}
-            {referral && (
-              <div
-                data-testid="referral-link-box"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '8px 10px 8px 12px',
-                  borderRadius: 10,
-                  background: 'var(--missi-surface)',
-                  border: '1px solid var(--missi-border)',
-                }}
-              >
-                <input
-                  readOnly
-                  value={getReferralLink()}
-                  data-testid="referral-link-input"
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    background: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    color: 'var(--missi-text-secondary)',
-                    fontSize: 12,
-                    fontFamily: 'var(--font-mono)',
-                  }}
-                />
-                <button
-                  data-testid="copy-referral-btn"
-                  onClick={copyReferralLink}
-                  className="active:scale-[0.97] transition-transform"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    padding: '5px 11px',
-                    borderRadius: 8,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: '0.02em',
-                    border: '1px solid var(--missi-border)',
-                    cursor: 'pointer',
-                    background: copied
-                      ? 'rgba(34,197,94,0.15)'
-                      : 'var(--missi-text-muted)',
-                    color: copied ? 'rgba(134,239,172,0.95)' : '#fff',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Copy style={{ width: 11, height: 11 }} />
-                  {copied ? 'Copied' : 'Copy'}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* FAQ */}
         <ScrollReveal style={{ maxWidth: 560, margin: '0 auto' }}>

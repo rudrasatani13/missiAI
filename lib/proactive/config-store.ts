@@ -9,8 +9,6 @@ const DEFAULT_CONFIG: ProactiveConfig = {
   timezone: 'UTC',
   nudgesEnabled: true,
   maxItemsPerBriefing: 5,
-  windDownEnabled: false,
-  windDownTime: '22:00',
 }
 
 /**

@@ -94,8 +94,6 @@ const prefsPayload = {
   quietHoursEnabled: true,
   quietHoursStart: '22:00',
   quietHoursEnd: '08:00',
-  notifyMood: false,
-  notifyStreak: true,
   notifyCheckIn: false,
   timezone: 'Asia/Kolkata',
 }

@@ -2,10 +2,8 @@ import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/
 import { getChatKV, CHAT_REQUEST_MAX_BODY_BYTES } from "@/lib/server/chat/shared"
 import { chatSchema, validationErrorResponse, type ChatInput } from "@/lib/validation/schemas"
 import { checkRateLimit, rateLimitExceededResponse, type RateLimitResult } from "@/lib/server/security/rate-limiter"
-import { waitUntil } from "@/lib/server/platform/wait-until"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
-import { awardXP } from "@/lib/gamification/xp-engine"
 import { logLatency, createTimer, logError } from "@/lib/server/observability/logger"
 import { checkHardBudget } from "@/lib/server/observability/cost-tracker"
 import { estimateRequestCost } from "@/lib/ai/providers/model-router"
@@ -113,18 +111,6 @@ export async function runChatStreamPreflight(
         { status: 429, headers: { "Content-Type": "application/json" } },
       ),
     }
-  }
-
-  if (kv) {
-    const loginCooldownKey = `xp-cooldown:login:${userId}`
-    waitUntil(
-      kv.get(loginCooldownKey).then((existing) => {
-        if (!existing) {
-          awardXP(kv, userId, "login").catch(() => {})
-          kv.put(loginCooldownKey, "1", { expirationTtl: 86400 }).catch(() => {})
-        }
-      }).catch(() => {}),
-    )
   }
 
   let body: unknown

@@ -155,8 +155,6 @@ export const proactiveConfigSchema = z.object({
     .min(1)
     .max(10)
     .default(5),
-  windDownEnabled: z.boolean(),
-  windDownTime: z.string().regex(/^\d{2}:\d{2}$/, 'Must be HH:MM 24-hour format'),
 })
 
 export type ProactiveConfigInput = z.infer<typeof proactiveConfigSchema>
@@ -210,14 +208,6 @@ export const billingCheckoutSchema = z.object({
 })
 
 export type BillingCheckoutInput = z.infer<typeof billingCheckoutSchema>
-
-// ─── /api/v1/streak ───────────────────────────────────────────────────────────
-
-export const checkInSchema = z.object({
-  nodeId: z.string().min(1, "Node ID required").max(50, "Node ID too long").transform(sanitizeInput),
-  habitTitle: z.string().min(1, "Habit title required").max(80, "Habit title too long").transform(sanitizeInput),
-})
-export type CheckInInput = z.infer<typeof checkInSchema>
 
 // ─── Helper: return a 400 Response with the first Zod issue ──────────────────
 

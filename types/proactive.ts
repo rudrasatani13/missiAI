@@ -8,10 +8,6 @@ export type BriefingItemType =
   | 'memory_insight'
   | 'weather_heads_up'
   | 'task_followup'
-  | 'daily_win'
-  | 'tomorrow_prep'
-  | 'gratitude_prompt'
-  | 'sleep_nudge'
 
 export interface BriefingItem {
   /** What kind of proactive nudge this is */
@@ -54,23 +50,4 @@ export interface ProactiveConfig {
   nudgesEnabled: boolean
   /** Cap on items per daily briefing (default 5) */
   maxItemsPerBriefing: number
-  /** Whether evening wind-down reflection is enabled */
-  windDownEnabled: boolean
-  /** When to deliver the wind-down reflection (HH:MM, 24-hour format) */
-  windDownTime: string
-}
-
-export interface EveningReflection {
-  /** Owner user ID from Clerk */
-  userId: string
-  /** Calendar date this reflection covers (YYYY-MM-DD) */
-  date: string
-  /** The reflection items, 3-5 calming items */
-  items: BriefingItem[]
-  /** Unix ms timestamp when this reflection was generated */
-  generatedAt: number
-  /** Unix ms timestamp when this reflection was first shown to the user */
-  deliveredAt?: number
-  /** Emotional tone — evening is always calm or reflective */
-  tone: 'calm' | 'reflective'
 }

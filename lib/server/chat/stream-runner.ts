@@ -3,10 +3,8 @@ import { streamChat } from "@/lib/ai/providers/router"
 import { logError, logLatency, createTimer } from "@/lib/server/observability/logger"
 import { classifyChatError } from "@/lib/server/chat/errors"
 import { runChatPostResponseTasks } from "@/lib/server/chat/post-response"
-import { waitUntil } from "@/lib/server/platform/wait-until"
 import { getToolLabel, type AgentToolCall } from "@/lib/ai/agents/tools/dispatcher"
 import { executeToolGuarded } from "@/lib/ai/agents/tools/execution"
-import { awardXP } from "@/lib/gamification/xp-engine"
 import type { AppEnv } from "@/lib/server/platform/env"
 import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { ChatInput } from "@/lib/validation/schemas"
@@ -199,10 +197,6 @@ export function buildChatStreamSseStream({
             summary: toolResult.summary,
           },
         })
-
-        if (kv) {
-          waitUntil(awardXP(kv, userId, "agent", 3).catch(() => {}))
-        }
 
         const modelParts: any[] = []
         if (loopText.length > 0) {

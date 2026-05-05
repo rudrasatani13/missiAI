@@ -153,8 +153,6 @@ describe('proactive parent route', () => {
       timezone: 'UTC',
       nudgesEnabled: true,
       maxItemsPerBriefing: 5,
-      windDownEnabled: false,
-      windDownTime: '22:00',
     })
     generateDailyBriefingMock.mockResolvedValue({
       userId: '',
@@ -268,8 +266,6 @@ describe('proactive parent route', () => {
       timezone: 'UTC',
       nudgesEnabled: true,
       maxItemsPerBriefing: 5,
-      windDownEnabled: false,
-      windDownTime: '22:00',
     })))
 
     expect(res.status).toBe(500)

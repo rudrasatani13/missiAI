@@ -1,11 +1,11 @@
 // ─── Cloudflare waitUntil helper ──────────────────────────────────────────────
 //
-// H1 fix: background work (analytics, cache writes, XP awards, budget alerts,
+// H1 fix: background work (analytics, cache writes, alerts,
 // memory extraction) used to be fired as naked `.catch(() => {})` promises.
 // On Cloudflare Workers the isolate is eligible for termination the moment the
 // response stream finishes, so any of those promises that hadn't resolved yet
-// got killed mid-flight. Result: missing analytics events, uncredited XP,
-// unwritten rate-limit counters (→ visual-memory quota bypass), stale caches.
+// got killed mid-flight. Result: missing analytics events, unwritten rate-limit
+// counters, stale caches.
 //
 // This helper registers the promise with `ctx.waitUntil` when the Cloudflare
 // execution context is available, so the worker stays alive until it settles.

@@ -4,7 +4,6 @@ import { saveAgentHistory } from "@/lib/ai/agents/history"
 import { executeToolGuarded } from "@/lib/ai/agents/tools/execution"
 import { canExecuteConfirmedAgentTool, shouldExecuteAgentPlanSequentially } from "@/lib/ai/agents/tools/policy"
 import type { ToolContext } from "@/lib/ai/agents/tools/types"
-import { awardXP } from "@/lib/gamification/xp-engine"
 import type { KVStore } from "@/types"
 
 export interface ConfirmedAgentExecutionOptions {
@@ -57,7 +56,6 @@ async function executeConfirmedAgentStep(
   })
 
   if (result.status === "done") {
-    awardXP(kv, userId, "agent", 2).catch(() => {})
     return true
   }
 

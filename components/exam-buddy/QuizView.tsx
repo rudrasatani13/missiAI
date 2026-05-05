@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, X, Zap, RotateCcw, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Check, X, RotateCcw, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import 'katex/dist/katex.min.css'
 import { MathText } from './MathText'
@@ -16,7 +16,6 @@ interface QuizViewProps {
 
 interface SubmitResult {
   session: QuizSession
-  xpEarned: number
   encouragement: string
   score: { correct: number; incorrect: number; total: number; pct: number; totalMarks: number }
 }
@@ -302,15 +301,10 @@ function ResultsView({
   onRetry: () => void
   userAnswers: Record<string, string>
 }) {
-  const { score, xpEarned, encouragement, session } = result
+  const { score, encouragement, session } = result
   const pctColor = score.pct >= 75 ? '#34D399' : score.pct >= 50 ? '#FBBF24' : '#F87171'
 
-  // Use session.questions from the submit response — these have correctAnswer & explanation
   const reviewQuestions = session.questions ?? []
-
-  // Net XP display: positive = earned, negative = deducted
-  const xpPositive = xpEarned > 0
-  const xpLabel = xpPositive ? `+${xpEarned} XP earned` : `${xpEarned} XP deducted`
 
   return (
     <motion.div
@@ -342,17 +336,6 @@ function ResultsView({
         <p className="text-base font-light leading-relaxed max-w-2xl mx-auto" style={{ color: 'var(--missi-text-secondary)' }}>
           {encouragement}
         </p>
-        {xpEarned !== 0 && (
-          <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full text-xs font-medium"
-            style={{
-              background: xpPositive ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)',
-              border: xpPositive ? '1px solid rgba(52,211,153,0.2)' : '1px solid rgba(248,113,113,0.2)',
-              color: xpPositive ? 'rgba(52,211,153,0.85)' : 'rgba(248,113,113,0.85)',
-            }}>
-            <Zap className="w-3 h-3" />
-            {xpLabel}
-          </div>
-        )}
       </div>
 
       <div className="flex flex-col gap-3">

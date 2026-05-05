@@ -2,7 +2,6 @@ import type { DailyBrief } from '@/types/daily-brief'
 import { PLANS } from '@/types/billing'
 import { logError, logRequest } from '@/lib/server/observability/logger'
 import { getUserPlan } from '@/lib/billing/tier-checker'
-import { awardXP } from '@/lib/gamification/xp-engine'
 import {
   getTodaysBrief,
   saveBrief,
@@ -166,7 +165,6 @@ export async function runDailyBriefTaskPatchRoute(
       return dailyBriefJsonResponse({ success: false, error: 'Task not found in your brief' }, 403)
     }
 
-    awardXP(kvResult.kv, userId, 'checkin', 5).catch(() => {})
     logRequest('daily-brief.task.complete', userId, startTime, { taskId: taskIdResult.taskId })
     return dailyBriefJsonResponse({ success: true, data: { brief: updatedBrief } })
   } catch (error) {
