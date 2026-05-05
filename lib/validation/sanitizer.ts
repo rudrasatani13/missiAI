@@ -72,7 +72,7 @@ export function sanitizeInput(input: string): string {
 // Applied to all user-facing text that enters the AI pipeline (voice transcripts,
 // chat messages, custom prompts) via the sanitizeInput pipeline used by Zod schemas.
 //
-// This mirrors the sanitizeForPrompt() logic from lib/daily-brief/generator.ts
+// This mirrors the sanitizeForPrompt() logic used throughout the app
 // but is designed for the general chat/voice pipeline.
 
 const PROMPT_INJECTION_PATTERNS = /ignore\s*(all\s*)?previous\s*(instructions|prompts)?|you are now|system\s*:|<\|.*?\|>|\[INST\]|\[\/INST\]|<\|system\|>|<\|user\|>|<\|assistant\|>|forget\s*(all\s*)?(previous|prior|above)\s*(instructions|context)?|disregard\s*(all\s*)?(previous|prior|above)/gi;

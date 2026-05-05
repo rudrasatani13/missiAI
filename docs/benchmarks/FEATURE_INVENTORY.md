@@ -62,7 +62,7 @@ This inventory reflects the current repo surface after the deleted-feature clean
 - External dependencies/services involved: Clerk, Dodo Payments, Cloudflare KV
 - Required benchmark types: HTTP route latency, API latency, server-function benchmark, bundle size, render/import cost, memory usage, mocked integration benchmark
 
-## 8. Plugins and Productivity Integrations
+## 7. Plugins and Productivity Integrations
 
 - Feature name: Plugins and Productivity Integrations
 - Main app routes/pages: `/settings/integrations`
@@ -72,7 +72,7 @@ This inventory reflects the current repo surface after the deleted-feature clean
 - External dependencies/services involved: Clerk, Google OAuth / Calendar, Notion API, Cloudflare KV
 - Required benchmark types: HTTP route latency, API latency, server-function benchmark, bundle size, render/import cost, memory usage, mocked integration benchmark
 
-## 9. Messaging Bots and Public Webhooks
+## 8. Messaging Bots and Public Webhooks
 
 - Feature name: Messaging Bots and Public Webhooks
 - Main app routes/pages: `/settings/integrations`
@@ -82,7 +82,7 @@ This inventory reflects the current repo surface after the deleted-feature clean
 - External dependencies/services involved: WhatsApp, Telegram, Cloudflare KV, Cloudflare Vectorize, Gemini
 - Required benchmark types: API latency, server-function benchmark, bundle size, memory usage, mocked integration benchmark
 
-## 10. Settings, Notifications, and Push
+## 9. Settings, Notifications, and Push
 
 - Feature name: Settings, Notifications, and Push
 - Main app routes/pages: `/settings`
@@ -92,7 +92,7 @@ This inventory reflects the current repo surface after the deleted-feature clean
 - External dependencies/services involved: Clerk, Cloudflare KV, Web Push
 - Required benchmark types: HTTP route latency, API latency, server-function benchmark, bundle size, render/import cost, memory usage
 
-## 12. Admin, Health, Analytics, and Observability
+## 10. Admin, Health, Analytics, and Observability
 
 - Feature name: Admin, Health, Analytics, and Observability
 - Main app routes/pages: `/admin`

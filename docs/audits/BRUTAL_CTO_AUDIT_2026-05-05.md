@@ -91,7 +91,6 @@ You have parts of all four. Pick **one** for the headline.
 | Memory / Life Graph | ✅ Core moat candidate. |
 | WhatsApp / Telegram bot | ✅ Distribution wedge. |
 | Plugins (Calendar, Notion) | 🟡 Useful but undifferentiated. |
-| Daily Brief + Proactive | 🟡 One feature pretending to be two. |
 | Quests + Streaks + Avatars | 🟡 Gamification cosplay. |
 | Budget Buddy | ❌ Different product. Different user. |
 | Sleep Sessions / Wind-down | ❌ Calm/Headspace territory. |
@@ -184,7 +183,6 @@ This is the **only honest wedge.**
 | Spaces | **Later** | Premature multi-user. | Low | Low | High | High | Low | P3 |
 | Budget Buddy | **Spin out or kill** | Different product, 1934 LOC component. | Med | Low | High | High | Med | P0 |
 | Quests / Streaks / Avatars | **Merge & cut** | Replace with one daily ritual; kill quests + avatar tiers. | Low | Low | High | High | Low | P1 |
-| Daily Brief + Proactive | **Merge** | One feature; make it the morning/evening WhatsApp message. | Med | Med | Med | Low | Med | P1 |
 | Sleep Sessions | **Kill** | Calm territory. Off-strategy. | Low | Low | High | Med | Low | P0 |
 | Wind-down | **Kill** | Same. | Low | Low | Med | Low | Low | P0 |
 | Plugins | **Keep, deprioritize** | Don't expand. | Med | Med | Med | Med | Low | P2 |
@@ -530,7 +528,7 @@ Hand-picked launch in 3 coaching centers in Hyderabad/Pune/Delhi. Free for 3 mon
 ### Daily habit loop
 
 - **Morning ritual:** WhatsApp message: "What's the one thing today?" Voice or tap to answer.
-- **Evening reflection:** "How was today? Tell me 30 seconds." Voice in. Stored. Used in tomorrow's quiz.
+- **Evening reflection:** "How was today? Tell me 30 seconds." Voice in. Stored.
 - **Weekly recap:** Sunday morning. "Here's where you grew this week."
 - **Pre-exam moment:** the 60-second pep-talk.
 
@@ -631,12 +629,6 @@ These are the metrics you should track from day 1 of the wedge launch. Numbers i
 - **Memory facts/active user.** Good: ≥10 by D7. Great: ≥30 by D30.
 - **Retrieval recall@5 (eval).** Good: ≥75%. Great: ≥85%.
 - **"Missi got that wrong" feedback rate.** Good: <5%. Indicates retrieval quality from real users.
-
-### Proactive
-
-- **Push CTR.** Good: ≥8%. Great: ≥15%.
-- **Nudge dismiss rate.** Good: <40%. Above 50% means your nudges are noise.
-- **WhatsApp morning ritual response rate.** Good: ≥30% reply within 1h. Great: ≥50%.
 
 ### Monetization
 

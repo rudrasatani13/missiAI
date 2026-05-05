@@ -787,7 +787,7 @@ export default function PricingPage() {
             features={[
               '2 hours of voice per day',
               'Full memory — unlimited facts',
-              'Proactive nudges & smart reminders',
+              'Smart reminders',
               'Plugin integrations (Notion, Calendar)',
             ]}
             onSelect={handlePlusPlan}

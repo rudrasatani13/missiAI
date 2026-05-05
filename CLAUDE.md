@@ -259,8 +259,8 @@ await kv.put(`webhook:event:${eventId}`, '1', { expirationTtl: 86400 })
 | `dodo:sub:{subscriptionId}` | `userId` string | none |
 | `webhook:event:{type}:{webhookId}` | `"1"` (processed flag) | 86400s (24h) |
 | `usage:{userId}:{date}` | JSON `DailyUsage` (voice seconds) | ~48h |
-| `proactive:{userId}` | JSON `ProactiveConfig` | none |
-| `analytics:{userId}:{date}` | JSON analytics snapshot | none |
+| `quests:{userId}` | JSON `Quest` | none |
+| `kv-memory:{userId}` | JSON `UserMemoryStore` | none (legacy, removed after v2 cutover) |
 | `persona:{userId}` | persona ID string | none |
 | `cache:{hash}` | cached AI response string | varies |
 
@@ -280,7 +280,6 @@ await kv.put(`webhook:event:${eventId}`, '1', { expirationTtl: 86400 })
 | `GamificationData` | `types/gamification.ts` | XP, level, avatarTier, habits, achievements, loginStreak |
 | `AvatarTier` | `types/gamification.ts` | 6 tiers: Spark → Ember → Flame → Blaze → Nova → Cosmic |
 | `Quest` | `types/quests.ts` | Long-form goal with chapters and missions |
-| `DailyBrief` | `types/daily-brief.ts` | Daily task list and nudges |
 | `VectorizeEnv` | `lib/memory/vectorize.ts` | `{ LIFE_GRAPH: VectorizeIndex }` |
 
 ## Webhook Pattern

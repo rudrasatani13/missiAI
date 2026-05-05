@@ -924,7 +924,7 @@ function NotificationsSection({
 
       <Row
         label="Check-in notifications"
-        description="Push notifications from Missi's proactive engine."
+        description="Push notifications from Missi."
         icon={<Bell className="w-4 h-4" />}
       >
         <Toggle

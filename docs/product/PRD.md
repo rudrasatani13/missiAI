@@ -19,7 +19,6 @@ missiAI is a chat-first AI companion with voice, saved memory, messaging bot fou
 - **Messaging bots**: WhatsApp and Telegram linking/webhook foundations.
 - **Billing core**: Dodo checkout, subscriptions, pricing, webhooks, and plan checks.
 - **Integrations**: Google Calendar, Notion, plugin refresh, and safe tool execution.
-- **Daily brief/proactive**: current daily brief and proactive nudge surfaces.
 - **Operations**: auth, security, admin analytics, health checks, observability, and AI spend controls.
 
 ## Backlog / Future
