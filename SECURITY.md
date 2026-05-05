@@ -29,9 +29,25 @@ All non-public routes are protected by Clerk middleware (`middleware.ts`).
 
 ### Admin Access
 
-The admin dashboard (`/admin`, `/api/v1/admin/*`) is restricted to a single
-Clerk user ID defined in `ADMIN_USER_ID`. All admin API routes verify this
-before processing.
+The admin dashboard (`/admin`, `/api/v1/admin/*`) uses **defense-in-depth**
+admin authorization with two independent checks:
+
+1. **Primary (role-based):** `publicMetadata.role === "admin"` on the Clerk
+   user record. Set this once via the Clerk dashboard or admin API after initial
+   setup. This is the **preferred long-term auth path** — it survives secret
+   rotation and does not depend on a specific user ID.
+
+2. **Fallback (ID-based):** `userId === process.env.ADMIN_USER_ID`. This is
+   a **bootstrap / break-glass mechanism** for the initial deployment before the
+   Clerk metadata role is set, or for account recovery. It is implemented in
+   `lib/server/security/admin-auth.ts` via `isAdminUser()` and the auditable
+   `getAdminGrantReason()` helper.
+
+**Production recommendation:** Set `publicMetadata.role = "admin"` on your
+Clerk user and verify admin access works via the role path before relying on
+`ADMIN_USER_ID` alone. Use `getAdminGrantReason()` in admin API handlers to
+log which path granted access — a persistent `id_fallback` grant in production
+logs indicates the role metadata is missing and should be configured.
 
 ---
 
@@ -81,6 +97,39 @@ All secrets belong **only** in:
 - `wrangler.toml` `[vars]` section (plaintext, committed)
 - `next.config.mjs` or any committed source file
 - Client-side code (only `NEXT_PUBLIC_*` variables are safe for the browser)
+
+### Deployment Artifact Safety
+
+The local `service-account.json` file is a **developer convenience only** and
+must **never** be deployed or committed.
+
+| Mechanism | File | What it guards |
+|-----------|------|----------------|
+| `.gitignore` line 65 | `service-account*.json` | Prevents commit to git |
+| `.wranglerignore` | `service-account*.json` | Prevents inclusion in `wrangler deploy` static-asset upload |
+| CI checkout | — | Git checkout never contains gitignored files; no CI risk |
+
+The production credential is **always** injected as a Wrangler secret:
+
+```bash
+# Inline the JSON (single line, no newlines) as a Wrangler secret:
+wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON
+# Paste the minified JSON content at the prompt — never paste a file path.
+```
+
+**Verification (before every local deploy):**
+```bash
+# Confirm the file is gitignored
+git check-ignore -v service-account.json
+# Expected: .gitignore:65:service-account*.json  service-account.json
+
+# Confirm it is not staged or tracked
+git ls-files service-account.json
+# Expected: (empty output)
+```
+
+If either check fails, **stop and rotate the service account key immediately**
+before pushing or deploying anything.
 
 ### Required Secrets & Protected Runtime Values
 
@@ -349,6 +398,44 @@ credentials before rotating if the first 32 chars will differ.
 3. Update via `wrangler secret put` for both `CLIENT_ID` and `CLIENT_SECRET`
 4. **Impact:** Users will need to reconnect their integrations
 
+### WhatsApp App Secret (`WHATSAPP_APP_SECRET`)
+1. Generate a new secret in Meta Developer Console > App > Settings > Basic
+2. `wrangler secret put WHATSAPP_APP_SECRET`
+3. Update in Cloudflare dashboard environment settings (Production + Preview)
+4. **Impact:** All incoming webhook HMAC signatures will fail until the new
+   secret propagates to Cloudflare Workers (typically < 1 minute). Meta will
+   retry failed webhooks automatically.
+
+### WhatsApp Access Token (`WHATSAPP_ACCESS_TOKEN`)
+1. Generate a new permanent token in Meta Developer Console > WhatsApp >
+   API Setup > Generate Token
+2. `wrangler secret put WHATSAPP_ACCESS_TOKEN`
+3. **Impact:** Outbound WhatsApp messages will fail until the new token
+   propagates; no inbound message loss.
+
+### Telegram Bot Token (`TELEGRAM_BOT_TOKEN`)
+1. Message `@BotFather` on Telegram: `/revoke` then select the bot
+2. Copy the new token
+3. `wrangler secret put TELEGRAM_BOT_TOKEN`
+4. Re-register the webhook: `curl -X POST "https://api.telegram.org/bot<NEW_TOKEN>/setWebhook" -d "url=https://missi.space/api/webhooks/telegram&secret_token=<TELEGRAM_WEBHOOK_SECRET>"`
+5. **Impact:** Bot will be offline from revocation until the new token is
+   deployed and the webhook is re-registered.
+
+### Telegram Webhook Secret (`TELEGRAM_WEBHOOK_SECRET`)
+1. Generate a new secret: `openssl rand -hex 32`
+2. `wrangler secret put TELEGRAM_WEBHOOK_SECRET`
+3. Re-register the webhook with the new secret (see Telegram Bot Token step 4
+   above — both the token URL and the `secret_token` parameter must be updated)
+4. **Impact:** Incoming webhook requests signed with the old secret will be
+   rejected (401) until Telegram's delivery retries pick up the new registration.
+
+### OpenAI / Anthropic Fallback Keys
+1. Revoke the old key in the respective developer console
+2. Generate a replacement key
+3. `wrangler secret put OPENAI_API_KEY` or `wrangler secret put ANTHROPIC_API_KEY`
+4. **Impact:** AI fallback providers will be unavailable during the propagation
+   window (< 1 minute). Primary Vertex AI path is unaffected.
+
 ---
 
 ## 11. Secret Scanning in CI
@@ -450,7 +537,18 @@ Both `/admin` pages and `/api/v1/admin/*` API routes require **two checks** (def
 1. Middleware verifies Clerk `publicMetadata.role === "admin"` OR `userId === ADMIN_USER_ID`.
 2. Each admin API route handler re-verifies the same condition independently before processing the mutation.
 
-The dual policy (role-based + env-var super-admin) is consistent across all admin surfaces.
+The implementation lives in `lib/server/security/admin-auth.ts`:
+
+- `isAdminUser(authObject, explicitUserId?)` — boolean gate used by middleware
+  and route handlers.
+- `getAdminGrantReason(authObject, explicitUserId?)` — returns `'role'`,
+  `'id_fallback'`, or `null`. Use this in privileged mutation handlers to emit
+  a structured log entry so that break-glass `id_fallback` grants are always
+  auditable in Cloudflare Logs.
+
+The dual policy (role-based + env-var super-admin) is consistent across all
+admin surfaces. **Role-based is the production-stable path; `id_fallback` is
+the bootstrap / break-glass path.**
 
 ---
 

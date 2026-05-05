@@ -1,0 +1,57 @@
+# ── Wrangler deployment exclusions ────────────────────────────────────────────
+#
+# These rules are a defense-in-depth safeguard for local `wrangler deploy` /
+# `pnpm deploy:cf` runs.  Most of these files are already in .gitignore (so CI
+# never has them), but a developer running a local deploy could accidentally
+# upload them as static assets if Wrangler's asset-upload walked the project
+# root rather than only .open-next/assets.
+#
+# Rule of thumb: if a file would never legitimately be served to a browser or
+# executed by the Worker runtime, it does not belong in a deployment artifact.
+
+# ── Google Cloud credentials ───────────────────────────────────────────────────
+# service-account.json is a LOCAL DEV CONVENIENCE ONLY.
+# The production secret is set via `wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON`
+# and is NEVER stored as a file.  See SECURITY.md §3 for the required procedure.
+service-account*.json
+*.serviceaccount.json
+*-service-account.json
+*-credentials.json
+
+# ── Local environment files ────────────────────────────────────────────────────
+# All *.local env files contain real secrets and must never leave the developer's
+# machine.  The only committed env file is .env.example (no real values).
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.*.local
+*.env
+*.env.*
+
+# ── Clerk local config ─────────────────────────────────────────────────────────
+.clerk/
+
+# ── Node dependencies ─────────────────────────────────────────────────────────
+node_modules/
+
+# ── Local build / cache artefacts ─────────────────────────────────────────────
+# Wrangler only needs .open-next/assets for static uploads and the compiled
+# Worker bundle; the directories below are intermediate build state.
+.next/
+coverage/
+tsconfig.tsbuildinfo
+tsconfig.workers.tsbuildinfo
+*.tsbuildinfo
+
+# ── Test and benchmark outputs ─────────────────────────────────────────────────
+benchmarks/results/
+tests/
+
+# ── IDE and OS metadata ────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+.gitconfig
+mempalace.yaml
+entities.json

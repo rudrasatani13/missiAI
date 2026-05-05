@@ -61,7 +61,6 @@ jobs:
       # Dummy values for test environment — tests mock all external services.
       # No real keys needed; these just satisfy env validation at import time.
       AI_BACKEND: vertex
-      ELEVENLABS_API_KEY: test-dummy-key
       CLERK_SECRET_KEY: sk_test_dummy
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_dummy
       DODO_PAYMENTS_API_KEY: test-dummy-key
