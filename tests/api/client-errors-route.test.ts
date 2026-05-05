@@ -7,6 +7,9 @@ const {
   logMock,
   logApiErrorMock,
   AuthenticationErrorMock,
+  getUserPlanMock,
+  checkRateLimitMock,
+  rateLimitExceededResponseMock,
 } = vi.hoisted(() => {
   class AuthenticationErrorMock extends Error {
     constructor() {
@@ -27,6 +30,14 @@ const {
     logMock: vi.fn(),
     logApiErrorMock: vi.fn(),
     AuthenticationErrorMock,
+    getUserPlanMock: vi.fn(),
+    checkRateLimitMock: vi.fn(),
+    rateLimitExceededResponseMock: vi.fn(() =>
+      new Response(
+        JSON.stringify({ success: false, error: "Rate limit exceeded", code: "RATE_LIMITED" }),
+        { status: 429, headers: { "Content-Type": "application/json" } },
+      ),
+    ),
   }
 })
 
@@ -39,6 +50,15 @@ vi.mock("@/lib/server/security/auth", () => ({
 vi.mock("@/lib/server/observability/logger", () => ({
   log: logMock,
   logApiError: logApiErrorMock,
+}))
+
+vi.mock("@/lib/billing/tier-checker", () => ({
+  getUserPlan: getUserPlanMock,
+}))
+
+vi.mock("@/lib/server/security/rate-limiter", () => ({
+  checkRateLimit: checkRateLimitMock,
+  rateLimitExceededResponse: rateLimitExceededResponseMock,
 }))
 
 import { POST } from "@/app/api/v1/client-errors/route"
@@ -61,6 +81,14 @@ describe("POST /api/v1/client-errors", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getVerifiedUserIdMock.mockResolvedValue("user_123")
+    getUserPlanMock.mockResolvedValue("free")
+    checkRateLimitMock.mockResolvedValue({
+      allowed: true,
+      remaining: 59,
+      limit: 60,
+      resetAt: Math.floor(Date.now() / 1000) + 60,
+      retryAfter: 0,
+    })
   })
 
   it("returns 401 when the user is unauthenticated", async () => {
@@ -102,6 +130,38 @@ describe("POST /api/v1/client-errors", () => {
         ip: "203.0.113.10",
       }),
     )
+  })
+
+  it("returns 429 when the rate limit is exceeded", async () => {
+    checkRateLimitMock.mockResolvedValueOnce({
+      allowed: false,
+      remaining: 0,
+      limit: 60,
+      resetAt: Math.floor(Date.now() / 1000) + 60,
+      retryAfter: 60,
+    })
+
+    const response = await POST(makeRequest({
+      event: "voice_memory_autosave_error",
+      message: "network down",
+      metadata: { conversationLength: 1, interactionCount: 1 },
+    }))
+
+    expect(response.status).toBe(429)
+    expect(rateLimitExceededResponseMock).toHaveBeenCalledTimes(1)
+    expect(logMock).not.toHaveBeenCalled()
+  })
+
+  it("checks the rate limit using the user's plan tier", async () => {
+    getUserPlanMock.mockResolvedValue("pro")
+
+    await POST(makeRequest({
+      event: "voice_memory_autosave_error",
+      message: "test",
+      metadata: { conversationLength: 1, interactionCount: 1 },
+    }))
+
+    expect(checkRateLimitMock).toHaveBeenCalledWith("user_123", "paid", "client_error")
   })
 
   it("logs voice memory autosave errors with request context", async () => {

@@ -122,6 +122,46 @@ describe('budget API routes', () => {
     expect(res.status).toBe(400)
   })
 
+  it('POST /entries rejects Infinity as amount (item 9: non-finite guard)', async () => {
+    mockGetUser.mockResolvedValueOnce('user-inf')
+    const req = makeReq('POST', { amount: Infinity, currency: 'USD', category: 'food', date: '2026-04-21' }, 'http://localhost/api/v1/budget/entries')
+    const res = await POST_ENTRIES(req)
+    expect(res.status).toBe(400)
+  })
+
+  it('POST /entries rejects negative Infinity as amount', async () => {
+    mockGetUser.mockResolvedValueOnce('user-neg-inf')
+    const req = makeReq('POST', { amount: -Infinity, currency: 'USD', category: 'food', date: '2026-04-21' }, 'http://localhost/api/v1/budget/entries')
+    const res = await POST_ENTRIES(req)
+    expect(res.status).toBe(400)
+  })
+
+  it('POST /entries rejects NaN as amount', async () => {
+    mockGetUser.mockResolvedValueOnce('user-nan')
+    const req = makeReq('POST', { amount: NaN, currency: 'USD', category: 'food', date: '2026-04-21' }, 'http://localhost/api/v1/budget/entries')
+    const res = await POST_ENTRIES(req)
+    expect(res.status).toBe(400)
+  })
+
+  it('POST /entries rejects amounts above BUDGET_MAX_AMOUNT (1,000,000,001 > 1,000,000,000)', async () => {
+    mockGetUser.mockResolvedValueOnce('user-huge')
+    const req = makeReq('POST', { amount: 1_000_000_001, currency: 'USD', category: 'food', date: '2026-04-21' }, 'http://localhost/api/v1/budget/entries')
+    const res = await POST_ENTRIES(req)
+    expect(res.status).toBe(400)
+    const data = await res.json()
+    expect(data.error).toContain('Amount too large')
+  })
+
+  it('POST /entries accepts amount exactly at the maximum boundary (1,000,000,000)', async () => {
+    mockGetUser.mockResolvedValue('user-boundary')
+    const date = new Date().toISOString().slice(0, 10)
+    const req = makeReq('POST', { amount: 1_000_000_000, currency: 'USD', category: 'food', date }, 'http://localhost/api/v1/budget/entries')
+    const res = await POST_ENTRIES(req)
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.entry.amount).toBe(1_000_000_000)
+  })
+
   it('POST /entries returns 429 when the atomic daily entry limit is exceeded', async () => {
     mockGetUser.mockResolvedValue('user-rl')
     const date = new Date().toISOString().slice(0, 10)
