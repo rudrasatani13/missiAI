@@ -41,32 +41,20 @@ binding = "ASSETS"
 # Auth
 # - CLERK_SECRET_KEY
 # - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-# - ADMIN_USER_ID
 #
-# Payments (Dodo)
-# - DODO_PAYMENTS_API_KEY
-# - DODO_WEBHOOK_SECRET
-# - DODO_PLUS_PRODUCT_ID
-# - DODO_PRO_PRODUCT_ID
-#
-# KV encryption / confirmation tokens / live relay tickets
+# KV encryption / live relay tickets
 # - MISSI_KV_ENCRYPTION_SECRET
 #
-# Web Push (VAPID)
-# - VAPID_PRIVATE_KEY
+# Guest session signing
+# - GUEST_SESSION_SECRET
 
 [vars]
-DAILY_BUDGET_USD = "5.0"
 NEXT_PUBLIC_APP_URL = "https://missi.space"
 
 [[kv_namespaces]]
 binding = "MISSI_MEMORY"
 id = "ddf2e5eb21484fd1a9aecd8e4eaada74"
 preview_id = "ed3c69b0ac8749e4ba80d58d262fd97f"
-
-[[vectorize]]
-binding = "LIFE_GRAPH"
-index_name = "missiai-life-graph"
 
 [[durable_objects.bindings]]
 name = "ATOMIC_COUNTER"
