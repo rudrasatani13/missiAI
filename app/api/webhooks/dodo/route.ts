@@ -15,11 +15,20 @@ const DODO_MAX_BODY_BYTES = 32 * 1024 // 32 KB — billing webhook events are sm
 // ─── KV helpers for subscription→user mapping & idempotency ──────────────────
 
 async function storeSubscriptionMapping(kv: KVStore | null, subscriptionId: string, userId: string): Promise<void> {
-  if (!kv) return
+  if (!kv) throw new Error('Dodo subscription mapping: KV store unavailable')
   try {
     await kv.put(`dodo:sub:${subscriptionId}`, userId)
-  } catch {
-    // Non-critical
+  } catch (err) {
+    log({
+      level: 'error',
+      event: 'billing.subscription.mapping_write_failed',
+      metadata: {
+        subscriptionId,
+        error: err instanceof Error ? err.message : String(err),
+      },
+      timestamp: Date.now(),
+    })
+    throw err
   }
 }
 

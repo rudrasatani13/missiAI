@@ -150,6 +150,44 @@ describe('Dodo webhook route', () => {
     )
   })
 
+  it('returns 500 so Dodo retries when subscription mapping write fails, preserving retry safety', async () => {
+    kv.put.mockImplementation(async (key: string) => {
+      if (key === 'dodo:sub:sub_123') {
+        throw new Error('KV write failed')
+      }
+    })
+
+    const res = await POST(makeRequest({
+      type: 'subscription.active',
+      data: {
+        subscription_id: 'sub_123',
+        product_id: 'prod_pro',
+        metadata: { userId: 'user_123' },
+      },
+    }))
+
+    expect(res.status).toBe(500)
+    await expect(res.json()).resolves.toEqual({ received: false, error: 'Handler failed' })
+    // Plan was updated (Clerk update happened before mapping write)
+    expect(setUserPlanMock).toHaveBeenCalledWith(
+      'user_123',
+      'pro',
+      expect.objectContaining({ dodoSubscriptionId: 'sub_123' }),
+    )
+    // Event was NOT marked as processed — Dodo will retry and idempotency re-runs safely
+    expect(kv.put).not.toHaveBeenCalledWith(
+      'webhook:event:subscription.active:evt_123',
+      '1',
+      expect.anything(),
+    )
+    // Structured error was logged for observability
+    expect(logMock).toHaveBeenCalledWith(expect.objectContaining({
+      level: 'error',
+      event: 'billing.subscription.mapping_write_failed',
+      metadata: expect.objectContaining({ subscriptionId: 'sub_123' }),
+    }))
+  })
+
   it('returns 500 so Dodo retries when idempotency marking fails after billing mutation', async () => {
     kv.put.mockImplementation(async (key: string) => {
       if (key === 'webhook:event:subscription.active:evt_123') {
