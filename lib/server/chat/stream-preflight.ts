@@ -2,13 +2,10 @@ import { getVerifiedUserId, AuthenticationError, unauthorizedResponse } from "@/
 import { getChatKV, CHAT_REQUEST_MAX_BODY_BYTES } from "@/lib/server/chat/shared"
 import { chatSchema, validationErrorResponse, type ChatInput } from "@/lib/validation/schemas"
 import { checkRateLimit, rateLimitExceededResponse, type RateLimitResult } from "@/lib/server/security/rate-limiter"
-import { getUserPlan } from "@/lib/billing/tier-checker"
-import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
 import { logLatency, createTimer, logError } from "@/lib/server/observability/logger"
 import { checkHardBudget } from "@/lib/server/observability/cost-tracker"
 import { estimateRequestCost } from "@/lib/ai/providers/model-router"
 import type { KVStore } from "@/types"
-import type { PlanId } from "@/types/billing"
 import { API_ERROR_CODES } from "@/types/api"
 
 function normalizeVoiceDurationMs(input: ChatInput): number | undefined {
@@ -20,7 +17,6 @@ function normalizeVoiceDurationMs(input: ChatInput): number | undefined {
 
 export interface ChatStreamPreflightData {
   userId: string
-  planId: PlanId
   kv: KVStore | null
   rateResult: RateLimitResult
   input: ChatInput
@@ -60,11 +56,9 @@ export async function runChatStreamPreflight(
     }
   }
 
-  const planId = await getUserPlan(userId)
   const kv = getChatKV()
-
   const isDev = process.env.NODE_ENV === "development"
-  if (!kv && planId !== "pro" && !isDev) {
+  if (!kv && !isDev) {
     return {
       ok: false,
       response: new Response(
@@ -78,7 +72,7 @@ export async function runChatStreamPreflight(
     }
   }
 
-  const rateResult = await checkRateLimit(userId, planId === "free" ? "free" : "paid", "ai")
+  const rateResult = await checkRateLimit(userId, "free", "ai")
   if (!rateResult.allowed) {
     return { ok: false, response: rateLimitExceededResponse(rateResult) }
   }
@@ -140,41 +134,7 @@ export async function runChatStreamPreflight(
     voiceDurationMs: normalizeVoiceDurationMs(parsed.data),
   }
 
-  if (kv && input.voiceDurationMs !== undefined) {
-    const voiceLimit = await checkAndIncrementVoiceTime(kv, userId, planId, input.voiceDurationMs)
-    if (!voiceLimit.allowed) {
-      if (voiceLimit.unavailable) {
-        return {
-          ok: false,
-          response: new Response(
-            JSON.stringify({
-              success: false,
-              error: "Service temporarily unavailable",
-              code: API_ERROR_CODES.SERVICE_UNAVAILABLE,
-            }),
-            { status: 503, headers: { "Content-Type": "application/json" } },
-          ),
-        }
-      }
-
-      return {
-        ok: false,
-        response: new Response(
-          JSON.stringify({
-            success: false,
-            error: "Daily voice limit reached",
-            code: API_ERROR_CODES.USAGE_LIMIT_EXCEEDED,
-            usedSeconds: voiceLimit.usedSeconds,
-            limitSeconds: voiceLimit.limitSeconds,
-          }),
-          { status: 429, headers: { "Content-Type": "application/json" } },
-        ),
-      }
-    }
-  }
-
   logLatency("chat.latency.preflight", userId, preflightTimer(), {
-    planId,
     voiceMode: input.voiceMode,
   })
 
@@ -182,7 +142,6 @@ export async function runChatStreamPreflight(
     ok: true,
     data: {
       userId,
-      planId,
       kv,
       rateResult,
       input,

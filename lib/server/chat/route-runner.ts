@@ -1,5 +1,4 @@
 import { buildGeminiRequest } from "@/lib/ai/providers/gemini-stream"
-import { estimateRequestTokens } from "@/lib/memory/token-counter"
 import { selectGeminiModel } from "@/lib/ai/providers/model-router"
 import { streamChat } from "@/lib/ai/providers/router"
 import { rateLimitHeaders, type RateLimitResult } from "@/lib/server/security/rate-limiter"
@@ -57,7 +56,8 @@ export async function buildChatRouteSseResponse({
   const textStream = await streamChat({ model, requestBody, userId })
 
   let fullResponse = ""
-  const inputTokens = estimateRequestTokens(messages, systemPrompt, memories)
+  // Simplified token estimation: ~4 characters per token
+  const inputTokens = Math.ceil((JSON.stringify(messages).length + systemPrompt.length + memories.length) / 4)
   const encoder = new TextEncoder()
   const sseStream = new ReadableStream({
     async start(controller) {

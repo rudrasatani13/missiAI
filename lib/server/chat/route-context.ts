@@ -1,25 +1,18 @@
 import { buildSystemPrompt } from "@/lib/ai/services/ai-service"
-import { estimateRequestTokens, LIMITS, truncateToTokenLimit } from "@/lib/memory/token-counter"
 import { buildCacheKey, getCachedResponse } from "@/lib/server/cache/response-cache"
-import { getEnv } from "@/lib/server/platform/env"
-import { getLastUserMessageContent, loadLifeGraphMemoryContext } from "@/lib/server/chat/shared"
+import { getLastUserMessageContent } from "@/lib/server/chat/shared"
 import { logLatency, createTimer } from "@/lib/server/observability/logger"
 import {
-  getCachedChatContext,
   setCachedChatContext,
   isContextCacheable,
 } from "@/lib/server/chat/context-cache"
 import type { ChatInput } from "@/lib/validation/schemas"
-import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import type { KVStore, Message } from "@/types"
 
 export interface ChatRouteContextParams {
   userId: string
   kv: KVStore | null
   input: ChatInput
-  vectorizeEnv: VectorizeEnv | null
-  onMemoryError?: (error: unknown) => void
-  onPluginError?: (error: unknown) => void
 }
 
 export interface ChatRouteContextData {
@@ -36,169 +29,92 @@ export interface PreparedChatRouteCacheHit {
   response: Response
 }
 
-async function loadChatPluginContext(
-  kv: KVStore,
-  userId: string,
-): Promise<string> {
-  const { loadPluginContext } = await import("@/lib/plugins/data-fetcher")
-
-  let googleClientId: string | undefined
-  let googleClientSecret: string | undefined
-  let notionApiKey: string | undefined
-  try {
-    const env = getEnv()
-    googleClientId = env.GOOGLE_CLIENT_ID
-    googleClientSecret = env.GOOGLE_CLIENT_SECRET
-    notionApiKey = env.NOTION_API_KEY
-  } catch {}
-
-  return loadPluginContext(kv, userId, googleClientId, googleClientSecret, notionApiKey)
-}
-
-function buildCachedChatResponse(cached: string): Response {
-  const encoder = new TextEncoder()
-  const cachedStream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(
-        encoder.encode(`data: ${JSON.stringify({ text: cached })}\n\n`),
-      )
-      controller.enqueue(encoder.encode("data: [DONE]\n\n"))
-      controller.close()
-    },
-  })
-
-  return new Response(cachedStream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      "X-Accel-Buffering": "no",
-    },
-  })
-}
-
 export async function buildChatRouteContext({
   userId,
   kv,
   input,
-  vectorizeEnv,
-  onMemoryError,
-  onPluginError,
 }: ChatRouteContextParams): Promise<ChatRouteContextData> {
-  const ctxTimer = createTimer()
-  let { messages } = input
-  const { personality, customPrompt, aiDials, incognito } = input
-  const maxOutputTokens = input.maxOutputTokens ?? 600
-  const clientMemories = incognito ? "" : (input.memories ?? "")
+  const timer = createTimer()
 
-  // ── Try context cache first ────────────────────────────────────────────────
-  const cacheable = isContextCacheable(input.voiceMode)
-  if (cacheable && kv) {
-    const cached = await getCachedChatContext(kv, userId, personality, messages, incognito)
+  const userMessageText = getLastUserMessageContent(input.messages)
+  const cacheKey = isContextCacheable(input.voiceMode) ? buildCacheKey(userMessageText, "assistant") : null
+
+  // Check cache first
+  if (cacheKey && kv) {
+    const cached = await getCachedResponse(cacheKey)
     if (cached) {
-      const { memories: cachedMemories, systemPrompt: cachedSystemPrompt, maxOutputTokens: cachedMaxTokens } = cached
-      const estimatedTokens = estimateRequestTokens(messages, cachedSystemPrompt, cachedMemories)
-      if (estimatedTokens > LIMITS.WARN_THRESHOLD) messages = truncateToTokenLimit(messages, LIMITS.WARN_THRESHOLD)
-
-      const userMessageText = getLastUserMessageContent(messages)
-      const cacheKey = buildCacheKey(userMessageText, personality)
-
-      logLatency("chat.latency.context_build", userId, ctxTimer(), {
-        incognito,
-        cacheHit: true,
-        hasPluginContext: false,
-      })
-
+      logLatency("buildChatRouteContext.cache_hit", userId, timer(), {})
       return {
-        messages,
-        memories: cachedMemories,
-        systemPrompt: cachedSystemPrompt,
-        maxOutputTokens: cachedMaxTokens,
+        messages: input.messages,
+        memories: "",
+        systemPrompt: buildSystemPrompt("assistant"),
+        maxOutputTokens: LIMITS.MAX_OUTPUT_TOKENS,
         userMessageText,
         cacheKey,
       }
     }
   }
 
-  // Parallel independent fetches — memory context and plugin context have no
-  // data dependency on each other, so they can resolve concurrently.
-  const [rawMemories, pluginContext] = await Promise.all([
-    loadLifeGraphMemoryContext({
-      kv,
-      vectorizeEnv,
-      userId,
-      messages,
-      skip: incognito,
-      onError: onMemoryError,
-    }),
-    (kv && !incognito) ? loadChatPluginContext(kv, userId).catch((error: unknown) => {
-      onPluginError?.(error)
-      return ""
-    }) : Promise.resolve(""),
-  ])
+  // Build context without memory or plugins (simplified for live voice-only app)
+  const memories = ""
+  const systemPrompt = buildSystemPrompt("assistant")
 
-  let memories = rawMemories
-  if (pluginContext) {
-    memories = memories ? `${memories}\n\n${pluginContext}` : pluginContext
-  }
-  if (clientMemories) {
-    memories = memories ? `${memories}\n${clientMemories}` : clientMemories
-  }
-
-  const systemPrompt = buildSystemPrompt(personality, memories, customPrompt, aiDials)
-  const estimatedTokens = estimateRequestTokens(messages, systemPrompt, memories)
-  if (estimatedTokens > LIMITS.WARN_THRESHOLD) {
-    messages = truncateToTokenLimit(messages, LIMITS.WARN_THRESHOLD)
-  }
-
-  const userMessageText = getLastUserMessageContent(messages)
-  const cacheKey = buildCacheKey(userMessageText, personality)
-
-  logLatency("chat.latency.context_build", userId, ctxTimer(), {
-    incognito,
-    hasPluginContext: !!pluginContext,
-    cacheHit: false,
-  })
-
-  // Store for next turn if cacheable
-  if (cacheable && kv) {
-    await setCachedChatContext(kv, userId, personality, messages, incognito, {
+  // Cache the context if cacheable
+  if (cacheKey && kv) {
+    await setCachedChatContext(kv, userId, "assistant", input.messages, false, {
       memories,
       systemPrompt,
-      model: "", // model selected downstream in runner, not cached here
-      maxOutputTokens,
+      model: "",
+      maxOutputTokens: LIMITS.MAX_OUTPUT_TOKENS,
     })
   }
 
+  logLatency("buildChatRouteContext", userId, timer(), {})
+
   return {
-    messages,
+    messages: input.messages,
     memories,
     systemPrompt,
-    maxOutputTokens,
+    maxOutputTokens: LIMITS.MAX_OUTPUT_TOKENS,
     userMessageText,
     cacheKey,
   }
 }
 
 export async function prepareChatRouteCacheHit(
-  cacheKey: string | null,
-  onError?: (error: unknown) => void,
-): Promise<PreparedChatRouteCacheHit | null> {
-  if (!cacheKey) {
-    return null
-  }
+  cacheKey: string,
+  cachedResponse: string,
+): Promise<PreparedChatRouteCacheHit> {
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const chunks = cachedResponse.split("\n\n")
+        for (const chunk of chunks) {
+          if (chunk.trim()) {
+            controller.enqueue(encoder.encode(chunk + "\n\n"))
+          }
+        }
+        controller.close()
+      } catch (error) {
+        controller.error(error)
+      }
+    },
+  })
 
-  try {
-    const cached = await getCachedResponse(cacheKey)
-    if (!cached) {
-      return null
-    }
-
-    return {
-      cacheKey,
-      response: buildCachedChatResponse(cached),
-    }
-  } catch (error) {
-    onError?.(error)
-    return null
+  return {
+    cacheKey,
+    response: new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      },
+    }),
   }
+}
+
+// Re-export LIMITS for other modules
+const LIMITS = {
+  MAX_OUTPUT_TOKENS: 2048,
 }

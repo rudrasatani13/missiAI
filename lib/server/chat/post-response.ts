@@ -1,8 +1,6 @@
-import { estimateTokens } from "@/lib/memory/token-counter"
 import { buildCacheKey, isCacheable, setCachedResponse } from "@/lib/server/cache/response-cache"
 import { calculateTotalCost, checkBudgetAlert, incrementDailySpend } from "@/lib/server/observability/cost-tracker"
 import { waitUntil } from "@/lib/server/platform/wait-until"
-import { recordAnalyticsUsage } from "@/lib/analytics/event-store"
 import { logError, logRequest } from "@/lib/server/observability/logger"
 import type { KVStore } from "@/types"
 
@@ -66,7 +64,8 @@ function scheduleTimedTask(
 }
 
 export function runChatPostResponseTasks(options: ChatPostResponseOptions): void {
-  const outputTokens = estimateTokens(options.responseText)
+  // Simplified token estimation: ~4 characters per token
+  const outputTokens = Math.ceil(options.responseText.length / 4)
   const costData = calculateTotalCost(options.model, options.inputTokens, outputTokens, 0)
 
   logRequest(options.logEvent, options.userId, options.startTime, {
@@ -93,24 +92,6 @@ export function runChatPostResponseTasks(options: ChatPostResponseOptions): void
     options.userId,
     () => checkBudgetAlert(options.kv),
   )
-
-  if (options.kv && !options.analyticsOptOut) {
-    scheduleTimedTask(
-      "analytics",
-      options.userId,
-      () => recordAnalyticsUsage(options.kv!, {
-        type: "chat",
-        userId: options.userId,
-        costUsd: costData.totalCostUsd,
-        metadata: {
-          model: costData.model,
-          tokensIn: costData.inputTokens,
-          tokensOut: costData.outputTokens,
-          ...(options.toolCalls !== undefined ? { toolCalls: options.toolCalls } : {}),
-        },
-      }),
-    )
-  }
 
   if (options.cache?.enabled) {
     const cacheKey = buildCacheKey(options.cache.message, options.cache.personality)

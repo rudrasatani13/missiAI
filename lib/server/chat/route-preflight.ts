@@ -1,8 +1,5 @@
-import { getUserPlan } from "@/lib/billing/tier-checker"
-import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
-import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import { checkRateLimit, rateLimitExceededResponse, type RateLimitResult } from "@/lib/server/security/rate-limiter"
-import { CHAT_REQUEST_MAX_BODY_BYTES, getChatKV, getChatVectorizeEnv } from "@/lib/server/chat/shared"
+import { CHAT_REQUEST_MAX_BODY_BYTES, getChatKV } from "@/lib/server/chat/shared"
 import { chatSchema, validationErrorResponse, type ChatInput } from "@/lib/validation/schemas"
 import { logLatency, createTimer, logError } from "@/lib/server/observability/logger"
 import { checkHardBudget } from "@/lib/server/observability/cost-tracker"
@@ -18,7 +15,6 @@ function normalizeVoiceDurationMs(input: ChatInput): number | undefined {
 
 export interface ChatRoutePreflightData {
   kv: KVStore | null
-  vectorizeEnv: VectorizeEnv | null
   rateResult: RateLimitResult
   input: ChatInput
 }
@@ -27,7 +23,7 @@ export type ChatRoutePreflightResult =
   | { ok: true; data: ChatRoutePreflightData }
   | {
       ok: false
-      kind: "payload_too_large" | "kv_unavailable" | "rate_limited" | "invalid_json" | "validation" | "voice_limit" | "voice_quota_unavailable"
+      kind: "payload_too_large" | "kv_unavailable" | "rate_limited" | "invalid_json" | "validation"
       response: Response
     }
 
@@ -49,11 +45,9 @@ export async function runChatRoutePreflight(
     }
   }
 
-  const planId = await getUserPlan(userId)
   const kv = getChatKV()
-  const vectorizeEnv = getChatVectorizeEnv()
 
-  if (!kv && planId !== "pro") {
+  if (!kv) {
     return {
       ok: false,
       kind: "kv_unavailable",
@@ -68,7 +62,7 @@ export async function runChatRoutePreflight(
     }
   }
 
-  const rateResult = await checkRateLimit(userId, planId === "free" ? "free" : "paid", "ai")
+  const rateResult = await checkRateLimit(userId, "free", "ai")
   if (!rateResult.allowed) {
     return {
       ok: false,
@@ -137,44 +131,7 @@ export async function runChatRoutePreflight(
     voiceDurationMs: normalizeVoiceDurationMs(parsed.data),
   }
 
-  if (kv && input.voiceDurationMs !== undefined) {
-    const voiceLimit = await checkAndIncrementVoiceTime(kv, userId, planId, input.voiceDurationMs)
-    if (!voiceLimit.allowed) {
-      if (voiceLimit.unavailable) {
-        return {
-          ok: false,
-          kind: "voice_quota_unavailable",
-          response: new Response(
-            JSON.stringify({
-              success: false,
-              error: "Service temporarily unavailable — please try again",
-              code: "SERVICE_UNAVAILABLE",
-            }),
-            { status: 503, headers: { "Content-Type": "application/json" } },
-          ),
-        }
-      }
-
-      return {
-        ok: false,
-        kind: "voice_limit",
-        response: new Response(
-          JSON.stringify({
-            success: false,
-            error: "Daily voice limit reached",
-            code: "USAGE_LIMIT_EXCEEDED",
-            upgrade: "/pricing",
-            usedSeconds: voiceLimit.usedSeconds,
-            limitSeconds: voiceLimit.limitSeconds,
-          }),
-          { status: 429, headers: { "Content-Type": "application/json" } },
-        ),
-      }
-    }
-  }
-
   logLatency("chat.latency.preflight", userId, preflightTimer(), {
-    planId,
     voiceMode: input.voiceMode,
   })
 
@@ -182,7 +139,6 @@ export async function runChatRoutePreflight(
     ok: true,
     data: {
       kv,
-      vectorizeEnv,
       rateResult,
       input,
     },

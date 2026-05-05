@@ -3,8 +3,7 @@ import { streamChat } from "@/lib/ai/providers/router"
 import { logError, logLatency, createTimer } from "@/lib/server/observability/logger"
 import { classifyChatError } from "@/lib/server/chat/errors"
 import { runChatPostResponseTasks } from "@/lib/server/chat/post-response"
-import type { ChatInput } from "@/lib/validation/schemas"
-import type { KVStore, Message, PersonalityKey } from "@/types"
+import type { KVStore, Message } from "@/types"
 
 const REQUEST_TIMEOUT_MS = 45_000
 const NEEDS_INPUT_PATTERN = /\b(kya|kise|kisko|kab|kahan|kaun|kitna|konsa|which|what|who|where|when|how)\b/i
@@ -15,10 +14,8 @@ export interface ChatStreamRunnerParams {
   startTime: number
   inputTokens: number
   messages: Message[]
-  personality: PersonalityKey
   voiceMode?: boolean
   customPrompt?: string
-  aiDials?: ChatInput["aiDials"]
   incognito?: boolean
   analyticsOptOut?: boolean
   memories: string
@@ -42,10 +39,8 @@ export function buildChatStreamSseStream({
   startTime,
   inputTokens,
   messages,
-  personality,
   voiceMode,
   customPrompt,
-  aiDials,
   incognito,
   analyticsOptOut,
   memories,
@@ -56,13 +51,13 @@ export function buildChatStreamSseStream({
   const model = initialModel
   const requestBody = buildGeminiRequest(
     messages,
-    personality,
+    "assistant",
     memories,
     model,
     maxOutputTokens,
     customPrompt,
     systemPrompt,
-    aiDials,
+    {},
   )
 
   const encoder = new TextEncoder()
