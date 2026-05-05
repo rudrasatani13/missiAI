@@ -147,8 +147,7 @@ export function buildSystemPrompt(
 
   if (!memories?.trim()) return `${base}${modifier}`
   // Memory formatting (wrapping, safety markers) is handled by the formatter
-  // functions (formatLifeGraphForPrompt / formatFactsForPrompt), so we just
-  // append the already-formatted block.
+  // function (formatLifeGraphForPrompt), so we just append the already-formatted block.
   return `${base}${modifier}\n\n${memories.trim()}`
 }
 

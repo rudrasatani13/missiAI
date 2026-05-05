@@ -62,21 +62,3 @@ export interface MemorySearchResult {
   /** Human-readable reason for the match */
   reason: string
 }
-
-// ─── Legacy types (kept for backward compatibility with kv-memory.ts) ─────────
-
-/** @deprecated Use LifeNode instead */
-export interface MemoryFact {
-  id: string
-  text: string
-  tags: string[]
-  createdAt: number
-  accessCount: number
-}
-
-/** @deprecated Use LifeGraph instead */
-export interface UserMemoryStore {
-  facts: MemoryFact[]
-  lastExtractedAt: number
-  interactionCount: number
-}

@@ -1,11 +1,9 @@
 import { describe, it, expect } from "vitest"
-import type { 
-  MemoryCategory, 
-  LifeNode, 
-  LifeGraph, 
-  MemorySearchResult,
-  MemoryFact,
-  UserMemoryStore 
+import type {
+  MemoryCategory,
+  LifeNode,
+  LifeGraph,
+  MemorySearchResult
 } from "@/types/memory"
 
 describe("memory types", () => {
@@ -191,50 +189,6 @@ describe("memory types", () => {
       expect(result.node).toEqual(node)
       expect(result.score).toBe(0.85)
       expect(result.reason).toBe("High semantic similarity")
-    })
-  })
-
-  describe("Legacy types", () => {
-    describe("MemoryFact", () => {
-      it("should have all required fields", () => {
-        const fact: MemoryFact = {
-          id: "fact-123",
-          text: "User likes pizza",
-          tags: ["food", "preference"],
-          createdAt: Date.now(),
-          accessCount: 3
-        }
-
-        expect(fact.id).toBe("fact-123")
-        expect(fact.text).toBe("User likes pizza")
-        expect(fact.tags).toEqual(["food", "preference"])
-        expect(typeof fact.createdAt).toBe("number")
-        expect(fact.accessCount).toBe(3)
-      })
-    })
-
-    describe("UserMemoryStore", () => {
-      it("should have all required fields", () => {
-        const fact: MemoryFact = {
-          id: "fact-1",
-          text: "Test fact",
-          tags: ["test"],
-          createdAt: Date.now(),
-          accessCount: 1
-        }
-
-        const store: UserMemoryStore = {
-          facts: [fact],
-          lastExtractedAt: Date.now(),
-          interactionCount: 5
-        }
-
-        expect(Array.isArray(store.facts)).toBe(true)
-        expect(store.facts.length).toBe(1)
-        expect(store.facts[0]).toEqual(fact)
-        expect(typeof store.lastExtractedAt).toBe("number")
-        expect(store.interactionCount).toBe(5)
-      })
     })
   })
 

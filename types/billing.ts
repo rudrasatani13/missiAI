@@ -8,7 +8,7 @@ export interface PlanConfig {
   priceUsd: number
   /** Daily voice cap in minutes (real time tracking) */
   voiceMinutesPerDay: number
-  /** @deprecated Use voiceMinutesPerDay instead */
+  /** Kept for backward compatibility */
   voiceInteractionsPerDay: number
   personalitiesAllowed: number
   maxMemoryFacts: number

@@ -73,7 +73,6 @@ const featureManifest = [
     serverFiles: ["app/layout.tsx", "next.config.mjs", "public/videos/home-hero.mp4"],
     clientFiles: [
       "app/page.tsx",
-      "components/landing/ProductShowcase.tsx",
     ],
     benchmarkTypes: ["http-route-latency", "build-time", "bundle-size", "render-import-cost"],
     authRequired: false,
@@ -81,7 +80,7 @@ const featureManifest = [
     benchmarkPriority: "P3",
     notes: "Public entry surfaces should stay fast on cold loads and mobile networks.",
     httpBenchmarks: [
-      { id: "landing-page", target: "/", authMode: "public", expectedStatus: 200 },
+      { id: "home-redirect", target: "/", authMode: "public", expectedStatus: 307 },
       { id: "manifesto-page", target: "/manifesto", authMode: "public", expectedStatus: 200 },
       { id: "privacy-page", target: "/privacy", authMode: "public", expectedStatus: 200 },
       { id: "terms-page", target: "/terms", authMode: "public", expectedStatus: 200 },

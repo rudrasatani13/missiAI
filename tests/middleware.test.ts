@@ -108,7 +108,7 @@ describe("middleware", () => {
   it("allows protected media requests from same-origin sources", async () => {
     const { default: middleware } = await loadMiddleware()
     const response = await middleware(
-      makeRequest("https://missi.space/images/landing/hero.png", {
+      makeRequest("https://missi.space/videos/test.mp4", {
         headers: {
           "cf-connecting-ip": "203.0.113.11",
           "sec-fetch-site": "same-origin",

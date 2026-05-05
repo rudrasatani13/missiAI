@@ -111,7 +111,7 @@ function applyCorsHeaders(response: NextResponse, request: NextRequest | Request
 }
 
 function isProtectedMediaPath(pathname: string): boolean {
-  return pathname === "/missi-m.png" || pathname.startsWith("/videos/") || pathname.startsWith("/images/landing/")
+  return pathname === "/missi-m.png" || pathname.startsWith("/videos/")
 }
 
 function applyProtectedMediaHeaders(response: NextResponse): NextResponse {
@@ -733,7 +733,6 @@ export default async function middleware(request: NextRequest, event: NextFetchE
 export const config = {
   matcher: [
     "/videos/:path*",
-    "/images/landing/:path*",
     "/missi-m.png",
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|mp4)).*)",
     "/(api|trpc)(.*)",

@@ -14,7 +14,7 @@ missiAI in production on Cloudflare (OpenNext runtime + Workers KV + Vectorize).
 All non-public routes are protected by Clerk middleware (`middleware.ts`).
 
 **Public routes** (no auth required):
-- `/` (landing page)
+- `/` (redirects to /chat)
 - `/sign-in`, `/sign-up`
 - `/pricing`, `/privacy`, `/terms`, `/manifesto`
 - `/api/health`

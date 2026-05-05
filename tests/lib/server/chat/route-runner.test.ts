@@ -147,8 +147,7 @@ describe("buildChatRouteSseResponse", () => {
       "gemini-2.5-pro",
       600,
       undefined,
-      undefined,
-      undefined,
+      "system prompt",
       undefined,
     )
     expect(runChatPostResponseTasksMock).toHaveBeenCalledWith(expect.objectContaining({
@@ -200,8 +199,7 @@ describe("buildChatRouteSseResponse", () => {
       "gemini-2.5-flash",
       600,
       undefined,
-      undefined,
-      undefined,
+      "system prompt",
       undefined,
     )
     expect(streamChatMock).toHaveBeenCalledWith(expect.objectContaining({

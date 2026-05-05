@@ -5,10 +5,10 @@ This inventory reflects the current repo surface after the deleted-feature clean
 ## 1. Public Marketing and Legal
 
 - Feature name: Public Marketing and Legal
-- Main app routes/pages: `/`, `/manifesto`, `/privacy`, `/terms`
+- Main app routes/pages: `/` (redirects to /chat), `/manifesto`, `/privacy`, `/terms`
 - API endpoints: none
 - Key server files: `app/layout.tsx`, `next.config.mjs`, static assets under `public/`
-- Key client components/hooks: `app/page.tsx`, `components/landing/ProductShowcase.tsx`
+- Key client components/hooks: `app/page.tsx`
 - External dependencies/services involved: Next.js App Router, static assets
 - Required benchmark types: HTTP route latency, build time, bundle size, render/import cost
 
