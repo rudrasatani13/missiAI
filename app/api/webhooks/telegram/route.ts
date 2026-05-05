@@ -27,8 +27,11 @@ import {
 import { logSecurityEvent, logApiError, log } from '@/lib/server/observability/logger'
 import { getTodayUTC } from '@/lib/server/utils/date-utils'
 import { errorMessage } from '@/lib/server/security/crypto-utils'
+import { readBodyWithSizeGuard } from '@/lib/server/utils/request-body'
 import type { KVStore } from '@/types'
 import { z } from 'zod'
+
+const TELEGRAM_MAX_BODY_BYTES = 64 * 1024 // 64 KB — Telegram updates are small JSON payloads
 
 const telegramMessageSchema = z.object({
   chat: z.object({ id: z.number() }).passthrough().optional(),
@@ -100,10 +103,21 @@ export async function POST(req: Request): Promise<Response> {
     })
   }
 
+  // ── 1b. Body size guard — reject oversized payloads before parsing ──────────
+  let bodyResult: { body: string } | { error: Response }
+  try {
+    bodyResult = await readBodyWithSizeGuard(req, TELEGRAM_MAX_BODY_BYTES)
+  } catch {
+    return ok200
+  }
+  if ('error' in bodyResult) {
+    return bodyResult.error
+  }
+
   // ── 2. Parse JSON body ─────────────────────────────────────────────────────
   let rawUpdate: unknown
   try {
-    rawUpdate = await req.json()
+    rawUpdate = JSON.parse(bodyResult.body)
   } catch {
     return ok200
   }

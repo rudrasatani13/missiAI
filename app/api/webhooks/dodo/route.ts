@@ -7,7 +7,10 @@ import { getCloudflareKVBinding } from '@/lib/server/platform/bindings'
 import { verifyDodoWebhook, determinePlanFromDodoProduct } from '@/lib/billing/dodo-client'
 import { setUserPlan } from '@/lib/billing/tier-checker'
 import { log, logSecurityEvent } from '@/lib/server/observability/logger'
+import { readBodyWithSizeGuard } from '@/lib/server/utils/request-body'
 import type { KVStore } from '@/types'
+
+const DODO_MAX_BODY_BYTES = 32 * 1024 // 32 KB — billing webhook events are small structured JSON
 
 // ─── KV helpers for subscription→user mapping & idempotency ──────────────────
 
@@ -47,15 +50,19 @@ async function markEventProcessed(kv: KVStore | null, eventId: string): Promise<
 export async function POST(req: Request) {
   const kv = getCloudflareKVBinding()
 
-  let rawBody: string
+  let bodyResult: { body: string } | { error: Response }
   try {
-    rawBody = await req.text()
+    bodyResult = await readBodyWithSizeGuard(req, DODO_MAX_BODY_BYTES)
   } catch {
     return new Response(
       JSON.stringify({ received: true, error: 'Failed to read body' }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     )
   }
+  if ('error' in bodyResult) {
+    return bodyResult.error // 413 for oversized payloads
+  }
+  const rawBody = bodyResult.body
 
   // Extract Standard Webhook headers
   const webhookId = req.headers.get('webhook-id') ?? ''

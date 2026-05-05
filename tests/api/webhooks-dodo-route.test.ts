@@ -68,6 +68,28 @@ describe('Dodo webhook route', () => {
     kv.put.mockResolvedValue(undefined)
   })
 
+  it('rejects payloads exceeding the 32 KB body size limit with 413 before signature check', async () => {
+    const bigBody = 'x'.repeat(32 * 1024 + 1)
+    const req = new Request('https://missi.space/api/webhooks/dodo', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/octet-stream',
+        'webhook-id': 'evt_big',
+        'webhook-signature': 'sig_big',
+        'webhook-timestamp': '1234567890',
+      },
+      body: bigBody,
+    })
+
+    const res = await POST(req)
+
+    expect(res.status).toBe(413)
+    await expect(res.json()).resolves.toMatchObject({ received: false, error: 'Payload too large' })
+    expect(verifyDodoWebhookMock).not.toHaveBeenCalled()
+    expect(setUserPlanMock).not.toHaveBeenCalled()
+    expect(kv.put).not.toHaveBeenCalled()
+  })
+
   it('rejects invalid webhook signatures without mutating billing state', async () => {
     verifyDodoWebhookMock.mockResolvedValueOnce(false)
 

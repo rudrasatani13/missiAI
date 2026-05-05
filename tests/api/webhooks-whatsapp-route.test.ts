@@ -123,6 +123,22 @@ describe('whatsapp webhook route', () => {
     getCloudflareExecutionContextMock.mockReturnValue(null)
   })
 
+  it('rejects payloads exceeding the 64 KB body size limit with 413 before signature check', async () => {
+    const bigBody = 'x'.repeat(64 * 1024 + 1)
+    const req = new Request('https://missi.space/api/webhooks/whatsapp', {
+      method: 'POST',
+      headers: { 'x-hub-signature-256': 'sha256=valid', 'content-type': 'application/octet-stream' },
+      body: bigBody,
+    })
+
+    const res = await POST(req)
+
+    expect(res.status).toBe(413)
+    await expect(res.json()).resolves.toMatchObject({ received: false, error: 'Payload too large' })
+    expect(verifyWhatsAppSignatureMock).not.toHaveBeenCalled()
+    expect(processBotMessageMock).not.toHaveBeenCalled()
+  })
+
   it('rejects invalid signatures before processing', async () => {
     verifyWhatsAppSignatureMock.mockResolvedValueOnce(false)
 

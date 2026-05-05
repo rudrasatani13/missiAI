@@ -10,6 +10,7 @@
 //   WHATSAPP_VERIFY_TOKEN     — Webhook GET verification token
 
 import { verifyWhatsAppSignature, sendWhatsAppMessage } from '@/lib/bot/whatsapp-client'
+import { readBodyWithSizeGuard } from '@/lib/server/utils/request-body'
 import {
   resolveClerkUserFromPhone,
   storeWhatsAppMapping,
@@ -30,6 +31,8 @@ import { logSecurityEvent, logApiError, log } from '@/lib/server/observability/l
 import { getTodayUTC } from '@/lib/server/utils/date-utils'
 import { errorMessage } from '@/lib/server/security/crypto-utils'
 import { z } from 'zod'
+
+const WHATSAPP_MAX_BODY_BYTES = 64 * 1024 // 64 KB — WhatsApp Cloud API payloads are small JSON
 
 const whatsappMessageSchema = z.object({
   id: z.string().min(1),
@@ -120,13 +123,17 @@ export async function POST(req: Request): Promise<Response> {
     headers: { 'Content-Type': 'application/json' },
   })
 
-  // ── 1. Read raw body ───────────────────────────────────────────────────────
-  let rawBody: string
+  // ── 1. Read raw body with size guard ─────────────────────────────────────────
+  let bodyResult: { body: string } | { error: Response }
   try {
-    rawBody = await req.text()
+    bodyResult = await readBodyWithSizeGuard(req, WHATSAPP_MAX_BODY_BYTES)
   } catch {
-    return ok200 // Always 200 to Meta
+    return ok200 // Always 200 to Meta on stream errors
   }
+  if ('error' in bodyResult) {
+    return bodyResult.error // 413 for oversized payloads
+  }
+  const rawBody = bodyResult.body
 
   // ── 2. Signature validation — MUST happen before any other processing ──────
   const sigHeader = req.headers.get('x-hub-signature-256')

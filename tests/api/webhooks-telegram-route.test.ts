@@ -177,6 +177,22 @@ describe('telegram webhook route', () => {
     }))
   })
 
+  it('rejects payloads exceeding the 64 KB body size limit with 413 after auth', async () => {
+    const bigBody = 'x'.repeat(64 * 1024 + 1)
+    const req = new Request('https://missi.space/api/webhooks/telegram', {
+      method: 'POST',
+      headers: { 'x-telegram-bot-api-secret-token': 'valid-secret', 'content-type': 'application/octet-stream' },
+      body: bigBody,
+    })
+
+    const res = await POST(req)
+
+    expect(res.status).toBe(413)
+    await expect(res.json()).resolves.toMatchObject({ received: false, error: 'Payload too large' })
+    expect(processBotMessageMock).not.toHaveBeenCalled()
+    expect(getCloudflareKVBindingMock).not.toHaveBeenCalled()
+  })
+
   it('throttles Telegram link-code attempts before consuming a code', async () => {
     checkAndIncrementTgLinkAttemptMock.mockResolvedValueOnce({ allowed: false, attempts: 10 })
 
