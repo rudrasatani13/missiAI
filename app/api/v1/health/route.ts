@@ -7,7 +7,6 @@ import {
 import {
   getCloudflareD1Binding,
   getCloudflareKVBinding,
-  getCloudflareVectorizeEnv,
   getCloudflareAtomicCounterBinding,
 } from "@/lib/server/platform/bindings"
 import { envExists } from "@/lib/server/platform/env"
@@ -109,35 +108,6 @@ async function checkD1(): Promise<CheckResult> {
   }
 }
 
-async function checkVectorize(probeLive: boolean): Promise<CheckResult> {
-  const start = Date.now()
-  try {
-    const env = getCloudflareVectorizeEnv()
-    if (!env) {
-      return { status: "not_configured", latencyMs: Date.now() - start }
-    }
-    if (!probeLive) {
-      return { status: "skipped", latencyMs: Date.now() - start }
-    }
-    await env.LIFE_GRAPH.query(new Array(768).fill(0), { topK: 1 })
-    return { status: "ok", latencyMs: Date.now() - start }
-  } catch {
-    return { status: "error", latencyMs: Date.now() - start }
-  }
-}
-
-function shouldProbeVectorize(req: NextRequest): boolean {
-  return hasHealthProbe(req, "vectorize")
-}
-
-function shouldProbeDurableObject(req: NextRequest): boolean {
-  return hasHealthProbe(req, "durable-object", "durable_object")
-}
-
-function shouldProbeProviders(req: NextRequest): boolean {
-  return hasHealthProbe(req, "providers", "provider")
-}
-
 async function checkDurableObject(probeLive: boolean): Promise<CheckResult> {
   const start = Date.now()
   try {
@@ -165,6 +135,14 @@ async function checkDurableObject(probeLive: boolean): Promise<CheckResult> {
   } catch {
     return { status: "error", latencyMs: Date.now() - start }
   }
+}
+
+function shouldProbeDurableObject(req: NextRequest): boolean {
+  return hasHealthProbe(req, "durable-object", "durable_object")
+}
+
+function shouldProbeProviders(req: NextRequest): boolean {
+  return hasHealthProbe(req, "providers", "provider")
 }
 
 function emptyProviderHealthStatus(): ProviderHealthStatus {
@@ -263,15 +241,13 @@ export async function GET(req: NextRequest) {
 
   // ── 4. Run infrastructure probes ─────────────────────────────────────────────
   const start = Date.now()
-  const probeVectorize = shouldProbeVectorize(req)
   const probeDurableObject = shouldProbeDurableObject(req)
   const probeProviders = shouldProbeProviders(req)
   const openAIConfigured = envExists("OPENAI_API_KEY")
 
-  const [kvCheck, d1Check, vectorizeCheck, doCheck, providerHealth] = await Promise.all([
+  const [kvCheck, d1Check, doCheck, providerHealth] = await Promise.all([
     checkKV(),
     checkD1(),
-    checkVectorize(probeVectorize),
     checkDurableObject(probeDurableObject),
     getProviderHealthStatus(probeProviders, openAIConfigured),
   ])
@@ -279,7 +255,6 @@ export async function GET(req: NextRequest) {
   const checks: Record<string, CheckResult> = {
     kv: kvCheck,
     d1: d1Check,
-    vectorize: vectorizeCheck,
     durable_object: doCheck,
     vertex: mapProviderCheck(providerHealth.vertex, { probeLive: probeProviders }),
     openai: mapProviderCheck(providerHealth.openai, {

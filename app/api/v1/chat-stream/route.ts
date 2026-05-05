@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server"
 import { rateLimitHeaders } from "@/lib/server/security/rate-limiter"
-import { getChatVectorizeEnv } from "@/lib/server/chat/shared"
 import { logError } from "@/lib/server/observability/logger"
 import { classifyChatError } from "@/lib/server/chat/errors"
 import { buildChatStreamContext } from "@/lib/server/chat/stream-context"
@@ -20,8 +19,7 @@ export async function POST(req: NextRequest) {
     requestUserId = preflight.data.userId
     const userId = preflight.data.userId
     const { kv, rateResult, input } = preflight.data
-    const { personality, voiceMode, customPrompt, aiDials, incognito, analyticsOptOut } = input
-    const vectorizeEnv = getChatVectorizeEnv()
+    const { voiceMode, customPrompt, incognito, analyticsOptOut } = input
 
     const {
       messages,
@@ -34,7 +32,6 @@ export async function POST(req: NextRequest) {
       userId,
       kv,
       input,
-      vectorizeEnv,
     })
 
     const sseStream = buildChatStreamSseStream({
@@ -43,10 +40,8 @@ export async function POST(req: NextRequest) {
       startTime,
       inputTokens,
       messages,
-      personality,
       voiceMode,
       customPrompt,
-      aiDials,
       incognito,
       analyticsOptOut,
       memories,

@@ -36,21 +36,12 @@ export async function POST(req: NextRequest) {
     if (preflight.kind === "validation") {
       logRequest("chat.validation_error", userId, startTime)
     }
-    if (preflight.kind === "voice_limit") {
-      logRequest("chat.voice_limit", userId, startTime)
-    }
     return preflight.response
   }
 
-  const { kv, vectorizeEnv, rateResult, input } = preflight.data
+  const { kv, rateResult, input } = preflight.data
 
-  // ── 2. Build context (memories, plugins, emotion, token budget) ────────────
-  // Steps 2a–2d are encapsulated inside buildChatRouteContext:
-  //   2a. Search Life Graph for relevant memories (3s timeout)
-  //   2b. Load live plugin context (Google Calendar + Notion)
-  //   2c. Append client-side emotion context
-  //   2d. Token budget guard
-  // Incognito mode skips memory lookup — user asked for a stateless turn.
+  // ── 2. Build context (simplified for live voice-only app) ────────────────────
   const {
     messages,
     memories,
@@ -62,22 +53,15 @@ export async function POST(req: NextRequest) {
     userId,
     kv,
     input,
-    vectorizeEnv,
-    onMemoryError: (e) => {
-      logError("chat.memory_fetch_error", e, userId)
-    },
-    onPluginError: (e) => {
-      logError("chat.plugin_context_error", e, userId)
-    },
   })
 
   // ── 3. Response cache check ───────────────────────────────────────────────
-  const cacheHit = await prepareChatRouteCacheHit(cacheKey, (e) => {
-    logError("chat.cache_error", e, userId)
-  })
-  if (cacheHit) {
-    logRequest("chat.cache_hit", userId, startTime, { cacheKey: cacheHit.cacheKey })
-    return cacheHit.response
+  if (cacheKey) {
+    const cacheHit = await prepareChatRouteCacheHit(cacheKey, "")
+    if (cacheHit) {
+      logRequest("chat.cache_hit", userId, startTime, { cacheKey: cacheHit.cacheKey })
+      return cacheHit.response
+    }
   }
 
   // ── 4. Select model dynamically ───────────────────────────────────────────
