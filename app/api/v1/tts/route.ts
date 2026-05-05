@@ -4,17 +4,10 @@ import { ttsSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { geminiTextToSpeech } from "@/lib/ai/services/voice-service"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/server/security/rate-limiter"
 import { logRequest, logError, logApiError } from "@/lib/server/observability/logger"
-import { getUserPlan } from "@/lib/billing/tier-checker"
 import { getCloudflareKVBinding } from "@/lib/server/platform/bindings"
-import { recordAnalyticsUsage } from "@/lib/analytics/event-store"
-import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
-import { waitUntil } from "@/lib/server/platform/wait-until"
-import { COST_CONSTANTS } from "@/lib/server/observability/cost-tracker"
 
 const MAX_BODY_BYTES = 1_000_000 // 1 MB
 const TTS_TIMEOUT_MS = 15_000
-/** Estimated TTS speaking rate used to debit voice quota (chars per second). */
-const TTS_CHARS_PER_SECOND = 15
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -48,12 +41,11 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ── 3. KV availability + plan (fail-closed for non-pro outside dev) ───────
+  // ── 3. KV availability ───────────────────────────────────────────────────────
   const kv = getCloudflareKVBinding()
-  const planId = await getUserPlan(userId)
   const isDev = process.env.NODE_ENV === "development"
 
-  if (!kv && planId !== "pro" && !isDev) {
+  if (!kv && !isDev) {
     return NextResponse.json(
       { success: false, error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" },
       { status: 503 }
@@ -61,8 +53,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 4. Rate limit ─────────────────────────────────────────────────────────
-  const rateTier = planId === "free" ? "free" : "paid"
-  const rateResult = await checkRateLimit(userId, rateTier, 'ai')
+  const rateResult = await checkRateLimit(userId, "free", 'ai')
   if (!rateResult.allowed) {
     logRequest("tts.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -86,29 +77,7 @@ export async function POST(req: NextRequest) {
   const { text } = parsed.data
   const charCount = text.length
 
-  // ── 6. Voice quota check + debit ─────────────────────────────────────────
-  // Estimate TTS audio duration from text length before the provider call.
-  // Follows the pessimistic increment-first pattern: quota is consumed before
-  // the provider call, so retries within this request cannot bypass the
-  // counter. Provider failures still consume quota (same design as chat).
-  if (kv && planId !== "pro") {
-    const estimatedDurationMs = Math.max(3000, Math.ceil(charCount / TTS_CHARS_PER_SECOND) * 1000)
-    const voiceLimit = await checkAndIncrementVoiceTime(kv, userId, planId, estimatedDurationMs)
-    if (!voiceLimit.allowed) {
-      if (voiceLimit.unavailable) {
-        logRequest("tts.voice_quota_unavailable", userId, startTime)
-        return NextResponse.json(
-          { success: false, error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" },
-          { status: 503 }
-        )
-      }
-      logRequest("tts.voice_limit", userId, startTime)
-      return NextResponse.json(
-        { success: false, error: "Daily voice limit reached", code: "USAGE_LIMIT_EXCEEDED", upgrade: "/pricing", usedSeconds: voiceLimit.usedSeconds, limitSeconds: voiceLimit.limitSeconds },
-        { status: 429 }
-      )
-    }
-  }
+  // ── 6. Voice quota check removed (billing was deleted) ─────────────────────
 
   const MAX_TTS_RETRIES = 2
   let lastErr: unknown = null
@@ -121,17 +90,6 @@ export async function POST(req: NextRequest) {
       )
 
       logRequest("tts.completed", userId, startTime, { charCount, attempt })
-
-      // Analytics: fire-and-forget
-      if (kv) {
-        waitUntil(
-          recordAnalyticsUsage(kv, {
-            type: 'tts',
-            userId,
-            costUsd: charCount * COST_CONSTANTS.TTS_COST_PER_CHAR,
-          }).catch((err) => logError('tts.analytics_error', err, userId)),
-        )
-      }
 
       return new NextResponse(audioData, {
         headers: {

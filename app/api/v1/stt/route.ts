@@ -5,11 +5,8 @@ import { sttSchema, validationErrorResponse } from "@/lib/validation/schemas"
 import { geminiSpeechToText } from "@/lib/ai/services/voice-service"
 import { checkRateLimit, rateLimitExceededResponse, rateLimitHeaders } from "@/lib/server/security/rate-limiter"
 import { logRequest, logError, logApiError } from "@/lib/server/observability/logger"
-import { getUserPlan } from "@/lib/billing/tier-checker"
-import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
 import {
   validateAudioMagicBytes,
-  estimateAudioDurationMs,
 } from "@/lib/server/routes/stt/helpers"
 
 const STT_TIMEOUT_MS = 15_000
@@ -43,17 +40,15 @@ export async function POST(req: NextRequest) {
     throw e
   }
 
-  // ── 2. Plan & KV setup (fail-closed for non-pro when KV is down) ─────────
-  const planId = await getUserPlan(userId)
+  // ── 2. KV setup ───────────────────────────────────────────────────────────────
   const kv = getCloudflareKVBinding()
   const isDev = process.env.NODE_ENV === "development"
-  if (!kv && planId !== "pro" && !isDev) {
+  if (!kv && !isDev) {
     return jsonResponse({ success: false, error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" }, 503)
   }
 
   // ── 3. Rate limit ─────────────────────────────────────────────────────────
-  const rateTier = planId === "free" ? "free" : "paid"
-  const rateResult = await checkRateLimit(userId, rateTier, 'ai')
+  const rateResult = await checkRateLimit(userId, "free", 'ai')
   if (!rateResult.allowed) {
     logRequest("stt.rate_limited", userId, startTime)
     return rateLimitExceededResponse(rateResult)
@@ -104,36 +99,7 @@ export async function POST(req: NextRequest) {
     return jsonResponse({ success: false, error: "File content does not match declared audio type", code: "INVALID_FILE" }, 400)
   }
 
-  // ── 7. Voice-time check-and-increment ────────────────────────────────────
-  //
-  // Duration is derived server-side from the file's byte size (64 kbps CBR
-  // assumption), clamped to [3 s, 120 s]. The client-supplied voiceDurationMs
-  // field is intentionally ignored: trusting it would allow under-reporting
-  // (e.g. sending 1 ms for a 10 MB file) to drain quota at near-zero cost.
-  //
-  // The sanitizeDuration function inside checkAndIncrementVoiceTime also
-  // applies [3 s, 120 s] clamping as a defence-in-depth second layer.
-  const effectiveDurationMs = estimateAudioDurationMs(audioFile.size)
-
-  if (kv) {
-    const voiceLimit = await checkAndIncrementVoiceTime(kv, userId, planId, effectiveDurationMs)
-    if (!voiceLimit.allowed) {
-      if (voiceLimit.unavailable) {
-        logRequest("stt.voice_quota_unavailable", userId, startTime)
-        return jsonResponse({ success: false, error: "Service temporarily unavailable", code: "SERVICE_UNAVAILABLE" }, 503)
-      }
-
-      logRequest("stt.voice_limit", userId, startTime)
-      return jsonResponse({
-        success: false,
-        error: "Daily voice limit reached",
-        code: "USAGE_LIMIT_EXCEEDED",
-        upgrade: "/pricing",
-        usedSeconds: voiceLimit.usedSeconds,
-        limitSeconds: voiceLimit.limitSeconds,
-      }, 429)
-    }
-  }
+  // ── 7. Voice-time tracking removed (billing was deleted) ─────────────────────
 
   const MAX_STT_RETRIES = 2
   let lastErr: unknown = null
