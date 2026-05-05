@@ -13,10 +13,10 @@ type TGStep = 'idle' | 'loading' | 'show_link' | 'linked'
 export default function IntegrationsPage() {
   return (
     <ChatShell>
-      <div className="min-h-full text-white">
+      <div className="min-h-full text-[var(--missi-text-primary)]">
         <div className="max-w-xl mx-auto px-4 pb-12 pt-6 md:pt-12">
           <h1 className="text-2xl font-semibold mb-1">Messaging Integrations</h1>
-          <p className="text-gray-400 text-sm mb-8">
+          <p className="text-[var(--missi-text-secondary)] text-sm mb-8">
             Chat with Missi on WhatsApp and Telegram. Pro plan required.
           </p>
 
@@ -122,7 +122,7 @@ function WhatsAppCard() {
       title="WhatsApp"
       description="Chat with Missi from your WhatsApp number."
     >
-      {!statusLoaded && <p className="text-sm text-gray-400">Loading...</p>}
+      {!statusLoaded && <p className="text-sm text-[var(--missi-text-secondary)]">Loading...</p>}
 
       {statusLoaded && step === 'linked' && (
         <LinkedState
@@ -135,37 +135,37 @@ function WhatsAppCard() {
         <div className="space-y-2">
           <button
             onClick={generate}
-            className="px-4 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors"
+            className="px-4 py-2 rounded-lg bg-[var(--missi-nav-text-active)] text-[var(--missi-bg)] text-sm font-medium hover:opacity-90 transition-colors"
           >
             Link WhatsApp
           </button>
-          {error && <p className="text-red-400 text-xs">{error}</p>}
+          {error && <p className="text-destructive text-xs">{error}</p>}
         </div>
       )}
 
       {statusLoaded && step === 'generating' && (
-        <p className="text-sm text-gray-400">Generating code…</p>
+        <p className="text-sm text-[var(--missi-text-secondary)]">Generating code…</p>
       )}
 
       {statusLoaded && step === 'show_code' && (
         <div className="space-y-3">
-          <p className="text-sm text-gray-300">
+          <p className="text-sm text-[var(--missi-text-secondary)]">
             Open WhatsApp and send this code to{' '}
-            <span className="text-white font-medium">{botPhone || 'the Missi bot number'}</span>:
+            <span className="text-[var(--missi-text-primary)] font-medium">{botPhone || 'the Missi bot number'}</span>:
           </p>
           <div className="flex items-center gap-3">
-            <span className="text-3xl font-mono font-bold tracking-widest text-white bg-white/10 px-4 py-2 rounded-lg">
+            <span className="text-3xl font-mono font-bold tracking-widest text-[var(--missi-text-primary)] bg-[var(--missi-surface)] px-4 py-2 rounded-lg">
               {linkCode}
             </span>
           </div>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[var(--missi-text-muted)]">
             Waiting for your WhatsApp message… This page will update automatically.
           </p>
           <div className="flex gap-2">
-            <button onClick={generate} className="px-4 py-2 rounded-lg border border-white/20 text-sm text-gray-300 hover:text-white hover:border-white/40 transition-colors">
+            <button onClick={generate} className="px-4 py-2 rounded-lg border border-[var(--missi-border)] text-sm text-[var(--missi-text-secondary)] hover:text-[var(--missi-text-primary)] hover:border-[var(--missi-border-strong)] transition-colors">
               New code
             </button>
-            <button onClick={() => setStep('idle')} className="px-4 py-2 rounded-lg border border-white/20 text-sm text-gray-300 hover:text-white hover:border-white/40 transition-colors">
+            <button onClick={() => setStep('idle')} className="px-4 py-2 rounded-lg border border-[var(--missi-border)] text-sm text-[var(--missi-text-secondary)] hover:text-[var(--missi-text-primary)] hover:border-[var(--missi-border-strong)] transition-colors">
               Cancel
             </button>
           </div>
@@ -242,45 +242,45 @@ function TelegramCard() {
       title="Telegram"
       description="Chat with Missi from your Telegram account."
     >
-      {!statusLoaded && <p className="text-sm text-gray-400">Loading...</p>}
+      {!statusLoaded && <p className="text-sm text-[var(--missi-text-secondary)]">Loading...</p>}
 
       {statusLoaded && step === 'linked' && (
         <LinkedState label="Telegram account linked" onUnlink={unlink} />
       )}
 
       {statusLoaded && step === 'idle' && (
-        <button onClick={generateLink} className="px-4 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors">
+        <button onClick={generateLink} className="px-4 py-2 rounded-lg bg-[var(--missi-nav-text-active)] text-[var(--missi-bg)] text-sm font-medium hover:opacity-90 transition-colors">
           Link Telegram
         </button>
       )}
 
       {statusLoaded && step === 'loading' && (
-        <p className="text-sm text-gray-400">Generating link…</p>
+        <p className="text-sm text-[var(--missi-text-secondary)]">Generating link…</p>
       )}
 
       {statusLoaded && step === 'show_link' && (
         <div className="space-y-3">
-          <p className="text-sm text-gray-300">
-            Open this link in Telegram within <span className="text-white font-medium">15 minutes</span>:
+          <p className="text-sm text-[var(--missi-text-secondary)]">
+            Open this link in Telegram within <span className="text-[var(--missi-text-primary)] font-medium">15 minutes</span>:
           </p>
           <a
             href={deepLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="block text-blue-400 text-sm underline break-all"
+            className="block text-[var(--missi-accent)] text-sm underline break-all hover:opacity-85 transition-opacity"
           >
             {deepLink}
           </a>
           <div className="flex gap-2">
-            <button onClick={generateLink} className="px-4 py-2 rounded-lg border border-white/20 text-sm text-gray-300 hover:text-white hover:border-white/40 transition-colors">Regenerate</button>
-            <button onClick={() => setStep('idle')} className="px-4 py-2 rounded-lg border border-white/20 text-sm text-gray-300 hover:text-white hover:border-white/40 transition-colors">Cancel</button>
+            <button onClick={generateLink} className="px-4 py-2 rounded-lg border border-[var(--missi-border)] text-sm text-[var(--missi-text-secondary)] hover:text-[var(--missi-text-primary)] hover:border-[var(--missi-border-strong)] transition-colors">Regenerate</button>
+            <button onClick={() => setStep('idle')} className="px-4 py-2 rounded-lg border border-[var(--missi-border)] text-sm text-[var(--missi-text-secondary)] hover:text-[var(--missi-text-primary)] hover:border-[var(--missi-border-strong)] transition-colors">Cancel</button>
           </div>
-          {error && <p className="text-red-400 text-xs">{error}</p>}
+          {error && <p className="text-destructive text-xs">{error}</p>}
         </div>
       )}
 
       {error && step !== 'show_link' && step !== 'idle' && (
-        <p className="text-red-400 text-xs mt-2">{error}</p>
+        <p className="text-destructive text-xs mt-2">{error}</p>
       )}
     </Card>
   )
@@ -300,14 +300,14 @@ function Card({
   children: React.ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-4">
+    <div className="rounded-xl border border-[var(--missi-border)] bg-[var(--missi-surface)] p-5 space-y-4">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-lg bg-[var(--missi-surface)] flex items-center justify-center shrink-0">
           {icon}
         </div>
         <div>
           <h2 className="font-medium text-sm">{title}</h2>
-          <p className="text-xs text-gray-400">{description}</p>
+          <p className="text-xs text-[var(--missi-text-secondary)]">{description}</p>
         </div>
       </div>
       {children}
@@ -319,12 +319,12 @@ function LinkedState({ label, onUnlink }: { label: string; onUnlink: () => void 
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
-        <span className="text-sm text-gray-200">{label}</span>
+        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+        <span className="text-sm text-[var(--missi-text-primary)]">{label}</span>
       </div>
       <button
         onClick={onUnlink}
-        className="text-xs text-red-400 hover:text-red-300 transition-colors"
+        className="text-xs text-destructive hover:text-destructive/80 transition-colors"
       >
         Unlink
       </button>

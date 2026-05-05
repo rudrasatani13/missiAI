@@ -38,7 +38,7 @@ export function NodeCard({ node, onDelete, isDeleting }: NodeCardProps) {
 
   return (
     <div
-      className="glass-card glass-noise"
+      className="bg-[var(--missi-surface)] border border-[var(--missi-border)] shadow-[var(--elevated-shadow)]"
       style={{
         borderRadius: '16px',
         padding: '16px',
@@ -52,12 +52,12 @@ export function NodeCard({ node, onDelete, isDeleting }: NodeCardProps) {
       onMouseEnter={(e) => {
         if (!isDeleting) {
           ;(e.currentTarget as HTMLDivElement).style.borderColor =
-            'rgba(255,255,255,0.15)'
+            'var(--missi-text-muted)'
         }
       }}
       onMouseLeave={(e) => {
         ;(e.currentTarget as HTMLDivElement).style.borderColor =
-          'rgba(255,255,255,0.08)'
+          'var(--missi-text-muted)'
       }}
     >
       <NodeCardHeader

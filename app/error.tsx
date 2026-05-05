@@ -32,7 +32,7 @@ export default function ErrorPage({
   }, [error])
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--missi-bg)] text-[var(--missi-text-primary)] flex flex-col items-center justify-center px-6 relative overflow-hidden">
       {/* Subtle radial glow */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -60,8 +60,8 @@ export default function ErrorPage({
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center mb-8"
           style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.06)",
+            background: "var(--missi-surface)",
+            border: "1px solid var(--missi-border)",
           }}
           data-testid="error-icon"
         >
@@ -74,7 +74,7 @@ export default function ErrorPage({
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{ color: "rgba(255,255,255,0.4)" }}
+            style={{ color: "var(--missi-text-muted)" }}
           >
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
@@ -91,7 +91,7 @@ export default function ErrorPage({
         </h1>
         <p
           className="text-sm font-light leading-relaxed mb-10"
-          style={{ color: "rgba(255,255,255,0.35)" }}
+          style={{ color: "var(--missi-text-muted)" }}
         >
           We hit an unexpected issue. This has been logged and we&apos;re
           looking into it.
@@ -102,17 +102,17 @@ export default function ErrorPage({
           <button
             onClick={reset}
             className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03] cursor-pointer"
-            style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}
+            style={{ background: "var(--missi-border)", color: "var(--missi-text-primary)" }}
             data-testid="error-try-again-button"
           >
             Try Again
           </button>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:bg-white/10"
+            className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:bg-[var(--missi-surface)]"
             style={{
-              border: "1px solid rgba(255,255,255,0.12)",
-              color: "rgba(255,255,255,0.6)",
+              border: "1px solid var(--missi-border)",
+              color: "var(--missi-text-secondary)",
             }}
             data-testid="error-go-home-button"
           >

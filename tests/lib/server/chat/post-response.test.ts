@@ -6,6 +6,7 @@ const {
   logRequestMock,
   waitUntilMock,
   checkBudgetAlertMock,
+  incrementDailySpendMock,
   recordAnalyticsUsageMock,
   setCachedResponseMock,
   addMoodEntryMock,
@@ -17,6 +18,7 @@ const {
     void promise
   }),
   checkBudgetAlertMock: vi.fn(async () => false),
+  incrementDailySpendMock: vi.fn(async () => {}),
   recordAnalyticsUsageMock: vi.fn(async () => {}),
   setCachedResponseMock: vi.fn(async () => {}),
   addMoodEntryMock: vi.fn(async () => {}),
@@ -43,6 +45,7 @@ vi.mock("@/lib/server/observability/cost-tracker", async () => {
   return {
     ...actual,
     checkBudgetAlert: checkBudgetAlertMock,
+    incrementDailySpend: incrementDailySpendMock,
   }
 })
 
@@ -121,6 +124,7 @@ describe("runChatPostResponseTasks", () => {
 
     expect(logRequestMock).toHaveBeenCalledTimes(1)
     expect(logRequestMock.mock.calls[0][0]).toBe("chat_stream.completed")
+    expect(incrementDailySpendMock).toHaveBeenCalledTimes(1)
     expect(checkBudgetAlertMock).toHaveBeenCalledTimes(1)
     expect(recordAnalyticsUsageMock).toHaveBeenCalledTimes(1)
     expect(recordAnalyticsUsageMock).toHaveBeenCalledWith(
@@ -168,6 +172,7 @@ describe("runChatPostResponseTasks", () => {
     expect(recordAnalyticsUsageMock).not.toHaveBeenCalled()
     expect(analyzeMoodFromConversationMock).not.toHaveBeenCalled()
     expect(addMoodEntryMock).not.toHaveBeenCalled()
+    expect(incrementDailySpendMock).toHaveBeenCalledTimes(1)
     expect(checkBudgetAlertMock).toHaveBeenCalledTimes(1)
   })
 

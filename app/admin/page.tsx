@@ -21,7 +21,7 @@ export default function AdminPage() {
           alignItems: 'center',
           justifyContent: 'center',
           background: '#000',
-          color: 'rgba(255,255,255,0.5)',
+          color: 'var(--missi-text-secondary)',
           fontFamily: "'Inter', sans-serif",
           fontSize: 14,
         }}
@@ -42,7 +42,7 @@ export default function AdminPage() {
           alignItems: 'center',
           justifyContent: 'center',
           background: '#000',
-          color: 'rgba(255,255,255,0.5)',
+          color: 'var(--missi-text-secondary)',
           fontFamily: "'Inter', sans-serif",
           fontSize: 14,
         }}
@@ -110,7 +110,7 @@ export default function AdminPage() {
         minHeight: '100vh',
         background: '#000',
         fontFamily: "'Inter', sans-serif",
-        color: '#fff',
+        color: 'var(--missi-text-primary)',
         padding: '40px 20px',
       }}
     >
@@ -134,7 +134,7 @@ export default function AdminPage() {
             </h1>
             <p
               data-testid="admin-last-updated"
-              style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: '6px 0 0' }}
+              style={{ fontSize: 12, color: 'var(--missi-text-muted)', margin: '6px 0 0' }}
             >
               Last updated: {lastUpdatedStr}
             </p>
@@ -143,17 +143,17 @@ export default function AdminPage() {
             data-testid="admin-refresh-btn"
             onClick={refresh}
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'var(--missi-border)',
+              border: '1px solid var(--missi-border)',
               borderRadius: 8,
               padding: '8px 16px',
-              color: 'rgba(255,255,255,0.7)',
+              color: 'var(--missi-text-secondary)',
               fontSize: 12,
               cursor: 'pointer',
               transition: 'background 0.2s',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--missi-border)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--missi-border)')}
           >
             Refresh
           </button>
@@ -204,15 +204,15 @@ export default function AdminPage() {
         <div
           data-testid="plan-breakdown"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
             borderRadius: 12,
             padding: 20,
             marginBottom: 32,
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+            <span style={{ fontSize: 12, color: 'var(--missi-text-secondary)' }}>
               Total Users: {totalPlanUsers}
             </span>
           </div>
@@ -224,7 +224,7 @@ export default function AdminPage() {
               borderRadius: 6,
               overflow: 'hidden',
               display: 'flex',
-              background: 'rgba(255,255,255,0.06)',
+              background: 'var(--missi-border)',
             }}
           >
             {freePercent > 0 && (
@@ -271,8 +271,8 @@ export default function AdminPage() {
         <div
           data-testid="trend-chart"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
             borderRadius: 12,
             padding: 20,
             marginBottom: 32,
@@ -311,7 +311,7 @@ export default function AdminPage() {
                   <span
                     style={{
                       fontSize: 10,
-                      color: isToday ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.35)',
+                      color: isToday ? 'var(--missi-text-primary)' : 'var(--missi-text-muted)',
                       marginTop: 6,
                       fontWeight: isToday ? 600 : 400,
                     }}
@@ -329,8 +329,8 @@ export default function AdminPage() {
         <div
           data-testid="cost-table"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
             borderRadius: 12,
             overflow: 'hidden',
             marginBottom: 32,
@@ -338,7 +338,7 @@ export default function AdminPage() {
         >
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <tr style={{ borderBottom: '1px solid var(--missi-border)' }}>
                 <th style={thStyle}>Date</th>
                 <th style={{ ...thStyle, textAlign: 'right' }}>Total Requests</th>
                 <th style={{ ...thStyle, textAlign: 'right' }}>Cost (USD)</th>
@@ -350,8 +350,8 @@ export default function AdminPage() {
                   key={day.date}
                   data-testid={`cost-row-${i}`}
                   style={{
-                    background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    background: i % 2 === 0 ? 'transparent' : 'var(--missi-surface)',
+                    borderBottom: '1px solid var(--missi-border)',
                   }}
                 >
                   <td style={tdStyle}>{day.date}</td>
@@ -362,7 +362,7 @@ export default function AdminPage() {
               {/* Total row */}
               <tr
                 data-testid="cost-row-total"
-                style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
+                style={{ borderTop: '1px solid var(--missi-border)' }}
               >
                 <td style={{ ...tdStyle, fontWeight: 600 }}>Total</td>
                 <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>
@@ -397,8 +397,8 @@ export default function AdminPage() {
         <div
           data-testid="recent-activity"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
             borderRadius: 12,
             padding: 20,
           }}
@@ -454,8 +454,8 @@ function KPICard({
     <div
       data-testid={testId}
       style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
         borderRadius: 12,
         padding: 20,
       }}
@@ -465,7 +465,7 @@ function KPICard({
           fontSize: 10,
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
-          color: 'rgba(255,255,255,0.4)',
+          color: 'var(--missi-text-muted)',
           marginBottom: 8,
         }}
       >
@@ -474,7 +474,7 @@ function KPICard({
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span
           data-testid={`${testId}-value`}
-          style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}
+          style={{ fontSize: 28, fontWeight: 700, color: 'var(--missi-text-primary)' }}
         >
           {value}
         </span>
@@ -495,7 +495,7 @@ function KPICard({
       {subtitle && (
         <div
           data-testid={`${testId}-subtitle`}
-          style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 8 }}
+          style={{ fontSize: 11, color: 'var(--missi-text-muted)', marginTop: 8 }}
         >
           {subtitle}
         </div>
@@ -511,7 +511,7 @@ function SectionTitle({ title, testId }: { title: string; testId: string }) {
       style={{
         fontSize: 14,
         fontWeight: 600,
-        color: 'rgba(255,255,255,0.7)',
+        color: 'var(--missi-text-secondary)',
         marginBottom: 12,
         letterSpacing: '0.02em',
       }}
@@ -537,7 +537,7 @@ function PlanLegend({
   return (
     <div data-testid={testId} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <div style={{ width: 10, height: 10, borderRadius: 2, background: color }} />
-      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+      <span style={{ fontSize: 12, color: 'var(--missi-text-secondary)' }}>
         {label}: {count} ({percent.toFixed(0)}%)
       </span>
     </div>
@@ -549,8 +549,8 @@ function StatCard({ testId, label, value }: { testId: string; label: string; val
     <div
       data-testid={testId}
       style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
         borderRadius: 12,
         padding: 20,
       }}
@@ -560,7 +560,7 @@ function StatCard({ testId, label, value }: { testId: string; label: string; val
           fontSize: 10,
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
-          color: 'rgba(255,255,255,0.4)',
+          color: 'var(--missi-text-muted)',
           marginBottom: 8,
         }}
       >
@@ -568,7 +568,7 @@ function StatCard({ testId, label, value }: { testId: string; label: string; val
       </div>
       <span
         data-testid={`${testId}-value`}
-        style={{ fontSize: 24, fontWeight: 700, color: '#fff' }}
+        style={{ fontSize: 24, fontWeight: 700, color: 'var(--missi-text-primary)' }}
       >
         {value}
       </span>
@@ -582,9 +582,9 @@ function ActivityItem({ testId, text, isLast = false }: { testId: string; text: 
       data-testid={testId}
       style={{
         padding: '10px 0',
-        borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.04)',
+        borderBottom: isLast ? 'none' : '1px solid var(--missi-border)',
         fontSize: 13,
-        color: 'rgba(255,255,255,0.5)',
+        color: 'var(--missi-text-secondary)',
       }}
     >
       {text}
@@ -599,7 +599,7 @@ const thStyle: React.CSSProperties = {
   fontSize: 10,
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
-  color: 'rgba(255,255,255,0.4)',
+  color: 'var(--missi-text-muted)',
   fontWeight: 500,
   textAlign: 'left',
 }
@@ -607,7 +607,7 @@ const thStyle: React.CSSProperties = {
 const tdStyle: React.CSSProperties = {
   padding: '10px 16px',
   fontSize: 13,
-  color: 'rgba(255,255,255,0.7)',
+  color: 'var(--missi-text-secondary)',
 }
 
 function getDayLabel(dateStr: string): string {

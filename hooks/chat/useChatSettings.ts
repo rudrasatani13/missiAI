@@ -47,7 +47,7 @@ export interface AIDialSettings {
 // Defaults kept in one place so the Settings page can also offer a
 // "Reset to defaults" action without duplicating literals.
 export const DEFAULT_APPEARANCE: AppearanceSettings = {
-  theme: "dark",
+  theme: "light",
   accent: "amber",
   fontScale: "md",
   reduceMotion: false,

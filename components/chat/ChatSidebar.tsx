@@ -11,6 +11,8 @@ import {
   Crown,
   Flame,
   Heart,
+  Lock,
+  LogIn,
   LogOut,
   Menu,
   MessageSquare,
@@ -19,6 +21,8 @@ import {
   MoreHorizontal,
   Plug,
   Settings,
+  Sun,
+  UserPlus,
   Wallet,
   Sword,
   Target,
@@ -47,6 +51,7 @@ export interface ChatSidebarProps {
   onLogout: () => void
   onNewChat: () => void
   isLiveMode: boolean
+  isGuest?: boolean
   onPickImage: () => void
   /** Called whenever the desktop sidebar width resolves, so the page can offset fixed children. */
   onWidthChange?: (pxWidth: number) => void
@@ -125,7 +130,7 @@ function NavRow({
       className={`missi-nav-row group relative flex items-center w-full h-9 rounded-xl overflow-hidden ${active ? "is-active" : ""}`}
       style={{ cursor: "pointer", justifyContent: showLabel ? "flex-start" : "center" }}
     >
-      {/* Active left accent bar (animated width on hover/active) */}
+      {/* Active left accent bar */}
       <span
         aria-hidden
         className="missi-nav-accent"
@@ -135,7 +140,7 @@ function NavRow({
           top: 6,
           bottom: 6,
           width: active ? 2 : 0,
-          background: "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.4))",
+          background: `linear-gradient(180deg, var(--missi-nav-accent), transparent)`,
           borderRadius: 2,
           transition: "width 220ms cubic-bezier(0.32, 0.72, 0, 1)",
           pointerEvents: "none",
@@ -147,9 +152,7 @@ function NavRow({
         style={{
           position: "absolute",
           inset: 0,
-          background: active
-            ? "linear-gradient(90deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 40%, transparent 70%)"
-            : "transparent",
+          background: active ? "var(--missi-nav-active-bg)" : "transparent",
           transition: "background 220ms cubic-bezier(0.32, 0.72, 0, 1)",
           pointerEvents: "none",
         }}
@@ -157,12 +160,12 @@ function NavRow({
       <div
         className="missi-nav-icon flex items-center justify-center flex-shrink-0"
         style={{
-          // When expanded, reserve a fixed icon-gutter so labels line up.
-          // When collapsed, shrink to just the icon so justifyContent: center
-          // can perfectly center it within the narrow sidebar.
           width: showLabel ? COLLAPSED_WIDTH : 24,
-          color: iconColor ?? "white",
-          opacity: active ? 1 : 0.5,
+          color: iconColor ?? (active ? "var(--missi-nav-text-active)" : "var(--missi-nav-text)"),
+          opacity: active ? 1 : 0.72,
+          position: "relative",
+          zIndex: 1,
+          filter: active ? "drop-shadow(0 0 0.35px currentColor)" : "none",
           transition: "opacity 200ms cubic-bezier(0.32, 0.72, 0, 1), transform 220ms cubic-bezier(0.32, 0.72, 0, 1), width 200ms cubic-bezier(0.32, 0.72, 0, 1)",
         }}
       >
@@ -174,7 +177,7 @@ function NavRow({
           fontSize: 12,
           fontWeight: 500,
           letterSpacing: 0.1,
-          color: active ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.75)",
+          color: active ? "var(--missi-nav-text-active)" : "var(--missi-nav-text)",
           opacity: showLabel ? 1 : 0,
           // When collapsed, clamp the label's width to 0 so it no longer
           // consumes flex space (that was pushing the icon off-center).
@@ -186,6 +189,8 @@ function NavRow({
           pointerEvents: showLabel ? "auto" : "none",
           whiteSpace: "nowrap",
           overflow: "hidden",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {label}
@@ -201,7 +206,7 @@ function NavRow({
 
   if (href) {
     return (
-      <Link href={href} className="block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded-xl" {...commonProps}>
+      <Link href={href} className="block focus-visible:outline-none rounded-xl" {...commonProps}>
         {inner}
       </Link>
     )
@@ -211,7 +216,7 @@ function NavRow({
     <button
       type="button"
       onClick={onClick}
-      className="block w-full text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded-xl"
+      className="block w-full text-left focus-visible:outline-none rounded-xl"
       style={{ background: "transparent", border: "none", padding: 0 }}
       {...commonProps}
     >
@@ -247,11 +252,11 @@ function VoiceSubPanel({
         style={{
           padding: "9px 10px 9px 12px",
           borderRadius: 10,
-          background: isLiveMode ? "rgba(255,255,255,0.04)" : "transparent",
-          border: isLiveMode ? "1px solid rgba(255,255,255,0.07)" : "1px solid transparent",
+          background: isLiveMode ? "var(--missi-nav-active-bg)" : "transparent",
+          border: isLiveMode ? "1px solid var(--missi-border)" : "1px solid transparent",
           borderLeft: isLiveMode ? "2px solid rgba(94,234,212,0.5)" : "2px solid transparent",
           cursor: "pointer",
-          color: "white",
+          color: "var(--missi-nav-text-active)",
           marginBottom: 2,
         }}
       >
@@ -260,15 +265,16 @@ function VoiceSubPanel({
             width: 6,
             height: 6,
             borderRadius: "50%",
-            background: isLiveMode ? "rgba(94,234,212,0.8)" : "rgba(255,255,255,0.25)",
+            background: isLiveMode ? "rgba(94,234,212,0.8)" : "var(--missi-nav-accent)",
+            opacity: isLiveMode ? 1 : 0.5,
             flexShrink: 0,
           }}
         />
         <div className="flex-1 min-w-0">
-          <p style={{ fontSize: 12, fontWeight: 500, color: isLiveMode ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.5)", margin: 0, lineHeight: 1.3 }}>
+          <p style={{ fontSize: 12, fontWeight: 500, color: isLiveMode ? "var(--missi-nav-text-active)" : "var(--missi-nav-text)", margin: 0, lineHeight: 1.3 }}>
             Missi Voice
           </p>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", margin: "2px 0 0", lineHeight: 1.3 }}>
+          <p style={{ fontSize: 11, color: "var(--missi-text-muted)", margin: "2px 0 0", lineHeight: 1.3 }}>
             {isLiveMode ? "Real-time conversation" : "Open chat to use voice"}
           </p>
         </div>
@@ -406,18 +412,18 @@ function IntegrationsSubPanel() {
     gap: 10,
     padding: "10px 12px",
     borderRadius: 10,
-    background: "rgba(255,255,255,0.02)",
-    border: "1px solid rgba(255,255,255,0.06)",
+    background: "var(--missi-nav-active-bg)",
+    border: "1px solid var(--missi-border)",
     marginBottom: 6,
   }
   const dotStyle: React.CSSProperties = { width: 6, height: 6, borderRadius: "50%", flexShrink: 0 }
-  const nameStyle: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: "#fff", margin: 0, lineHeight: 1.3 }
-  const metaStyle: React.CSSProperties = { fontSize: 10, color: "rgba(255,255,255,0.4)", margin: "2px 0 0", lineHeight: 1.3 }
+  const nameStyle: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: "var(--missi-nav-text-active)", margin: 0, lineHeight: 1.3 }
+  const metaStyle: React.CSSProperties = { fontSize: 10, color: "var(--missi-text-muted)", margin: "2px 0 0", lineHeight: 1.3 }
   const connectBtnStyle: React.CSSProperties = {
     fontSize: 11,
     fontWeight: 600,
-    color: "#0c0c10",
-    background: "#fff",
+    color: "var(--missi-bg)",
+    background: "var(--missi-text-primary)",
     border: "none",
     borderRadius: 6,
     padding: "5px 12px",
@@ -429,9 +435,9 @@ function IntegrationsSubPanel() {
   const disconnectBtnStyle: React.CSSProperties = {
     fontSize: 11,
     fontWeight: 500,
-    color: "rgba(255,255,255,0.7)",
+    color: "var(--missi-nav-text)",
     background: "transparent",
-    border: "1px solid rgba(255,255,255,0.12)",
+    border: "1px solid var(--missi-border-strong)",
     borderRadius: 6,
     padding: "4px 10px",
     cursor: "pointer",
@@ -443,22 +449,22 @@ function IntegrationsSubPanel() {
     fontWeight: 600,
     letterSpacing: "0.18em",
     textTransform: "uppercase",
-    color: "rgba(255,255,255,0.35)",
+    color: "var(--missi-text-muted)",
     margin: "0 0 10px",
   }
-  const dividerStyle: React.CSSProperties = { height: 1, background: "rgba(255,255,255,0.05)", border: "none", margin: "14px 0" }
+  const dividerStyle: React.CSSProperties = { height: 1, background: "var(--missi-border)", border: "none", margin: "14px 0" }
 
   const PLUGINS_CONFIG = [
     {
       id: "google" as const,
       name: "Google Calendar",
-      icon: <Calendar className="w-4 h-4" style={{ flexShrink: 0, color: "rgba(255,255,255,0.65)" }} />,
+      icon: <Calendar className="w-4 h-4" style={{ flexShrink: 0, color: "var(--missi-nav-text)" }} />,
       connectedText: "Events synced",
     },
     {
       id: "notion" as const,
       name: "Notion",
-      icon: <BookOpen className="w-4 h-4" style={{ flexShrink: 0, color: "rgba(255,255,255,0.65)" }} />,
+      icon: <BookOpen className="w-4 h-4" style={{ flexShrink: 0, color: "var(--missi-nav-text)" }} />,
       connectedText: status?.notion?.workspaceName ?? "Connected",
     },
   ]
@@ -493,7 +499,7 @@ function IntegrationsSubPanel() {
           <p style={eyebrowStyle}>Available</p>
           {available.map(({ id, name, icon }) => (
             <div key={id} style={rowStyle}>
-              <span style={{ ...dotStyle, background: "rgba(255,255,255,0.25)" }} aria-hidden />
+              <span style={{ ...dotStyle, background: "var(--missi-nav-accent)" }} aria-hidden />
               {icon}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={nameStyle}>{name}</p>
@@ -527,13 +533,13 @@ function IntegrationsSubPanel() {
               gap: 5,
               padding: "4px 8px",
               borderRadius: 6,
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid rgba(255,255,255,0.06)",
-              color: "rgba(255,255,255,0.45)",
+              background: "var(--missi-nav-active-bg)",
+              border: "1px solid var(--missi-border)",
+              color: "var(--missi-text-muted)",
             }}
           >
             {icon}
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>{label}</span>
+            <span style={{ fontSize: 10, color: "var(--missi-text-secondary)", fontWeight: 500 }}>{label}</span>
           </div>
         ))}
       </div>
@@ -552,9 +558,9 @@ function IntegrationsSubPanel() {
             gap: 6,
             fontSize: 11,
             fontWeight: 500,
-            color: refreshing ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.65)",
+            color: refreshing ? "var(--missi-text-muted)" : "var(--missi-nav-text)",
             background: "transparent",
-            border: "1px solid rgba(255,255,255,0.1)",
+            border: "1px solid var(--missi-border-strong)",
             borderRadius: 8,
             padding: 8,
             cursor: refreshing ? "default" : "pointer",
@@ -602,14 +608,14 @@ function MoreSubPanel({ onPickImage, onClose }: { onPickImage: () => void; onClo
     <div className="p-2 flex flex-col gap-0.5">
       {items.map((it) => {
         const inner = (
-          <div className="flex items-center gap-3 h-9 px-3 rounded-md transition-colors hover:bg-white/[0.04]" style={{ cursor: "pointer" }}>
-            <div style={{ color: it.color ?? "white", opacity: 0.7, display: "flex", alignItems: "center" }}>{it.icon}</div>
-            <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.8)" }}>{it.label}</span>
+          <div className="flex items-center gap-3 h-9 px-3 rounded-md transition-colors hover:bg-[var(--missi-nav-hover)]" style={{ cursor: "pointer" }}>
+            <div style={{ color: it.color ?? "var(--missi-nav-text)", opacity: 0.7, display: "flex", alignItems: "center" }}>{it.icon}</div>
+            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--missi-nav-text-active)" }}>{it.label}</span>
           </div>
         )
         if (it.kind === "link") {
           return (
-            <Link key={it.label} href={it.href} className="block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded-md">
+            <Link key={it.label} href={it.href} className="block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--missi-nav-accent)] rounded-md">
               {inner}
             </Link>
           )
@@ -619,7 +625,7 @@ function MoreSubPanel({ onPickImage, onClose }: { onPickImage: () => void; onClo
             key={it.label}
             type="button"
             onClick={it.onClick}
-            className="block w-full text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded-md"
+            className="block w-full text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--missi-nav-accent)] rounded-md"
             style={{ background: "transparent", border: "none", padding: 0 }}
           >
             {inner}
@@ -639,6 +645,7 @@ function ChatSidebarInner({
   onLogout,
   onNewChat,
   isLiveMode,
+  isGuest = false,
   onPickImage,
   onWidthChange,
 }: ChatSidebarProps) {
@@ -646,6 +653,35 @@ function ChatSidebarInner({
   const pathname = usePathname()
   const router = useRouter()
   const isMobile = useMediaQuery("(max-width: 767px)", false)
+
+  // Theme toggle state
+  const [isDark, setIsDark] = useState(false)
+  useEffect(() => {
+    const check = () => {
+      setIsDark(document.documentElement.getAttribute("data-theme") === "dark")
+    }
+    check()
+    const obs = new MutationObserver(check)
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] })
+    return () => obs.disconnect()
+  }, [])
+
+  const toggleTheme = useCallback(() => {
+    const root = document.documentElement
+    const newTheme = isDark ? "light" : "dark"
+    root.setAttribute("data-theme", newTheme)
+    if (newTheme === "dark") {
+      root.classList.add("dark")
+    } else {
+      root.classList.remove("dark")
+    }
+    try {
+      const stored = JSON.parse(localStorage.getItem("missi-appearance") ?? "{}")
+      localStorage.setItem("missi-appearance", JSON.stringify({ ...stored, theme: newTheme }))
+      window.dispatchEvent(new CustomEvent("missi-settings-changed"))
+    } catch {}
+    setIsDark(newTheme === "dark")
+  }, [isDark])
 
   // Desktop collapsed/expanded state — hydrated from localStorage
   const [open, setOpen] = useState(true)
@@ -819,40 +855,27 @@ function ChatSidebarInner({
         bottom: 0,
         left: 0,
         width: EXPANDED_WIDTH,
-        // Must sit above the /chat page's MISSI pill (z-[100]) so the drawer
-        // fully covers the top bar when opened on mobile instead of the pill
-        // bleeding through over the sidebar's header.
         zIndex: 200,
         transform: mobileOpen ? "translateX(0)" : "translateX(-100%)",
         transition: "transform 240ms cubic-bezier(0.32, 0.72, 0, 1)",
-        background: "rgba(12, 12, 14, 0.96)",
-        backdropFilter: "blur(24px) saturate(130%)",
-        WebkitBackdropFilter: "blur(24px) saturate(130%)",
-        borderRight: "1px solid rgba(255,255,255,0.08)",
+        background: "var(--missi-sidebar-bg)",
+        borderRight: "1px solid var(--missi-sidebar-border)",
         borderTopRightRadius: 20,
         borderBottomRightRadius: 20,
-        boxShadow: "0 20px 60px -20px rgba(0,0,0,0.7)",
+        boxShadow: "none",
         fontFamily: "var(--font-body)",
         overflow: "hidden",
       }
     : {
         width: desktopWidth,
         transition: "width 240ms cubic-bezier(0.32, 0.72, 0, 1)",
-        background: "rgba(12, 12, 14, 0.92)",
-        backdropFilter: "blur(24px) saturate(130%)",
-        WebkitBackdropFilter: "blur(24px) saturate(130%)",
-        // Fully bordered floating card (was just borderRight against flush edge)
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: "var(--missi-sidebar-bg)",
+        border: "1px solid var(--missi-sidebar-border)",
         borderRadius: 20,
-        // Soft depth to lift the floating card off the black canvas
-        boxShadow:
-          "0 20px 60px -20px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.04)",
+        boxShadow: "none",
         fontFamily: "var(--font-body)",
         flexShrink: 0,
         overflow: "hidden",
-        // Establish stacking context above the particle canvas (z:0) AND the
-        // UsageBar (z:50) so the sidebar's bottom Settings / Sign out rows
-        // aren't clipped by the global usage strip along the viewport bottom.
         position: "relative",
         zIndex: 60,
       }
@@ -865,26 +888,27 @@ function ChatSidebarInner({
         .missi-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
         .missi-scroll::-webkit-scrollbar-track { background: transparent; }
         .missi-scroll::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.06);
+          background: var(--missi-scrollbar);
           border-radius: 999px;
           transition: background 160ms ease;
         }
-        .missi-scroll:hover::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
-        .missi-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-        .missi-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; scroll-behavior: smooth; }
+        .missi-scroll:hover::-webkit-scrollbar-thumb { background: var(--missi-scrollbar-hover); }
+        .missi-scroll::-webkit-scrollbar-thumb:hover { background: var(--missi-scrollbar-hover); }
+        .missi-scroll { scrollbar-width: thin; scrollbar-color: var(--missi-scrollbar) transparent; scroll-behavior: smooth; }
 
         /* Nav row hover micro-interactions */
         .missi-nav-row { transition: background-color 180ms cubic-bezier(0.32, 0.72, 0, 1); }
-        .missi-nav-row:hover { background-color: rgba(255,255,255,0.035); }
+        .missi-nav-row:hover { background-color: var(--missi-nav-hover); }
         .missi-nav-row:hover .missi-nav-icon { opacity: 0.9; transform: scale(1.06); }
-        .missi-nav-row:hover .missi-nav-label { color: rgba(255,255,255,0.92); }
-        .missi-nav-row:hover .missi-nav-accent { width: 2px !important; background: linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.15)); }
-        .missi-nav-row.is-active:hover .missi-nav-accent { background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.4)); }
+        .missi-nav-row.is-active .missi-nav-icon { color: var(--missi-nav-text-active); opacity: 1; }
+        .missi-nav-row:hover .missi-nav-label { color: var(--missi-nav-text-active); }
+        .missi-nav-row:hover .missi-nav-accent { width: 2px !important; background: linear-gradient(180deg, var(--missi-nav-accent), transparent); }
+        .missi-nav-row.is-active:hover .missi-nav-accent { background: linear-gradient(180deg, var(--missi-nav-accent), transparent); }
         .missi-nav-row:active .missi-nav-icon { transform: scale(0.96); }
 
         /* Button reset for nav rows */
         .missi-nav-btn { background: transparent; border: none; padding: 0; width: 100%; text-align: left; cursor: pointer; }
-        .missi-nav-btn:focus-visible { outline: none; box-shadow: 0 0 0 1px rgba(255,255,255,0.25) inset; border-radius: 12px; }
+        .missi-nav-btn:focus-visible { outline: none; box-shadow: 0 0 0 1px var(--missi-nav-accent) inset; border-radius: 12px; }
 
         /* Collapse chevron rotation */
         .missi-chevron { transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1); }
@@ -950,7 +974,7 @@ function ChatSidebarInner({
            extra delay — keeps the expand animation tight.) */
 
         /* Avatar ring on hover (profile card) */
-        .missi-profile-card:hover .missi-avatar { box-shadow: 0 0 0 3px rgba(255,255,255,0.08); }
+        .missi-profile-card:hover .missi-avatar { box-shadow: 0 0 0 3px var(--missi-border); }
         .missi-avatar { transition: box-shadow 240ms cubic-bezier(0.32, 0.72, 0, 1); }
 
         /* Mobile hamburger rotate */
@@ -969,7 +993,7 @@ function ChatSidebarInner({
       `}</style>
 
       {/* Top section */}
-      <div className="flex items-center h-14 px-3 border-b border-white/[0.04]">
+      <div className="flex items-center h-14 px-3" style={{ borderBottom: "1px solid var(--missi-border)" }}>
         <div
           className="flex-1 overflow-hidden flex items-center"
           style={{
@@ -995,8 +1019,8 @@ function ChatSidebarInner({
             aria-expanded={open}
             aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
             data-testid="sidebar-toggle-btn"
-            className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
-            style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.7)" }}
+            className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-[var(--missi-nav-hover)] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--missi-nav-accent)]"
+            style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--missi-nav-text)" }}
           >
             <ChevronLeft className={`w-4 h-4 missi-chevron ${open ? "" : "is-collapsed"}`} />
           </button>
@@ -1006,25 +1030,41 @@ function ChatSidebarInner({
             type="button"
             onClick={() => setMobileOpen(false)}
             aria-label="Close sidebar"
-            className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-white/[0.06] transition-colors"
-            style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.7)" }}
+            className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-[var(--missi-nav-hover)] transition-colors"
+            style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--missi-nav-text)" }}
           >
             <XIcon className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Profile card — lives at the top of the sidebar and links to /profile.
-          Shows avatar (Clerk imageUrl), first name and Pro/Free plan pill.
-          On collapse it shrinks to just the centered avatar. */}
+      {/* Profile card — guest gets a simple welcome row */}
+      {isGuest && showLabels && (
+        <div
+          className="flex items-center h-14 px-3"
+          style={{ borderBottom: "1px solid var(--missi-border)" }}
+        >
+          <div
+            className="flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 mr-3"
+            style={{ background: "var(--missi-surface)", border: "1px solid var(--missi-border)" }}
+          >
+            <UserIcon className="w-4 h-4" style={{ color: "var(--missi-text-secondary)" }} />
+          </div>
+          <div>
+            <p className="text-[12px] font-medium" style={{ color: "var(--missi-nav-text-active)" }}>Guest</p>
+            <p className="text-[10px]" style={{ color: "var(--missi-text-muted)" }}>Try Missi for free</p>
+          </div>
+        </div>
+      )}
+      {!isGuest && (
       <Link
         href="/profile"
-        className="missi-profile-card block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
+        className="missi-profile-card block focus-visible:outline-none"
         aria-label="Open profile"
         data-testid="sidebar-profile-card"
       >
         <div
-          className="flex items-center h-14 hover:bg-white/[0.04] transition-colors duration-[220ms]"
+              className="flex items-center h-14 hover:bg-[var(--missi-nav-hover)] transition-colors duration-[220ms]"
           style={{
             justifyContent: showLabels ? "flex-start" : "center",
             paddingLeft: showLabels ? 12 : 0,
@@ -1046,7 +1086,7 @@ function ChatSidebarInner({
                 src={avatarUrl}
                 alt=""
                 className="missi-avatar rounded-full"
-                style={{ width: 28, height: 28, border: "1px solid rgba(255,255,255,0.1)" }}
+                style={{ width: 28, height: 28, border: "1px solid var(--missi-border)" }}
               />
             ) : (
               <div
@@ -1054,11 +1094,11 @@ function ChatSidebarInner({
                 style={{
                   width: 28,
                   height: 28,
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "var(--missi-surface)",
+                  border: "1px solid var(--missi-border)",
                 }}
               >
-                <UserIcon className="w-3.5 h-3.5 text-white/50" />
+                <UserIcon className="w-3.5 h-3.5 text-[var(--missi-text-secondary)]" />
               </div>
             )}
           </div>
@@ -1075,7 +1115,7 @@ function ChatSidebarInner({
           >
             <span
               className="truncate"
-              style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.9)", maxWidth: 110 }}
+              style={{ fontSize: 12, fontWeight: 500, color: "var(--missi-nav-text-active)", maxWidth: 110 }}
             >
               {firstName || "Guest"}
             </span>
@@ -1088,12 +1128,12 @@ function ChatSidebarInner({
                 textTransform: "uppercase",
                 padding: "2px 7px",
                 borderRadius: 999,
-                background: resolvedPlan === "pro" ? undefined : "rgba(255,255,255,0.06)",
-                color: resolvedPlan === "pro" ? undefined : "rgba(255,255,255,0.55)",
+                background: resolvedPlan === "pro" ? undefined : "var(--missi-surface)",
+                color: resolvedPlan === "pro" ? undefined : "var(--missi-text-secondary)",
                 border:
                   resolvedPlan === "pro"
                     ? "1px solid rgba(251,191,36,0.28)"
-                    : "1px solid rgba(255,255,255,0.06)",
+                    : "1px solid var(--missi-border)",
                 flexShrink: 0,
               }}
             >
@@ -1102,10 +1142,48 @@ function ChatSidebarInner({
           </div>
         </div>
       </Link>
+      )}
 
       {/* Sliding panel region */}
       <div className="relative flex-1 overflow-hidden">
-        {/* Main nav */}
+        {isGuest ? (
+          /* Guest nav: Chat only + locked features list */
+          <div className="missi-scroll flex flex-col h-full overflow-y-auto">
+            <nav className="flex flex-col gap-0.5 px-2 pt-2" aria-label="Primary">
+              <NavRow
+                icon={<MessageSquare className="w-4 h-4" />}
+                label="Chat"
+                active
+                showLabel={showLabels}
+                onClick={() => {}}
+                testId="sidebar-chat-btn"
+              />
+            </nav>
+            {showLabels && (
+              <div className="px-3 mt-4">
+                <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: "var(--missi-text-muted)" }}>
+                  Sign in to unlock
+                </p>
+                {[
+                  { icon: <Mic2 className="w-3.5 h-3.5" />, label: "Voice mode" },
+                  { icon: <Brain className="w-3.5 h-3.5" />, label: "Memory" },
+                  { icon: <Flame className="w-3.5 h-3.5" />, label: "Streaks" },
+                  { icon: <Heart className="w-3.5 h-3.5" />, label: "Mood & Wellness" },
+                  { icon: <Users className="w-3.5 h-3.5" />, label: "Spaces" },
+                  { icon: <Wallet className="w-3.5 h-3.5" />, label: "Budget Buddy" },
+                ].map(({ icon, label }) => (
+                  <div key={label} className="flex items-center gap-3 h-8 px-1 rounded-lg opacity-35" style={{ cursor: "not-allowed" }}>
+                    <div className="flex-shrink-0" style={{ color: "var(--missi-nav-text)", width: 20, display: "flex", justifyContent: "center" }}>{icon}</div>
+                    <span className="text-[12px]" style={{ color: "var(--missi-nav-text)", fontWeight: 500 }}>{label}</span>
+                    <Lock className="w-3 h-3 ml-auto flex-shrink-0" style={{ color: "var(--missi-text-muted)" }} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+        /* Authenticated nav */
+        <>
         <div
           className="missi-scroll absolute inset-0 flex flex-col overflow-y-auto"
           style={{
@@ -1205,25 +1283,25 @@ function ChatSidebarInner({
           style={{
             transform: activeSub ? "translateX(0)" : "translateX(100%)",
             transition: "transform 260ms cubic-bezier(0.32, 0.72, 0, 1)",
-            borderTop: "1px solid rgba(255,255,255,0.04)",
-            background: "rgba(12,12,14,0.96)",
+            borderTop: "1px solid var(--missi-border)",
+            background: "var(--missi-sidebar-bg)",
           }}
           aria-hidden={!activeSub}
         >
-          <div className="flex items-center h-12 px-2 border-b border-white/[0.04]">
+          <div className="flex items-center h-12 px-2" style={{ borderBottom: "1px solid var(--missi-border)" }}>
             <button
               type="button"
               onClick={closeSub}
               aria-label="Back to main navigation"
               data-testid="sidebar-back-btn"
-              className="group flex items-center gap-1.5 px-2 h-8 rounded-md hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
-              style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.8)" }}
+              className="group flex items-center gap-1.5 px-2 h-8 rounded-md transition-colors focus-visible:outline-none"
+              style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--missi-nav-text)" }}
             >
               <ChevronLeft
                 className="w-4 h-4"
                 style={{ transition: "transform 220ms cubic-bezier(0.32, 0.72, 0, 1)" }}
               />
-              <span style={{ fontSize: 12, fontWeight: 500, letterSpacing: 0.2 }}>
+              <span style={{ fontSize: 12, fontWeight: 500, letterSpacing: 0.2, color: "var(--missi-nav-text)" }}>
                 {activeSub === "voice"
                   ? "Voice"
                   : activeSub === "integrations"
@@ -1244,41 +1322,65 @@ function ChatSidebarInner({
             )}
             {activeSub === "integrations" && <IntegrationsSubPanel />}
             {activeSub === "more" && <MoreSubPanel onPickImage={onPickImage} onClose={closeSub} />}
-            {/* The old "settings" sub-panel moved to its own full page at
-                /settings (see components/chat/SettingsSubPanel below — now
-                unused but kept for backwards reference until we delete it). */}
           </div>
         </div>
+        </>
+        )}
       </div>
 
       {/* Bottom section */}
       <div
-        className="missi-nav-group flex flex-col gap-0.5 px-2 py-2 border-t border-white/[0.04]"
+        className="missi-nav-group flex flex-col gap-0.5 px-2 py-2"
+        style={{ borderTop: "1px solid var(--missi-border)" }}
         data-opening={isExpanding ? "true" : "false"}
       >
         <NavRow
-          icon={<Settings className="w-4 h-4" />}
-          label="Settings"
+          icon={isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          label={isDark ? "Light mode" : "Dark mode"}
           showLabel={showLabels}
-          active={pathname?.startsWith("/settings") && !pathname?.startsWith("/settings/integrations")}
-          onClick={() => {
-            // Settings used to open as a sliding sub-panel in this sidebar; it
-            // now lives on its own full page at /settings for a more focused
-            // editing surface. Close any other open sub-panel before routing
-            // so it doesn't linger when the user comes back.
-            if (activeSub !== null) closeSub()
-            setMobileOpen(false)
-            router.push("/settings")
-          }}
-          testId="sidebar-settings-btn"
+          onClick={toggleTheme}
+          testId="sidebar-theme-btn"
         />
-        <NavRow
-          icon={<LogOut className="w-4 h-4" />}
-          label="Sign out"
-          showLabel={showLabels}
-          onClick={onLogout}
-          testId="sidebar-signout-btn"
-        />
+        {isGuest ? (
+          <>
+            <NavRow
+              icon={<LogIn className="w-4 h-4" />}
+              label="Log in"
+              href="/sign-in"
+              showLabel={showLabels}
+              testId="sidebar-login-btn"
+            />
+            <NavRow
+              icon={<UserPlus className="w-4 h-4" />}
+              label="Sign up free"
+              href="/sign-up"
+              showLabel={showLabels}
+              testId="sidebar-signup-btn"
+            />
+          </>
+        ) : (
+          <>
+            <NavRow
+              icon={<Settings className="w-4 h-4" />}
+              label="Settings"
+              showLabel={showLabels}
+              active={pathname?.startsWith("/settings") && !pathname?.startsWith("/settings/integrations")}
+              onClick={() => {
+                if (activeSub !== null) closeSub()
+                setMobileOpen(false)
+                router.push("/settings")
+              }}
+              testId="sidebar-settings-btn"
+            />
+            <NavRow
+              icon={<LogOut className="w-4 h-4" />}
+              label="Sign out"
+              showLabel={showLabels}
+              onClick={onLogout}
+              testId="sidebar-signout-btn"
+            />
+          </>
+        )}
       </div>
     </>
   )
@@ -1300,10 +1402,10 @@ function ChatSidebarInner({
           // The hamburger's vertical position is page-aware so it always feels
           // balanced with each surface's own top chrome:
           //
-          //   • On /chat, the page renders a floating "MISSI" pill whose
-          //     glyphs are centered near viewport y ≈ 80 (p-2 outer + mt-12 +
-          //     py-2.5 around a 20px SVG). A 36px button at `top: 62px`
-          //     centers at 80, so the three lines balance with the lettering.
+          //   • On /chat, the page renders a floating "MISSI" pill around
+          //     `mt-12` with ~40px height, inside the page's 8px outer frame.
+          //     That puts the row center near y ≈ 76, so a 36px hamburger at
+          //     `top: 58px` shares the same visual center line.
           //
           //   • Everywhere else the app uses ChatShell, whose mobile main card
           //     reserves a 44px top safe zone (see `.missi-shell-main` CSS in
@@ -1318,17 +1420,19 @@ function ChatSidebarInner({
           // stale utility.
           // Bare three-line icon — no circular chrome, no border, no backdrop.
           // Keeps focus-visible ring for keyboard users.
-          className="fixed left-3 z-[210] flex items-center justify-center w-9 h-9 rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
+          className="fixed left-4 z-[210] flex items-center justify-center w-9 h-9 focus-visible:outline-none"
           style={{
-            top: isOnChat ? 62 : 14,
-            background: "transparent",
-            border: "none",
-            color: "rgba(255,255,255,0.85)",
+            top: isOnChat ? 60 : 14,
+            background: "var(--missi-sidebar-bg)",
+            border: "1px solid var(--missi-border)",
+            color: "var(--missi-nav-text)",
             cursor: "pointer",
             padding: 0,
+            borderRadius: 20,
+            backdropFilter: "blur(12px)",
           }}
         >
-          <Menu className="w-4 h-4 missi-menu-btn" />
+          <Menu className="w-5 h-5 missi-menu-btn" />
         </button>
       )}
 
@@ -1338,7 +1442,7 @@ function ChatSidebarInner({
       {isMobile && mobileOpen && (
         <div
           onClick={() => setMobileOpen(false)}
-          className="fixed inset-0 bg-black/60"
+          className="fixed inset-0 bg-[var(--missi-bg)]/60"
           style={{ zIndex: 190 }}
           aria-hidden
         />

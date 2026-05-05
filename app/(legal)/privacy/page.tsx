@@ -16,7 +16,7 @@ export default function PrivacyPolicy() {
       </h1>
       <p
         className="text-sm mb-12"
-        style={{ color: "rgba(255,255,255,0.3)" }}
+        style={{ color: "var(--missi-text-muted)" }}
       >
         Last updated: April 2026
       </p>
@@ -24,7 +24,7 @@ export default function PrivacyPolicy() {
       <div className="space-y-10">
         {/* Intro */}
         <section>
-          <p style={{ color: "rgba(255,255,255,0.55)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             This Privacy Policy explains how missiAI collects, uses, stores, and
             protects information when you use our website, apps, and related
             features. We aim to keep this readable and practical so you can
@@ -36,14 +36,14 @@ export default function PrivacyPolicy() {
         {/* What we collect */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="privacy-section-data-collected"
           >
             What data we collect
           </h2>
-          <div className="space-y-4" style={{ color: "rgba(255,255,255,0.5)" }}>
+          <div className="space-y-4" style={{ color: "var(--missi-text-secondary)" }}>
             <div>
-              <p className="font-medium text-white/70 mb-1">Account and profile information</p>
+              <p className="font-medium text-[var(--missi-text-secondary)] mb-1">Account and profile information</p>
               <p>
                 When you create or use an account, we may collect basic details
                 such as your email address, account identifiers, profile data,
@@ -52,7 +52,7 @@ export default function PrivacyPolicy() {
               </p>
             </div>
             <div>
-              <p className="font-medium text-white/70 mb-1">Messages, voice, and other inputs</p>
+              <p className="font-medium text-[var(--missi-text-secondary)] mb-1">Messages, voice, and other inputs</p>
               <p>
                 If you type, speak, or otherwise interact with missiAI, we may
                 process that content so the service can understand your request,
@@ -61,7 +61,7 @@ export default function PrivacyPolicy() {
               </p>
             </div>
             <div>
-              <p className="font-medium text-white/70 mb-1">Memory and personalization data</p>
+              <p className="font-medium text-[var(--missi-text-secondary)] mb-1">Memory and personalization data</p>
               <p>
                 To make missiAI more useful over time, we may store preferences,
                 recurring context, saved items, and other personalization data
@@ -70,7 +70,7 @@ export default function PrivacyPolicy() {
               </p>
             </div>
             <div>
-              <p className="font-medium text-white/70 mb-1">Device, usage, and security data</p>
+              <p className="font-medium text-[var(--missi-text-secondary)] mb-1">Device, usage, and security data</p>
               <p>
                 We may collect limited technical information such as device or
                 browser details, log data, timestamps, and security signals to
@@ -84,12 +84,12 @@ export default function PrivacyPolicy() {
         {/* How we use data */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="privacy-section-data-usage"
           >
             How we use your data
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             We use information to operate missiAI, authenticate users,
             personalize your experience, support memory and context features,
             respond to support requests, improve stability and safety, and
@@ -103,19 +103,19 @@ export default function PrivacyPolicy() {
         {/* Third party services */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="privacy-section-third-party"
           >
             Third-party services
           </h2>
-          <p className="mb-4" style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p className="mb-4" style={{ color: "var(--missi-text-secondary)" }}>
             We rely on external service providers to help us operate missiAI.
             Depending on the feature you use, they may support account access,
             infrastructure, storage, security, and AI or voice processing.
           </p>
           <div
             className="rounded-xl overflow-hidden"
-            style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+            style={{ border: "1px solid var(--missi-border)" }}
           >
             {[
               {
@@ -136,21 +136,21 @@ export default function PrivacyPolicy() {
                 className="flex items-start gap-4 px-5 py-3.5 text-sm"
                 style={{
                   borderBottom:
-                    i < 2 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                    i < 2 ? "1px solid var(--missi-text-muted)" : "none",
                   background:
-                    i % 2 === 0 ? "rgba(255,255,255,0.01)" : "transparent",
+                    i % 2 === 0 ? "var(--missi-text-muted)" : "transparent",
                 }}
               >
-                <span className="font-medium text-white/70 min-w-[140px]">
+                <span className="font-medium text-[var(--missi-text-secondary)] min-w-[140px]">
                   {item.service}
                 </span>
-                <span style={{ color: "rgba(255,255,255,0.45)" }}>
+                <span style={{ color: "var(--missi-text-secondary)" }}>
                   {item.purpose}
                 </span>
               </div>
             ))}
           </div>
-          <p className="mt-4 text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>
+          <p className="mt-4 text-sm" style={{ color: "var(--missi-text-muted)" }}>
             These providers may handle information on our behalf only to the
             extent reasonably necessary to deliver their services to us.
           </p>
@@ -159,12 +159,12 @@ export default function PrivacyPolicy() {
         {/* Data retention */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="privacy-section-retention"
           >
             Data retention
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             We keep information for as long as it is reasonably needed to run
             the service, maintain your account, provide personalized features,
             comply with legal obligations, and protect the platform. Some data
@@ -177,12 +177,12 @@ export default function PrivacyPolicy() {
         {/* User rights */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="privacy-section-rights"
           >
             Your rights
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             Depending on where you live, you may have rights to access,
             correct, export, restrict, or delete certain personal information.
             You may also be able to close your account or request help with a
@@ -193,17 +193,17 @@ export default function PrivacyPolicy() {
         {/* Contact */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="privacy-section-contact"
           >
             Contact
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             For any privacy-related questions or data requests, reach out to us
             at{" "}
             <a
               href="mailto:rudrasatani@missi.space"
-              className="text-white/70 underline underline-offset-4 decoration-white/20 hover:decoration-white/40 transition-colors"
+              className="text-[var(--missi-text-secondary)] underline underline-offset-4 decoration-white/20 hover:decoration-white/40 transition-colors"
               data-testid="privacy-contact-email"
             >
               rudrasatani@missi.space

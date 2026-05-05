@@ -246,12 +246,13 @@ export async function openAIHealthCheck(): Promise<{ healthy: boolean; latencyMs
 
 /**
  * Whether OpenAI fallback is globally enabled.
+ *
+ * Default: DISABLED — must be explicitly opted in by setting
+ * ENABLE_OPENAI_FALLBACK=true in the environment.
+ * This prevents automatic escalation to a higher-cost provider.
  */
 export function isOpenAIFallbackEnabled(): boolean {
   const envVal = process.env.ENABLE_OPENAI_FALLBACK
-  if (envVal === undefined) {
-    // Default: enabled if key is present
-    return envExists("OPENAI_API_KEY")
-  }
+  if (!envExists("OPENAI_API_KEY")) return false
   return envVal === "true" || envVal === "1"
 }

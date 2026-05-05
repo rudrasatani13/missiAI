@@ -9,6 +9,7 @@ const {
   rateLimitExceededResponseMock,
   getUserPlanMock,
   checkAndIncrementVoiceTimeMock,
+  checkHardBudgetMock,
   awardXPMock,
   waitUntilMock,
   AuthenticationErrorMock,
@@ -40,6 +41,7 @@ const {
     ),
     getUserPlanMock: vi.fn(),
     checkAndIncrementVoiceTimeMock: vi.fn(),
+    checkHardBudgetMock: vi.fn(async () => ({ allowed: true, spendUsd: 0, budgetUsd: 5.0 })),
     awardXPMock: vi.fn(async () => {}),
     waitUntilMock: vi.fn((promise: Promise<unknown>) => {
       void promise
@@ -82,6 +84,14 @@ vi.mock("@/lib/gamification/xp-engine", () => ({
 vi.mock("@/lib/server/platform/wait-until", () => ({
   waitUntil: waitUntilMock,
 }))
+
+vi.mock("@/lib/server/observability/cost-tracker", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/server/observability/cost-tracker")>("@/lib/server/observability/cost-tracker")
+  return {
+    ...actual,
+    checkHardBudget: checkHardBudgetMock,
+  }
+})
 
 import { runChatStreamPreflight } from "@/lib/server/chat/stream-preflight"
 

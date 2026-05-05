@@ -57,7 +57,7 @@ export function QuestCompleteModal({
           {/* Eyebrow */}
           <p
             className="text-[10px] font-semibold uppercase mb-3"
-            style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+            style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
           >
             Quest Complete
           </p>
@@ -65,7 +65,7 @@ export function QuestCompleteModal({
           {/* Title */}
           <h2
             className="text-[24px] md:text-[28px] mb-8"
-            style={{ fontWeight: 300, letterSpacing: '-0.03em', color: 'rgba(255,255,255,0.92)', lineHeight: 1.1 }}
+            style={{ fontWeight: 300, letterSpacing: '-0.03em', color: 'var(--missi-text-primary)', lineHeight: 1.1 }}
           >
             {quest.title}
           </h2>
@@ -78,30 +78,30 @@ export function QuestCompleteModal({
             transition={{ duration: 0.4 }}
           >
             <div className="text-center">
-              <p className="text-[22px] font-light" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              <p className="text-[22px] font-light" style={{ color: 'var(--missi-text-primary)' }}>
                 {quest.totalXPEarned}
               </p>
               <p className="text-[10px] font-semibold uppercase mt-1"
-                style={{ color: 'rgba(255,255,255,0.25)', letterSpacing: '0.18em' }}>
+                style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}>
                 XP
               </p>
             </div>
             <div className="text-center">
-              <p className="text-[22px] font-light" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              <p className="text-[22px] font-light" style={{ color: 'var(--missi-text-primary)' }}>
                 {quest.totalMissions}
               </p>
               <p className="text-[10px] font-semibold uppercase mt-1"
-                style={{ color: 'rgba(255,255,255,0.25)', letterSpacing: '0.18em' }}>
+                style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}>
                 Missions
               </p>
             </div>
             {durationDays && (
               <div className="text-center">
-                <p className="text-[22px] font-light" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                <p className="text-[22px] font-light" style={{ color: 'var(--missi-text-primary)' }}>
                   {durationDays}
                 </p>
                 <p className="text-[10px] font-semibold uppercase mt-1"
-                  style={{ color: 'rgba(255,255,255,0.25)', letterSpacing: '0.18em' }}>
+                  style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}>
                   Days
                 </p>
               </div>
@@ -117,24 +117,24 @@ export function QuestCompleteModal({
               transition={{ duration: 0.3, delay: 0.2 }}
             >
               <p className="text-[10px] font-semibold uppercase mb-3"
-                style={{ color: 'rgba(255,255,255,0.25)', letterSpacing: '0.18em' }}>
+                style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}>
                 Unlocked
               </p>
               {newAchievements.map(a => (
                 <div
                   key={a.id}
                   className="flex items-center justify-between py-2.5"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                  style={{ borderBottom: '1px solid var(--missi-border)' }}
                 >
                   <div className="text-left">
-                    <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                    <p className="text-sm font-medium" style={{ color: 'var(--missi-text-primary)' }}>
                       {a.title}
                     </p>
-                    <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    <p className="text-[11px]" style={{ color: 'var(--missi-text-muted)' }}>
                       {a.description}
                     </p>
                   </div>
-                  <span className="text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  <span className="text-[10px] font-semibold" style={{ color: 'var(--missi-text-muted)' }}>
                     +{a.xpBonus}
                   </span>
                 </div>
@@ -146,7 +146,7 @@ export function QuestCompleteModal({
           <button
             onClick={onClose}
             className="w-full max-w-xs mx-auto rounded-xl px-4 py-2.5 text-sm font-medium transition-colors active:scale-[0.97]"
-            style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(255,255,255,0.9)', color: '#0a0a0f', cursor: 'pointer' }}
+            style={{ background: 'var(--missi-nav-text-active)', border: '1px solid var(--missi-border)', color: 'var(--missi-bg)', cursor: 'pointer' }}
           >
             Continue
           </button>

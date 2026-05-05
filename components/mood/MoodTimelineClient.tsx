@@ -32,7 +32,7 @@ const MOOD_LABELS: MoodLabel[] = [
 ]
 
 function moodColor(score: number): string {
-  if (score === 0) return 'rgba(255,255,255,0.04)'
+  if (score === 0) return 'var(--missi-surface)'
   if (score <= 2) return 'rgba(239,68,68,0.7)'
   if (score <= 4) return 'rgba(249,115,22,0.7)'
   if (score <= 6) return 'rgba(234,179,8,0.6)'
@@ -41,7 +41,7 @@ function moodColor(score: number): string {
 }
 
 function moodColorSolid(score: number): string {
-  if (score === 0) return 'rgba(255,255,255,0.15)'
+  if (score === 0) return 'var(--missi-text-muted)'
   if (score <= 2) return '#EF4444'
   if (score <= 4) return '#F97316'
   if (score <= 6) return '#EAB308'
@@ -84,11 +84,11 @@ function GlassCard({
       transition={{ duration: 0.35, delay, ease: [0.16, 1, 0.3, 1] }}
       className={`rounded-2xl ${className}`}
       style={{
-        background: 'rgba(20,20,26,0.55)',
+        background: 'var(--missi-surface)',
         backdropFilter: 'blur(24px) saturate(140%)',
         WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+        border: '1px solid var(--missi-border)',
+        boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 var(--missi-border)',
       }}
     >
       {children}
@@ -103,8 +103,8 @@ function Skeleton({ className = '', style }: { className?: string; style?: React
     <div
       className={`rounded-xl ${className}`}
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.05)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
         animation: 'moodPulse 1.5s ease-in-out infinite',
         ...style,
       }}
@@ -124,8 +124,8 @@ function StatsRow({
   averageScore: number
 }) {
   const pills = [
-    { label: 'days tracked', value: totalDaysTracked.toString(), color: 'rgba(255,255,255,0.85)' },
-    { label: 'day streak', value: currentStreak.toString(), color: 'rgba(255,255,255,0.85)' },
+    { label: 'days tracked', value: totalDaysTracked.toString(), color: 'var(--missi-text-primary)' },
+    { label: 'day streak', value: currentStreak.toString(), color: 'var(--missi-text-primary)' },
     { label: 'avg mood', value: `${averageScore.toFixed(1)} / 10`, color: moodColorSolid(averageScore) },
   ]
 
@@ -136,12 +136,12 @@ function StatsRow({
           key={label}
           className="flex items-center gap-2 px-4 py-2 rounded-full"
           style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
           }}
         >
           <span className="text-sm font-semibold" style={{ color }}>{value}</span>
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</span>
+          <span className="text-xs" style={{ color: 'var(--missi-text-muted)' }}>{label}</span>
         </div>
       ))}
     </div>
@@ -153,7 +153,7 @@ function StatsRow({
 function MoodLegend() {
   return (
     <div className="flex items-center gap-3 mt-4">
-      <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+      <span className="text-[10px]" style={{ color: 'var(--missi-text-muted)' }}>
         Difficult
       </span>
       {[0, 2, 4, 7, 9].map((s) => (
@@ -167,7 +167,7 @@ function MoodLegend() {
           }}
         />
       ))}
-      <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+      <span className="text-[10px]" style={{ color: 'var(--missi-text-muted)' }}>
         Great
       </span>
     </div>
@@ -267,7 +267,7 @@ function MoodHeatmap({
                 height: CELL,
                 lineHeight: `${CELL}px`,
                 fontSize: 9,
-                color: 'rgba(255,255,255,0.2)',
+                color: 'var(--missi-text-muted)',
                 width: 22,
                 textAlign: 'right',
               }}
@@ -330,18 +330,18 @@ function MoodHeatmap({
                   width: 160,
                   zIndex: 50,
                   pointerEvents: 'none',
-                  background: 'rgba(20,20,26,0.85)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--missi-surface)',
+                  border: '1px solid var(--missi-border)',
                   borderRadius: 10,
                   padding: '8px 10px',
                   backdropFilter: 'blur(24px) saturate(140%)',
                   WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 var(--missi-border)',
                 }}
               >
                 <p
                   className="text-[10px] font-medium"
-                  style={{ color: 'rgba(255,255,255,0.5)' }}
+                  style={{ color: 'var(--missi-text-secondary)' }}
                 >
                   {formatDate(tooltip.date)}
                 </p>
@@ -355,14 +355,14 @@ function MoodHeatmap({
                     </p>
                     <p
                       className="text-[10px] font-light mt-0.5"
-                      style={{ color: 'rgba(255,255,255,0.6)' }}
+                      style={{ color: 'var(--missi-text-secondary)' }}
                     >
                       Score: {tooltip.entry.score}/10
                     </p>
                     {tooltip.entry.trigger && (
                       <p
                         className="text-[9px] font-light mt-1 leading-relaxed"
-                        style={{ color: 'rgba(255,255,255,0.35)' }}
+                        style={{ color: 'var(--missi-text-muted)' }}
                       >
                         {tooltip.entry.trigger}
                       </p>
@@ -371,7 +371,7 @@ function MoodHeatmap({
                 ) : (
                   <p
                     className="text-xs font-light mt-0.5"
-                    style={{ color: 'rgba(255,255,255,0.25)' }}
+                    style={{ color: 'var(--missi-text-muted)' }}
                   >
                     No data
                   </p>
@@ -411,15 +411,15 @@ function MoodLineChartTooltip({
         width={100}
         height={40}
         rx={6}
-        fill="rgba(20,20,26,0.88)"
-        stroke="rgba(255,255,255,0.08)"
+        fill="var(--missi-surface)"
+        stroke="var(--missi-border)"
       />
       <text
         x={Math.max(PAD_L + 50, Math.min(p.x, W - PAD_R - 50))}
         y={Math.max(PAD_T + 14, p.y - 28)}
         textAnchor="middle"
         fontSize={9}
-        fill="rgba(255,255,255,0.45)"
+        fill="var(--missi-text-secondary)"
       >
         {formatDate(p.entry.date)}
       </text>
@@ -446,7 +446,7 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
     return (
       <div
         className="flex items-center justify-center"
-        style={{ height: 160, color: 'rgba(255,255,255,0.25)', fontSize: 12 }}
+        style={{ height: 160, color: 'var(--missi-text-muted)', fontSize: 12 }}
       >
         Keep chatting — more data points will appear soon
       </div>
@@ -518,8 +518,8 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
       >
         <defs>
           <linearGradient id="moodAreaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.08)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+            <stop offset="0%" stopColor="var(--missi-text-muted)" stopOpacity={0.15} />
+            <stop offset="100%" stopColor="var(--missi-text-muted)" stopOpacity={0} />
           </linearGradient>
         </defs>
 
@@ -533,7 +533,7 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
               y1={gy}
               x2={PAD_L + chartW}
               y2={gy}
-              stroke="rgba(255,255,255,0.08)"
+              stroke="var(--missi-border)"
               strokeWidth={1}
             />
           )
@@ -549,7 +549,7 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
               y={ly + 4}
               textAnchor="end"
               fontSize={9}
-              fill="rgba(255,255,255,0.25)"
+              fill="var(--missi-text-muted)"
             >
               {score}
             </text>
@@ -563,7 +563,7 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
         <path
           d={linePath}
           fill="none"
-          stroke="rgba(255,255,255,0.45)"
+          stroke="var(--missi-text-secondary)"
           strokeWidth={1.5}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -576,7 +576,7 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
               cx={p.x}
               cy={p.y}
               r={hovered === i ? 5 : 3}
-              fill={hovered === i ? moodColorSolid(p.entry.score) : 'rgba(255,255,255,0.55)'}
+              fill={hovered === i ? moodColorSolid(p.entry.score) : 'var(--missi-text-muted)'}
               stroke="rgba(0,0,0,0.4)"
               strokeWidth={1}
               style={{ cursor: 'pointer', transition: 'all 0.12s' }}
@@ -605,7 +605,7 @@ function MoodLineChart({ entries }: { entries: MoodEntry[] }) {
               y={H - 4}
               textAnchor="middle"
               fontSize={9}
-              fill="rgba(255,255,255,0.25)"
+              fill="var(--missi-text-muted)"
             >
               {formatDate(date)}
             </text>
@@ -626,11 +626,11 @@ function WeeklyInsightCard({ insight }: { insight: WeeklyMoodInsight }) {
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       className="rounded-2xl p-5"
       style={{
-        background: 'rgba(20,20,26,0.55)',
+        background: 'var(--missi-surface)',
         backdropFilter: 'blur(24px) saturate(140%)',
         WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+        border: '1px solid var(--missi-border)',
+        boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 var(--missi-border)',
       }}
     >
       {/* Eyebrow */}
@@ -639,7 +639,7 @@ function WeeklyInsightCard({ insight }: { insight: WeeklyMoodInsight }) {
         fontWeight: 600,
         letterSpacing: '0.18em',
         textTransform: 'uppercase',
-        color: 'rgba(255,255,255,0.35)',
+        color: 'var(--missi-text-muted)',
         margin: '0 0 10px',
       }}>
         Weekly insight
@@ -650,7 +650,7 @@ function WeeklyInsightCard({ insight }: { insight: WeeklyMoodInsight }) {
         <p
           className="text-sm leading-relaxed flex-1"
           style={{
-            color: 'rgba(255,255,255,0.75)',
+            color: 'var(--missi-text-secondary)',
             fontStyle: 'italic',
           }}
         >
@@ -658,7 +658,7 @@ function WeeklyInsightCard({ insight }: { insight: WeeklyMoodInsight }) {
         </p>
         <Sparkles
           className="w-3.5 h-3.5 flex-shrink-0 mt-0.5"
-          style={{ color: 'rgba(255,255,255,0.25)' }}
+          style={{ color: 'var(--missi-text-muted)' }}
         />
       </div>
 
@@ -666,7 +666,7 @@ function WeeklyInsightCard({ insight }: { insight: WeeklyMoodInsight }) {
       <div className="flex items-center gap-3 mt-4 flex-wrap">
         <span
           className="text-[10px]"
-          style={{ color: 'rgba(255,255,255,0.3)' }}
+          style={{ color: 'var(--missi-text-muted)' }}
         >
           {insight.weekLabel}
         </span>
@@ -674,8 +674,8 @@ function WeeklyInsightCard({ insight }: { insight: WeeklyMoodInsight }) {
         <div
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
           }}
         >
           <span
@@ -686,7 +686,7 @@ function WeeklyInsightCard({ insight }: { insight: WeeklyMoodInsight }) {
           </span>
           <span
             className="text-[10px]"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
+            style={{ color: 'var(--missi-text-muted)' }}
           >
             avg
           </span>
@@ -695,9 +695,9 @@ function WeeklyInsightCard({ insight }: { insight: WeeklyMoodInsight }) {
         <span
           className="text-[10px] font-medium capitalize px-2 py-0.5 rounded-full"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            color: 'rgba(255,255,255,0.5)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
+            color: 'var(--missi-text-secondary)',
           }}
         >
           {insight.dominantLabel}
@@ -752,9 +752,9 @@ function ManualMoodForm({ onSaved }: { onSaved: () => void }) {
           onClick={() => setShow(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: 'rgba(255,255,255,0.6)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
+            color: 'var(--missi-text-secondary)',
             cursor: 'pointer',
           }}
         >
@@ -769,10 +769,10 @@ function ManualMoodForm({ onSaved }: { onSaved: () => void }) {
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           className="rounded-2xl p-5 flex flex-col gap-4"
           style={{
-            background: 'rgba(20,20,26,0.55)',
+            background: 'var(--missi-surface)',
             backdropFilter: 'blur(24px) saturate(140%)',
             WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid var(--missi-border)',
           }}
         >
           {/* Score slider */}
@@ -844,9 +844,9 @@ function ManualMoodForm({ onSaved }: { onSaved: () => void }) {
               disabled={saving}
               className="px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
               style={{
-                background: saving ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.9)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: saving ? 'rgba(255,255,255,0.35)' : '#0a0a0f',
+                background: saving ? 'var(--missi-surface)' : 'var(--missi-nav-text-active)',
+                border: '1px solid var(--missi-border)',
+                color: saving ? 'var(--missi-text-muted)' : 'var(--missi-bg)',
                 cursor: saving ? 'default' : 'pointer',
               }}
             >
@@ -859,7 +859,7 @@ function ManualMoodForm({ onSaved }: { onSaved: () => void }) {
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'rgba(255,255,255,0.35)',
+                color: 'var(--missi-text-muted)',
                 cursor: 'pointer',
               }}
             >
@@ -877,7 +877,7 @@ function ManualMoodForm({ onSaved }: { onSaved: () => void }) {
 const labelStyle: React.CSSProperties = {
   display: 'block',
   fontSize: 10,
-  color: 'rgba(255,255,255,0.35)',
+  color: 'var(--missi-text-muted)',
   marginBottom: 6,
   textTransform: 'uppercase',
   letterSpacing: '0.18em',
@@ -886,16 +886,16 @@ const labelStyle: React.CSSProperties = {
 
 const dimText: React.CSSProperties = {
   fontSize: 9,
-  color: 'rgba(255,255,255,0.2)',
+  color: 'var(--missi-text-muted)',
 }
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  background: 'var(--missi-border)',
+  border: '1px solid var(--missi-border)',
   borderRadius: 10,
   padding: '10px 12px',
-  color: 'rgba(255,255,255,0.85)',
+  color: 'var(--missi-text-primary)',
   fontSize: 13,
   outline: 'none',
   boxSizing: 'border-box',
@@ -936,7 +936,7 @@ export default function MoodTimelineClient() {
     <div
       className="relative min-h-full"
       style={{
-        color: 'rgba(255,255,255,0.85)',
+        color: 'var(--missi-text-primary)',
       }}
     >
       {/* Ambient field — soft rose (mood palette). Absolute so it stays inside
@@ -963,11 +963,11 @@ export default function MoodTimelineClient() {
           <div className="flex items-center gap-2.5">
             <Heart
               className="w-4 h-4"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
+              style={{ color: 'var(--missi-text-muted)' }}
             />
             <h1
               className="text-base md:text-lg font-medium m-0"
-              style={{ color: 'rgba(255,255,255,0.9)' }}
+              style={{ color: 'var(--missi-text-primary)' }}
             >
               Mood Timeline
             </h1>
@@ -988,7 +988,7 @@ export default function MoodTimelineClient() {
           <div className="text-center py-16">
             <p
               className="text-sm mb-4"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
+              style={{ color: 'var(--missi-text-muted)' }}
             >
               {error}
             </p>
@@ -996,9 +996,9 @@ export default function MoodTimelineClient() {
               onClick={fetchData}
               className="px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
               style={{
-                border: '1px solid rgba(255,255,255,0.08)',
-                background: 'rgba(255,255,255,0.04)',
-                color: 'rgba(255,255,255,0.6)',
+                border: '1px solid var(--missi-border)',
+                background: 'var(--missi-surface)',
+                color: 'var(--missi-text-secondary)',
                 cursor: 'pointer',
               }}
             >
@@ -1012,17 +1012,17 @@ export default function MoodTimelineClient() {
           <GlassCard className="p-10 text-center" delay={0.1}>
             <Heart
               className="w-8 h-8 mx-auto mb-4"
-              style={{ color: 'rgba(255,255,255,0.2)' }}
+              style={{ color: 'var(--missi-text-muted)' }}
             />
             <p
               className="text-sm font-light mb-2"
-              style={{ color: 'rgba(255,255,255,0.5)' }}
+              style={{ color: 'var(--missi-text-secondary)' }}
             >
               Missi is learning your emotional patterns.
             </p>
             <p
               className="text-xs font-light"
-              style={{ color: 'rgba(255,255,255,0.25)' }}
+              style={{ color: 'var(--missi-text-muted)' }}
             >
               Keep chatting and your timeline will appear here ✨
             </p>
@@ -1051,7 +1051,7 @@ export default function MoodTimelineClient() {
             <GlassCard className="px-5 py-5" delay={0.15}>
               <p
                 className="text-[10px] font-semibold tracking-[0.18em] uppercase mb-4"
-                style={{ color: 'rgba(255,255,255,0.3)' }}
+                style={{ color: 'var(--missi-text-muted)' }}
               >
                 Last 90 Days
               </p>
@@ -1062,7 +1062,7 @@ export default function MoodTimelineClient() {
             <GlassCard className="px-5 py-5" delay={0.25}>
               <p
                 className="text-[10px] font-semibold tracking-[0.18em] uppercase mb-4"
-                style={{ color: 'rgba(255,255,255,0.3)' }}
+                style={{ color: 'var(--missi-text-muted)' }}
               >
                 30-Day Mood Curve
               </p>

@@ -36,7 +36,8 @@ export function useChatEntryFlow(options: UseChatEntryFlowOptions) {
   }, [])
 
   useEffect(() => {
-    if (!isLoaded || !user) return
+    if (!isLoaded) return
+    if (!user) return
 
     const setupDone = isChatSetupComplete(
       user.publicMetadata?.setupComplete,
@@ -62,6 +63,16 @@ export function useChatEntryFlow(options: UseChatEntryFlowOptions) {
     }
   }, [])
 
+  // If user resolves as a guest, immediately skip the boot animation and
+  // never open onboarding — they haven't signed up yet.
+  useEffect(() => {
+    if (!isLoaded) return
+    if (user) return
+    setShowBootSequence(false)
+    setBootCompleted(true)
+    setShowOnboarding(false)
+  }, [isLoaded, user])
+
   useEffect(() => {
     try {
       greetedRef.current = sessionStorage.getItem("missi-greeted") === "1"
@@ -74,10 +85,11 @@ export function useChatEntryFlow(options: UseChatEntryFlowOptions) {
       localStorage.setItem("missi-boot-v1", "true")
     } catch {}
     setBootCompleted(true)
-    if (shouldOpenOnboarding?.()) {
+    // Only show onboarding for authenticated (non-guest) users
+    if (user && shouldOpenOnboarding?.()) {
       setShowOnboarding(true)
     }
-  }, [shouldOpenOnboarding])
+  }, [user, shouldOpenOnboarding])
 
   const dismissOnboarding = useCallback(() => {
     setShowOnboarding(false)

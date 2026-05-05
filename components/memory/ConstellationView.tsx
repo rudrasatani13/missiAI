@@ -82,8 +82,8 @@ export function ConstellationView() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-white/50 space-y-4 h-full min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white/20"></div>
+      <div className="flex-1 flex flex-col items-center justify-center text-[var(--missi-text-secondary)] space-y-4 h-full min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--missi-border)]"></div>
         <p className="text-sm tracking-widest uppercase">Mapping the stars...</p>
       </div>
     )
@@ -100,7 +100,7 @@ export function ConstellationView() {
 
   if (nodeCount === 0 || !grouping) {
     return (
-      <div className="flex-1 flex items-center justify-center text-white/50 p-8 text-center h-full min-h-[400px]">
+      <div className="flex-1 flex items-center justify-center text-[var(--missi-text-secondary)] p-8 text-center h-full min-h-[400px]">
         The sky is empty. Talk to Missi to form your first constellation.
       </div>
     )
@@ -129,7 +129,7 @@ export function ConstellationView() {
       />
 
       {/* Mode Switcher */}
-      <div className="absolute top-3 sm:top-6 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1 sm:gap-2 bg-black/50 backdrop-blur-xl p-1 sm:p-1.5 rounded-full border border-white/10 shadow-2xl max-w-[calc(100vw-24px)]">
+      <div className="absolute top-3 sm:top-6 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1 sm:gap-2 bg-[var(--missi-surface)] p-1 sm:p-1.5 rounded-full border border-[var(--missi-border)] shadow-2xl max-w-[calc(100vw-24px)]">
         {[
           { id: 'by_category', label: 'Category' },
           { id: 'by_time', label: 'Time' },
@@ -140,7 +140,7 @@ export function ConstellationView() {
             key={m.id}
             onClick={() => setMode(m.id as Mode)}
             className={`px-2.5 py-1 sm:px-4 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold tracking-wide transition-all whitespace-nowrap ${
-              mode === m.id ? 'bg-white text-black shadow-md scale-105' : 'text-white/60 hover:text-white hover:bg-white/10'
+              mode === m.id ? 'bg-[var(--missi-nav-text-active)] text-[var(--missi-bg)] shadow-md scale-105' : 'text-[var(--missi-text-secondary)] hover:text-[var(--missi-text-primary)] hover:bg-[var(--missi-surface)]'
             }`}
           >
             {m.label}
@@ -295,7 +295,7 @@ export function ConstellationView() {
               initial={{ opacity: 0, scale: 0.9, y: 5 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="absolute pointer-events-none z-50 bg-black/80 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-md text-xs font-medium text-white shadow-xl shadow-black/50"
+              className="absolute pointer-events-none z-50 bg-[var(--missi-surface)] border border-[var(--missi-border)] px-3 py-1.5 rounded-md text-xs font-medium text-[var(--missi-text-primary)] shadow-xl"
               style={{
                 left: mousePos.x + 15,
                 top: mousePos.y + 15,

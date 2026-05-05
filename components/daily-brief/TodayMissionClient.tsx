@@ -54,17 +54,17 @@ function BriefSkeleton() {
   return (
     <div className="animate-pulse space-y-8">
       <div className="text-center space-y-3">
-        <div className="h-4 w-64 bg-white/[0.04] rounded mx-auto" />
-        <div className="h-3 w-48 bg-white/[0.03] rounded mx-auto" />
+        <div className="h-4 w-64 bg-[var(--missi-nav-hover)] rounded mx-auto" />
+        <div className="h-3 w-48 bg-[var(--missi-nav-hover)] rounded mx-auto" />
       </div>
       <div className="space-y-5">
         {[1, 2, 3].map((i) => (
           <div key={i} className="flex items-start gap-4 py-2">
-            <div className="w-5 h-5 rounded-full bg-white/[0.05] flex-shrink-0 mt-1" />
+            <div className="w-5 h-5 rounded-full bg-[var(--missi-nav-hover)] flex-shrink-0 mt-1" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-16 bg-white/[0.04] rounded" />
-              <div className="h-4 w-3/4 bg-white/[0.05] rounded" />
-              <div className="h-3 w-1/2 bg-white/[0.03] rounded" />
+              <div className="h-3 w-16 bg-[var(--missi-nav-hover)] rounded" />
+              <div className="h-4 w-3/4 bg-[var(--missi-nav-hover)] rounded" />
+              <div className="h-3 w-1/2 bg-[var(--missi-nav-hover)] rounded" />
             </div>
           </div>
         ))}
@@ -108,29 +108,29 @@ function ConfirmModal({
           background: 'rgba(20, 20, 26, 0.85)',
           backdropFilter: 'blur(24px) saturate(140%)',
           WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+          border: '1px solid var(--missi-border)',
+          boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 var(--missi-border)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <p
           className="mb-3 text-[10px] font-semibold uppercase"
-          style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+          style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
         >
           Regenerate
         </p>
         <h3
           className="mb-2 text-[22px] font-medium"
-          style={{ color: 'rgba(255,255,255,0.92)', letterSpacing: '-0.02em' }}
+          style={{ color: 'var(--missi-text-primary)', letterSpacing: '-0.02em' }}
         >
           Regenerate mission?
         </h3>
         <p
           className="mb-6 text-sm leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.5)' }}
+          style={{ color: 'var(--missi-text-secondary)' }}
         >
           This replaces today&apos;s focus with a new one.{' '}
-          <span style={{ color: 'rgba(255,255,255,0.65)' }}>
+          <span style={{ color: 'var(--missi-text-secondary)' }}>
             {remaining} left today.
           </span>
         </p>
@@ -140,8 +140,8 @@ function ConfirmModal({
             className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors active:scale-[0.97]"
             style={{
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.55)',
+              border: '1px solid var(--missi-border)',
+              color: 'var(--missi-text-secondary)',
               cursor: 'pointer',
             }}
           >
@@ -151,9 +151,9 @@ function ConfirmModal({
             onClick={onConfirm}
             className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors active:scale-[0.97]"
             style={{
-              background: 'rgba(255,255,255,0.9)',
-              border: '1px solid rgba(255,255,255,0.9)',
-              color: '#0a0a0f',
+              background: 'var(--missi-nav-text-active)',
+              border: '1px solid var(--missi-border-strong)',
+              color: 'var(--missi-bg)',
               cursor: 'pointer',
             }}
           >
@@ -360,7 +360,7 @@ export default function TodayMissionClient() {
 
   return (
     <div
-      className="relative min-h-full text-white flex flex-col items-center px-4 py-8 md:py-12"
+      className="relative min-h-full flex flex-col items-center px-4 py-8 md:py-12"
       style={{ fontFamily: 'var(--font-body)' }}
     >
       {/* Ambient field — warm amber. Absolute so it stays inside the shell card. */}
@@ -385,7 +385,7 @@ export default function TodayMissionClient() {
       >
         <p
           className="mb-4 text-[10px] font-semibold uppercase"
-          style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+          style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
         >
           {formatDate()}
         </p>
@@ -394,7 +394,7 @@ export default function TodayMissionClient() {
           style={{
             fontWeight: 300,
             letterSpacing: '-0.03em',
-            color: 'rgba(255,255,255,0.92)',
+            color: 'var(--missi-text-primary)',
             lineHeight: 1.1,
           }}
         >
@@ -406,11 +406,11 @@ export default function TodayMissionClient() {
           <div className="mt-7 w-32">
             <div
               className="h-[2px] rounded-full overflow-hidden"
-              style={{ background: 'rgba(255,255,255,0.06)' }}
+              style={{ background: 'var(--missi-border)' }}
             >
               <motion.div
                 className="h-full rounded-full"
-                style={{ background: 'rgba(255,255,255,0.35)' }}
+                style={{ background: 'var(--missi-border)' }}
                 initial={{ width: 0 }}
                 animate={{
                   width: `${(regenerationsRemaining / Math.max(maxGenerations, 1)) * 100}%`,
@@ -420,7 +420,7 @@ export default function TodayMissionClient() {
             </div>
             <p
               className="mt-2 text-[10px] font-semibold uppercase"
-              style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+              style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
             >
               {regenerationsRemaining} of {maxGenerations} left
             </p>
@@ -436,7 +436,7 @@ export default function TodayMissionClient() {
           transition={{ duration: 0.3 }}
           className="relative z-10 w-full max-w-lg mb-8 px-5 py-4 rounded-xl text-sm"
           style={{
-            background: 'rgba(255,255,255,0.02)',
+            background: 'var(--missi-surface)',
             border: '1px solid rgba(239,68,68,0.18)',
             color: 'rgba(255,180,180,0.85)',
           }}
@@ -452,7 +452,7 @@ export default function TodayMissionClient() {
             {generating && (
               <p
                 className="mb-6 text-center text-[10px] font-semibold uppercase"
-                style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.18em' }}
+                style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
               >
                 Generating your mission
               </p>
@@ -470,7 +470,7 @@ export default function TodayMissionClient() {
             <p
               className="text-center text-[17px] md:text-[18px] leading-relaxed"
               style={{
-                color: 'rgba(255,255,255,0.7)',
+                color: 'var(--missi-text-secondary)',
                 letterSpacing: '-0.01em',
                 fontWeight: 400,
               }}
@@ -483,14 +483,14 @@ export default function TodayMissionClient() {
               <div className="flex items-center justify-between mb-5">
                 <p
                   className="text-[10px] font-semibold uppercase"
-                  style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+                  style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
                 >
                   Focus today
                 </p>
                 <p
                   className="text-[10px] font-semibold uppercase"
                   style={{
-                    color: allComplete ? 'rgba(167,243,208,0.75)' : 'rgba(255,255,255,0.35)',
+                    color: allComplete ? 'rgba(167,243,208,0.75)' : 'var(--missi-text-muted)',
                     letterSpacing: '0.18em',
                   }}
                 >
@@ -501,14 +501,14 @@ export default function TodayMissionClient() {
               {/* Thin progress rail */}
               <div
                 className="h-[2px] rounded-full overflow-hidden mb-6"
-                style={{ background: 'rgba(255,255,255,0.05)' }}
+                style={{ background: 'var(--missi-border)' }}
               >
                 <motion.div
                   className="h-full rounded-full"
                   style={{
                     background: allComplete
                       ? 'rgba(167,243,208,0.55)'
-                      : 'rgba(255,255,255,0.4)',
+                      : 'var(--missi-text-muted)',
                   }}
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPercent}%` }}
@@ -547,22 +547,22 @@ export default function TodayMissionClient() {
                 transition={{ duration: 0.3, delay: 0.2 }}
                 className="flex items-start gap-3 px-5 py-4 rounded-xl"
                 style={{
-                  background: 'rgba(255,255,255,0.02)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'var(--missi-surface)',
+                  border: '1px solid var(--missi-border)',
                 }}
               >
                 <Flame
                   className="w-3.5 h-3.5 mt-[3px] flex-shrink-0"
-                  style={{ color: 'rgba(255,255,255,0.45)' }}
+                  style={{ color: 'var(--missi-text-secondary)' }}
                 />
                 <div className="flex-1">
                   <p
                     className="mb-1 text-[10px] font-semibold uppercase"
-                    style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+                    style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
                   >
                     Streak
                   </p>
-                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--missi-text-secondary)' }}>
                     {brief.streakNudge}
                   </p>
                 </div>
@@ -577,30 +577,30 @@ export default function TodayMissionClient() {
                 transition={{ duration: 0.3, delay: 0.25 }}
                 className="flex items-start gap-3 px-5 py-4 rounded-xl"
                 style={{
-                  background: 'rgba(255,255,255,0.02)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'var(--missi-surface)',
+                  border: '1px solid var(--missi-border)',
                 }}
               >
                 <MessageCircle
                   className="w-3.5 h-3.5 mt-[3px] flex-shrink-0"
-                  style={{ color: 'rgba(255,255,255,0.45)' }}
+                  style={{ color: 'var(--missi-text-secondary)' }}
                 />
                 <div className="flex-1">
                   <p
                     className="mb-1 text-[10px] font-semibold uppercase"
-                    style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+                    style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
                   >
                     Mood
                   </p>
-                  <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--missi-text-secondary)' }}>
                     {brief.moodPrompt}
                   </p>
                   <Link
                     href="/chat?prefill=mood-checkin"
                     className="inline-flex items-center text-[11px] font-medium transition-colors"
                     style={{
-                      color: 'rgba(255,255,255,0.55)',
-                      borderBottom: '1px solid rgba(255,255,255,0.15)',
+                      color: 'var(--missi-text-secondary)',
+                      borderBottom: '1px solid var(--missi-border-strong)',
                       paddingBottom: '1px',
                     }}
                   >
@@ -618,22 +618,22 @@ export default function TodayMissionClient() {
                 transition={{ duration: 0.3, delay: 0.3 }}
                 className="flex items-start gap-3 px-5 py-4 rounded-xl"
                 style={{
-                  background: 'rgba(255,255,255,0.02)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'var(--missi-surface)',
+                  border: '1px solid var(--missi-border)',
                 }}
               >
                 <Zap
                   className="w-3.5 h-3.5 mt-[3px] flex-shrink-0"
-                  style={{ color: 'rgba(255,255,255,0.45)' }}
+                  style={{ color: 'var(--missi-text-secondary)' }}
                 />
                 <div className="flex-1">
                   <p
                     className="mb-1 text-[10px] font-semibold uppercase"
-                    style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+                    style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
                   >
                     Challenge
                   </p>
-                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--missi-text-secondary)' }}>
                     {brief.challenge}
                   </p>
                 </div>
@@ -666,7 +666,7 @@ export default function TodayMissionClient() {
             disabled={regenerationsRemaining <= 0}
             className="inline-flex items-center gap-1.5 text-[11px] font-medium transition-colors disabled:opacity-20 disabled:cursor-not-allowed active:scale-[0.97]"
             style={{
-              color: 'rgba(255,255,255,0.4)',
+              color: 'var(--missi-text-muted)',
               background: 'transparent',
               padding: '6px 2px',
             }}
@@ -710,7 +710,7 @@ function TaskRow({
       className="flex items-start gap-4 py-4 transition-opacity"
       style={{
         opacity: task.completed ? 0.5 : 1,
-        borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)',
+        borderBottom: isLast ? 'none' : '1px solid var(--missi-border)',
       }}
     >
       {/* Check circle */}
@@ -718,8 +718,8 @@ function TaskRow({
         onClick={() => !task.completed && onToggle(task.id)}
         className="mt-[2px] flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-colors active:scale-[0.97]"
         style={{
-          border: `1px solid ${task.completed ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.18)'}`,
-          background: task.completed ? 'rgba(255,255,255,0.08)' : 'transparent',
+          border: `1px solid ${task.completed ? 'var(--missi-border-strong)' : 'var(--missi-border-strong)'}`,
+          background: task.completed ? 'var(--missi-border)' : 'transparent',
           cursor: task.completed ? 'default' : 'pointer',
         }}
         disabled={task.completed}
@@ -732,7 +732,7 @@ function TaskRow({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             >
-              <Check className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.85)' }} strokeWidth={2.5} />
+              <Check className="w-3 h-3" style={{ color: 'var(--missi-text-primary)' }} strokeWidth={2.5} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -742,14 +742,14 @@ function TaskRow({
       <div className="flex-1 min-w-0">
         <p
           className="mb-1.5 text-[10px] font-semibold uppercase"
-          style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+          style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
         >
           {badge.label}
         </p>
         <p
           className="text-[15px] leading-snug mb-1"
           style={{
-            color: 'rgba(255,255,255,0.88)',
+            color: 'var(--missi-text-primary)',
             fontWeight: 500,
             letterSpacing: '-0.01em',
           }}
@@ -758,7 +758,7 @@ function TaskRow({
         </p>
         <p
           className="text-[13px] leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.45)' }}
+          style={{ color: 'var(--missi-text-secondary)' }}
         >
           {task.context}
         </p>

@@ -47,7 +47,7 @@ function VoiceButtonInner({ state, onPress, disabled }: VoiceButtonProps) {
               key={i}
               className="w-1.5 h-1.5 rounded-full"
               style={{
-                background: "rgba(255,255,255,0.6)",
+                background: "var(--missi-border)",
                 animation: `subtlePulse 1.4s ease-in-out ${i * 0.2}s infinite`,
               }}
             />
@@ -61,7 +61,7 @@ function VoiceButtonInner({ state, onPress, disabled }: VoiceButtonProps) {
               key={i}
               className="w-1.5 h-1.5 rounded-full"
               style={{
-                background: "rgba(255,255,255,0.4)",
+                background: "var(--missi-border)",
                 animation: `subtlePulse 1s ease-in-out ${i * 0.15}s infinite`,
               }}
             />

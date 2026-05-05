@@ -93,13 +93,16 @@ export function buildChatStreamSseStream({
       let loopCount = 0
       let totalToolCalls = 0
       let sessionResponseText = ""
-      const agentLoopDeadline = Date.now() + REQUEST_TIMEOUT_MS
       let agentContents: any[] = [...(currentRequestBody.contents as any[])]
       let firstTokenLogged = false
       const firstTokenTimer = createTimer()
 
+      const deadlineController = new AbortController()
+      const deadlineTimer = setTimeout(() => deadlineController.abort(), REQUEST_TIMEOUT_MS)
+
+      try {
       while (loopCount < MAX_AGENT_LOOPS && totalToolCalls < MAX_TOTAL_TOOL_CALLS) {
-        if (Date.now() > agentLoopDeadline) {
+        if (deadlineController.signal.aborted) {
           sendSSE({
             text: "\n\n[Agent loop timed out — returning what I have so far.]",
             code: "CHAT_TOOL_LOOP_TIMEOUT",
@@ -113,6 +116,7 @@ export function buildChatStreamSseStream({
           eventStream = await streamChat({
             model,
             requestBody: currentRequestBody,
+            signal: deadlineController.signal,
             userId,
           })
         } catch (streamErr) {
@@ -129,6 +133,12 @@ export function buildChatStreamSseStream({
 
         try {
           while (true) {
+            if (deadlineController.signal.aborted) {
+              sendSSE({ text: "\n\n[Response timed out.]", code: "CHAT_TOOL_LOOP_TIMEOUT" })
+              reader.cancel().catch(() => {})
+              break
+            }
+
             const { done, value } = await reader.read()
             if (done) break
 
@@ -227,6 +237,9 @@ export function buildChatStreamSseStream({
           ...currentRequestBody,
           contents: agentContents,
         }
+      }
+      } finally {
+        clearTimeout(deadlineTimer)
       }
 
       if (shouldEmitNeedsInput(voiceMode, sessionResponseText)) {

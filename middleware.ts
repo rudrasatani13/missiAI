@@ -6,6 +6,7 @@ import { getAdminRoleFromAuth, isAdminUser } from "@/lib/server/security/admin-a
 
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/chat",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/manifesto(.*)",
@@ -17,6 +18,7 @@ const isPublicRoute = createRouteMatcher([
   // IP-based rate limiting still applies via the middleware logic below.
   "/api/webhooks/whatsapp",
   "/api/webhooks/telegram",
+  "/api/v1/guest-chat",
   "/pricing(.*)",
   // Missi Spaces invite preview page is public so recipients can see the
   // Space name/emoji before signing up. Joining still requires Clerk auth.
@@ -530,11 +532,12 @@ const clerkHandler = clerkMiddleware(
     }
   }
 
-  // ── Redirect authenticated users away from landing / auth pages ──
-  // Once signed in, the user should always land on /chat — never see
-  // the marketing home page or the sign-in / sign-up forms again.
-  const isLandingOrAuth = request.nextUrl.pathname === "/" || isAuthRoute(request)
-  if (isLandingOrAuth) {
+  // ── Redirect / to /chat for everyone — the landing page is gone ──
+  // Authenticated users hitting /sign-in or /sign-up are also bounced to /chat.
+  if (request.nextUrl.pathname === "/") {
+    return NextResponse.redirect(new URL("/chat", request.url))
+  }
+  if (isAuthRoute(request)) {
     const authObj = await auth()
     if (authObj.userId) {
       return NextResponse.redirect(new URL("/chat", request.url))

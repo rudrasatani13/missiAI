@@ -8,13 +8,13 @@ export default function LegalLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[var(--missi-bg)] text-[var(--missi-text-primary)]">
       {/* Header */}
       <nav className="flex items-center justify-between px-6 md:px-10 py-5 max-w-3xl mx-auto">
         <Link
           href="/"
           className="flex items-center gap-2 transition-opacity hover:opacity-70"
-          style={{ color: "rgba(255,255,255,0.45)" }}
+          style={{ color: "var(--missi-text-secondary)" }}
           data-testid="legal-back-home"
         >
           <ArrowLeft className="w-4 h-4" />

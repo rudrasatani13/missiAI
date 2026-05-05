@@ -52,8 +52,8 @@ export function ChaptersView() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-white/50 space-y-4 h-full min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white/20"></div>
+      <div className="flex-1 flex flex-col items-center justify-center text-[var(--missi-text-secondary)] space-y-4 h-full min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--missi-border)]"></div>
         <p className="text-sm">Reading chapters of your life...</p>
       </div>
     )
@@ -61,7 +61,7 @@ export function ChaptersView() {
 
   if (chapters.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-white/50 h-full min-h-[400px]">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-[var(--missi-text-secondary)] h-full min-h-[400px]">
         <p className="mb-4">Chapters appear once you have 5+ memories.</p>
         <p className="text-sm">Keep chatting — your story is unfolding.</p>
       </div>
@@ -112,7 +112,7 @@ export function ChaptersView() {
                     >
                       {chapter.dominantCategory}
                     </span>
-                    <div className="flex items-center gap-1.5 text-xs text-white/40">
+                    <div className="flex items-center gap-1.5 text-xs text-[var(--missi-text-muted)]">
                       <Calendar className="w-3.5 h-3.5" />
                       {new Date(chapter.startDate).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
                       {' — '}
@@ -120,14 +120,14 @@ export function ChaptersView() {
                     </div>
                   </div>
 
-                  <h2 className="text-2xl md:text-3xl font-medium text-white/90 mb-3" style={{ fontFamily: 'Georgia, serif' }}>
+                  <h2 className="text-2xl md:text-3xl font-medium text-[var(--missi-text-primary)] mb-3" style={{ fontFamily: 'Georgia, serif' }}>
                     {chapter.title}
                   </h2>
-                  <p className="text-white/60 text-sm md:text-base leading-relaxed max-w-2xl">
+                  <p className="text-[var(--missi-text-secondary)] text-sm md:text-base leading-relaxed max-w-2xl">
                     {chapter.description}
                   </p>
 
-                  <div className="mt-4 flex items-center justify-between text-xs text-white/40 border-t border-white/5 pt-4">
+                  <div className="mt-4 flex items-center justify-between text-xs text-[var(--missi-text-muted)] border-t border-[var(--missi-border)] pt-4">
                     <span>{chapter.nodeIds.length} Memories</span>
                     <span>Emotional Tone: <span className="capitalize">{chapter.emotionalTone}</span></span>
                   </div>
@@ -141,7 +141,7 @@ export function ChaptersView() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="border-t border-white/10 bg-black/40"
+                    className="border-t border-[var(--missi-border)] bg-[var(--missi-surface-secondary)]"
                   >
                     <div className="p-6 md:p-8 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                       {/* The route just gives IDs. Normally we'd fetch nodes or timeline events. 
@@ -151,9 +151,9 @@ export function ChaptersView() {
                           Since nodes aren't included in the chapters API payload, we will just show a summary count here or 
                           fetch timeline events to populate it. 
                           Due to edge restrictions and to save fetch complexity, we'll suggest viewing them in Timeline context. */}
-                      <div className="col-span-full p-4 rounded-xl bg-white/5 border border-white/10 text-center">
-                        <p className="text-sm text-white/60 mb-2">Detailed node cards linked here.</p>
-                        <p className="text-xs text-white/40">Switch to Timeline view to explore individual moments in this chapter.</p>
+                      <div className="col-span-full p-4 rounded-xl bg-[var(--missi-surface)] border border-[var(--missi-border)] text-center">
+                        <p className="text-sm text-[var(--missi-text-secondary)] mb-2">Detailed node cards linked here.</p>
+                        <p className="text-xs text-[var(--missi-text-muted)]">Switch to Timeline view to explore individual moments in this chapter.</p>
                       </div>
                     </div>
                   </motion.div>
@@ -164,11 +164,11 @@ export function ChaptersView() {
         })}
       </div>
 
-      <div className="p-4 border-t border-white/10 flex justify-center bg-black/50 backdrop-blur-md">
+      <div className="p-4 border-t border-[var(--missi-border)] flex justify-center bg-[var(--missi-surface-secondary)]">
         <button
           onClick={() => fetchChapters(true)}
           disabled={isRefreshing}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-medium transition-all hover:bg-white/10 border border-white/10 text-white/70"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-medium transition-all hover:bg-[var(--missi-surface)] border border-[var(--missi-border)] text-[var(--missi-text-secondary)]"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
           {isRefreshing ? 'Regenerating...' : 'Regenerate Chapters (AI)'}

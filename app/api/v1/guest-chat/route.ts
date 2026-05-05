@@ -14,7 +14,24 @@ const SESSION_TTL_MS = 24 * 60 * 60 * 1000
 const IP_WINDOW_MS = 60_000
 const IP_MAX_REQUESTS = 20
 
-interface IpBucket { count: number; windowStart: number }
+// ─── Guest AI hard budget ──────────────────────────────────────────────────────
+// Per-IP daily limit: max AI requests in a 24h window (in-isolate).
+// Global isolate limit: absolute ceiling across all IPs before isolate reset.
+// These are a secondary cost guardrail; the signed session cookie is the primary
+// per-user limit. These caps defend against multi-session abuse and automation.
+const GUEST_IP_DAILY_MAX = parseInt(process.env.GUEST_IP_DAILY_MAX ?? "30", 10)
+const GUEST_GLOBAL_ISOLATE_MAX = parseInt(process.env.GUEST_GLOBAL_ISOLATE_MAX ?? "500", 10)
+const IP_DAILY_WINDOW_MS = 24 * 60 * 60 * 1000
+
+let globalGuestRequestCount = 0
+let globalGuestWindowStart = Date.now()
+
+interface IpBucket {
+  count: number
+  windowStart: number
+  dailyCount: number
+  dailyWindowStart: number
+}
 const ipBuckets = new Map<string, IpBucket>()
 let lastIpSweep = Date.now()
 
@@ -28,12 +45,39 @@ function checkIpRateLimit(ip: string): boolean {
   }
   const bucket = ipBuckets.get(ip)
   if (!bucket || now - bucket.windowStart >= IP_WINDOW_MS) {
-    ipBuckets.set(ip, { count: 1, windowStart: now })
+    ipBuckets.set(ip, { count: 1, windowStart: now, dailyCount: 1, dailyWindowStart: now })
     return true
   }
   if (bucket.count >= IP_MAX_REQUESTS) return false
   bucket.count++
   return true
+}
+
+function checkGuestAiBudget(ip: string): { allowed: boolean; reason?: string } {
+  const now = Date.now()
+
+  if (now - globalGuestWindowStart >= IP_DAILY_WINDOW_MS) {
+    globalGuestRequestCount = 0
+    globalGuestWindowStart = now
+  }
+  if (globalGuestRequestCount >= GUEST_GLOBAL_ISOLATE_MAX) {
+    return { allowed: false, reason: "GLOBAL_GUEST_BUDGET_EXCEEDED" }
+  }
+
+  const bucket = ipBuckets.get(ip)
+  if (bucket) {
+    if (now - bucket.dailyWindowStart >= IP_DAILY_WINDOW_MS) {
+      bucket.dailyCount = 0
+      bucket.dailyWindowStart = now
+    }
+    if (bucket.dailyCount >= GUEST_IP_DAILY_MAX) {
+      return { allowed: false, reason: "IP_DAILY_GUEST_BUDGET_EXCEEDED" }
+    }
+    bucket.dailyCount++
+  }
+
+  globalGuestRequestCount++
+  return { allowed: true }
 }
 
 // ─── HMAC-signed session cookie ───────────────────────────────────────────────
@@ -143,6 +187,15 @@ export async function POST(request: Request): Promise<Response> {
   const ip = getClientIP(request)
   if (!checkIpRateLimit(ip)) {
     return NextResponse.json({ error: "RATE_LIMITED" }, { status: 429 })
+  }
+
+  // ── Guest AI hard budget ───────────────────────────────────────────────────
+  const guestBudget = checkGuestAiBudget(ip)
+  if (!guestBudget.allowed) {
+    return NextResponse.json(
+      { error: "SERVICE_TEMPORARILY_UNAVAILABLE" },
+      { status: 503 },
+    )
   }
 
   // ── Secret guard ──────────────────────────────────────────────────────────

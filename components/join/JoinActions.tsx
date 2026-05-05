@@ -18,9 +18,9 @@ const buttonStyle: React.CSSProperties = {
   borderRadius: '12px',
   fontSize: '14px',
   fontWeight: 500,
-  border: '1px solid rgba(255,255,255,0.1)',
-  background: 'rgba(255,255,255,0.92)',
-  color: '#0a0a0f',
+  border: '1px solid var(--missi-border)',
+  background: 'var(--missi-nav-text-active)',
+  color: 'var(--missi-surface)',
   cursor: 'pointer',
   textDecoration: 'none',
   textAlign: 'center',
@@ -29,9 +29,9 @@ const buttonStyle: React.CSSProperties = {
 
 const secondaryStyle: React.CSSProperties = {
   ...buttonStyle,
-  background: 'rgba(255,255,255,0.04)',
-  color: 'rgba(255,255,255,0.85)',
-  border: '1px solid rgba(255,255,255,0.12)',
+  background: 'var(--missi-surface)',
+  color: 'var(--missi-text-primary)',
+  border: '1px solid var(--missi-border-strong)',
 }
 
 export default function JoinActions({

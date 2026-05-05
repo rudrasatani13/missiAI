@@ -73,13 +73,13 @@ export default function SpaceDetailPage() {
       >
         <Link
           href="/spaces"
-          className="inline-flex items-center gap-1 text-xs text-white/50 no-underline mb-4"
+          className="inline-flex items-center gap-1 text-xs text-[var(--missi-text-secondary)] no-underline mb-4"
         >
           <ChevronLeft className="w-3.5 h-3.5" /> All Spaces
         </Link>
 
         {loading ? (
-          <p className="text-sm text-white/40">Loading…</p>
+          <p className="text-sm text-[var(--missi-text-muted)]">Loading…</p>
         ) : error ? (
           <p className="text-sm text-red-400">{error}</p>
         ) : data ? (

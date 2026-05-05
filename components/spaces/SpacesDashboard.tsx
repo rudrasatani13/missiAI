@@ -45,7 +45,7 @@ export default function SpacesDashboard() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-white/45 m-0">
+        <p className="text-xs text-[var(--missi-text-muted)] m-0">
           Share memory with the people closest to you.
         </p>
         <button
@@ -54,10 +54,10 @@ export default function SpacesDashboard() {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors active:scale-[0.97]"
           style={{
             background: showCreate
-              ? 'rgba(255,255,255,0.07)'
-              : 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            color: 'rgba(255,255,255,0.7)',
+              ? 'var(--missi-text-muted)'
+              : 'var(--missi-text-muted)',
+            border: '1px solid var(--missi-border)',
+            color: 'var(--missi-text-secondary)',
             cursor: 'pointer',
           }}
         >
@@ -82,7 +82,7 @@ export default function SpacesDashboard() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-white/40">Loading your Spaces…</p>
+        <p className="text-sm text-[var(--missi-text-muted)]">Loading your Spaces…</p>
       ) : error ? (
         <p className="text-sm text-red-400">{error}</p>
       ) : spaces.length === 0 ? (
@@ -106,13 +106,13 @@ function EmptyState() {
     <div
       className="rounded-2xl p-8 text-center"
       style={{
-        background: 'rgba(20,20,26,0.55)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
       }}
     >
       <div className="text-4xl mb-3">🫂</div>
-      <p className="text-sm text-white/60 mb-1">You&apos;re not in any Spaces yet.</p>
-      <p className="text-xs text-white/35">
+      <p className="text-sm text-[var(--missi-text-secondary)] mb-1">You&apos;re not in any Spaces yet.</p>
+      <p className="text-xs text-[var(--missi-text-muted)]">
         Create one or ask someone to invite you.
       </p>
     </div>
@@ -163,8 +163,8 @@ function CreateSpaceForm({ onCreated }: { onCreated: () => void }) {
       onSubmit={submit}
       className="rounded-2xl p-5 flex flex-col gap-3"
       style={{
-        background: 'rgba(20,20,26,0.55)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
         marginBottom: 4,
       }}
     >
@@ -227,9 +227,9 @@ function CreateSpaceForm({ onCreated }: { onCreated: () => void }) {
           disabled={submitting || !name.trim()}
           className="px-5 py-2 rounded-full text-xs font-medium active:scale-[0.97]"
           style={{
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: submitting || !name.trim() ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.92)',
-            color: submitting || !name.trim() ? 'rgba(255,255,255,0.35)' : '#0a0a0f',
+            border: '1px solid var(--missi-border)',
+            background: submitting || !name.trim() ? 'var(--missi-surface)' : 'var(--missi-border)',
+            color: submitting || !name.trim() ? 'var(--missi-text-muted)' : 'var(--missi-surface)',
             cursor: submitting || !name.trim() ? 'default' : 'pointer',
           }}
         >
@@ -246,7 +246,7 @@ function Label({ children }: { children: React.ReactNode }) {
       style={{
         display: 'block',
         fontSize: '10px',
-        color: 'rgba(255,255,255,0.35)',
+        color: 'var(--missi-text-muted)',
         marginBottom: '6px',
         textTransform: 'uppercase',
         letterSpacing: '0.18em',
@@ -260,11 +260,11 @@ function Label({ children }: { children: React.ReactNode }) {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  background: 'var(--missi-border)',
+  border: '1px solid var(--missi-border)',
   borderRadius: '10px',
   padding: '10px 12px',
-  color: 'rgba(255,255,255,0.85)',
+  color: 'var(--missi-text-primary)',
   fontSize: '13px',
   outline: 'none',
   boxSizing: 'border-box',

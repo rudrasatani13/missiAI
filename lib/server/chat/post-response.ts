@@ -1,6 +1,6 @@
 import { estimateTokens } from "@/lib/memory/token-counter"
 import { buildCacheKey, isCacheable, setCachedResponse } from "@/lib/server/cache/response-cache"
-import { calculateTotalCost, checkBudgetAlert } from "@/lib/server/observability/cost-tracker"
+import { calculateTotalCost, checkBudgetAlert, incrementDailySpend } from "@/lib/server/observability/cost-tracker"
 import { waitUntil } from "@/lib/server/platform/wait-until"
 import { recordAnalyticsUsage } from "@/lib/analytics/event-store"
 import { analyzeMoodFromConversation } from "@/lib/mood/mood-analyzer"
@@ -83,10 +83,18 @@ export function runChatPostResponseTasks(options: ChatPostResponseOptions): void
     ...(options.toolCalls !== undefined ? { toolCalls: options.toolCalls } : {}),
   })
 
+  if (options.kv) {
+    scheduleTimedTask(
+      "spend_increment",
+      options.userId,
+      () => incrementDailySpend(options.kv!, costData.totalCostUsd),
+    )
+  }
+
   scheduleTimedTask(
     "budget_alert",
     options.userId,
-    () => checkBudgetAlert(options.kv, costData.totalCostUsd),
+    () => checkBudgetAlert(options.kv),
   )
 
   if (options.kv && !options.analyticsOptOut) {

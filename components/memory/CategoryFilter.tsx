@@ -100,12 +100,12 @@ function Pill({ icon, label, count, isSelected, onClick }: PillProps) {
         padding: '6px 12px',
         borderRadius: '999px',
         border: isSelected
-          ? '1px solid rgba(255,255,255,0.3)'
-          : '1px solid rgba(255,255,255,0.08)',
+          ? '1px solid var(--missi-text-muted)'
+          : '1px solid var(--missi-border)',
         background: isSelected
-          ? 'rgba(255,255,255,0.15)'
-          : 'rgba(255,255,255,0.04)',
-        color: isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)',
+          ? 'var(--missi-text-muted)'
+          : 'var(--missi-text-muted)',
+        color: isSelected ? 'var(--missi-text-primary)' : 'var(--missi-text-secondary)',
         fontSize: '12px',
         cursor: 'pointer',
         transition: 'background 0.15s, border-color 0.15s, color 0.15s',
@@ -123,7 +123,7 @@ function Pill({ icon, label, count, isSelected, onClick }: PillProps) {
           minWidth: '18px',
           height: '18px',
           borderRadius: '999px',
-          background: 'rgba(255,255,255,0.12)',
+          background: 'var(--missi-nav-active-bg)',
           fontSize: '10px',
           padding: '0 4px',
         }}

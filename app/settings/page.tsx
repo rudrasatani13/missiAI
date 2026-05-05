@@ -79,21 +79,21 @@ const eyebrow: React.CSSProperties = {
   fontWeight: 600,
   letterSpacing: "0.18em",
   textTransform: "uppercase",
-  color: "rgba(255,255,255,0.4)",
+  color: "var(--missi-text-muted)",
   margin: 0,
 }
 
 const sectionTitle: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 600,
-  color: "rgba(255,255,255,0.95)",
+  color: "var(--missi-text-primary)",
   margin: 0,
 }
 
 const sectionDesc: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 400,
-  color: "rgba(255,255,255,0.45)",
+  color: "var(--missi-text-secondary)",
   margin: "2px 0 0",
   lineHeight: 1.5,
 }
@@ -155,13 +155,13 @@ function SettingsPageInner() {
   }, [signOut])
 
   return (
-    <div className="min-h-full text-white">
+    <div className="min-h-full text-[var(--missi-text-primary)]">
       <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 md:pt-10 pb-16">
         {/* Breadcrumb / back */}
         <button
           type="button"
           onClick={() => router.back()}
-          className="group inline-flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors mb-4"
+          className="group inline-flex items-center gap-1.5 text-xs text-[var(--missi-text-secondary)] hover:text-[var(--missi-text-secondary)] transition-colors mb-4"
           style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -175,15 +175,15 @@ function SettingsPageInner() {
             style={{
               width: 36,
               height: 36,
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              background: "var(--missi-surface)",
+              border: "1px solid var(--missi-border)",
             }}
           >
-            <SettingsIcon className="w-4 h-4 text-white/70" />
+            <SettingsIcon className="w-4 h-4 text-[var(--missi-text-secondary)]" />
           </div>
           <div>
             <h1 className="text-xl md:text-2xl font-semibold tracking-tight">Settings</h1>
-            <p className="text-xs text-white/45">
+            <p className="text-xs text-[var(--missi-text-muted)]">
               Manage your account, personality, voice, notifications and privacy.
             </p>
           </div>
@@ -261,8 +261,8 @@ function Card({
     <section
       className="rounded-2xl"
       style={{
-        background: "rgba(255,255,255,0.025)",
-        border: "1px solid rgba(255,255,255,0.06)",
+        background: "var(--missi-surface)",
+        border: "1px solid var(--missi-border)",
         padding: 18,
       }}
     >
@@ -274,9 +274,9 @@ function Card({
               style={{
                 width: 32,
                 height: 32,
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.06)",
-                color: "rgba(255,255,255,0.7)",
+                background: "var(--missi-surface)",
+                border: "1px solid var(--missi-border)",
+                color: "var(--missi-text-secondary)",
               }}
             >
               {icon}
@@ -310,12 +310,12 @@ function Toggle({
       aria-checked={checked}
       aria-label={ariaLabel}
       onClick={onChange}
-      className="relative rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
+      className="relative rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--missi-border)]"
       style={{
         width: 40,
         height: 22,
-        background: checked ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.1)",
-        border: "none",
+        background: checked ? "var(--missi-nav-text-active)" : "var(--missi-border)",
+        border: checked ? "1px solid var(--missi-nav-text-active)" : "1px solid var(--missi-border)",
         cursor: "pointer",
         flexShrink: 0,
       }}
@@ -328,10 +328,10 @@ function Toggle({
           width: 16,
           height: 16,
           borderRadius: "50%",
-          background: checked ? "#0c0c10" : "rgba(255,255,255,0.7)",
+          background: "var(--missi-bg)",
           left: checked ? 20 : 4,
           transition: "left 0.2s ease, background 0.2s ease",
-          boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+          boxShadow: "0 1px 2px var(--missi-shadow)",
         }}
       />
     </button>
@@ -352,13 +352,13 @@ function Row({
   return (
     <div className="flex items-center justify-between gap-4 py-2.5">
       <div className="flex items-start gap-3 min-w-0 flex-1">
-        {icon && <div className="text-white/55 mt-0.5 flex-shrink-0">{icon}</div>}
+        {icon && <div className="text-[var(--missi-text-secondary)] mt-0.5 flex-shrink-0">{icon}</div>}
         <div className="min-w-0">
-          <p style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.9)", margin: 0 }}>
+          <p style={{ fontSize: 13, fontWeight: 500, color: "var(--missi-text-primary)", margin: 0 }}>
             {label}
           </p>
           {description && (
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", margin: "2px 0 0", lineHeight: 1.5 }}>
+            <p style={{ fontSize: 11, color: "var(--missi-text-secondary)", margin: "2px 0 0", lineHeight: 1.5 }}>
               {description}
             </p>
           )}
@@ -370,7 +370,7 @@ function Row({
 }
 
 function Divider() {
-  return <hr style={{ height: 1, background: "rgba(255,255,255,0.05)", border: "none", margin: "10px 0" }} />
+  return <hr style={{ height: 1, background: "var(--missi-surface)", border: "none", margin: "10px 0" }} />
 }
 
 function Slider({
@@ -467,7 +467,7 @@ function ProfileSection({
               src={userImage}
               alt=""
               className="rounded-full"
-              style={{ width: 56, height: 56, border: "1px solid rgba(255,255,255,0.1)" }}
+              style={{ width: 56, height: 56, border: "1px solid var(--missi-border)" }}
             />
           ) : (
             <div
@@ -475,20 +475,20 @@ function ProfileSection({
               style={{
                 width: 56,
                 height: 56,
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.08)",
+                background: "var(--missi-border)",
+                border: "1px solid var(--missi-border)",
               }}
             >
-              <UserIcon className="w-5 h-5 text-white/50" />
+              <UserIcon className="w-5 h-5 text-[var(--missi-text-secondary)]" />
             </div>
           )}
           {isPro && (
             <div
-              className="absolute -bottom-0.5 -right-0.5 p-[3px] rounded-full border-2 border-[#0a0a0c] flex items-center justify-center"
-              style={{ background: "rgba(245,158,11,0.9)" }}
+              className="absolute -bottom-0.5 -right-0.5 p-[3px] rounded-full border-2 border-[var(--missi-bg)] flex items-center justify-center"
+              style={{ background: "var(--missi-accent)" }}
               title="PRO Member"
             >
-              <Crown className="w-2.5 h-2.5 text-white" />
+              <Crown className="w-2.5 h-2.5 text-[var(--missi-text-primary)]" />
             </div>
           )}
         </div>
@@ -513,9 +513,9 @@ function ProfileSection({
                 style={{
                   fontSize: 14,
                   fontWeight: 600,
-                  color: "white",
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.12)",
+                  color: "var(--missi-text-primary)",
+                  background: "var(--missi-border)",
+                  border: "1px solid var(--missi-border)",
                   borderRadius: 8,
                   padding: "6px 10px",
                   width: 180,
@@ -529,11 +529,11 @@ function ProfileSection({
                 style={{
                   width: 28,
                   height: 28,
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "var(--missi-border)",
+                  border: "1px solid var(--missi-border)",
                   borderRadius: 8,
                   cursor: "pointer",
-                  color: "white",
+                  color: "var(--missi-text-primary)",
                 }}
               >
                 <Check className="w-3.5 h-3.5" />
@@ -549,10 +549,10 @@ function ProfileSection({
                   width: 28,
                   height: 28,
                   background: "transparent",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  border: "1px solid var(--missi-border)",
                   borderRadius: 8,
                   cursor: "pointer",
-                  color: "rgba(255,255,255,0.6)",
+                  color: "var(--missi-text-secondary)",
                 }}
               >
                 <XIcon className="w-3.5 h-3.5" />
@@ -560,22 +560,22 @@ function ProfileSection({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <p style={{ fontSize: 15, fontWeight: 600, color: "white", margin: 0 }}>{userName || "Guest"}</p>
+              <p style={{ fontSize: 15, fontWeight: 600, color: "var(--missi-text-primary)", margin: 0 }}>{userName || "Guest"}</p>
               <button
                 type="button"
                 onClick={() => {
                   setDraft(userName)
                   setIsEditing(true)
                 }}
-                className="flex items-center justify-center hover:bg-white/5"
+                className="flex items-center justify-center hover:bg-[var(--missi-surface)]"
                 style={{
                   width: 24,
                   height: 24,
                   background: "transparent",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  border: "1px solid var(--missi-border)",
                   borderRadius: 6,
                   cursor: "pointer",
-                  color: "rgba(255,255,255,0.55)",
+                  color: "var(--missi-text-secondary)",
                 }}
                 aria-label="Edit name"
                 data-testid="settings-edit-name-btn"
@@ -584,7 +584,7 @@ function ProfileSection({
               </button>
             </div>
           )}
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", margin: "4px 0 0" }}>{userEmail}</p>
+          <p style={{ fontSize: 12, color: "var(--missi-text-secondary)", margin: "4px 0 0" }}>{userEmail}</p>
         </div>
 
         <span
@@ -595,9 +595,9 @@ function ProfileSection({
             textTransform: "uppercase",
             padding: "4px 10px",
             borderRadius: 999,
-            background: isPro ? "rgba(245,158,11,0.12)" : "rgba(255,255,255,0.06)",
-            color: isPro ? "#fbbf24" : "rgba(255,255,255,0.55)",
-            border: isPro ? "1px solid rgba(251,191,36,0.28)" : "1px solid rgba(255,255,255,0.06)",
+            background: isPro ? "var(--missi-accent-soft)" : "var(--missi-border)",
+            color: isPro ? "var(--missi-accent)" : "var(--missi-text-secondary)",
+            border: isPro ? "1px solid var(--missi-accent-border)" : "1px solid var(--missi-border)",
             flexShrink: 0,
           }}
         >
@@ -649,14 +649,14 @@ function PersonalitySection({
                 }
               }}
               data-testid={`settings-personality-${p.key}-btn`}
-              className="relative flex items-center gap-3 text-left transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
-              style={{
-                padding: "12px 14px",
-                borderRadius: 12,
-                background: isActive ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.015)",
-                border: isActive ? "1px solid rgba(255,255,255,0.18)" : "1px solid rgba(255,255,255,0.05)",
-                cursor: "pointer",
-                opacity: isLocked ? 0.5 : 1,
+              className="relative flex items-center gap-3 text-left transition-colors hover:bg-[var(--missi-nav-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--missi-border)]"
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  background: isActive ? "var(--missi-nav-active-bg)" : "var(--missi-surface)",
+                  border: isActive ? "1px solid var(--missi-border-strong)" : "1px solid var(--missi-border)",
+                  cursor: "pointer",
+                  opacity: isLocked ? 0.5 : 1,
               }}
             >
               <div
@@ -664,23 +664,23 @@ function PersonalitySection({
                 style={{
                   width: 32,
                   height: 32,
-                  background: "rgba(255,255,255,0.04)",
-                  color: isActive ? "white" : "rgba(255,255,255,0.6)",
-                  border: "1px solid rgba(255,255,255,0.05)",
+                  background: "var(--missi-surface)",
+                  color: isActive ? "var(--missi-nav-text-active)" : "var(--missi-text-secondary)",
+                  border: "1px solid var(--missi-border)",
                 }}
               >
                 {Icon}
               </div>
               <div className="flex-1 min-w-0">
-                <p style={{ fontSize: 13, fontWeight: 500, color: "white", margin: 0 }}>{p.label}</p>
-                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", margin: "2px 0 0", lineHeight: 1.4 }}>
+                <p style={{ fontSize: 13, fontWeight: 500, color: "var(--missi-text-primary)", margin: 0 }}>{p.label}</p>
+                <p style={{ fontSize: 11, color: "var(--missi-text-secondary)", margin: "2px 0 0", lineHeight: 1.4 }}>
                   {p.desc}
                 </p>
               </div>
               {isLocked ? (
-                <Lock className="w-3.5 h-3.5 text-white/50 flex-shrink-0" />
+                <Lock className="w-3.5 h-3.5 text-[var(--missi-text-secondary)] flex-shrink-0" />
               ) : isActive ? (
-                <Check className="w-3.5 h-3.5 text-white/75 flex-shrink-0" />
+                <Check className="w-3.5 h-3.5 text-[var(--missi-text-secondary)] flex-shrink-0" />
               ) : null}
             </button>
           )
@@ -698,11 +698,11 @@ function PersonalitySection({
             rows={4}
             style={{
               fontSize: 13,
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid rgba(255,255,255,0.08)",
+              background: "var(--missi-surface)",
+              border: "1px solid var(--missi-border)",
               borderRadius: 10,
               padding: "10px 12px",
-              color: "rgba(255,255,255,0.9)",
+              color: "var(--missi-text-primary)",
               lineHeight: 1.6,
             }}
           />
@@ -751,14 +751,14 @@ function AIBehaviorSection({
             toast.success("Reset to defaults")
           }}
           disabled={isDefault}
-          className="inline-flex items-center gap-1 text-xs transition-colors hover:text-white"
+          className="inline-flex items-center gap-1 text-xs transition-colors hover:text-[var(--missi-text-primary)]"
           style={{
             background: "transparent",
-            border: "1px solid rgba(255,255,255,0.08)",
+            border: "1px solid var(--missi-border)",
             borderRadius: 8,
             padding: "6px 10px",
             cursor: isDefault ? "default" : "pointer",
-            color: isDefault ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.65)",
+            color: isDefault ? "var(--missi-text-muted)" : "var(--missi-text-secondary)",
           }}
         >
           <RotateCcw className="w-3 h-3" />
@@ -771,7 +771,7 @@ function AIBehaviorSection({
         <p style={{ ...eyebrow, marginBottom: 8 }}>Response Length</p>
         <div
           className="inline-flex rounded-lg"
-          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", padding: 3 }}
+          style={{ background: "var(--missi-surface)", border: "1px solid var(--missi-border)", padding: 3 }}
         >
           {(["short", "medium", "long"] as const).map((len) => {
             const active = aiDials.responseLength === len
@@ -786,8 +786,8 @@ function AIBehaviorSection({
                   fontWeight: 500,
                   padding: "6px 14px",
                   borderRadius: 7,
-                  background: active ? "rgba(255,255,255,0.1)" : "transparent",
-                  color: active ? "white" : "rgba(255,255,255,0.6)",
+                  background: active ? "var(--missi-nav-text-active)" : "transparent",
+                  color: active ? "var(--missi-bg)" : "var(--missi-text-secondary)",
                   border: "none",
                   cursor: "pointer",
                 }}
@@ -805,14 +805,14 @@ function AIBehaviorSection({
           <div key={d.key}>
             <div className="flex items-baseline justify-between mb-2">
               <div>
-                <p style={{ fontSize: 13, fontWeight: 500, color: "white", margin: 0 }}>{d.label}</p>
-                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", margin: "1px 0 0" }}>{d.desc}</p>
+                <p style={{ fontSize: 13, fontWeight: 500, color: "var(--missi-text-primary)", margin: 0 }}>{d.label}</p>
+                <p style={{ fontSize: 11, color: "var(--missi-text-muted)", margin: "1px 0 0" }}>{d.desc}</p>
               </div>
               <span
                 style={{
                   fontSize: 11,
                   fontVariantNumeric: "tabular-nums",
-                  color: "rgba(255,255,255,0.55)",
+                  color: "var(--missi-text-secondary)",
                   fontWeight: 500,
                 }}
               >
@@ -959,7 +959,7 @@ function NotificationsSection({
           type="button"
           onClick={enablePush}
           disabled={pushEnabling}
-          className="transition-colors hover:bg-white/[0.06]"
+          className="transition-colors hover:bg-[var(--missi-nav-hover)]"
           style={{
             padding: "6px 14px",
             borderRadius: 999,
@@ -967,8 +967,8 @@ function NotificationsSection({
             fontWeight: 600,
             letterSpacing: "0.05em",
             background: "transparent",
-            border: "1px solid rgba(255,255,255,0.14)",
-            color: "rgba(255,255,255,0.8)",
+            border: "1px solid var(--missi-border-strong)",
+            color: "var(--missi-text-primary)",
             cursor: pushEnabling ? "default" : "pointer",
           }}
         >
@@ -1049,7 +1049,7 @@ function TimeField({
 }) {
   return (
     <label className="flex items-center gap-2">
-      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{label}</span>
+      <span style={{ fontSize: 11, color: "var(--missi-text-secondary)" }}>{label}</span>
       <input
         type="time"
         value={value}
@@ -1058,11 +1058,10 @@ function TimeField({
         style={{
           fontSize: 12,
           padding: "4px 8px",
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          background: "var(--missi-surface)",
+          border: "1px solid var(--missi-border)",
           borderRadius: 6,
-          color: "white",
-          colorScheme: "dark",
+          color: "var(--missi-text-primary)",
         }}
       />
     </label>
@@ -1112,19 +1111,14 @@ function AppearanceSection({
               <button
                 key={t.key}
                 type="button"
-                onClick={() => {
-                  if (t.key !== "dark") {
-                    toast("Light/system themes coming soon — staying on dark for now.")
-                  }
-                  updateAppearance({ theme: t.key })
-                }}
-                className="flex items-center gap-2 transition-colors hover:bg-white/[0.05]"
+                onClick={() => updateAppearance({ theme: t.key })}
+                className="flex items-center gap-2 transition-colors hover:bg-[var(--missi-nav-hover)]"
                 style={{
                   padding: "8px 14px",
                   borderRadius: 10,
-                  background: active ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
-                  border: active ? "1px solid rgba(255,255,255,0.18)" : "1px solid rgba(255,255,255,0.06)",
-                  color: active ? "white" : "rgba(255,255,255,0.6)",
+                  background: active ? "var(--missi-nav-text-active)" : "var(--missi-surface)",
+                  border: active ? "1px solid var(--missi-border-strong)" : "1px solid var(--missi-border)",
+                  color: active ? "var(--missi-bg)" : "var(--missi-text-secondary)",
                   fontSize: 12,
                   fontWeight: 500,
                   cursor: "pointer",
@@ -1156,12 +1150,12 @@ function AppearanceSection({
                   height: 32,
                   borderRadius: "50%",
                   background: a.color,
-                  border: active ? "2px solid white" : "2px solid rgba(255,255,255,0.08)",
+                  border: active ? "2px solid var(--missi-text-primary)" : "2px solid var(--missi-border)",
                   cursor: "pointer",
-                  boxShadow: active ? "0 0 0 3px rgba(255,255,255,0.12)" : "none",
+                  boxShadow: active ? "0 0 0 3px var(--missi-text-muted)" : "none",
                 }}
               >
-                {active && <Check className="w-3.5 h-3.5 text-white absolute inset-0 m-auto" />}
+                {active && <Check className="w-3.5 h-3.5 text-[var(--missi-text-primary)] absolute inset-0 m-auto" />}
               </button>
             )
           })}
@@ -1179,14 +1173,14 @@ function AppearanceSection({
                 key={s.key}
                 type="button"
                 onClick={() => updateAppearance({ fontScale: s.key })}
-                className="transition-colors hover:bg-white/[0.05]"
+                className="transition-colors hover:bg-[var(--missi-nav-hover)]"
                 style={{
                   width: 40,
                   height: 40,
                   borderRadius: 10,
-                  background: active ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
-                  border: active ? "1px solid rgba(255,255,255,0.18)" : "1px solid rgba(255,255,255,0.06)",
-                  color: active ? "white" : "rgba(255,255,255,0.55)",
+                  background: active ? "var(--missi-nav-text-active)" : "var(--missi-surface)",
+                  border: active ? "1px solid var(--missi-border-strong)" : "1px solid var(--missi-border)",
+                  color: active ? "var(--missi-bg)" : "var(--missi-text-secondary)",
                   fontSize: s.size,
                   fontWeight: 600,
                   cursor: "pointer",
@@ -1320,81 +1314,81 @@ function PrivacySection({
       <div className="flex flex-col gap-2">
         <Link
           href="/memory"
-          className="flex items-center justify-between rounded-lg transition-colors hover:bg-white/[0.04]"
+          className="flex items-center justify-between rounded-lg transition-colors hover:bg-[var(--missi-nav-hover)]"
           style={{
             padding: "10px 12px",
-            background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.05)",
+            background: "var(--missi-surface)",
+            border: "1px solid var(--missi-border)",
             textDecoration: "none",
           }}
         >
           <div className="flex items-center gap-3">
-            <div className="text-white/55">
+            <div className="text-[var(--missi-text-secondary)]">
               <Eye className="w-4 h-4" />
             </div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 500, color: "white", margin: 0 }}>Manage memories</p>
-              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", margin: "2px 0 0" }}>
+              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--missi-text-primary)", margin: 0 }}>Manage memories</p>
+              <p style={{ fontSize: 11, color: "var(--missi-text-secondary)", margin: "2px 0 0" }}>
                 Review and delete individual nodes in your life graph.
               </p>
             </div>
           </div>
-          <ChevronRight className="w-4 h-4 text-white/35" />
+          <ChevronRight className="w-4 h-4 text-[var(--missi-text-muted)]" />
         </Link>
 
         <button
           type="button"
           onClick={exportData}
-          className="flex items-center justify-between rounded-lg transition-colors hover:bg-white/[0.04]"
+          className="flex items-center justify-between rounded-lg transition-colors hover:bg-[var(--missi-nav-hover)]"
           style={{
             padding: "10px 12px",
-            background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.05)",
+            background: "var(--missi-surface)",
+            border: "1px solid var(--missi-border)",
             cursor: "pointer",
             textAlign: "left",
           }}
         >
           <div className="flex items-center gap-3">
-            <div className="text-white/55">
+            <div className="text-[var(--missi-text-secondary)]">
               <Download className="w-4 h-4" />
             </div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 500, color: "white", margin: 0 }}>Export my data</p>
-              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", margin: "2px 0 0" }}>
+              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--missi-text-primary)", margin: 0 }}>Export my data</p>
+              <p style={{ fontSize: 11, color: "var(--missi-text-secondary)", margin: "2px 0 0" }}>
                 Download your memory graph as JSON.
               </p>
             </div>
           </div>
-          <ChevronRight className="w-4 h-4 text-white/35" />
+          <ChevronRight className="w-4 h-4 text-[var(--missi-text-muted)]" />
         </button>
 
         <button
           type="button"
           onClick={deleteAccount}
           disabled={deleting}
-          className="flex items-center justify-between rounded-lg transition-colors hover:bg-red-500/[0.08]"
+          className="flex items-center justify-between rounded-lg transition-colors hover:bg-destructive/10"
           style={{
             padding: "10px 12px",
-            background: "rgba(239,68,68,0.04)",
-            border: "1px solid rgba(239,68,68,0.18)",
+            background: "hsl(var(--destructive) / 0.08)",
+            border: "1px solid hsl(var(--destructive) / 0.28)",
             cursor: deleting ? "default" : "pointer",
             textAlign: "left",
           }}
         >
           <div className="flex items-center gap-3">
-            <div style={{ color: "#fca5a5" }}>
+            <div style={{ color: "hsl(var(--destructive) / 0.95)" }}>
               <Trash2 className="w-4 h-4" />
             </div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 500, color: "#fca5a5", margin: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 500, color: "hsl(var(--destructive) / 0.95)", margin: 0 }}>
                 {deleting ? "Deleting…" : "Delete account"}
               </p>
-              <p style={{ fontSize: 11, color: "rgba(252,165,165,0.6)", margin: "2px 0 0" }}>
+              <p style={{ fontSize: 11, color: "hsl(var(--destructive) / 0.74)", margin: "2px 0 0" }}>
                 Permanently erase everything. Cannot be undone.
               </p>
             </div>
           </div>
-          <ChevronRight className="w-4 h-4" style={{ color: "rgba(252,165,165,0.5)" }} />
+          <ChevronRight className="w-4 h-4" style={{ color: "hsl(var(--destructive) / 0.68)" }} />
         </button>
       </div>
     </Card>
@@ -1410,26 +1404,26 @@ function IntegrationsSection() {
     >
       <Link
         href="/settings/integrations"
-        className="flex items-center justify-between rounded-lg transition-colors hover:bg-white/[0.04]"
+        className="flex items-center justify-between rounded-lg transition-colors hover:bg-[var(--missi-nav-hover)]"
         style={{
           padding: "10px 12px",
-          background: "rgba(255,255,255,0.02)",
-          border: "1px solid rgba(255,255,255,0.05)",
+          background: "var(--missi-surface)",
+          border: "1px solid var(--missi-border)",
           textDecoration: "none",
         }}
       >
         <div className="flex items-center gap-3">
-          <div className="text-white/55">
+          <div className="text-[var(--missi-text-secondary)]">
             <Plug className="w-4 h-4" />
           </div>
           <div>
-            <p style={{ fontSize: 13, fontWeight: 500, color: "white", margin: 0 }}>Messaging integrations</p>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", margin: "2px 0 0" }}>
+            <p style={{ fontSize: 13, fontWeight: 500, color: "var(--missi-text-primary)", margin: 0 }}>Messaging integrations</p>
+            <p style={{ fontSize: 11, color: "var(--missi-text-secondary)", margin: "2px 0 0" }}>
               Link WhatsApp and Telegram to continue chats anywhere.
             </p>
           </div>
         </div>
-        <ChevronRight className="w-4 h-4 text-white/35" />
+        <ChevronRight className="w-4 h-4 text-[var(--missi-text-muted)]" />
       </Link>
     </Card>
   )
@@ -1442,27 +1436,27 @@ function SubscriptionSection({ planId }: { planId: string | undefined }) {
     <Card
       title="Subscription"
       description={isFreePlan ? "Upgrade to unlock premium personalities, voices and more." : "Your current Missi plan."}
-      icon={<Crown className="w-4 h-4" style={{ color: "#F59E0B" }} />}
+      icon={<Crown className="w-4 h-4" style={{ color: "var(--missi-accent)" }} />}
     >
       <Link
         href="/pricing"
-        className="flex items-center justify-between rounded-lg transition-colors hover:bg-white/[0.04]"
+        className="flex items-center justify-between rounded-lg transition-colors hover:bg-[var(--missi-nav-hover)]"
         style={{
           padding: "12px 14px",
           background: isFreePlan
-            ? "linear-gradient(90deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.02) 100%)"
-            : "rgba(255,255,255,0.02)",
-          border: isFreePlan ? "1px solid rgba(245,158,11,0.22)" : "1px solid rgba(255,255,255,0.06)",
+            ? "linear-gradient(90deg, var(--missi-accent-soft) 0%, hsl(var(--card) / 0.5) 100%)"
+            : "var(--missi-surface)",
+          border: isFreePlan ? "1px solid var(--missi-accent-border)" : "1px solid var(--missi-border)",
           textDecoration: "none",
         }}
       >
         <div className="flex items-center gap-3">
-          <Crown className="w-4 h-4" style={{ color: "#F59E0B" }} />
+          <Crown className="w-4 h-4" style={{ color: "var(--missi-accent)" }} />
           <div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "white", margin: 0 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--missi-text-primary)", margin: 0 }}>
               {isFreePlan ? "Upgrade to Pro" : "Manage subscription"}
             </p>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", margin: "2px 0 0" }}>
+            <p style={{ fontSize: 11, color: "var(--missi-text-secondary)", margin: "2px 0 0" }}>
               {isFreePlan ? "See plans, features and pricing." : `Currently on ${planId?.toUpperCase()}.`}
             </p>
           </div>
@@ -1473,7 +1467,7 @@ function SubscriptionSection({ planId }: { planId: string | undefined }) {
             fontWeight: 700,
             letterSpacing: "0.12em",
             textTransform: "uppercase",
-            color: isFreePlan ? "#F59E0B" : "rgba(255,255,255,0.5)",
+            color: isFreePlan ? "var(--missi-accent)" : "var(--missi-text-secondary)",
           }}
         >
           {isFreePlan ? "View plans" : planId}
@@ -1488,27 +1482,27 @@ function DangerZoneSection({ onLogout }: { onLogout: () => void }) {
     <section
       className="rounded-2xl flex items-center justify-between gap-3"
       style={{
-        background: "rgba(255,255,255,0.015)",
-        border: "1px solid rgba(255,255,255,0.05)",
+        background: "var(--missi-surface)",
+        border: "1px solid var(--missi-border)",
         padding: 14,
       }}
     >
       <div>
-        <p style={{ fontSize: 13, fontWeight: 500, color: "white", margin: 0 }}>Sign out of this device</p>
-        <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", margin: "2px 0 0" }}>
+        <p style={{ fontSize: 13, fontWeight: 500, color: "var(--missi-text-primary)", margin: 0 }}>Sign out of this device</p>
+        <p style={{ fontSize: 11, color: "var(--missi-text-secondary)", margin: "2px 0 0" }}>
           You'll need to sign in again to access your account.
         </p>
       </div>
       <button
         type="button"
         onClick={onLogout}
-        className="inline-flex items-center gap-2 transition-colors hover:bg-white/[0.06]"
+        className="inline-flex items-center gap-2 transition-colors hover:bg-[var(--missi-nav-hover)]"
         style={{
           padding: "8px 14px",
           borderRadius: 10,
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          color: "white",
+          background: "var(--missi-surface)",
+          border: "1px solid var(--missi-border)",
+          color: "var(--missi-text-primary)",
           fontSize: 12,
           fontWeight: 500,
           cursor: "pointer",
@@ -1532,26 +1526,26 @@ if (typeof document !== "undefined" && !document.getElementById("missi-settings-
     .missi-slider { -webkit-appearance: none; appearance: none; background: transparent; height: 20px; }
     .missi-slider::-webkit-slider-runnable-track {
       height: 4px; border-radius: 999px;
-      background: linear-gradient(90deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.08) 100%);
+      background: linear-gradient(90deg, var(--missi-border) 0%, var(--missi-border) 100%);
     }
     .missi-slider::-moz-range-track {
       height: 4px; border-radius: 999px;
-      background: linear-gradient(90deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.08) 100%);
+      background: linear-gradient(90deg, var(--missi-border) 0%, var(--missi-border) 100%);
     }
     .missi-slider::-webkit-slider-thumb {
       -webkit-appearance: none; appearance: none;
       width: 16px; height: 16px; border-radius: 50%;
-      background: white; border: 2px solid rgba(0,0,0,0.8);
+      background: var(--missi-surface); border: 2px solid var(--missi-nav-text-active);
       margin-top: -6px; cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 6px var(--missi-shadow-lg);
     }
     .missi-slider::-moz-range-thumb {
       width: 14px; height: 14px; border-radius: 50%;
-      background: white; border: 2px solid rgba(0,0,0,0.8);
-      cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      background: var(--missi-surface); border: 2px solid var(--missi-nav-text-active);
+      cursor: pointer; box-shadow: 0 2px 6px var(--missi-shadow-lg);
     }
     .missi-slider:focus { outline: none; }
-    .missi-slider:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(255,255,255,0.12), 0 2px 6px rgba(0,0,0,0.4); }
+    .missi-slider:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px hsl(var(--ring) / 0.35), 0 2px 6px var(--missi-shadow-lg); }
   `
   document.head.appendChild(style)
 }

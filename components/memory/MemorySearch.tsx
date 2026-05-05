@@ -50,7 +50,7 @@ export function MemorySearch({ query, onChange, resultCount }: MemorySearchProps
             transform: 'translateY(-50%)',
             width: '16px',
             height: '16px',
-            color: 'rgba(255,255,255,0.3)',
+            color: 'var(--missi-text-muted)',
             pointerEvents: 'none',
           }}
         />
@@ -63,13 +63,13 @@ export function MemorySearch({ query, onChange, resultCount }: MemorySearchProps
           placeholder="Search your memories..."
           style={{
             width: '100%',
-            background: 'rgba(255,255,255,0.05)',
+            background: 'var(--missi-border)',
             border: isFocused
-              ? '1px solid rgba(255,255,255,0.25)'
-              : '1px solid rgba(255,255,255,0.1)',
+              ? '1px solid var(--missi-text-muted)'
+              : '1px solid var(--missi-border)',
             borderRadius: '12px',
             padding: '12px 44px 12px 44px',
-            color: 'rgba(255,255,255,0.85)',
+            color: 'var(--missi-text-primary)',
             fontSize: '14px',
             outline: 'none',
             transition: 'border-color 0.15s',
@@ -87,7 +87,7 @@ export function MemorySearch({ query, onChange, resultCount }: MemorySearchProps
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: 'rgba(255,255,255,0.4)',
+              color: 'var(--missi-text-muted)',
               display: 'flex',
               alignItems: 'center',
               padding: '2px',
@@ -101,7 +101,7 @@ export function MemorySearch({ query, onChange, resultCount }: MemorySearchProps
         <p
           style={{
             fontSize: '11px',
-            color: 'rgba(255,255,255,0.35)',
+            color: 'var(--missi-text-muted)',
             marginTop: '6px',
             marginLeft: '4px',
           }}

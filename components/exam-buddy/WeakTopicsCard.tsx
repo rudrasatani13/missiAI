@@ -18,15 +18,15 @@ export function WeakTopicsCard({ topics, onPractice }: WeakTopicsCardProps) {
             key={`${t.subject}-${t.topic}`}
             className="flex items-center justify-between rounded-[22px] px-4 py-4"
             style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'var(--missi-surface)',
+              border: '1px solid var(--missi-border)',
             }}
           >
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium truncate" style={{ color: 'rgba(255,255,255,0.9)' }}>
+              <p className="text-sm font-medium truncate" style={{ color: 'var(--missi-text-primary)' }}>
                 {t.topic}
               </p>
-              <p className="text-[11px] font-light mt-1 capitalize" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="text-[11px] font-light mt-1 capitalize" style={{ color: 'var(--missi-text-muted)' }}>
                 {t.subject.replace('_', ' ')} · {t.wrongCount} miss{t.wrongCount !== 1 ? 'es' : ''}
               </p>
             </div>
@@ -35,9 +35,9 @@ export function WeakTopicsCard({ topics, onPractice }: WeakTopicsCardProps) {
               onClick={() => onPractice(t.topic, t.subject as ExamSubject)}
               className="shrink-0 ml-3 px-3 py-2 rounded-full text-xs font-medium transition-colors"
               style={{
-                background: 'rgba(255,255,255,0.96)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: '#0a0a0f',
+                background: 'var(--missi-border)',
+                border: '1px solid var(--missi-border)',
+                color: 'var(--missi-surface)',
                 cursor: 'pointer',
               }}
             >

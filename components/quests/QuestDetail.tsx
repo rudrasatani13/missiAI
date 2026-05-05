@@ -90,8 +90,8 @@ export function QuestDetail({
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={onBack}
-          className="p-2 rounded-full transition-all hover:bg-white/10"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}
+          className="p-2 rounded-full transition-all hover:bg-[var(--missi-surface)]"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--missi-border)' }}
         >
           ←
         </button>
@@ -100,12 +100,12 @@ export function QuestDetail({
             <span className="text-2xl">{quest.coverEmoji}</span>
             <h1
               className="text-lg font-semibold truncate"
-              style={{ color: 'rgba(255,255,255,0.92)' }}
+              style={{ color: 'var(--missi-text-primary)' }}
             >
               {quest.title}
             </h1>
           </div>
-          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <p className="text-xs mt-1" style={{ color: 'var(--missi-text-muted)' }}>
             {quest.description}
           </p>
         </div>
@@ -115,13 +115,13 @@ export function QuestDetail({
       <div
         className="rounded-xl p-4 mb-6"
         style={{
-          background: 'rgba(20,20,26,0.55)',
+          background: 'var(--missi-surface)',
           backdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          border: '1px solid var(--missi-border)',
         }}
       >
         <div className="flex justify-between items-center mb-2">
-          <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          <span className="text-xs font-medium" style={{ color: 'var(--missi-text-secondary)' }}>
             Progress
           </span>
           <span className="text-xs font-semibold" style={{ color: categoryColor }}>
@@ -130,7 +130,7 @@ export function QuestDetail({
         </div>
         <div
           className="w-full h-2 rounded-full overflow-hidden"
-          style={{ background: 'rgba(255,255,255,0.06)' }}
+          style={{ background: 'var(--missi-border)' }}
         >
           <div
             className="h-full rounded-full transition-all duration-700"
@@ -142,7 +142,7 @@ export function QuestDetail({
           />
         </div>
         <div className="flex justify-between mt-2">
-          <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <span className="text-[10px]" style={{ color: 'var(--missi-text-muted)' }}>
             {quest.completedMissions} / {quest.totalMissions} missions
           </span>
           <span className="text-[10px]" style={{ color: 'rgba(255,200,50,0.7)' }}>
@@ -246,25 +246,25 @@ function ChapterSection({
     <div
       className="rounded-xl overflow-hidden transition-all"
       style={{
-        background: 'rgba(20,20,26,0.55)',
+        background: 'var(--missi-surface)',
         backdropFilter: 'blur(24px)',
         border: hasAvailable
           ? `1px solid ${categoryColor}20`
-          : '1px solid rgba(255,255,255,0.04)',
+          : '1px solid var(--missi-text-muted)',
         opacity: !hasAvailable && !allDone ? 0.5 : 1,
       }}
     >
       {/* Chapter header */}
       <div className="px-4 py-3 flex items-center justify-between"
         style={{
-          borderBottom: '1px solid rgba(255,255,255,0.04)',
+          borderBottom: '1px solid var(--missi-border)',
         }}
       >
         <div>
           <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: categoryColor }}>
             Chapter {chapter.chapterNumber}
           </p>
-          <p className="text-xs font-medium mt-0.5" style={{ color: 'rgba(255,255,255,0.75)' }}>
+          <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--missi-text-secondary)' }}>
             {chapter.title}
           </p>
         </div>
@@ -319,7 +319,7 @@ function MissionRow({
     <div
       className="flex items-center gap-3 py-2.5 transition-all"
       style={{
-        borderBottom: '1px solid rgba(255,255,255,0.03)',
+        borderBottom: '1px solid var(--missi-border)',
         opacity: isLocked ? 0.35 : 1,
       }}
     >
@@ -335,9 +335,9 @@ function MissionRow({
         ) : isLocked ? (
           <div
             className="w-5 h-5 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.05)' }}
+            style={{ background: 'var(--missi-surface)' }}
           >
-            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>🔒</span>
+            <span className="text-[10px]" style={{ color: 'var(--missi-text-muted)' }}>🔒</span>
           </div>
         ) : mission.isBoss ? (
           <div
@@ -365,8 +365,8 @@ function MissionRow({
           className="text-xs"
           style={{
             color: isCompleted
-              ? 'rgba(255,255,255,0.4)'
-              : 'rgba(255,255,255,0.8)',
+              ? 'var(--missi-text-muted)'
+              : 'var(--missi-text-primary)',
             textDecoration: isCompleted ? 'line-through' : 'none',
           }}
         >
@@ -374,7 +374,7 @@ function MissionRow({
           {mission.title}
         </p>
         {mission.description && isAvailable && (
-          <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-[10px] mt-0.5" style={{ color: 'var(--missi-text-muted)' }}>
             {mission.description}
           </p>
         )}

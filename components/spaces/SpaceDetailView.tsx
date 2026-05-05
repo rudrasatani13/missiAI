@@ -33,20 +33,20 @@ export default function SpaceDetailView({ data, onReload }: Props) {
       <header className="flex items-center gap-4">
         <div className="text-4xl leading-none">{space.emoji}</div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-medium text-white m-0 truncate">
+          <h1 className="text-xl font-medium text-[var(--missi-text-primary)] m-0 truncate">
             {space.name}
           </h1>
-          <p className="text-xs text-white/45 m-0 capitalize">
+          <p className="text-xs text-[var(--missi-text-muted)] m-0 capitalize">
             {space.category} · {members.length} member
             {members.length === 1 ? '' : 's'}
           </p>
           {space.description ? (
-            <p className="text-sm text-white/55 mt-2 mb-0">{space.description}</p>
+            <p className="text-sm text-[var(--missi-text-secondary)] mt-2 mb-0">{space.description}</p>
           ) : null}
         </div>
       </header>
 
-      <nav className="flex gap-1 border-b border-white/5">
+      <nav className="flex gap-1 border-b border-[var(--missi-border)]">
         {(['memories', 'members', ...(userRole === 'owner' ? (['settings'] as const) : [])] as Tab[]).map(
           (t) => (
             <button
@@ -55,12 +55,12 @@ export default function SpaceDetailView({ data, onReload }: Props) {
               onClick={() => setTab(t)}
               className="px-3 py-2 text-xs font-medium capitalize"
               style={{
-                color: tab === t ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)',
+                color: tab === t ? 'var(--missi-text-primary)' : 'var(--missi-text-secondary)',
                 background: 'transparent',
                 border: 'none',
                 borderBottom:
                   tab === t
-                    ? '1px solid rgba(255,255,255,0.9)'
+                    ? '1px solid var(--missi-text-primary)'
                     : '1px solid transparent',
                 cursor: 'pointer',
               }}
@@ -185,17 +185,17 @@ function MemoriesTab({
       ) : null}
 
       {loading ? (
-        <p className="text-sm text-white/40">Loading memories…</p>
+        <p className="text-sm text-[var(--missi-text-muted)]">Loading memories…</p>
       ) : nodes.length === 0 ? (
         <div
           className="rounded-2xl p-8 text-center"
           style={{
-            background: 'rgba(20,20,26,0.55)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
           }}
         >
-          <p className="text-sm text-white/55 mb-1">No shared memories yet.</p>
-          <p className="text-xs text-white/35">
+          <p className="text-sm text-[var(--missi-text-secondary)] mb-1">No shared memories yet.</p>
+          <p className="text-xs text-[var(--missi-text-muted)]">
             Add one above or share from your personal memory.
           </p>
         </div>
@@ -234,17 +234,17 @@ function NodeCard({
     <div
       className="rounded-2xl p-4"
       style={{
-        background: 'rgba(20,20,26,0.55)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
       }}
     >
       <div className="flex items-start justify-between mb-2">
         <span
           className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded"
           style={{
-            color: 'rgba(255,255,255,0.55)',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            color: 'var(--missi-text-secondary)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
           }}
         >
           {node.category}
@@ -254,7 +254,7 @@ function NodeCard({
             type="button"
             onClick={onDelete}
             aria-label="Delete memory"
-            className="text-white/30 hover:text-red-400"
+            className="text-[var(--missi-text-muted)] hover:text-red-400"
             style={{
               background: 'none',
               border: 'none',
@@ -266,13 +266,13 @@ function NodeCard({
           </button>
         ) : null}
       </div>
-      <h4 className="text-sm font-medium text-white/90 m-0 mb-1">
+      <h4 className="text-sm font-medium text-[var(--missi-text-primary)] m-0 mb-1">
         {node.title}
       </h4>
-      <p className="text-xs text-white/55 m-0 mb-3 line-clamp-3">
+      <p className="text-xs text-[var(--missi-text-secondary)] m-0 mb-3 line-clamp-3">
         {node.detail}
       </p>
-      <p className="text-[10px] text-white/35 m-0">
+      <p className="text-[10px] text-[var(--missi-text-muted)] m-0">
         Added by {node.contributorDisplayName || 'someone'}
       </p>
     </div>
@@ -341,8 +341,8 @@ function AddMemoryForm({
       onSubmit={submit}
       className="rounded-2xl p-5 flex flex-col gap-3"
       style={{
-        background: 'rgba(20,20,26,0.55)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
       }}
     >
       <div className="flex gap-3 flex-wrap">
@@ -409,15 +409,15 @@ function AddMemoryForm({
           disabled={submitting || !title.trim()}
           className="px-5 py-2 rounded-full text-xs font-medium active:scale-[0.97]"
           style={{
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid var(--missi-border)',
             background:
               submitting || !title.trim()
-                ? 'rgba(255,255,255,0.04)'
-                : 'rgba(255,255,255,0.92)',
+                ? 'var(--missi-text-muted)'
+                : 'var(--missi-text-primary)',
             color:
               submitting || !title.trim()
-                ? 'rgba(255,255,255,0.35)'
-                : '#0a0a0f',
+                ? 'var(--missi-text-muted)'
+                : 'var(--missi-surface)',
             cursor: submitting || !title.trim() ? 'default' : 'pointer',
           }}
         >
@@ -491,8 +491,8 @@ function SharePicker({
     <div
       className="rounded-2xl p-5 flex flex-col gap-3"
       style={{
-        background: 'rgba(20,20,26,0.55)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
       }}
     >
       <div>
@@ -506,9 +506,9 @@ function SharePicker({
         />
       </div>
       {loading ? (
-        <p className="text-sm text-white/40">Loading your memories…</p>
+        <p className="text-sm text-[var(--missi-text-muted)]">Loading your memories…</p>
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-white/40">
+        <p className="text-sm text-[var(--missi-text-muted)]">
           No personal memories found{query ? ` for "${query}"` : ''}.
         </p>
       ) : (
@@ -521,18 +521,18 @@ function SharePicker({
               key={n.id}
               className="flex items-start gap-3 rounded-lg p-3"
               style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.05)',
+                background: 'var(--missi-surface)',
+                border: '1px solid var(--missi-border)',
               }}
             >
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/50 m-0 mb-0.5 capitalize">
+                <p className="text-xs text-[var(--missi-text-secondary)] m-0 mb-0.5 capitalize">
                   {n.category}
                 </p>
-                <p className="text-sm text-white/90 m-0 mb-0.5 truncate">
+                <p className="text-sm text-[var(--missi-text-primary)] m-0 mb-0.5 truncate">
                   {n.title}
                 </p>
-                <p className="text-xs text-white/45 m-0 line-clamp-2">
+                <p className="text-xs text-[var(--missi-text-muted)] m-0 line-clamp-2">
                   {n.detail}
                 </p>
               </div>
@@ -640,12 +640,12 @@ function MembersTab({
       <div
         className="rounded-2xl p-5"
         style={{
-          background: 'rgba(20,20,26,0.55)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--missi-surface)',
+          border: '1px solid var(--missi-border)',
         }}
       >
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-white/90 m-0">
+          <h3 className="text-sm font-medium text-[var(--missi-text-primary)] m-0">
             Invite someone
           </h3>
           <button
@@ -663,9 +663,9 @@ function MembersTab({
             <code
               className="text-xs px-3 py-2 rounded-lg flex-1 min-w-0 truncate"
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                color: 'rgba(255,255,255,0.8)',
+                background: 'var(--missi-surface)',
+                border: '1px solid var(--missi-border)',
+                color: 'var(--missi-text-secondary)',
               }}
             >
               {invite.inviteUrl}
@@ -678,14 +678,14 @@ function MembersTab({
             >
               <Copy className="w-3 h-3" /> Copy
             </button>
-            <p className="text-[10px] text-white/40 w-full m-0">
+            <p className="text-[10px] text-[var(--missi-text-muted)] w-full m-0">
               Expires {new Date(invite.expiresAt).toLocaleString()} · single use
             </p>
           </div>
         ) : inviteErr ? (
           <p className="text-xs text-red-400 m-0">{inviteErr}</p>
         ) : (
-          <p className="text-[11px] text-white/40 m-0">
+          <p className="text-[11px] text-[var(--missi-text-muted)] m-0">
             Each link works for one person only and expires after 48 hours.
           </p>
         )}
@@ -700,15 +700,15 @@ function MembersTab({
             key={m.userId}
             className="flex items-center gap-3 rounded-xl p-3"
             style={{
-              background: 'rgba(20,20,26,0.55)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--missi-surface)',
+              border: '1px solid var(--missi-border)',
             }}
           >
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-white/90 m-0 truncate">
+              <p className="text-sm text-[var(--missi-text-primary)] m-0 truncate">
                 {m.displayName}
               </p>
-              <p className="text-[11px] text-white/40 m-0">
+              <p className="text-[11px] text-[var(--missi-text-muted)] m-0">
                 {m.role === 'owner' ? 'Owner · ' : 'Member · '}
                 joined {new Date(m.joinedAt).toLocaleDateString()}
               </p>
@@ -798,11 +798,11 @@ function SettingsTab({
       <div
         className="rounded-2xl p-5 flex flex-col gap-3"
         style={{
-          background: 'rgba(20,20,26,0.55)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--missi-surface)',
+          border: '1px solid var(--missi-border)',
         }}
       >
-        <h3 className="text-sm font-medium text-white/90 m-0">Edit Space</h3>
+        <h3 className="text-sm font-medium text-[var(--missi-text-primary)] m-0">Edit Space</h3>
         <div className="flex gap-3 flex-wrap">
           <div style={{ width: 80 }}>
             <Label>Emoji</Label>
@@ -857,7 +857,7 @@ function SettingsTab({
         }}
       >
         <h3 className="text-sm font-medium text-red-300 m-0">Danger zone</h3>
-        <p className="text-xs text-white/55 m-0">
+        <p className="text-xs text-[var(--missi-text-secondary)] m-0">
           Dissolving this Space permanently deletes all of its shared memories,
           members, and invites. This cannot be undone. Type{' '}
           <strong>DISSOLVE</strong> below to confirm.
@@ -883,7 +883,7 @@ function SettingsTab({
                   : 'rgba(248,113,113,0.1)',
               color:
                 dissolveConfirm === 'DISSOLVE'
-                  ? '#0a0a0f'
+                  ? 'var(--missi-surface)'
                   : 'rgba(248,113,113,0.6)',
               cursor:
                 dissolveConfirm === 'DISSOLVE' ? 'pointer' : 'not-allowed',
@@ -905,7 +905,7 @@ function Label({ children }: { children: React.ReactNode }) {
       style={{
         display: 'block',
         fontSize: '10px',
-        color: 'rgba(255,255,255,0.35)',
+        color: 'var(--missi-text-muted)',
         marginBottom: '6px',
         textTransform: 'uppercase',
         letterSpacing: '0.18em',
@@ -919,11 +919,11 @@ function Label({ children }: { children: React.ReactNode }) {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  background: 'var(--missi-border)',
+  border: '1px solid var(--missi-border)',
   borderRadius: '10px',
   padding: '10px 12px',
-  color: 'rgba(255,255,255,0.85)',
+  color: 'var(--missi-text-primary)',
   fontSize: '13px',
   outline: 'none',
   boxSizing: 'border-box',
@@ -931,9 +931,9 @@ const inputStyle: React.CSSProperties = {
 
 function chipStyle(active: boolean): React.CSSProperties {
   return {
-    background: active ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    color: 'rgba(255,255,255,0.75)',
+    background: active ? 'var(--missi-border)' : 'var(--missi-surface)',
+    border: '1px solid var(--missi-border)',
+    color: 'var(--missi-text-secondary)',
     cursor: 'pointer',
   }
 }
@@ -953,9 +953,9 @@ function FilterChip({
       onClick={onClick}
       className="px-2.5 py-1 rounded-full text-[11px] font-medium capitalize"
       style={{
-        background: active ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.07)',
-        color: active ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)',
+        background: active ? 'var(--missi-border)' : 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
+        color: active ? 'var(--missi-text-primary)' : 'var(--missi-text-secondary)',
         cursor: 'pointer',
       }}
     >

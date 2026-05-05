@@ -81,50 +81,116 @@ export function calculateTotalCost(
   }
 }
 
-// ─── Budget alert ─────────────────────────────────────────────────────────────
+// ─── Hard budget enforcement ──────────────────────────────────────────────────
+//
+// When HARD_BUDGET_ENABLED=true (default) the daily spend accumulated in KV
+// acts as a hard kill switch: requests are rejected once the daily budget is
+// exhausted.
+//
+// Spend tracking is best-effort KV (non-atomic). A small window of TOCTOU
+// over-spending is acceptable; this is a cost-control safety net, not a
+// billing system. For stricter enforcement, wire up the Durable Object
+// atomic counter instead.
 
-const BUDGET_KV_KEY = "budget:daily_total"
+/** Hard budget enforcement — set HARD_BUDGET_ENABLED=false to disable. */
+export const HARD_BUDGET_ENABLED: boolean =
+  process.env.HARD_BUDGET_ENABLED !== "false"
+
+/** Per-day accumulator key — resets automatically via TTL. */
+function getDailySpendKey(): string {
+  const today = new Date().toISOString().slice(0, 10)
+  return `budget:cost:daily:${today}`
+}
+
+/** Read the accumulated daily spend in USD from KV. Returns 0 on miss or error. */
+export async function getDailySpend(kv: KVStore): Promise<number> {
+  try {
+    const raw = await kv.get(getDailySpendKey())
+    if (!raw) return 0
+    const val = parseFloat(raw)
+    return Number.isFinite(val) && val >= 0 ? val : 0
+  } catch {
+    return 0
+  }
+}
 
 /**
- * Check whether the daily spend has crossed the budget threshold.
- *
- * `dailyCostSoFar` is the accumulated cost for the current day (the caller
- * is responsible for summing it — this function just compares).
- *
- * Returns `true` when the budget is exceeded, and emits a warn-level log.
+ * Increment the daily spend counter after a completed request.
+ * Best-effort: silently swallows KV errors so callers are never blocked.
+ * TOCTOU race window is accepted — this is a cost guardrail, not billing.
  */
-export async function checkBudgetAlert(
+export async function incrementDailySpend(kv: KVStore, costUsd: number): Promise<void> {
+  if (costUsd <= 0) return
+  try {
+    const key = getDailySpendKey()
+    const current = await getDailySpend(kv)
+    // 25-hour TTL so the key self-expires after the day rolls over.
+    await kv.put(key, (current + costUsd).toFixed(8), { expirationTtl: 90_000 })
+  } catch {
+    // Best-effort — do not surface KV failures to callers.
+  }
+}
+
+export interface BudgetCheckResult {
+  allowed: boolean
+  spendUsd: number
+  budgetUsd: number
+  unavailable?: boolean
+}
+
+/**
+ * Hard budget gate — call this BEFORE making an AI provider call.
+ *
+ * Returns `{ allowed: false }` when:
+ *   - daily budget is already exhausted, OR
+ *   - KV is unavailable in production (fail-closed).
+ *
+ * In non-production environments with no KV, always allows (dev-friendly).
+ */
+export async function checkHardBudget(
   kv: KVStore | null,
-  dailyCostSoFar: number,
-): Promise<boolean> {
-  if (dailyCostSoFar <= DAILY_BUDGET_USD) return false
+  estimatedCostUsd: number,
+): Promise<BudgetCheckResult> {
+  if (!HARD_BUDGET_ENABLED) {
+    return { allowed: true, spendUsd: 0, budgetUsd: DAILY_BUDGET_USD }
+  }
+  if (!kv) {
+    const isProduction = process.env.NODE_ENV === "production"
+    return {
+      allowed: !isProduction,
+      spendUsd: 0,
+      budgetUsd: DAILY_BUDGET_USD,
+      unavailable: isProduction,
+    }
+  }
+  const spendUsd = await getDailySpend(kv)
+  return {
+    allowed: spendUsd + estimatedCostUsd <= DAILY_BUDGET_USD,
+    spendUsd,
+    budgetUsd: DAILY_BUDGET_USD,
+  }
+}
+
+// ─── Budget alert (observability) ─────────────────────────────────────────────
+
+/**
+ * Check whether the accumulated daily spend has crossed the budget threshold
+ * and emit a warn-level log if so. Pure observability — does not block.
+ */
+export async function checkBudgetAlert(kv: KVStore | null): Promise<boolean> {
+  if (!kv) return false
+  const spendUsd = await getDailySpend(kv)
+  if (spendUsd <= DAILY_BUDGET_USD) return false
 
   log({
     level: "warn",
     event: "budget.threshold_crossed",
     metadata: {
-      dailyCostSoFar: Number(dailyCostSoFar.toFixed(6)),
+      dailyCostSoFar: Number(spendUsd.toFixed(6)),
       budgetUsd: DAILY_BUDGET_USD,
     },
     timestamp: Date.now(),
   })
-
-  // Persist the alert flag to KV so dashboards / cron can pick it up
-  if (kv) {
-    try {
-      await kv.put(
-        BUDGET_KV_KEY,
-        JSON.stringify({
-          exceeded: true,
-          dailyCostSoFar: Number(dailyCostSoFar.toFixed(6)),
-          budgetUsd: DAILY_BUDGET_USD,
-          timestamp: Date.now(),
-        }),
-      )
-    } catch {
-      // KV write failure is non-critical — the warn log is already emitted
-    }
-  }
 
   return true
 }

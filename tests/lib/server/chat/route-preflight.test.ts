@@ -8,6 +8,7 @@ const {
   rateLimitExceededResponseMock,
   getUserPlanMock,
   checkAndIncrementVoiceTimeMock,
+  checkHardBudgetMock,
 } = vi.hoisted(() => ({
   getChatKVMock: vi.fn(),
   getChatVectorizeEnvMock: vi.fn(),
@@ -20,7 +21,16 @@ const {
   ),
   getUserPlanMock: vi.fn(),
   checkAndIncrementVoiceTimeMock: vi.fn(),
+  checkHardBudgetMock: vi.fn(async () => ({ allowed: true, spendUsd: 0, budgetUsd: 5.0 })),
 }))
+
+vi.mock("@/lib/server/observability/cost-tracker", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/server/observability/cost-tracker")>("@/lib/server/observability/cost-tracker")
+  return {
+    ...actual,
+    checkHardBudget: checkHardBudgetMock,
+  }
+})
 
 vi.mock("@/lib/server/chat/shared", async () => {
   const actual = await vi.importActual<typeof import("@/lib/server/chat/shared")>("@/lib/server/chat/shared")

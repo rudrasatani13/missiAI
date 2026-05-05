@@ -39,9 +39,9 @@ export function AgentSteps({ steps }: AgentStepsProps) {
               style={{
                 background:
                   step.status === "running"
-                    ? "rgba(255,255,255,0.7)"
+                    ? "var(--missi-text-secondary)"
                     : step.status === "done"
-                    ? "rgba(255,255,255,0.3)"
+                    ? "var(--missi-text-muted)"
                     : "rgba(239,68,68,0.6)",
                 animation:
                   step.status === "running"
@@ -56,9 +56,9 @@ export function AgentSteps({ steps }: AgentStepsProps) {
               style={{
                 color:
                   step.status === "running"
-                    ? "rgba(255,255,255,0.6)"
+                    ? "var(--missi-text-secondary)"
                     : step.status === "done"
-                    ? "rgba(255,255,255,0.3)"
+                    ? "var(--missi-text-muted)"
                     : "rgba(239,68,68,0.5)",
                 fontFamily: "var(--font-body)",
               }}
@@ -68,7 +68,7 @@ export function AgentSteps({ steps }: AgentStepsProps) {
                 <span className="tracking-widest animate-pulse">...</span>
               )}
               {step.status === "done" && step.summary && (
-                <span style={{ color: "rgba(255,255,255,0.2)", marginLeft: 6 }}>
+                <span style={{ color: "var(--missi-text-muted)", marginLeft: 6 }}>
                   — {step.summary}
                 </span>
               )}

@@ -47,7 +47,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#000000",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f7f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#191a17" },
+  ],
 };
 
 export default function RootLayout({
@@ -56,8 +59,45 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <Script id="missi-theme-init" strategy="beforeInteractive">
+          {`
+            (function () {
+              var defaults = {
+                theme: "light",
+                accent: "amber",
+                fontScale: "md",
+                reduceMotion: false,
+                highContrast: false
+              };
+              try {
+                var raw = localStorage.getItem("missi-appearance");
+                var parsed = raw ? JSON.parse(raw) : {};
+                var settings = Object.assign({}, defaults, parsed || {});
+                var resolved = settings.theme === "system"
+                  ? (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+                  : settings.theme;
+                var root = document.documentElement;
+                root.setAttribute("data-theme", resolved);
+                root.setAttribute("data-accent", settings.accent);
+                root.setAttribute("data-font-scale", settings.fontScale);
+                root.setAttribute("data-reduce-motion", String(settings.reduceMotion));
+                root.setAttribute("data-high-contrast", String(settings.highContrast));
+                if (resolved === "dark") root.classList.add("dark");
+                else root.classList.remove("dark");
+              } catch (e) {
+                var root = document.documentElement;
+                root.setAttribute("data-theme", "light");
+                root.setAttribute("data-accent", "amber");
+                root.setAttribute("data-font-scale", "md");
+                root.setAttribute("data-reduce-motion", "false");
+                root.setAttribute("data-high-contrast", "false");
+                root.classList.remove("dark");
+              }
+            })();
+          `}
+        </Script>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Inter — UI body text (Vercel, Linear, Notion standard) */}
@@ -66,7 +106,7 @@ export default function RootLayout({
         {/* VT323 & Share Tech Mono — MISSI LED logo */}
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
       </head>
-      <body className="antialiased bg-black text-white" style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <body className="antialiased" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
         <Script id="service-worker-registration">
           {`
             if ('serviceWorker' in navigator) {
@@ -88,29 +128,29 @@ export default function RootLayout({
               <div className="flex-1">{children}</div>
             <footer
               className="relative px-6 md:px-10 py-6"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
+              style={{ borderTop: "1px solid var(--missi-border)" }}
               data-testid="global-footer"
             >
               <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
                 <span
                   className="text-[11px] font-light"
-                  style={{ color: "rgba(255,255,255,0.2)" }}
+                  style={{ color: "var(--missi-text-muted)" }}
                 >
                   &copy; {new Date().getFullYear()} missiAI
                 </span>
                 <div className="flex items-center gap-5">
                   <Link
                     href="/privacy"
-                    className="text-[11px] font-light transition-colors hover:text-white/50"
-                    style={{ color: "rgba(255,255,255,0.2)" }}
+                    className="text-[11px] font-light transition-colors"
+                    style={{ color: "var(--missi-text-muted)" }}
                     data-testid="footer-privacy-link"
                   >
                     Privacy Policy
                   </Link>
                   <Link
                     href="/terms"
-                    className="text-[11px] font-light transition-colors hover:text-white/50"
-                    style={{ color: "rgba(255,255,255,0.2)" }}
+                    className="text-[11px] font-light transition-colors"
+                    style={{ color: "var(--missi-text-muted)" }}
                     data-testid="footer-terms-link"
                   >
                     Terms of Service
@@ -119,8 +159,8 @@ export default function RootLayout({
                     href="https://github.com/rudrasatani13/missiAI"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[11px] font-light transition-colors hover:text-white/50"
-                    style={{ color: "rgba(255,255,255,0.2)" }}
+                    className="text-[11px] font-light transition-colors"
+                    style={{ color: "var(--missi-text-muted)" }}
                     data-testid="footer-github-link"
                   >
                     GitHub
@@ -132,16 +172,7 @@ export default function RootLayout({
           </SmoothScrollProvider>
         </Providers>
         <Toaster
-          theme="dark"
           position="bottom-right"
-          toastOptions={{
-            style: {
-              background: 'rgba(20, 20, 20, 0.9)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              color: 'white',
-            }
-          }}
         />
       </body>
     </html>

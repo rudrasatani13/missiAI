@@ -69,9 +69,9 @@ function NudgePill({ item, onDismiss, hasBriefing }: NudgePillProps) {
       className={`${hasBriefing ? "mt-1" : "mt-2"} px-3 py-1 rounded-full pointer-events-auto`}
       data-testid="nudge-pill"
       style={{
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        color: hasBriefing ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.35)",
+        background: "var(--missi-surface)",
+        border: "1px solid var(--missi-border)",
+        color: hasBriefing ? "var(--missi-text-muted)" : "var(--missi-text-muted)",
         fontSize: "10px",
         fontWeight: 300,
         cursor: "pointer",
@@ -125,15 +125,15 @@ function BriefingCard({ item, onDismiss }: BriefingCardProps) {
       className="flex items-center gap-2 mt-3 max-w-[300px] rounded-lg px-3 py-2 pointer-events-auto"
       data-testid="briefing-card"
       style={{
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: "var(--missi-border)",
+        border: "1px solid var(--missi-border)",
         animation: "fadeIn 0.5s ease-out both",
       }}
     >
       <p
         className="text-[11px] font-light flex-1 leading-snug"
         data-testid="briefing-card-message"
-        style={{ color: "rgba(255,255,255,0.55)" }}
+        style={{ color: "var(--missi-text-secondary)" }}
       >
         {item.message}
       </p>
@@ -148,7 +148,7 @@ function BriefingCard({ item, onDismiss }: BriefingCardProps) {
           background: "none",
           border: "none",
           cursor: "pointer",
-          color: "rgba(255,255,255,0.25)",
+          color: "var(--missi-text-muted)",
           padding: "2px",
           flexShrink: 0,
         }}
@@ -232,8 +232,8 @@ function StatusDisplayInner({
           color={
             state === "recording"                            ? "rgba(255,80,60,0.8)"   :
             state === "speaking"                             ? "rgba(0,255,140,0.7)"   :
-            state === "thinking" || state === "transcribing" ? "rgba(255,255,255,0.5)" :
-                                                               "rgba(255,255,255,0.3)"
+            state === "thinking" || state === "transcribing" ? "var(--missi-text-secondary)" :
+                                                               "var(--missi-text-muted)"
           }
         />
       </p>
@@ -242,7 +242,7 @@ function StatusDisplayInner({
         <p
           className="text-[11px] font-light tracking-wide mt-1 state-text"
           data-testid="idle-status-hint"
-          style={{ color: "rgba(255,255,255,0.15)" }}
+          style={{ color: "var(--missi-text-muted)" }}
         >
           {statusText}
         </p>
@@ -291,7 +291,7 @@ function StatusDisplayInner({
         <p
           className="text-[10px] font-light tracking-wider mt-1"
           data-testid="interrupt-hint"
-          style={{ color: "rgba(255,255,255,0.2)", animation: "fadeIn 0.3s ease-out both" }}
+          style={{ color: "var(--missi-text-muted)", animation: "fadeIn 0.3s ease-out both" }}
         >
           Tap to interrupt
         </p>

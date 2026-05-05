@@ -4,6 +4,8 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { STEPS } from '@/lib/constants/onboarding'
 
+const NAV_PILL_BOTTOM = 80 // px — keep card below the top nav pill
+
 const STORAGE_KEY = 'missi-onboarding-v1'
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -108,8 +110,8 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
           break
       }
 
-      // Clamp top
-      top = Math.max(16, Math.min(top, window.innerHeight - cardHeight - 16))
+      // Clamp top — keep below the nav pill and above the bottom edge
+      top = Math.max(NAV_PILL_BOTTOM, Math.min(top, window.innerHeight - cardHeight - 16))
 
       setCardPos({ top, left })
     }
@@ -155,34 +157,43 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
   const isCenter = current.cardPlacement === 'center'
   const shouldCenterCard = isCenter || (!cardPos && Boolean(current.targetSelector))
 
+  const [isLight, setIsLight] = useState(false)
+  useEffect(() => {
+    const check = () => setIsLight(document.documentElement.getAttribute('data-theme') === 'light')
+    check()
+    const obs = new MutationObserver(check)
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => obs.disconnect()
+  }, [])
+
   const renderCard = () => (
     <div
       ref={cardRef}
       className="rounded-2xl px-5 py-4"
       style={{
-        background: 'rgba(255,255,255,0.07)',
+        background: isLight ? 'var(--missi-border)' : 'rgba(20,20,28,0.92)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+        border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid var(--missi-border-strong)',
+        boxShadow: isLight ? '0 16px 48px rgba(0,0,0,0.14)' : '0 16px 48px rgba(0,0,0,0.5)',
       }}
     >
       <h3
         className="text-sm font-medium tracking-wide mb-1.5"
-        style={{ color: 'rgba(255,255,255,0.9)' }}
+        style={{ color: isLight ? '#111827' : 'var(--missi-text-primary)' }}
       >
         {current.title}
       </h3>
       <p
         className="text-xs font-light leading-relaxed"
-        style={{ color: 'rgba(255,255,255,0.5)' }}
+        style={{ color: isLight ? 'rgba(17,24,39,0.6)' : 'var(--missi-text-secondary)' }}
       >
         {current.text}
       </p>
       {current.hint && (
         <p
           className="text-[10px] font-light mt-1.5"
-          style={{ color: 'rgba(255,255,255,0.25)' }}
+          style={{ color: isLight ? 'rgba(17,24,39,0.35)' : 'var(--missi-text-muted)' }}
         >
           {current.hint}
         </p>
@@ -196,7 +207,9 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
                 width: i === step ? 14 : 5,
                 height: 5,
                 borderRadius: 3,
-                background: i === step ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.15)',
+                background: i === step
+                  ? (isLight ? 'rgba(15,23,42,0.8)' : 'var(--missi-text-secondary)')
+                  : (isLight ? 'rgba(15,23,42,0.15)' : 'var(--missi-text-muted)'),
                 transition: 'all 0.3s ease',
               }}
             />
@@ -207,7 +220,7 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
             <button
               onClick={handleSkip}
               className="text-[10px] font-light transition-opacity hover:opacity-80"
-              style={{ color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              style={{ color: isLight ? 'rgba(17,24,39,0.4)' : 'var(--missi-border)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
               Skip
             </button>
@@ -215,7 +228,11 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
           <button
             onClick={handleNext}
             className="px-4 py-1.5 rounded-full text-xs font-medium transition-all hover:opacity-90 active:scale-95"
-            style={{ background: 'rgba(255,255,255,0.85)', color: '#000', border: 'none', cursor: 'pointer', letterSpacing: '0.01em' }}
+            style={{
+              background: isLight ? '#0f172a' : 'var(--missi-border)',
+              color: isLight ? '#fff' : '#000',
+              border: 'none', cursor: 'pointer', letterSpacing: '0.01em',
+            }}
           >
             {isLast ? "Let's go" : 'Next'}
           </button>
@@ -267,8 +284,8 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
             top: spotlightRect.top - 8,
             width: spotlightRect.width + 16,
             height: spotlightRect.height + 16,
-            border: '1px solid rgba(255,255,255,0.25)',
-            boxShadow: '0 0 20px rgba(255,255,255,0.08)',
+            border: '1px solid var(--missi-border-strong)',
+            boxShadow: '0 0 20px var(--missi-text-muted)',
             pointerEvents: 'none',
             zIndex: 1,
           }}

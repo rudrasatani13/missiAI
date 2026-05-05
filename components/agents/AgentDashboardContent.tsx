@@ -49,11 +49,11 @@ function TypewriterText({ text, speed = 12 }: { text: string; speed?: number }) 
       className="max-h-[150px] overflow-y-scroll overflow-x-hidden pr-2 custom-scrollbar"
       style={{
         scrollbarWidth: 'thin',
-        scrollbarColor: 'rgba(255,255,255,0.2) transparent',
+        scrollbarColor: 'var(--missi-scrollbar) transparent',
         WebkitOverflowScrolling: 'touch',
       }}
     >
-      <p className="text-xs text-white/50 whitespace-pre-wrap font-sans leading-relaxed break-words" style={{ wordBreak: 'break-word', minHeight: 'min-content' }}>
+      <p className="text-xs text-[var(--missi-text-secondary)] whitespace-pre-wrap font-sans leading-relaxed break-words" style={{ wordBreak: 'break-word', minHeight: 'min-content' }}>
         {visible}
         {isTyping && <span className="inline-block w-1.5 h-3.5 bg-purple-400/80 ml-0.5 animate-pulse rounded-sm" />}
       </p>
@@ -103,7 +103,7 @@ interface ExpenseSnapshot {
 // ─── Tool icons map ───────────────────────────────────────────────────────────
 
 function ToolIcon({ toolName }: { toolName: string }) {
-  const iconProps = { size: 14, className: 'text-white/50' }
+  const iconProps = { size: 14, className: 'text-[var(--missi-text-secondary)]' }
   switch (toolName) {
     case 'readCalendar':
     case 'createCalendarEvent':
@@ -403,14 +403,14 @@ export default function AgentDashboardContent() {
   const showExecution = isExecuting || (isComplete && executionSteps.length > 0)
 
   return (
-    <div className="min-h-full text-white">
+    <div className="min-h-full text-[var(--missi-text-primary)]">
       {/* Header (sidebar provides navigation — no Back link needed) */}
-      <div className="border-b border-white/10 px-6 py-4 flex items-center gap-4">
+      <div className="border-b border-[var(--missi-border)] px-6 py-4 flex items-center gap-4">
         <div className="flex items-center gap-2">
           <Zap size={18} className="text-purple-400" />
-          <h1 className="text-white/90 font-medium">Missi Agent</h1>
+          <h1 className="text-[var(--missi-text-primary)] font-medium">Missi Agent</h1>
         </div>
-        <span className="text-white/30 text-sm">Tell Missi what to do</span>
+        <span className="text-[var(--missi-text-muted)] text-sm">Tell Missi what to do</span>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
@@ -424,7 +424,7 @@ export default function AgentDashboardContent() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12, transition: { duration: 0.15 } }}
-              className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 space-y-4 relative overflow-hidden"
+              className="bg-[var(--missi-surface)] border border-[var(--missi-border)] rounded-2xl p-5 space-y-4 relative overflow-hidden"
             >
               {/* Planning overlay animation */}
               <AnimatePresence>
@@ -433,7 +433,7 @@ export default function AgentDashboardContent() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 z-10 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center rounded-2xl"
+                    className="absolute inset-0 z-10 bg-[var(--missi-bg)]/95 flex flex-col items-center justify-center rounded-2xl"
                   >
                     <div className="relative w-14 h-14 mb-4">
                       <motion.div
@@ -453,7 +453,7 @@ export default function AgentDashboardContent() {
                       />
                       <Sparkles size={16} className="absolute inset-0 m-auto text-purple-300 animate-pulse" />
                     </div>
-                    <p className="text-sm font-medium text-white/90 flex items-center">
+                    <p className="text-sm font-medium text-[var(--missi-text-primary)] flex items-center">
                       Missi is building a plan <StreamingDots />
                     </p>
                   </motion.div>
@@ -465,7 +465,7 @@ export default function AgentDashboardContent() {
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Tell Missi what to do... e.g. 'Schedule a meeting with Rahul tomorrow at 3pm about the pitch deck'"
-                className="w-full bg-transparent text-white/90 placeholder-white/30 text-sm resize-none outline-none min-h-[80px] leading-relaxed"
+                className="w-full bg-transparent text-[var(--missi-text-primary)] placeholder-[var(--missi-input-placeholder)] text-sm resize-none outline-none min-h-[80px] leading-relaxed"
                 rows={3}
               />
 
@@ -475,7 +475,7 @@ export default function AgentDashboardContent() {
                   <button
                     key={chip.label}
                     onClick={() => handleChipClick(chip.value)}
-                    className="text-xs px-3 py-1.5 rounded-full bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/80 border border-white/10 hover:border-white/20 transition-all"
+                    className="text-xs px-3 py-1.5 rounded-full bg-[var(--missi-surface)] hover:bg-[var(--missi-surface)] text-[var(--missi-text-secondary)] hover:text-[var(--missi-text-secondary)] border border-[var(--missi-border)] hover:border-[var(--missi-border)] transition-all"
                   >
                     {chip.label}
                   </button>
@@ -483,11 +483,11 @@ export default function AgentDashboardContent() {
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-xs text-white/30">⌘+Enter to plan</span>
+                <span className="text-xs text-[var(--missi-text-muted)]">⌘+Enter to plan</span>
                 <button
                   onClick={() => void handlePlan()}
                   disabled={!input.trim() || isPlanning}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600/80 hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-all"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600/80 hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed text-[var(--missi-text-primary)] text-sm font-medium transition-all"
                 >
                   {isPlanning ? (
                     <>
@@ -527,22 +527,22 @@ export default function AgentDashboardContent() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -16, transition: { duration: 0.15 } }}
-              className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden"
+              className="bg-[var(--missi-surface)] border border-[var(--missi-border)] rounded-2xl overflow-hidden"
             >
               <div className="px-5 pt-5 pb-4">
-                <p className="text-white/40 text-xs uppercase tracking-wider mb-1">Missi&apos;s Plan</p>
-                <p className="text-white/90 text-base font-medium">{planData.plan.summary}</p>
+                <p className="text-[var(--missi-text-muted)] text-xs uppercase tracking-wider mb-1">Missi&apos;s Plan</p>
+                <p className="text-[var(--missi-text-primary)] text-base font-medium">{planData.plan.summary}</p>
               </div>
 
               {planData.plan.steps.length > 0 && (
-                <div className="border-t border-white/8 px-5 py-3 space-y-2">
+                <div className="border-t border-[var(--missi-border)] px-5 py-3 space-y-2">
                   {planData.plan.steps.map((step: AgentPlanStep) => (
                     <div key={step.stepNumber} className="flex items-start gap-3 py-1.5">
-                      <span className="text-xs text-white/30 w-4 shrink-0 mt-0.5">{step.stepNumber}</span>
+                      <span className="text-xs text-[var(--missi-text-muted)] w-4 shrink-0 mt-0.5">{step.stepNumber}</span>
                       <ToolIcon toolName={step.toolName} />
-                      <span className="text-sm text-white/70 flex-1">{step.description}</span>
+                      <span className="text-sm text-[var(--missi-text-secondary)] flex-1">{step.description}</span>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-white/25">{step.estimatedDuration}</span>
+                        <span className="text-xs text-[var(--missi-text-muted)]">{step.estimatedDuration}</span>
                         {step.isDestructive && (
                           <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400/80 border border-amber-500/20">
                             action
@@ -554,15 +554,15 @@ export default function AgentDashboardContent() {
                 </div>
               )}
 
-              <div className="border-t border-white/8 px-5 py-4 flex items-center justify-between gap-3">
+              <div className="border-t border-[var(--missi-border)] px-5 py-4 flex items-center justify-between gap-3">
                 <button
                   onClick={() => setPlanData(null)}
-                  className="text-sm text-white/40 hover:text-white/60 transition-colors"
+                  className="text-sm text-[var(--missi-text-muted)] hover:text-[var(--missi-text-secondary)] transition-colors"
                 >
                   Cancel
                 </button>
                 {planData.plan.steps.length === 0 || !planData.confirmToken ? (
-                  <span className="text-sm text-white/30 italic">
+                  <span className="text-sm text-[var(--missi-text-muted)] italic">
                     {planData.plan.steps.length === 0
                       ? "No actionable steps — try a more specific request"
                       : "Token missing — please try again"}
@@ -570,7 +570,7 @@ export default function AgentDashboardContent() {
                 ) : (
                   <button
                     onClick={() => void handleConfirm(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white text-sm font-medium transition-all shadow-lg shadow-purple-900/30"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-[var(--missi-text-primary)] text-sm font-medium transition-all shadow-lg shadow-purple-900/30"
                   >
                     <Sparkles size={14} />
                     Go ahead Missi ✨
@@ -585,24 +585,24 @@ export default function AgentDashboardContent() {
               key="execution"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden"
+              className="bg-[var(--missi-surface)] border border-[var(--missi-border)] rounded-2xl overflow-hidden"
             >
               <div className="px-5 pt-5 pb-3">
-                <p className="text-white/40 text-xs uppercase tracking-wider mb-1">
+                <p className="text-[var(--missi-text-muted)] text-xs uppercase tracking-wider mb-1">
                   {isComplete ? 'Completed' : 'Running'}
                 </p>
                 {isComplete && (
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-white/90 text-base font-medium"
+                    className="text-[var(--missi-text-primary)] text-base font-medium"
                   >
                     Done! Completed {completedCount} of {executionSteps.length} steps.
                   </motion.p>
                 )}
               </div>
 
-              <div className="border-t border-white/8 px-5 py-3 space-y-3">
+              <div className="border-t border-[var(--missi-border)] px-5 py-3 space-y-3">
                 {executionSteps.map(step => (
                   <motion.div
                     key={step.stepNumber}
@@ -612,9 +612,9 @@ export default function AgentDashboardContent() {
                     transition={{ delay: step.stepNumber * 0.1, duration: 0.3 }}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-white/30 w-4 shrink-0">{step.stepNumber}</span>
+                      <span className="text-xs text-[var(--missi-text-muted)] w-4 shrink-0">{step.stepNumber}</span>
                       <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                        {step.status === 'pending' && <div className="w-1.5 h-1.5 rounded-full bg-white/20" />}
+                        {step.status === 'pending' && <div className="w-1.5 h-1.5 rounded-full bg-[var(--missi-surface)]" />}
                         {step.status === 'running' && (
                           <motion.div
                             className="w-3 h-3 rounded-full border-2 border-purple-400 border-t-transparent"
@@ -634,10 +634,10 @@ export default function AgentDashboardContent() {
                         )}
                       </div>
                       <span className={`text-sm flex-1 ${
-                        step.status === 'running' ? 'text-white/90'
-                        : step.status === 'done' ? 'text-white/60'
-                        : step.status === 'error' ? 'text-white/40 line-through'
-                        : 'text-white/30'
+                        step.status === 'running' ? 'text-[var(--missi-text-primary)]'
+                        : step.status === 'done' ? 'text-[var(--missi-text-secondary)]'
+                        : step.status === 'error' ? 'text-[var(--missi-text-muted)] line-through'
+                        : 'text-[var(--missi-text-muted)]'
                       }`}>
                         {step.description}
                         {step.status === 'running' && <StreamingDots />}
@@ -656,7 +656,7 @@ export default function AgentDashboardContent() {
                       <motion.p
                         initial={{ opacity: 0, y: 4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-xs text-white/35 ml-11 leading-relaxed"
+                        className="text-xs text-[var(--missi-text-muted)] ml-11 leading-relaxed"
                       >
                         {step.summary}
                       </motion.p>
@@ -666,7 +666,7 @@ export default function AgentDashboardContent() {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         transition={{ duration: 0.3 }}
-                        className="ml-11 mt-1.5 p-3 rounded-lg bg-white/[0.03] border border-white/8"
+                        className="ml-11 mt-1.5 p-3 rounded-lg bg-[var(--missi-nav-hover)] border border-[var(--missi-border)]"
                       >
                         <TypewriterText text={step.output} speed={8} />
                       </motion.div>
@@ -685,7 +685,7 @@ export default function AgentDashboardContent() {
               </div>
 
               {isComplete && (
-                <div className="border-t border-white/8 px-5 py-4 flex items-center justify-between">
+                <div className="border-t border-[var(--missi-border)] px-5 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {xpAnimation && (
                       <motion.span
@@ -700,7 +700,7 @@ export default function AgentDashboardContent() {
                   </div>
                   <button
                     onClick={handleReset}
-                    className="text-sm text-white/40 hover:text-white/70 transition-colors"
+                    className="text-sm text-[var(--missi-text-muted)] hover:text-[var(--missi-text-secondary)] transition-colors"
                   >
                     New task
                   </button>
@@ -712,17 +712,17 @@ export default function AgentDashboardContent() {
 
         {/* Section 4 — History */}
         {history.length > 0 && (
-          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden">
+          <div className="bg-[var(--missi-surface)] border border-[var(--missi-border)] rounded-2xl overflow-hidden">
             <button
               onClick={() => setHistoryOpen(v => !v)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors"
+              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[var(--missi-surface)] transition-colors"
             >
               <div className="flex items-center gap-2">
-                <Clock size={14} className="text-white/40" />
-                <span className="text-sm text-white/60">Recent tasks</span>
-                <span className="text-xs text-white/30">({history.length})</span>
+                <Clock size={14} className="text-[var(--missi-text-muted)]" />
+                <span className="text-sm text-[var(--missi-text-secondary)]">Recent tasks</span>
+                <span className="text-xs text-[var(--missi-text-muted)]">({history.length})</span>
               </div>
-              {historyOpen ? <ChevronUp size={14} className="text-white/30" /> : <ChevronDown size={14} className="text-white/30" />}
+              {historyOpen ? <ChevronUp size={14} className="text-[var(--missi-text-muted)]" /> : <ChevronDown size={14} className="text-[var(--missi-text-muted)]" />}
             </button>
 
             <AnimatePresence>
@@ -733,23 +733,23 @@ export default function AgentDashboardContent() {
                   exit={{ height: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="border-t border-white/8 divide-y divide-white/5">
+                  <div className="border-t border-[var(--missi-border)] divide-y divide-white/5">
                     {history.map(entry => (
                       <div key={entry.id} className="px-5 py-3 flex items-center gap-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-white/70 truncate">{entry.userMessage}</p>
-                          <p className="text-xs text-white/30 mt-0.5">
+                          <p className="text-sm text-[var(--missi-text-secondary)] truncate">{entry.userMessage}</p>
+                          <p className="text-xs text-[var(--missi-text-muted)] mt-0.5">
                             {new Date(entry.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-xs text-white/30">{entry.stepsCompleted}/{entry.stepsTotal}</span>
+                          <span className="text-xs text-[var(--missi-text-muted)]">{entry.stepsCompleted}/{entry.stepsTotal}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full border ${
                             entry.status === 'completed'
                               ? 'bg-green-500/10 text-green-400/70 border-green-500/20'
                               : entry.status === 'partial'
                                 ? 'bg-amber-500/10 text-amber-400/70 border-amber-500/20'
-                                : 'bg-white/5 text-white/30 border-white/10'
+                                : 'bg-[var(--missi-surface)] text-[var(--missi-text-muted)] border-[var(--missi-border)]'
                           }`}>
                             {entry.status}
                           </span>
@@ -765,11 +765,11 @@ export default function AgentDashboardContent() {
 
         {/* Section 5 — Expense Snapshot */}
         {expenses && expenses.monthlyTotal > 0 && (
-          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5">
+          <div className="bg-[var(--missi-surface)] border border-[var(--missi-border)] rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-3">
-              <DollarSign size={14} className="text-white/40" />
-              <span className="text-sm text-white/50">This month</span>
-              <span className="ml-auto text-white/80 font-medium">
+              <DollarSign size={14} className="text-[var(--missi-text-muted)]" />
+              <span className="text-sm text-[var(--missi-text-secondary)]">This month</span>
+              <span className="ml-auto text-[var(--missi-text-secondary)] font-medium">
                 {formatMoney(expenses.monthlyTotal, expenses.currency || 'INR')}
               </span>
             </div>
@@ -782,11 +782,11 @@ export default function AgentDashboardContent() {
                     const pct = expenses.monthlyTotal > 0 ? (amount / expenses.monthlyTotal) * 100 : 0
                     return (
                       <div key={cat} className="space-y-1">
-                        <div className="flex justify-between text-xs text-white/40">
+                        <div className="flex justify-between text-xs text-[var(--missi-text-muted)]">
                           <span className="capitalize">{cat}</span>
                           <span>{formatMoney(amount, expenses.currency || 'INR')}</span>
                         </div>
-                        <div className="h-1 bg-white/8 rounded-full overflow-hidden">
+                        <div className="h-1 bg-[var(--missi-surface)] rounded-full overflow-hidden">
                           <div
                             className="h-full bg-purple-500/50 rounded-full transition-all duration-500"
                             style={{ width: `${pct}%` }}
@@ -800,7 +800,7 @@ export default function AgentDashboardContent() {
             <a
               href="/budget"
               className="mt-3 flex items-center gap-1 text-[10px] font-medium transition-colors hover:opacity-100"
-              style={{ color: 'rgba(255,255,255,0.35)' }}
+              style={{ color: 'var(--missi-text-muted)' }}
             >
               View full dashboard
               <ArrowRight size={10} />

@@ -143,34 +143,6 @@ const GlassCard = GlowCard
 
 // ─── Design System Components ─────────────────────────────────────────────────
 
-function AmbientGlow() {
-  return (
-    <div className="pointer-events-none fixed inset-0 overflow-hidden" style={{ zIndex: 0 }}>
-      <div
-        className="absolute left-[-8%] top-[-14%] h-[520px] w-[520px] rounded-full opacity-[0.08]"
-        style={{
-          background: 'radial-gradient(circle, rgba(16,185,129,0.18) 0%, rgba(16,185,129,0) 72%)',
-          filter: 'blur(120px)',
-        }}
-      />
-      <div
-        className="absolute right-[-12%] top-[8%] h-[420px] w-[420px] rounded-full opacity-[0.08]"
-        style={{
-          background: 'radial-gradient(circle, rgba(244,114,182,0.14) 0%, rgba(244,114,182,0) 72%)',
-          filter: 'blur(120px)',
-        }}
-      />
-      <div
-        className="absolute bottom-[-22%] left-[10%] h-[480px] w-[480px] rounded-full opacity-[0.08]"
-        style={{
-          background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0) 72%)',
-          filter: 'blur(130px)',
-        }}
-      />
-    </div>
-  )
-}
-
 function GlowCard({
   children, className = '', delay = 0, glowColor = 'rgba(99,102,241,0.15)',
 }: {
@@ -188,11 +160,11 @@ function GlowCard({
       whileHover={{ y: -1, transition: { duration: 0.2 } }}
       className={`relative overflow-hidden rounded-[30px] ${className}`}
       style={{
-        background: 'linear-gradient(180deg, rgba(14,15,20,0.9) 0%, rgba(9,10,14,0.84) 100%)',
+        background: 'var(--missi-surface)',
         backdropFilter: 'blur(28px) saturate(125%)',
         WebkitBackdropFilter: 'blur(28px) saturate(125%)',
-        border: '1px solid rgba(255,255,255,0.07)',
-        boxShadow: `0 30px 80px -45px rgba(0,0,0,0.78), inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 0 ${glowColor}`,
+        border: '1px solid var(--missi-border)',
+        boxShadow: `0 30px 80px -45px rgba(0,0,0,0.78), inset 0 1px 0 var(--missi-border), 0 0 0 0 ${glowColor}`,
       }}
     >
       <div className="relative z-10">{children}</div>
@@ -214,11 +186,11 @@ function Skeleton({ className = '' }: { className?: string }) {
   return (
     <div
       className={`relative overflow-hidden rounded-[24px] ${className}`}
-      style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
     >
       <motion.div
         className="absolute inset-y-0 -left-1/3 w-1/3"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }}
+        style={{ background: 'linear-gradient(90deg, transparent, var(--missi-border), transparent)' }}
         animate={{ x: ['0%', '320%'] }}
         transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
       />
@@ -230,13 +202,13 @@ function MonthStepper({ month, onChange }: { month: string; onChange: (value: st
   return (
     <div
       className="inline-flex items-center gap-2 rounded-full p-2"
-      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+      style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
     >
       <button
         type="button"
         onClick={() => onChange(shiftYearMonth(month, -1))}
         className="flex h-9 w-9 items-center justify-center rounded-full transition-colors"
-        style={{ background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.72)' }}
+        style={{ background: 'var(--missi-surface)', color: 'var(--missi-text-secondary)' }}
         aria-label="Previous month"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -250,7 +222,7 @@ function MonthStepper({ month, onChange }: { month: string; onChange: (value: st
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22 }}
             className="text-sm font-medium tracking-[-0.02em]"
-            style={{ color: 'rgba(255,255,255,0.92)' }}
+            style={{ color: 'var(--missi-text-primary)' }}
           >
             {formatYearMonth(month)}
           </motion.div>
@@ -260,7 +232,7 @@ function MonthStepper({ month, onChange }: { month: string; onChange: (value: st
         type="button"
         onClick={() => onChange(shiftYearMonth(month, 1))}
         className="flex h-9 w-9 items-center justify-center rounded-full transition-colors"
-        style={{ background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.72)' }}
+        style={{ background: 'var(--missi-surface)', color: 'var(--missi-text-secondary)' }}
         aria-label="Next month"
       >
         <ChevronRight className="h-4 w-4" />
@@ -271,14 +243,13 @@ function MonthStepper({ month, onChange }: { month: string; onChange: (value: st
 
 function DashboardLoadingState() {
   return (
-    <div className="relative min-h-screen" style={{ color: 'rgba(255,255,255,0.85)' }}>
-      <AmbientGlow />
+    <div className="relative min-h-screen" style={{ color: 'var(--missi-text-primary)' }}>
       <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pb-16 pt-4 md:px-8 md:pt-8">
         <div
           className="rounded-[36px] p-6 md:p-8"
           style={{
-            background: 'rgba(10,11,15,0.72)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
             boxShadow: '0 30px 80px -45px rgba(0,0,0,0.75)',
           }}
         >
@@ -353,8 +324,8 @@ function DonutChart({ data, size = 160, strokeWidth = 18 }: {
         })}
       </svg>
       <div className="absolute inset-0 flex items-center justify-center flex-col">
-        <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>Total</span>
-        <span className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>{total > 0 ? total.toLocaleString() : '0'}</span>
+        <span className="text-xs font-medium" style={{ color: 'var(--missi-text-muted)' }}>Total</span>
+        <span className="text-sm font-semibold" style={{ color: 'var(--missi-text-secondary)' }}>{total > 0 ? total.toLocaleString() : '0'}</span>
       </div>
     </div>
   )
@@ -368,7 +339,7 @@ function AreaChartSvg({ data, width = 300, height = 100 }: {
   if (data.length < 2) {
     return (
       <div className="flex items-center justify-center h-full" style={{ minHeight: height }}>
-        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>Not enough data</span>
+        <span className="text-xs" style={{ color: 'var(--missi-text-muted)' }}>Not enough data</span>
       </div>
     )
   }
@@ -410,7 +381,7 @@ function BudgetRing({ pct, color, size = 48, strokeWidth = 4 }: {
   const dash = (Math.min(pct, 100) / 100) * c
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--missi-border)" strokeWidth={strokeWidth} />
       <motion.circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round"
         strokeDasharray={`${dash} ${c}`}
         initial={{ strokeDasharray: `0 ${c}` }} animate={{ strokeDasharray: `${dash} ${c}` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
@@ -432,7 +403,7 @@ function BottomSheet({ isOpen, onClose, children }: {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[120]"
-            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            style={{ background: 'var(--missi-surface)', backdropFilter: 'blur(4px)' }}
             onClick={onClose}
           />
           <div className="fixed inset-0 z-[130] flex items-end justify-center p-0 md:items-center md:p-6">
@@ -444,13 +415,13 @@ function BottomSheet({ isOpen, onClose, children }: {
               className="w-full overflow-hidden rounded-t-[32px] md:max-w-2xl md:rounded-[32px] md:overflow-visible"
               style={{
                 background: 'linear-gradient(180deg, rgba(14,15,20,0.98) 0%, rgba(10,10,14,0.98) 100%)',
-                borderTop: '1px solid rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                borderTop: '1px solid var(--missi-border)',
+                border: '1px solid var(--missi-border)',
                 boxShadow: '0 24px 90px rgba(0,0,0,0.52)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="mx-auto mb-4 mt-4 h-1.5 w-14 rounded-full md:hidden" style={{ background: 'rgba(255,255,255,0.15)' }} />
+              <div className="mx-auto mb-4 mt-4 h-1.5 w-14 rounded-full md:hidden" style={{ background: 'var(--missi-border-strong)' }} />
               <div className="max-h-[88vh] overflow-y-auto px-5 pb-10 pt-2 md:max-h-none md:overflow-visible md:px-8 md:pb-8 md:pt-6">{children}</div>
             </motion.div>
           </div>
@@ -485,21 +456,21 @@ function QuickStatCard({
       transition={{ delay }}
       className="rounded-[24px] p-4 md:p-5"
       style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
       }}
     >
       <div className="flex items-center gap-2">
-        <span style={{ color: 'rgba(255,255,255,0.35)' }}>{icon}</span>
-        <span className="text-[10px] font-medium uppercase tracking-[0.22em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <span style={{ color: 'var(--missi-text-muted)' }}>{icon}</span>
+        <span className="text-[10px] font-medium uppercase tracking-[0.22em]" style={{ color: 'var(--missi-text-muted)' }}>
           {label}
         </span>
       </div>
-      <div className="mt-6 text-xl font-medium tracking-[-0.04em] md:text-2xl" style={{ color: 'rgba(255,255,255,0.92)' }}>
+      <div className="mt-6 text-xl font-medium tracking-[-0.04em] md:text-2xl" style={{ color: 'var(--missi-text-primary)' }}>
         {typeof value === 'number' ? <CountUp target={value} prefix={prefix} suffix={suffix} /> : value}
       </div>
       {trend && trend !== 'neutral' && (
-        <div className="mt-3 flex items-center gap-1.5 text-[11px]" style={{ color: 'rgba(255,255,255,0.42)' }}>
+        <div className="mt-3 flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--missi-text-muted)' }}>
           {trend === 'up' ? <TrendingUp className="w-3 h-3 text-red-400" /> : <TrendingDown className="w-3 h-3 text-green-400" />}
           <span>
             {trend === 'up' ? 'Above last month' : 'Below last month'}
@@ -577,7 +548,7 @@ function CategoryPickerField({
 
   return (
     <div ref={panelRef} className="relative">
-      <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+      <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
         Category
       </label>
       <button
@@ -585,20 +556,20 @@ function CategoryPickerField({
         onClick={() => setOpen((current) => !current)}
         className="relative w-full rounded-[20px] px-4 py-3 text-left text-sm"
         style={{
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--missi-surface)',
+          border: '1px solid var(--missi-border)',
         }}
       >
-        <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center" style={{ color: 'rgba(255,255,255,0.54)' }}>
+        <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center" style={{ color: 'var(--missi-text-secondary)' }}>
           <CategoryGlyph category={value} className="h-4 w-4" />
         </span>
-        <span className="block truncate pl-7 pr-8" style={{ color: 'rgba(255,255,255,0.82)' }}>
+        <span className="block truncate pl-7 pr-14" style={{ color: 'var(--missi-text-primary)' }}>
           {formatCategoryLabel(value)}
         </span>
-        <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
+        <span className="pointer-events-none absolute inset-y-0 right-6 flex items-center">
           <ChevronDown
             className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
-            style={{ color: 'rgba(255,255,255,0.36)' }}
+            style={{ color: 'var(--missi-text-muted)' }}
           />
         </span>
       </button>
@@ -613,7 +584,7 @@ function CategoryPickerField({
             className="absolute left-0 top-[calc(100%+12px)] z-30 w-full overflow-hidden rounded-[24px]"
             style={{
               background: 'linear-gradient(180deg, rgba(14,15,20,0.98) 0%, rgba(10,10,14,0.98) 100%)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--missi-border)',
               boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
             }}
           >
@@ -632,13 +603,13 @@ function CategoryPickerField({
                     }}
                     className="flex w-full items-center gap-3 rounded-[18px] px-3 py-3 text-left transition-colors"
                     style={{
-                      background: isActive ? 'rgba(255,255,255,0.08)' : 'transparent',
-                      color: isActive ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.68)',
+                      background: isActive ? 'var(--missi-border)' : 'transparent',
+                      color: isActive ? 'var(--missi-text-primary)' : 'var(--missi-text-secondary)',
                     }}
                   >
                     <span
                       className="flex h-8 w-8 items-center justify-center rounded-full"
-                      style={{ background: isActive ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)' }}
+                      style={{ background: isActive ? 'var(--missi-border)' : 'var(--missi-surface)' }}
                     >
                       <CategoryGlyph category={typedCat} className="h-4 w-4" />
                     </span>
@@ -695,7 +666,7 @@ function DatePickerField({ value, onChange }: { value: string; onChange: (value:
 
   return (
     <div ref={panelRef} className="relative">
-      <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+      <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
         Date
       </label>
       <button
@@ -703,20 +674,20 @@ function DatePickerField({ value, onChange }: { value: string; onChange: (value:
         onClick={() => setOpen((current) => !current)}
         className="relative w-full rounded-[20px] px-4 py-3 text-left text-sm"
         style={{
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--missi-surface)',
+          border: '1px solid var(--missi-border)',
         }}
       >
-        <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center" style={{ color: 'var(--missi-text-secondary)' }}>
           <CalendarDays className="h-4 w-4" />
         </span>
-        <span className="block truncate pl-7 pr-8" style={{ color: 'rgba(255,255,255,0.82)' }}>
+        <span className="block truncate pl-7 pr-14" style={{ color: 'var(--missi-text-primary)' }}>
           {formatEntryDate(value)}
         </span>
-        <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
+        <span className="pointer-events-none absolute inset-y-0 right-6 flex items-center">
           <ChevronDown
             className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
-            style={{ color: 'rgba(255,255,255,0.36)' }}
+            style={{ color: 'var(--missi-text-muted)' }}
           />
         </span>
       </button>
@@ -731,12 +702,12 @@ function DatePickerField({ value, onChange }: { value: string; onChange: (value:
             className="absolute left-0 top-[calc(100%+12px)] z-30 min-w-[292px] overflow-hidden rounded-[24px] p-4"
             style={{
               background: 'linear-gradient(180deg, rgba(14,15,20,0.98) 0%, rgba(10,10,14,0.98) 100%)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--missi-border)',
               boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
             }}
           >
             <div className="mb-4 flex items-center justify-between">
-              <div className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>
+              <div className="text-sm font-medium" style={{ color: 'var(--missi-text-primary)' }}>
                 {monthLabelFormatter.format(displayMonth)}
               </div>
               <div className="flex items-center gap-2">
@@ -744,7 +715,7 @@ function DatePickerField({ value, onChange }: { value: string; onChange: (value:
                   type="button"
                   onClick={() => setDisplayMonth(new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1))}
                   className="flex h-8 w-8 items-center justify-center rounded-full"
-                  style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.72)' }}
+                  style={{ background: 'var(--missi-surface)', color: 'var(--missi-text-secondary)' }}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -752,7 +723,7 @@ function DatePickerField({ value, onChange }: { value: string; onChange: (value:
                   type="button"
                   onClick={() => setDisplayMonth(new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1))}
                   className="flex h-8 w-8 items-center justify-center rounded-full"
-                  style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.72)' }}
+                  style={{ background: 'var(--missi-surface)', color: 'var(--missi-text-secondary)' }}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -761,7 +732,7 @@ function DatePickerField({ value, onChange }: { value: string; onChange: (value:
 
             <div className="grid grid-cols-7 gap-1">
               {CALENDAR_DAY_LABELS.map((label) => (
-                <div key={label} className="pb-1 text-center text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.34)' }}>
+                <div key={label} className="pb-1 text-center text-[11px] font-medium" style={{ color: 'var(--missi-text-muted)' }}>
                   {label}
                 </div>
               ))}
@@ -783,9 +754,9 @@ function DatePickerField({ value, onChange }: { value: string; onChange: (value:
                     }}
                     className="flex h-9 items-center justify-center rounded-full text-sm transition-colors"
                     style={{
-                      background: isSelected ? 'rgba(255,255,255,0.92)' : isToday ? 'rgba(255,255,255,0.06)' : 'transparent',
-                      color: isSelected ? '#0a0a0f' : isOutsideMonth ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.74)',
-                      border: isToday && !isSelected ? '1px solid rgba(255,255,255,0.12)' : '1px solid transparent',
+                      background: isSelected ? 'var(--missi-nav-text-active)' : isToday ? 'var(--missi-surface)' : 'transparent',
+                      color: isSelected ? 'var(--missi-bg)' : isOutsideMonth ? 'var(--missi-text-muted)' : 'var(--missi-text-secondary)',
+                      border: isToday && !isSelected ? '1px solid var(--missi-border-strong)' : '1px solid transparent',
                     }}
                   >
                     {day.getDate()}
@@ -794,8 +765,8 @@ function DatePickerField({ value, onChange }: { value: string; onChange: (value:
               })}
             </div>
 
-            <div className="mt-4 flex items-center justify-between border-t pt-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
+            <div className="mt-4 flex items-center justify-between border-t pt-3" style={{ borderColor: 'var(--missi-border)' }}>
+              <span className="text-xs" style={{ color: 'var(--missi-text-muted)' }}>
                 {formatEntryDate(value)}
               </span>
               <button
@@ -807,7 +778,7 @@ function DatePickerField({ value, onChange }: { value: string; onChange: (value:
                   setOpen(false)
                 }}
                 className="text-xs font-medium"
-                style={{ color: 'rgba(255,255,255,0.72)' }}
+                style={{ color: 'var(--missi-text-secondary)' }}
               >
                 Use today
               </button>
@@ -880,13 +851,13 @@ function AddExpenseForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.34)' }}>
+          <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
             Quick capture
           </span>
-          <h3 className="m-0 text-2xl font-medium tracking-[-0.04em]" style={{ color: 'rgba(255,255,255,0.93)' }}>
+          <h3 className="m-0 text-2xl font-medium tracking-[-0.04em]" style={{ color: 'var(--missi-text-primary)' }}>
             Add Expense
           </h3>
-          <p className="m-0 max-w-md text-sm leading-6" style={{ color: 'rgba(255,255,255,0.46)' }}>
+          <p className="m-0 max-w-md text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
             Quick capture for your monthly flow.
           </p>
         </div>
@@ -895,16 +866,16 @@ function AddExpenseForm({
             type="button"
             onClick={onCancel}
             className="flex h-11 w-11 items-center justify-center rounded-full"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
           >
-            <X className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.55)' }} />
+            <X className="w-4 h-4" style={{ color: 'var(--missi-text-secondary)' }} />
           </button>
         )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
             Amount
           </label>
           <input
@@ -917,26 +888,26 @@ function AddExpenseForm({
             required
             className="w-full rounded-[20px] px-4 py-3 text-sm"
             style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.85)',
+              background: 'var(--missi-surface)',
+              border: '1px solid var(--missi-border)',
+              color: 'var(--missi-text-primary)',
               outline: 'none',
             }}
           />
         </div>
         <div>
-          <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
             Currency
           </label>
           <div className="relative">
             <select
               value={selectedCurrency}
               onChange={(e) => setSelectedCurrency(e.target.value)}
-              className="w-full appearance-none rounded-[20px] px-4 py-3 pr-12 text-sm"
+              className="w-full appearance-none rounded-[20px] px-4 py-3 pr-16 text-sm"
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.85)',
+                background: 'var(--missi-surface)',
+                border: '1px solid var(--missi-border)',
+                color: 'var(--missi-text-primary)',
                 outline: 'none',
               }}
             >
@@ -944,8 +915,8 @@ function AddExpenseForm({
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
-            <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
-              <ChevronDown className="h-4 w-4" style={{ color: 'rgba(255,255,255,0.36)' }} />
+            <span className="pointer-events-none absolute inset-y-0 right-6 flex items-center">
+              <ChevronDown className="h-4 w-4" style={{ color: 'var(--missi-text-muted)' }} />
             </span>
           </div>
         </div>
@@ -957,7 +928,7 @@ function AddExpenseForm({
       </div>
 
       <div>
-        <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
           Description
         </label>
         <input
@@ -967,16 +938,16 @@ function AddExpenseForm({
           placeholder="What did you spend on?"
           className="w-full rounded-[20px] px-4 py-3 text-sm"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: 'rgba(255,255,255,0.85)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
+            color: 'var(--missi-text-primary)',
             outline: 'none',
           }}
         />
       </div>
 
-      <div className="flex items-center justify-between gap-4 border-t pt-4" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-        <p className="m-0 text-xs leading-5" style={{ color: 'rgba(255,255,255,0.38)' }}>
+      <div className="flex items-center justify-between gap-4 border-t pt-4" style={{ borderColor: 'var(--missi-border)' }}>
+        <p className="m-0 text-xs leading-5" style={{ color: 'var(--missi-text-muted)' }}>
           Your expense will be added to the selected month immediately.
         </p>
         <button
@@ -984,9 +955,9 @@ function AddExpenseForm({
           disabled={saving}
           className="inline-flex min-w-[160px] items-center justify-center rounded-full px-5 py-3 text-sm font-medium transition-colors"
           style={{
-            background: saving ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.9)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            color: saving ? 'rgba(255,255,255,0.35)' : '#0a0a0f',
+            background: saving ? 'var(--missi-surface)' : 'var(--missi-nav-text-active)',
+            border: '1px solid var(--missi-border)',
+            color: saving ? 'var(--missi-text-muted)' : 'var(--missi-bg)',
             cursor: saving ? 'default' : 'pointer',
           }}
         >
@@ -1073,9 +1044,7 @@ export default function BudgetBuddyDashboard() {
   }
 
   return (
-    <div className="relative min-h-screen" style={{ color: 'rgba(255,255,255,0.85)' }}>
-      <AmbientGlow />
-
+    <div className="relative min-h-screen" style={{ color: 'var(--missi-text-primary)' }}>
       <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pb-20 pt-4 md:px-8 md:pt-8">
         {/* Header */}
         <motion.section
@@ -1084,8 +1053,8 @@ export default function BudgetBuddyDashboard() {
           transition={{ duration: 0.45 }}
           className="rounded-[36px] p-6 md:p-8"
           style={{
-            background: 'rgba(10,11,15,0.72)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
             boxShadow: '0 30px 80px -45px rgba(0,0,0,0.75)',
           }}
         >
@@ -1093,21 +1062,21 @@ export default function BudgetBuddyDashboard() {
             <div className="max-w-2xl space-y-4">
               <div
                 className="inline-flex items-center gap-3 rounded-full px-3 py-2"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+                style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                  <Wallet className="h-4 w-4" style={{ color: 'rgba(255,255,255,0.62)' }} />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full" style={{ background: 'var(--missi-surface)' }}>
+                  <Wallet className="h-4 w-4" style={{ color: 'var(--missi-text-secondary)' }} />
                 </div>
-                <span className="text-[11px] font-medium uppercase tracking-[0.28em]" style={{ color: 'rgba(255,255,255,0.46)' }}>
+                <span className="text-[11px] font-medium uppercase tracking-[0.28em]" style={{ color: 'var(--missi-text-secondary)' }}>
                   Budget Buddy
                 </span>
               </div>
 
               <div className="space-y-3">
-                <h1 className="m-0 text-4xl font-medium tracking-[-0.06em] md:text-6xl" style={{ color: 'rgba(255,255,255,0.94)' }}>
+                <h1 className="m-0 text-4xl font-medium tracking-[-0.06em] md:text-6xl" style={{ color: 'var(--missi-text-primary)' }}>
                   {monthLabel}
                 </h1>
-                <p className="max-w-xl text-sm leading-7 md:text-base" style={{ color: 'rgba(255,255,255,0.56)' }}>
+                <p className="max-w-xl text-sm leading-7 md:text-base" style={{ color: 'var(--missi-text-secondary)' }}>
                   {monthNarrative}
                 </p>
               </div>
@@ -1118,7 +1087,7 @@ export default function BudgetBuddyDashboard() {
               <button
                 onClick={() => setSheetOpen(true)}
                 className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition-transform"
-                style={{ background: 'rgba(255,255,255,0.92)', color: '#0a0a0f' }}
+                style={{ background: 'var(--missi-nav-text-active)', color: 'var(--missi-bg)' }}
               >
                 <Plus className="h-4 w-4" />
                 Add expense
@@ -1128,13 +1097,13 @@ export default function BudgetBuddyDashboard() {
 
           <div className="mt-8 grid gap-3 md:grid-cols-[minmax(0,1.45fr)_repeat(3,minmax(0,1fr))]">
             <GlassCard className="p-5 md:p-6">
-              <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.36)' }}>
+              <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
                 This month
               </span>
-              <div className="mt-4 text-4xl font-medium tracking-[-0.05em] md:text-[3.5rem]" style={{ color: 'rgba(255,255,255,0.96)' }}>
+              <div className="mt-4 text-4xl font-medium tracking-[-0.05em] md:text-[3.5rem]" style={{ color: 'var(--missi-text-primary)' }}>
                 {formatMoney(total, currency)}
               </div>
-              <p className="mt-3 text-sm leading-6" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              <p className="mt-3 text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
                 {comparisonText}
               </p>
             </GlassCard>
@@ -1166,7 +1135,7 @@ export default function BudgetBuddyDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.3 }}
           className="border-b px-1"
-          style={{ borderColor: 'rgba(255,255,255,0.08)' }}
+          style={{ borderColor: 'var(--missi-border)' }}
         >
           <div className="flex flex-wrap items-center gap-6">
             {TABS.map((t) => {
@@ -1177,7 +1146,7 @@ export default function BudgetBuddyDashboard() {
                   onClick={() => setActiveTab(t.key)}
                   className="relative flex items-center gap-2 pb-4 text-sm font-medium transition-colors"
                   style={{
-                    color: isActive ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.44)',
+                    color: isActive ? 'var(--missi-text-primary)' : 'var(--missi-text-muted)',
                     cursor: 'pointer',
                   }}
                   whileTap={{ scale: 0.98 }}
@@ -1188,7 +1157,7 @@ export default function BudgetBuddyDashboard() {
                     <motion.span
                       layoutId="budget-tab-underline"
                       className="absolute inset-x-0 -bottom-px h-px"
-                      style={{ background: 'rgba(255,255,255,0.9)' }}
+                      style={{ background: 'var(--missi-nav-text-active)' }}
                     />
                   )}
                 </motion.button>
@@ -1268,20 +1237,20 @@ function OverviewTab({
         <GlassCard delay={0.04} className="p-6 md:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2">
-              <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.34)' }}>
+              <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
                 Daily rhythm
               </span>
-              <h2 className="m-0 text-2xl font-medium tracking-[-0.05em] md:text-3xl" style={{ color: 'rgba(255,255,255,0.93)' }}>
+              <h2 className="m-0 text-2xl font-medium tracking-[-0.05em] md:text-3xl" style={{ color: 'var(--missi-text-primary)' }}>
                 Spending flow
               </h2>
             </div>
-            <p className="max-w-sm text-sm leading-6" style={{ color: 'rgba(255,255,255,0.48)' }}>
+            <p className="max-w-sm text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
               {areaData.length > 1 ? `${areaData.length} checkpoints mapped across ${monthLabel}.` : 'Log a few more expenses and this view will start feeling alive.'}
             </p>
           </div>
           <div
             className="mt-8 rounded-[28px] p-4 md:p-6"
-            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+            style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
           >
             <AreaChartSvg data={areaData} width={820} height={220} />
           </div>
@@ -1289,10 +1258,10 @@ function OverviewTab({
 
         <GlassCard delay={0.08} className="p-6 md:p-8">
           <div className="space-y-2">
-            <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.34)' }}>
+            <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
               Category focus
             </span>
-            <h2 className="m-0 text-2xl font-medium tracking-[-0.05em]" style={{ color: 'rgba(255,255,255,0.93)' }}>
+            <h2 className="m-0 text-2xl font-medium tracking-[-0.05em]" style={{ color: 'var(--missi-text-primary)' }}>
               Spend mix
             </h2>
           </div>
@@ -1303,15 +1272,15 @@ function OverviewTab({
             {report && report.topCategories.length > 0 ? (
               report.topCategories.slice(0, 3).map((cat) => (
                 <div key={cat.category} className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.74)' }}>
+                  <span className="flex items-center gap-2" style={{ color: 'var(--missi-text-secondary)' }}>
                     <CategoryGlyph category={cat.category} className="h-4 w-4" />
                     <span className="capitalize">{cat.category}</span>
                   </span>
-                  <span style={{ color: 'rgba(255,255,255,0.48)' }}>{formatMoney(cat.amount, currency)}</span>
+                  <span style={{ color: 'var(--missi-text-secondary)' }}>{formatMoney(cat.amount, currency)}</span>
                 </div>
               ))
             ) : (
-              <p className="text-sm leading-6" style={{ color: 'rgba(255,255,255,0.44)' }}>
+              <p className="text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
                 No category signals yet for this month.
               </p>
             )}
@@ -1323,14 +1292,14 @@ function OverviewTab({
         <GlassCard delay={0.12} className="p-6 md:p-8">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2">
-              <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.34)' }}>
+              <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
                 Budget pulse
               </span>
-              <h2 className="m-0 text-2xl font-medium tracking-[-0.05em]" style={{ color: 'rgba(255,255,255,0.93)' }}>
+              <h2 className="m-0 text-2xl font-medium tracking-[-0.05em]" style={{ color: 'var(--missi-text-primary)' }}>
                 Limit check
               </h2>
             </div>
-            <p className="max-w-sm text-sm leading-6" style={{ color: 'rgba(255,255,255,0.48)' }}>
+            <p className="max-w-sm text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
               {activeBudgets.length > 0 ? 'A soft look at how your active limits are holding up.' : 'You have not set monthly limits yet.'}
             </p>
           </div>
@@ -1344,28 +1313,28 @@ function OverviewTab({
                   <div
                     key={limit.category}
                     className="flex items-center justify-between gap-4 rounded-[24px] px-4 py-4"
-                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+                    style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
                   >
                     <div className="flex min-w-0 items-center gap-4">
                       <BudgetRing pct={pct} color={ringColor} />
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 text-sm font-medium capitalize" style={{ color: 'rgba(255,255,255,0.78)' }}>
+                        <div className="flex items-center gap-2 text-sm font-medium capitalize" style={{ color: 'var(--missi-text-secondary)' }}>
                           <CategoryGlyph category={limit.category} className="h-4 w-4" />
                           <span>{limit.category}</span>
                         </div>
-                        <div className="mt-1 text-xs" style={{ color: 'rgba(255,255,255,0.42)' }}>
+                        <div className="mt-1 text-xs" style={{ color: 'var(--missi-text-muted)' }}>
                           {formatMoney(actual, currency)} of {formatMoney(limit.amount, currency)}
                         </div>
                       </div>
                     </div>
-                    <div className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.48)' }}>
+                    <div className="text-xs font-medium" style={{ color: 'var(--missi-text-secondary)' }}>
                       {pct.toFixed(0)}%
                     </div>
                   </div>
                 )
               })
             ) : (
-              <p className="text-sm leading-6" style={{ color: 'rgba(255,255,255,0.44)' }}>
+              <p className="text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
                 Add budgets in the budgets tab to get a live pacing view here.
               </p>
             )}
@@ -1375,14 +1344,14 @@ function OverviewTab({
         <GlassCard delay={0.16} className="p-6 md:p-8">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2">
-              <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.34)' }}>
+              <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
                 Recent activity
               </span>
-              <h2 className="m-0 text-2xl font-medium tracking-[-0.05em]" style={{ color: 'rgba(255,255,255,0.93)' }}>
+              <h2 className="m-0 text-2xl font-medium tracking-[-0.05em]" style={{ color: 'var(--missi-text-primary)' }}>
                 Latest entries
               </h2>
             </div>
-            <p className="max-w-sm text-sm leading-6" style={{ color: 'rgba(255,255,255,0.48)' }}>
+            <p className="max-w-sm text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
               The most recent money moments you logged this month.
             </p>
           </div>
@@ -1392,24 +1361,24 @@ function OverviewTab({
                 <div
                   key={entry.id}
                   className="flex items-center justify-between gap-4 rounded-[24px] px-4 py-4"
-                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+                  style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2 text-sm font-medium" style={{ color: 'rgba(255,255,255,0.78)' }}>
+                    <div className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--missi-text-secondary)' }}>
                       <CategoryGlyph category={entry.category} className="h-4 w-4" />
                       <span className="truncate">{entry.description || entry.category}</span>
                     </div>
-                    <div className="mt-1 text-xs" style={{ color: 'rgba(255,255,255,0.42)' }}>
+                    <div className="mt-1 text-xs" style={{ color: 'var(--missi-text-muted)' }}>
                       {entry.date}
                     </div>
                   </div>
-                  <div className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.58)' }}>
+                  <div className="text-sm font-medium" style={{ color: 'var(--missi-text-secondary)' }}>
                     {formatMoney(entry.amount, entry.currency)}
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-sm leading-6" style={{ color: 'rgba(255,255,255,0.44)' }}>
+              <p className="text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
                 No entries yet. Use the add expense button above to start the month.
               </p>
             )}
@@ -1466,14 +1435,14 @@ function EntriesTab({
       <GlassCard className="p-6 md:p-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="space-y-2">
-            <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.34)' }}>
+            <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
               Entries
             </span>
-            <h2 className="m-0 text-2xl font-medium tracking-[-0.05em] md:text-3xl" style={{ color: 'rgba(255,255,255,0.93)' }}>
+            <h2 className="m-0 text-2xl font-medium tracking-[-0.05em] md:text-3xl" style={{ color: 'var(--missi-text-primary)' }}>
               All spending in {monthLabel}
             </h2>
           </div>
-          <p className="max-w-sm text-sm leading-6" style={{ color: 'rgba(255,255,255,0.48)' }}>
+          <p className="max-w-sm text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
             {entries.length} {entries.length === 1 ? 'entry' : 'entries'} captured so far.
           </p>
         </div>
@@ -1483,23 +1452,23 @@ function EntriesTab({
                 <div
                   key={entry.id}
                   className="flex items-center justify-between gap-4 rounded-[24px] px-4 py-4"
-                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+                  style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.6)' }}>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: 'var(--missi-surface)', color: 'var(--missi-text-secondary)' }}>
                       <CategoryGlyph category={entry.category} className="h-4 w-4" />
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium" style={{ color: 'rgba(255,255,255,0.78)' }}>
+                      <p className="truncate text-sm font-medium" style={{ color: 'var(--missi-text-secondary)' }}>
                         {entry.description || entry.category}
                       </p>
-                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.42)' }}>
+                      <p className="text-xs" style={{ color: 'var(--missi-text-muted)' }}>
                         {entry.date} · {entry.category}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.58)' }}>
+                    <span className="text-sm font-medium" style={{ color: 'var(--missi-text-secondary)' }}>
                       {formatMoney(entry.amount, entry.currency)}
                     </span>
                     <button
@@ -1518,7 +1487,7 @@ function EntriesTab({
                 </div>
               ))
             ) : (
-              <p className="py-10 text-sm leading-6" style={{ color: 'rgba(255,255,255,0.44)' }}>
+              <p className="py-10 text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
                 No entries for this month.
               </p>
             )}
@@ -1594,14 +1563,14 @@ function BudgetsTab({
       <GlassCard className="p-6 md:p-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="space-y-2">
-            <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.34)' }}>
+            <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
               Budgets
             </span>
-            <h2 className="m-0 text-2xl font-medium tracking-[-0.05em] md:text-3xl" style={{ color: 'rgba(255,255,255,0.93)' }}>
+            <h2 className="m-0 text-2xl font-medium tracking-[-0.05em] md:text-3xl" style={{ color: 'var(--missi-text-primary)' }}>
               Monthly limits for {monthLabel}
             </h2>
           </div>
-          <p className="max-w-sm text-sm leading-6" style={{ color: 'rgba(255,255,255,0.48)' }}>
+          <p className="max-w-sm text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
             Set calm spending guardrails category by category.
           </p>
         </div>
@@ -1616,23 +1585,23 @@ function BudgetsTab({
                 <div
                   key={cat}
                   className="space-y-3 rounded-[24px] px-4 py-4"
-                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+                  style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.78)' }}>
+                    <span className="text-sm flex items-center gap-2" style={{ color: 'var(--missi-text-secondary)' }}>
                       <CategoryGlyph category={cat as ExpenseCategory} className="h-4 w-4" />
                       <span>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
                     </span>
-                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.42)' }}>
+                    <span className="text-xs" style={{ color: 'var(--missi-text-muted)' }}>
                       {budget > 0 ? `${formatMoney(actual, currency)} / ${formatMoney(budget, currency)}` : formatMoney(actual, currency)}
                     </span>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <div className="h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--missi-border)' }}>
                     <div
                       className="h-full rounded-full transition-all"
                       style={{
                         width: `${pct}%`,
-                        background: CATEGORY_COLORS[cat] || 'rgba(255,255,255,0.3)',
+                        background: CATEGORY_COLORS[cat] || 'var(--missi-text-muted)',
                         opacity: 0.7,
                       }}
                     />
@@ -1646,9 +1615,9 @@ function BudgetsTab({
                     onChange={(e) => setLimits((prev) => ({ ...prev, [cat]: e.target.value }))}
                     className="w-full rounded-[18px] px-4 py-3 text-sm"
                     style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      color: 'rgba(255,255,255,0.75)',
+                      background: 'var(--missi-surface)',
+                      border: '1px solid var(--missi-border)',
+                      color: 'var(--missi-text-secondary)',
                       outline: 'none',
                     }}
                   />
@@ -1660,9 +1629,9 @@ function BudgetsTab({
             disabled={saving}
             className="inline-flex min-w-[180px] items-center justify-center rounded-full px-5 py-3 text-sm font-medium transition-colors"
             style={{
-              background: saving ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.9)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: saving ? 'rgba(255,255,255,0.35)' : '#0a0a0f',
+              background: saving ? 'var(--missi-surface)' : 'var(--missi-nav-text-active)',
+              border: '1px solid var(--missi-border)',
+              color: saving ? 'var(--missi-text-muted)' : 'var(--missi-bg)',
               cursor: saving ? 'default' : 'pointer',
             }}
           >
@@ -1723,10 +1692,10 @@ function InsightsTab({
       <GlassCard className="p-6 md:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="space-y-2">
-            <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.34)' }}>
+            <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
               Insights
             </span>
-            <h2 className="m-0 text-2xl font-medium tracking-[-0.05em] md:text-3xl" style={{ color: 'rgba(255,255,255,0.93)' }}>
+            <h2 className="m-0 text-2xl font-medium tracking-[-0.05em] md:text-3xl" style={{ color: 'var(--missi-text-primary)' }}>
               Spending insight for {formatYearMonth(month)}
             </h2>
           </div>
@@ -1736,9 +1705,9 @@ function InsightsTab({
               disabled={regenerating}
               className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-colors"
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.6)',
+                background: 'var(--missi-surface)',
+                border: '1px solid var(--missi-border)',
+                color: 'var(--missi-text-secondary)',
                 cursor: regenerating ? 'default' : 'pointer',
               }}
             >
@@ -1755,14 +1724,14 @@ function InsightsTab({
         <div className="mt-8">
           {insight ? (
             <div className="space-y-6">
-              <p className="max-w-3xl text-xl leading-9 tracking-[-0.03em]" style={{ color: 'rgba(255,255,255,0.8)', fontStyle: 'italic' }}>
+              <p className="max-w-3xl text-xl leading-9 tracking-[-0.03em]" style={{ color: 'var(--missi-text-secondary)', fontStyle: 'italic' }}>
                 {insight.summary}
               </p>
-              <div className="flex flex-wrap items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.46)' }}>
+              <div className="flex flex-wrap items-center gap-3 text-sm" style={{ color: 'var(--missi-text-secondary)' }}>
                 {insight.comparisonText && (
                   <div
                     className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                    style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
                   >
                     {insight.comparisonText}
                   </div>
@@ -1770,7 +1739,7 @@ function InsightsTab({
                 {insight.topCategory && (
                   <div className="inline-flex items-center gap-2">
                     <span>Top category:</span>
-                    <span className="inline-flex items-center gap-2 font-medium" style={{ color: 'rgba(255,255,255,0.62)' }}>
+                    <span className="inline-flex items-center gap-2 font-medium" style={{ color: 'var(--missi-text-secondary)' }}>
                       <CategoryGlyph category={insight.topCategory} className="h-4 w-4" />
                       <span>{insight.topCategory}</span>
                     </span>
@@ -1780,16 +1749,16 @@ function InsightsTab({
               </div>
               {insight.suggestions.length > 0 && (
                 <div className="space-y-3 pt-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
                     Suggestions
                   </span>
                   {insight.suggestions.map((s, i) => (
                     <div
                       key={i}
                       className="rounded-[22px] px-4 py-3"
-                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+                      style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
                     >
-                      <p className="m-0 text-sm leading-6" style={{ color: 'rgba(255,255,255,0.54)' }}>
+                      <p className="m-0 text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
                         {s}
                       </p>
                     </div>
@@ -1798,7 +1767,7 @@ function InsightsTab({
               )}
             </div>
           ) : (
-            <p className="py-10 text-sm leading-6" style={{ color: 'rgba(255,255,255,0.44)' }}>
+            <p className="py-10 text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
               No insight available. Add expenses and then generate an insight.
             </p>
           )}
@@ -1858,54 +1827,64 @@ function SettingsTab({
       <GlassCard className="p-6 md:p-8">
         <div className="space-y-6">
           <div className="space-y-2">
-            <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.34)' }}>
+            <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
               Settings
             </span>
-            <h2 className="m-0 text-2xl font-medium tracking-[-0.05em] md:text-3xl" style={{ color: 'rgba(255,255,255,0.93)' }}>
+            <h2 className="m-0 text-2xl font-medium tracking-[-0.05em] md:text-3xl" style={{ color: 'var(--missi-text-primary)' }}>
               Preferences
             </h2>
           </div>
 
           <div>
-            <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
               Preferred Currency
             </label>
-            <select
-              value={preferredCurrency}
-              onChange={(e) => setPreferredCurrency(e.target.value)}
-              className="w-full rounded-[20px] px-4 py-3 text-sm"
-              style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.85)',
-                outline: 'none',
-              }}
-            >
-              {['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF', 'CNY'].map((c) => (
-                <option key={c} value={c}>{c} — {currencySymbol(c)}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={preferredCurrency}
+                onChange={(e) => setPreferredCurrency(e.target.value)}
+                className="w-full appearance-none rounded-[20px] px-4 py-3 pr-16 text-sm"
+                style={{
+                  background: 'var(--missi-surface)',
+                  border: '1px solid var(--missi-border)',
+                  color: 'var(--missi-text-primary)',
+                  outline: 'none',
+                }}
+              >
+                {['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF', 'CNY'].map((c) => (
+                  <option key={c} value={c}>{c} — {currencySymbol(c)}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-6 flex items-center">
+                <ChevronDown className="h-4 w-4" style={{ color: 'var(--missi-text-muted)' }} />
+              </span>
+            </div>
           </div>
 
           <div>
-            <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
               Default Tab
             </label>
-            <select
-              value={defaultView}
-              onChange={(e) => setDefaultView(e.target.value as BudgetTab)}
-              className="w-full rounded-[20px] px-4 py-3 text-sm"
-              style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.85)',
-                outline: 'none',
-              }}
-            >
-              {TABS.map((t) => (
-                <option key={t.key} value={t.key}>{t.label}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={defaultView}
+                onChange={(e) => setDefaultView(e.target.value as BudgetTab)}
+                className="w-full appearance-none rounded-[20px] px-4 py-3 pr-16 text-sm"
+                style={{
+                  background: 'var(--missi-surface)',
+                  border: '1px solid var(--missi-border)',
+                  color: 'var(--missi-text-primary)',
+                  outline: 'none',
+                }}
+              >
+                {TABS.map((t) => (
+                  <option key={t.key} value={t.key}>{t.label}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-6 flex items-center">
+                <ChevronDown className="h-4 w-4" style={{ color: 'var(--missi-text-muted)' }} />
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 pt-2">
@@ -1914,9 +1893,9 @@ function SettingsTab({
               disabled={saving}
               className="inline-flex min-w-[170px] items-center justify-center rounded-full px-5 py-3 text-sm font-medium transition-colors"
               style={{
-                background: saving ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.9)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: saving ? 'rgba(255,255,255,0.35)' : '#0a0a0f',
+                background: saving ? 'var(--missi-surface)' : 'var(--missi-nav-text-active)',
+                border: '1px solid var(--missi-border)',
+                color: saving ? 'var(--missi-text-muted)' : 'var(--missi-bg)',
                 cursor: saving ? 'default' : 'pointer',
               }}
             >
@@ -1929,19 +1908,19 @@ function SettingsTab({
       {/* Export */}
       <GlassCard className="p-6 md:p-8">
         <div className="space-y-4">
-          <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'rgba(255,255,255,0.34)' }}>
+          <span className="text-[10px] font-medium uppercase tracking-[0.24em]" style={{ color: 'var(--missi-text-muted)' }}>
             Export
           </span>
-          <p className="text-sm leading-6" style={{ color: 'rgba(255,255,255,0.46)' }}>
+          <p className="text-sm leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
             Download your expense data as a CSV file.
           </p>
           <a
             href={`/api/v1/budget/export?month=${getCurrentYearMonth()}`}
             className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition-colors"
             style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.7)',
+              background: 'var(--missi-surface)',
+              border: '1px solid var(--missi-border)',
+              color: 'var(--missi-text-secondary)',
               textDecoration: 'none',
             }}
           >

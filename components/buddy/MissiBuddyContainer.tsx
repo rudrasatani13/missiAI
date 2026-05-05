@@ -18,6 +18,7 @@ export function MissiBuddyContainer() {
   const draggingRef = useRef(false);
   const dragAgitationRef = useRef(0);
   const [mounted, setMounted] = useState(false);
+  const [isLight, setIsLight] = useState(false);
   const [constraints, setConstraints] = useState({ left: 0, right: 0, top: 0, bottom: 0 });
   const [gazeOffset, setGazeOffset] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
@@ -32,9 +33,18 @@ export function MissiBuddyContainer() {
     setAmbientCueLevel(0);
   }, []);
 
-  // Prevent hydration mismatch on global mount
+  // Mount + theme observer (run once)
   useEffect(() => {
     setMounted(true);
+    const checkTheme = () => setIsLight(document.documentElement.getAttribute('data-theme') === 'light');
+    checkTheme();
+    const themeObs = new MutationObserver(checkTheme);
+    themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => themeObs.disconnect();
+  }, []);
+
+  // Drag constraints — recalculate on route change and resize
+  useEffect(() => {
     const updateConstraints = () => {
       if (typeof window !== 'undefined') {
         const compact = window.innerWidth < 768;
@@ -49,12 +59,11 @@ export function MissiBuddyContainer() {
 
         setIsCompactViewport(compact);
 
-        // We set constraints relative to its starting position (x:0, y:0 is bottom-right)
         setConstraints({
-          left: -maxHorizontalTravel, // Max drag to the left
-          right: 0, // Cannot drag further right than the starting padding
-          top: -maxVerticalTravel, // Max drag to the top
-          bottom: 0 // Cannot drag further down than starting padding
+          left: -maxHorizontalTravel,
+          right: 0,
+          top: -maxVerticalTravel,
+          bottom: 0,
         });
       }
     };
@@ -285,12 +294,22 @@ export function MissiBuddyContainer() {
             initial={{ opacity: 0, y: 10, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.9 }}
-            className="max-w-[200px] bg-white/10 backdrop-blur-xl border border-white/20 text-sm text-white px-4 py-2 rounded-2xl rounded-br-none shadow-2xl relative"
+            className="max-w-[200px] text-sm px-4 py-2 rounded-2xl rounded-br-none relative"
+            style={{
+              background: isLight ? 'rgba(15,23,42,0.90)' : 'var(--missi-border)',
+              border: isLight ? '1px solid var(--missi-border-strong)' : '1px solid var(--missi-border-strong)',
+              color: isLight ? '#f7f5ec' : 'var(--missi-text-primary)',
+            }}
           >
             {message}
-            <button 
+            <button
               onClick={() => clearMessage()}
-              className="absolute -top-2 -right-2 bg-black/50 border border-white/20 rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-white/20"
+              className="absolute -top-2 -right-2 rounded-full w-5 h-5 flex items-center justify-center text-[10px]"
+              style={{
+                background: isLight ? 'rgba(15,23,42,0.85)' : 'rgba(0,0,0,0.50)',
+                border: '1px solid var(--missi-border-strong)',
+                color: isLight ? '#f7f5ec' : 'var(--missi-text-primary)',
+              }}
             >
               ✕
             </button>

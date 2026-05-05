@@ -29,6 +29,7 @@ const {
   getUserPlanMock,
   checkAndIncrementVoiceTimeMock,
   runChatPostResponseTasksMock,
+  checkHardBudgetMock,
   AuthenticationErrorMock,
 } = vi.hoisted(() => {
   class AuthenticationErrorMock extends Error {
@@ -75,6 +76,7 @@ const {
     getUserPlanMock: vi.fn(),
     checkAndIncrementVoiceTimeMock: vi.fn(),
     runChatPostResponseTasksMock: vi.fn(),
+    checkHardBudgetMock: vi.fn(async () => ({ allowed: true, spendUsd: 0, budgetUsd: 5.0 })),
     AuthenticationErrorMock,
   }
 })
@@ -124,7 +126,16 @@ vi.mock("@/lib/server/cache/response-cache", () => ({
 
 vi.mock("@/lib/ai/providers/model-router", () => ({
   selectGeminiModel: selectGeminiModelMock,
+  estimateRequestCost: vi.fn(() => 0.001),
 }))
+
+vi.mock("@/lib/server/observability/cost-tracker", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/server/observability/cost-tracker")>("@/lib/server/observability/cost-tracker")
+  return {
+    ...actual,
+    checkHardBudget: checkHardBudgetMock,
+  }
+})
 
 vi.mock("@/lib/server/observability/logger", () => ({
   logRequest: logRequestMock,

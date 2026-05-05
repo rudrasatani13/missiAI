@@ -80,15 +80,15 @@ const CARD_THEMES: CardTheme[] = [
       shimmerEnd: 'rgba(139,92,246,0.05)',
       accentColor: 'rgba(139,92,246,0.6)',
       accentColorMuted: 'rgba(139,92,246,0.15)',
-      pillBg: 'rgba(255,255,255,0.06)',
-      pillBorder: 'rgba(255,255,255,0.08)',
-      statBg: 'rgba(255,255,255,0.03)',
-      statBorder: 'rgba(255,255,255,0.05)',
-      divider: 'rgba(255,255,255,0.06)',
-      textPrimary: 'rgba(255,255,255,0.9)',
-      textSecondary: 'rgba(255,255,255,0.65)',
-      textMuted: 'rgba(255,255,255,0.35)',
-      textFaint: 'rgba(255,255,255,0.15)',
+      pillBg: 'var(--missi-text-muted)',
+      pillBorder: 'var(--missi-border)',
+      statBg: 'var(--missi-text-muted)',
+      statBorder: 'var(--missi-border)',
+      divider: 'var(--missi-text-muted)',
+      textPrimary: 'var(--missi-text-primary)',
+      textSecondary: 'var(--missi-text-secondary)',
+      textMuted: 'var(--missi-text-muted)',
+      textFaint: 'var(--missi-text-muted)',
     },
   },
   {
@@ -260,9 +260,9 @@ const SOCIAL_PLATFORMS: SocialPlatform[] = [
     id: 'whatsapp',
     name: 'WhatsApp',
     icon: WhatsAppIcon,
-    color: 'rgba(255,255,255,0.7)',
-    bgColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.1)',
+    color: 'var(--missi-text-secondary)',
+    bgColor: 'var(--missi-text-muted)',
+    borderColor: 'var(--missi-border)',
     action: 'url',
     getUrl: (text: string) => `https://wa.me/?text=${encodeURIComponent(text)}`,
   },
@@ -270,18 +270,18 @@ const SOCIAL_PLATFORMS: SocialPlatform[] = [
     id: 'instagram',
     name: 'Instagram',
     icon: InstagramIcon,
-    color: 'rgba(255,255,255,0.7)',
-    bgColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.1)',
+    color: 'var(--missi-text-secondary)',
+    bgColor: 'var(--missi-text-muted)',
+    borderColor: 'var(--missi-border)',
     action: 'download',
   },
   {
     id: 'facebook',
     name: 'Facebook',
     icon: FacebookIcon,
-    color: 'rgba(255,255,255,0.7)',
-    bgColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.1)',
+    color: 'var(--missi-text-secondary)',
+    bgColor: 'var(--missi-text-muted)',
+    borderColor: 'var(--missi-border)',
     action: 'url',
     getUrl: () => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}&quote=${encodeURIComponent(SHARE_TEXT)}`,
   },
@@ -289,18 +289,18 @@ const SOCIAL_PLATFORMS: SocialPlatform[] = [
     id: 'snapchat',
     name: 'Snapchat',
     icon: SnapchatIcon,
-    color: 'rgba(255,255,255,0.7)',
-    bgColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.1)',
+    color: 'var(--missi-text-secondary)',
+    bgColor: 'var(--missi-text-muted)',
+    borderColor: 'var(--missi-border)',
     action: 'download',
   },
   {
     id: 'x',
     name: 'X',
     icon: XTwitterIcon,
-    color: 'rgba(255,255,255,0.7)',
-    bgColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.1)',
+    color: 'var(--missi-text-secondary)',
+    bgColor: 'var(--missi-text-muted)',
+    borderColor: 'var(--missi-border)',
     action: 'url',
     getUrl: (text: string) => `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`,
   },
@@ -308,9 +308,9 @@ const SOCIAL_PLATFORMS: SocialPlatform[] = [
     id: 'telegram',
     name: 'Telegram',
     icon: TelegramIcon,
-    color: 'rgba(255,255,255,0.7)',
-    bgColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.1)',
+    color: 'var(--missi-text-secondary)',
+    bgColor: 'var(--missi-text-muted)',
+    borderColor: 'var(--missi-border)',
     action: 'url',
     getUrl: (text: string) => `https://t.me/share/url?url=${encodeURIComponent(SHARE_URL)}&text=${encodeURIComponent(text)}`,
   },
@@ -320,7 +320,7 @@ const SOCIAL_PLATFORMS: SocialPlatform[] = [
 
 function EmptyPlaceholder() {
   return (
-    <p className="text-xs font-light italic" style={{ color: 'rgba(255,255,255,0.25)' }}>
+    <p className="text-xs font-light italic" style={{ color: 'var(--missi-text-muted)' }}>
       Keep chatting — Missi is learning
     </p>
   )
@@ -361,8 +361,8 @@ function ThemeSelector({
   return (
     <div className="flex items-center gap-3">
       <div className="flex items-center gap-1.5">
-        <Palette className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
-        <span className="text-[10px] font-medium tracking-wide" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <Palette className="w-3.5 h-3.5" style={{ color: 'var(--missi-text-muted)' }} />
+        <span className="text-[10px] font-medium tracking-wide" style={{ color: 'var(--missi-text-muted)' }}>
           Theme
         </span>
       </div>
@@ -379,13 +379,13 @@ function ThemeSelector({
               height: 28,
               borderRadius: '50%',
               background: t.preview,
-              border: current === t.id ? '2px solid rgba(255,255,255,0.6)' : '2px solid rgba(255,255,255,0.1)',
+              border: current === t.id ? '2px solid var(--missi-border-strong)' : '2px solid var(--missi-border)',
               cursor: 'pointer',
             }}
           >
             {current === t.id && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <Check className="w-3 h-3 text-white" />
+                <Check className="w-3 h-3 text-[var(--missi-text-primary)]" />
               </div>
             )}
           </button>
@@ -432,7 +432,7 @@ function ShareSheet({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-50"
-            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            style={{ background: 'var(--missi-surface)', backdropFilter: 'blur(4px)' }}
             onClick={onClose}
           />
 
@@ -448,19 +448,19 @@ function ShareSheet({
               className="w-full max-w-[420px] rounded-2xl"
               style={{
                 background: 'rgba(18,18,22,0.98)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--missi-border)',
                 boxShadow: '0 -10px 60px rgba(0,0,0,0.5)',
                 backdropFilter: 'blur(24px)',
               }}
             >
               {/* Handle bar */}
               <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }} />
+                <div className="w-10 h-1 rounded-full" style={{ background: 'var(--missi-border-strong)' }} />
               </div>
 
               {/* Title */}
               <div className="text-center px-5 pt-2 pb-4">
-                <p className="text-[11px] font-semibold tracking-[0.15em] uppercase m-0" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <p className="text-[11px] font-semibold tracking-[0.15em] uppercase m-0" style={{ color: 'var(--missi-text-muted)' }}>
                   Share to
                 </p>
               </div>
@@ -503,7 +503,7 @@ function ShareSheet({
                           <Icon size={24} />
                         )}
                       </div>
-                      <span className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                      <span className="text-[10px] font-medium" style={{ color: 'var(--missi-text-secondary)' }}>
                         {platform.name}
                       </span>
                     </button>
@@ -522,30 +522,30 @@ function ShareSheet({
                     style={{
                       width: 50,
                       height: 50,
-                      background: copied ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.06)',
+                      background: copied ? 'var(--missi-border)' : 'var(--missi-border)',
                     }}
                   >
                     {copied ? (
-                      <Check className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.7)' }} />
+                      <Check className="w-6 h-6" style={{ color: 'var(--missi-text-secondary)' }} />
                     ) : (
-                      <Copy className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.45)' }} />
+                      <Copy className="w-6 h-6" style={{ color: 'var(--missi-text-secondary)' }} />
                     )}
                   </div>
-                  <span className="text-[10px] font-medium" style={{ color: copied ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.4)' }}>
+                  <span className="text-[10px] font-medium" style={{ color: copied ? 'var(--missi-text-secondary)' : 'var(--missi-text-muted)' }}>
                     {copied ? 'Copied!' : 'Copy'}
                   </span>
                 </button>
               </div>
 
               {/* Divider + Cancel */}
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ borderTop: '1px solid var(--missi-border)' }}>
                 <button
                   onClick={onClose}
-                  className="w-full py-3.5 text-[13px] font-medium transition-all active:bg-white/[0.03]"
+                  className="w-full py-3.5 text-[13px] font-medium transition-all active:bg-[var(--missi-nav-hover)]"
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: 'rgba(255,255,255,0.35)',
+                    color: 'var(--missi-text-muted)',
                     cursor: 'pointer',
                   }}
                 >
@@ -676,7 +676,7 @@ export function ProfileCardClient() {
     return (
       <div className="min-h-full flex flex-col items-center justify-start px-4 py-6 md:py-10">
         <div className="w-full max-w-[640px]">
-          <div className="rounded-3xl overflow-hidden" style={{ background: 'rgba(12,12,16,0.95)', border: '1px solid rgba(255,255,255,0.08)', height: 600, animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <div className="rounded-3xl overflow-hidden" style={{ background: 'rgba(12,12,16,0.95)', border: '1px solid var(--missi-border)', height: 600, animation: 'pulse 1.5s ease-in-out infinite' }} />
         </div>
         <style>{`@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }`}</style>
       </div>
@@ -688,8 +688,8 @@ export function ProfileCardClient() {
   if (error || !data) {
     return (
       <div className="min-h-full flex flex-col items-center justify-center px-4">
-        <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>Could not load your profile card.</p>
-        <button onClick={() => fetchCard()} className="px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
+        <p className="text-sm mb-4" style={{ color: 'var(--missi-text-muted)' }}>Could not load your profile card.</p>
+        <button onClick={() => fetchCard()} className="px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]" style={{ border: '1px solid var(--missi-border-strong)', background: 'var(--missi-border)', color: 'var(--missi-text-secondary)', cursor: 'pointer' }}>
           Try again
         </button>
       </div>
@@ -717,7 +717,7 @@ export function ProfileCardClient() {
           <button
             onClick={() => fetchCard(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-light transition-colors active:scale-[0.97]"
-            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
+            style={{ background: 'transparent', border: '1px solid var(--missi-border)', color: 'var(--missi-text-muted)', cursor: 'pointer' }}
           >
             <RefreshCw className="w-3 h-3" />
             Refresh
@@ -746,8 +746,8 @@ export function ProfileCardClient() {
               className="relative rounded-3xl overflow-hidden px-5 py-7 sm:px-8 sm:pt-10 sm:pb-7"
               style={{
                 background: t.background,
-                border: '1px solid rgba(255,255,255,0.06)',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
+                border: '1px solid var(--missi-border)',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 var(--missi-text-muted)',
               }}
             >
               {/* Subtle top glow — static, no animation */}
@@ -770,7 +770,7 @@ export function ProfileCardClient() {
                       background: `linear-gradient(135deg, ${tierColors.colorStart}, ${tierColors.colorEnd})`,
                     }}
                   >
-                    <span className="text-white font-medium" style={{ fontSize: 32, lineHeight: 1 }}>
+                    <span className="text-[var(--missi-text-primary)] font-medium" style={{ fontSize: 32, lineHeight: 1 }}>
                       {data.userName.charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -780,7 +780,7 @@ export function ProfileCardClient() {
               </div>
 
               {/* ── Personality Snapshot ────────────────────────────────────── */}
-              <div className="text-center mb-6 pb-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="text-center mb-6 pb-6" style={{ borderBottom: '1px solid var(--missi-border)' }}>
                 <p className="italic m-0 px-4" style={{ fontSize: 14, color: t.textSecondary, lineHeight: 1.6 }}>
                   &ldquo;{data.personalitySnapshot}&rdquo;
                 </p>
@@ -860,7 +860,7 @@ export function ProfileCardClient() {
               </div>
 
               {/* ── Bottom Bar ─────────────────────────────────────────────── */}
-              <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 pt-4" style={{ borderTop: '1px solid var(--missi-border)' }}>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                   <div className="flex items-center gap-1.5">
                     <Zap className="w-3 h-3" style={{ color: t.textMuted }} />
@@ -898,13 +898,13 @@ export function ProfileCardClient() {
           className="flex items-center justify-center gap-3 mt-6 mb-16"
         >
           <button
-            onClick={() => captureAndShare({ id: 'download', name: 'Download', icon: Download as never, color: '#fff', bgColor: '', borderColor: '', action: 'download' })}
+            onClick={() => captureAndShare({ id: 'download', name: 'Download', icon: Download as never, color: 'var(--missi-text-primary)', bgColor: '', borderColor: '', action: 'download' })}
             disabled={capturing !== null}
             className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: 'rgba(255,255,255,0.6)',
+              background: 'var(--missi-border)',
+              border: '1px solid var(--missi-border)',
+              color: 'var(--missi-text-secondary)',
               cursor: capturing !== null ? 'default' : 'pointer',
             }}
           >
@@ -916,9 +916,9 @@ export function ProfileCardClient() {
             onClick={() => setShareSheetOpen(true)}
             className="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
             style={{
-              background: 'rgba(255,255,255,0.9)',
+              background: 'var(--missi-nav-text-active)',
               border: '1px solid transparent',
-              color: '#0a0a0f',
+              color: 'var(--missi-bg)',
               cursor: 'pointer',
             }}
           >

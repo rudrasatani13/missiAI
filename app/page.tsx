@@ -1,5 +1,5 @@
-import { AgenticMissiHome } from "@/components/landing/AgenticMissiHome"
+import { redirect } from "next/navigation"
 
-export default function LandingPage() {
-  return <AgenticMissiHome />
+export default function HomePage() {
+  redirect("/chat")
 }

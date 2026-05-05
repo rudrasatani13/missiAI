@@ -1,12 +1,31 @@
 "use client"
 
-import { useTheme } from "next-themes"
+import * as React from "react"
 import { Toaster as Sonner } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const [theme, setTheme] = React.useState<"light" | "dark">("light")
+
+  React.useEffect(() => {
+    const root = document.documentElement
+    const syncTheme = () => {
+      const isDark =
+        root.classList.contains("dark") ||
+        root.getAttribute("data-theme") === "dark"
+      setTheme(isDark ? "dark" : "light")
+    }
+
+    syncTheme()
+    const observer = new MutationObserver(syncTheme)
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ["class", "data-theme"],
+    })
+
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <Sonner

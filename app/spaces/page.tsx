@@ -55,17 +55,17 @@ export default function SpacesPage() {
         style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top))' }}
       >
         <div className="flex items-center gap-2.5 mb-6">
-          <Users className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          <Users className="w-5 h-5" style={{ color: 'var(--missi-text-muted)' }} />
           <h1
             className="text-base md:text-lg font-medium m-0"
-            style={{ color: 'rgba(255,255,255,0.9)' }}
+            style={{ color: 'var(--missi-text-primary)' }}
           >
             Missi Spaces
           </h1>
         </div>
 
         {!isLoaded || checkingPlan ? (
-          <p className="text-sm text-white/40">Loading…</p>
+          <p className="text-sm text-[var(--missi-text-muted)]">Loading…</p>
         ) : !canAccess ? (
           <UpgradePrompt />
         ) : (
@@ -81,16 +81,16 @@ function UpgradePrompt() {
     <div
       className="rounded-2xl p-8 text-center"
       style={{
-        background: 'rgba(20,20,26,0.55)',
+        background: 'var(--missi-surface)',
         backdropFilter: 'blur(24px) saturate(140%)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid var(--missi-border)',
       }}
     >
       <div className="text-4xl mb-4">🫂</div>
-      <h2 className="text-lg font-medium text-white/90 mb-2">
+      <h2 className="text-lg font-medium text-[var(--missi-text-primary)] mb-2">
         Share memory with the people closest to you
       </h2>
-      <p className="text-sm text-white/50 mb-6 max-w-md mx-auto">
+      <p className="text-sm text-[var(--missi-text-secondary)] mb-6 max-w-md mx-auto">
         Missi Spaces lets you share AI memory with a partner, family, or study
         group. It&apos;s available on the Plus and Pro plans.
       </p>
@@ -98,9 +98,9 @@ function UpgradePrompt() {
         href="/pricing"
         className="inline-flex px-5 py-2 rounded-full text-xs font-medium no-underline"
         style={{
-          border: '1px solid rgba(255,255,255,0.1)',
-          background: 'rgba(255,255,255,0.92)',
-          color: '#0a0a0f',
+          border: '1px solid var(--missi-border)',
+          background: 'var(--missi-nav-text-active)',
+          color: 'var(--missi-bg)',
         }}
       >
         Upgrade to Plus

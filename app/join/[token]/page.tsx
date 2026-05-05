@@ -58,47 +58,47 @@ export default async function JoinPage({ params }: PageProps) {
       <div
         className="w-full max-w-md rounded-2xl p-8"
         style={{
-          background: 'rgba(20,20,26,0.55)',
+          background: 'var(--missi-surface)',
           backdropFilter: 'blur(24px) saturate(140%)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--missi-border)',
           boxShadow:
-            '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+            '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 var(--missi-border)',
         }}
       >
         {status === 'unavailable' ? (
           <div className="text-center">
-            <h1 className="text-xl font-semibold text-white/90 mb-2">
+            <h1 className="text-xl font-semibold text-[var(--missi-text-primary)] mb-2">
               Service unavailable
             </h1>
-            <p className="text-sm text-white/50">
+            <p className="text-sm text-[var(--missi-text-secondary)]">
               We couldn&apos;t load this invite right now. Please try again shortly.
             </p>
           </div>
         ) : status === 'invalid' || !space ? (
           <div className="text-center">
             <div className="text-4xl mb-4">🔒</div>
-            <h1 className="text-xl font-semibold text-white/90 mb-2">
+            <h1 className="text-xl font-semibold text-[var(--missi-text-primary)] mb-2">
               This invite has expired or is invalid
             </h1>
-            <p className="text-sm text-white/50">
+            <p className="text-sm text-[var(--missi-text-secondary)]">
               Ask the person who sent this link to generate a new invite.
             </p>
           </div>
         ) : (
           <div className="flex flex-col items-center text-center">
             <div className="text-5xl mb-4">{space.emoji || '🫂'}</div>
-            <p className="text-xs uppercase tracking-widest text-white/40 mb-1">
+            <p className="text-xs uppercase tracking-widest text-[var(--missi-text-muted)] mb-1">
               You&apos;ve been invited to a Missi Space
             </p>
-            <h1 className="text-2xl font-semibold text-white mb-2">
+            <h1 className="text-2xl font-semibold text-[var(--missi-text-primary)] mb-2">
               {space.name}
             </h1>
             {space.description ? (
-              <p className="text-sm text-white/55 mb-4 max-w-sm">
+              <p className="text-sm text-[var(--missi-text-secondary)] mb-4 max-w-sm">
                 {space.description}
               </p>
             ) : null}
-            <div className="flex items-center gap-2 text-xs text-white/45 mb-8">
+            <div className="flex items-center gap-2 text-xs text-[var(--missi-text-muted)] mb-8">
               <span className="capitalize">{space.category}</span>
               <span>·</span>
               <span>
@@ -114,7 +114,7 @@ export default async function JoinPage({ params }: PageProps) {
               spaceName={space.name}
             />
 
-            <p className="text-[11px] text-white/35 mt-6 max-w-sm leading-relaxed">
+            <p className="text-[11px] text-[var(--missi-text-muted)] mt-6 max-w-sm leading-relaxed">
               Joining gives the members of this Space access to the shared memory
               you add. Your personal memories stay private.
             </p>

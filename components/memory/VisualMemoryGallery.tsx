@@ -83,7 +83,7 @@ function VisualMemoryCard({ record, onDelete }: CardProps) {
       className="group relative rounded-2xl p-4 flex flex-col gap-2 cursor-pointer"
       style={{
         background: 'rgba(12,12,18,0.95)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        border: '1px solid var(--missi-border)',
         boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
         minHeight: 140,
       }}
@@ -94,7 +94,7 @@ function VisualMemoryCard({ record, onDelete }: CardProps) {
         <button
           onClick={(e) => { e.stopPropagation(); setConfirmDelete(true) }}
           className="absolute top-2 right-2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer' }}
+          style={{ background: 'var(--missi-border)', border: 'none', color: 'var(--missi-border)', cursor: 'pointer' }}
         >
           <Trash2 className="w-3 h-3" />
         </button>
@@ -103,12 +103,12 @@ function VisualMemoryCard({ record, onDelete }: CardProps) {
       {/* Delete confirmation */}
       {confirmDelete && (
         <div className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center gap-2 z-10 p-3"
-          style={{ background: 'rgba(8,8,12,0.95)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'rgba(8,8,12,0.95)', border: '1px solid var(--missi-border)' }}
           onClick={(e) => e.stopPropagation()}>
-          <p className="text-[11px] text-center" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <p className="text-[11px] text-center" style={{ color: 'var(--missi-text-secondary)' }}>
             Remove from gallery?
           </p>
-          <p className="text-[10px] text-center" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          <p className="text-[10px] text-center" style={{ color: 'var(--missi-text-muted)' }}>
             Memory stays in Missi's graph
           </p>
           <div className="flex gap-2 mt-1">
@@ -123,7 +123,7 @@ function VisualMemoryCard({ record, onDelete }: CardProps) {
             <button
               onClick={() => setConfirmDelete(false)}
               className="px-3 py-1 rounded-full text-[10px] font-medium transition-all hover:scale-105"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}
+              style={{ background: 'var(--missi-border)', border: '1px solid var(--missi-border)', color: 'var(--missi-border)', cursor: 'pointer' }}
             >
               Cancel
             </button>
@@ -135,17 +135,17 @@ function VisualMemoryCard({ record, onDelete }: CardProps) {
       <div className="flex items-start gap-3">
         <span className="text-2xl flex-shrink-0">{emoji}</span>
         <div className="flex-1 min-w-0">
-          <p className="text-[12px] font-medium leading-snug" style={{ color: 'rgba(255,255,255,0.85)' }}>
+          <p className="text-[12px] font-medium leading-snug" style={{ color: 'var(--missi-text-primary)' }}>
             {record.summary}
           </p>
-          <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-[10px] mt-0.5" style={{ color: 'var(--missi-text-muted)' }}>
             {record.processedDate}
           </p>
         </div>
       </div>
 
       {record.userNote && (
-        <p className="text-[10px] italic leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <p className="text-[10px] italic leading-relaxed" style={{ color: 'var(--missi-text-muted)' }}>
           "{record.userNote}"
         </p>
       )}
@@ -160,7 +160,7 @@ function VisualMemoryCard({ record, onDelete }: CardProps) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <p className="text-[10px] italic mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-[10px] italic mt-1" style={{ color: 'var(--missi-text-muted)' }}>
               Tap "{CATEGORY_LABEL[record.category]}" info to ask Missi about this
             </p>
           </motion.div>
@@ -175,9 +175,9 @@ function VisualMemoryCard({ record, onDelete }: CardProps) {
               key={tag}
               className="text-[9px] px-2 py-0.5 rounded-full"
               style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.07)',
-                color: 'rgba(255,255,255,0.35)',
+                background: 'var(--missi-border)',
+                border: '1px solid var(--missi-border)',
+                color: 'var(--missi-text-muted)',
               }}
             >
               {tag}
@@ -238,13 +238,13 @@ export function VisualMemoryGallery() {
         <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="rounded-full px-3 py-1 h-7 w-16 flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,0.05)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+              style={{ background: 'var(--missi-border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
           ))}
         </div>
         <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="rounded-2xl"
-              style={{ height: 140, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+              style={{ height: 140, background: 'var(--missi-surface)', border: '1px solid var(--missi-border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
           ))}
         </div>
         <style>{`@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }`}</style>
@@ -256,11 +256,11 @@ export function VisualMemoryGallery() {
   if (error) {
     return (
       <div className="text-center py-16">
-        <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>{error}</p>
+        <p className="text-sm mb-4" style={{ color: 'var(--missi-text-muted)' }}>{error}</p>
         <button
           onClick={fetchRecords}
           className="px-5 py-2 rounded-full text-xs font-medium transition-all hover:scale-105"
-          style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}
+          style={{ border: '1px solid var(--missi-border-strong)', background: 'var(--missi-border)', color: 'var(--missi-border)', cursor: 'pointer' }}
         >
           Try again
         </button>
@@ -273,10 +273,10 @@ export function VisualMemoryGallery() {
     return (
       <div className="text-center py-20 px-4">
         <div className="text-5xl mb-4">📸</div>
-        <p className="text-base font-light mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        <p className="text-base font-light mb-2" style={{ color: 'var(--missi-text-secondary)' }}>
           No visual memories yet
         </p>
-        <p className="text-xs font-light mb-6" style={{ color: 'rgba(255,255,255,0.25)' }}>
+        <p className="text-xs font-light mb-6" style={{ color: 'var(--missi-text-muted)' }}>
           Tap the camera icon in chat to save your first one
         </p>
       </div>
@@ -291,9 +291,9 @@ export function VisualMemoryGallery() {
           onClick={() => setActiveCategory('all')}
           className="flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-medium transition-all"
           style={{
-            background: activeCategory === 'all' ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)',
-            border: `1px solid ${activeCategory === 'all' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.07)'}`,
-            color: activeCategory === 'all' ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.4)',
+            background: activeCategory === 'all' ? 'var(--missi-border)' : 'var(--missi-surface)',
+            border: `1px solid ${activeCategory === 'all' ? 'var(--missi-border-strong)' : 'var(--missi-border)'}`,
+            color: activeCategory === 'all' ? 'var(--missi-text-primary)' : 'var(--missi-text-muted)',
             cursor: 'pointer',
           }}
         >
@@ -308,9 +308,9 @@ export function VisualMemoryGallery() {
               onClick={() => setActiveCategory(cat)}
               className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium transition-all"
               style={{
-                background: isActive ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${isActive ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.07)'}`,
-                color: isActive ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.4)',
+                background: isActive ? 'var(--missi-border)' : 'var(--missi-surface)',
+                border: `1px solid ${isActive ? 'var(--missi-border-strong)' : 'var(--missi-border)'}`,
+                color: isActive ? 'var(--missi-text-primary)' : 'var(--missi-text-muted)',
                 cursor: 'pointer',
               }}
             >
@@ -340,7 +340,7 @@ export function VisualMemoryGallery() {
 
       {filtered.length === 0 && activeCategory !== 'all' && (
         <div className="text-center py-12">
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-sm" style={{ color: 'var(--missi-text-muted)' }}>
             No {CATEGORY_LABEL[activeCategory].toLowerCase()} memories yet
           </p>
         </div>

@@ -51,7 +51,7 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
       // main card from scrolling. Both the sidebar column and the main
       // column get their exact row height from the grid, so `overflow-y: auto`
       // on <main> simply works.
-      className="bg-black text-white overflow-hidden select-none"
+      className="overflow-hidden select-none"
       style={{
         position: "fixed",
         inset: 0,
@@ -104,10 +104,9 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
           overflowX: "hidden",
           WebkitOverflowScrolling: "touch",
           overscrollBehavior: "contain",
-          background: "#0a0a0c",
-          border: "1px solid rgba(255,255,255,0.06)",
-          boxShadow:
-            "0 20px 60px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.02)",
+          background: "var(--missi-surface)",
+          border: "1px solid var(--missi-border)",
+          boxShadow: "none",
         }}
       >
         {children}
@@ -118,13 +117,13 @@ export function ChatShell({ children }: { children: React.ReactNode }) {
         .missi-shell-main::-webkit-scrollbar { width: 8px; height: 8px; }
         .missi-shell-main::-webkit-scrollbar-track { background: transparent; }
         .missi-shell-main::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.06);
+          background: var(--missi-scrollbar);
           border-radius: 999px;
           transition: background 160ms ease;
         }
-        .missi-shell-main:hover::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
-        .missi-shell-main::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
-        .missi-shell-main { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; scroll-behavior: smooth; }
+        .missi-shell-main:hover::-webkit-scrollbar-thumb { background: var(--missi-scrollbar-hover); }
+        .missi-shell-main::-webkit-scrollbar-thumb:hover { background: var(--missi-scrollbar-hover); }
+        .missi-shell-main { scrollbar-width: thin; scrollbar-color: var(--missi-scrollbar) transparent; scroll-behavior: smooth; }
 
         /* Mobile: reserve space at the top of the scroll area so page headers
            don't collide with the fixed hamburger button (36x36 at top:12/left:12).

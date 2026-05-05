@@ -29,6 +29,7 @@ const isFullDevBootstrap = process.env.NODE_ENV !== 'development' || process.env
 
 export default function VoiceAssistantPage() {
   const { user, isLoaded } = useUser()
+  const isGuest = isLoaded && !user
   const { signOut } = useClerk()
   const { plan, isAtLimit, usedSeconds, limitSeconds, isLoading: billingLoading, initiateCheckout, incrementUsageLocally } = useBilling()
   const router = useRouter()
@@ -328,6 +329,7 @@ export default function VoiceAssistantPage() {
 
   return (
     <ChatPageShell
+      isGuest={isGuest}
       actionResult={lastResult}
       agentSteps={agentSteps}
       audioLevel={audioLevel}
@@ -364,7 +366,7 @@ export default function VoiceAssistantPage() {
         setError(null)
       }}
       onDismissItem={dismissItem}
-      onLogout={handleLogout}
+      onLogout={isGuest ? () => {} : handleLogout}
       onNewChat={handleNewChat}
       onUpgrade={() => initiateCheckout('pro')}
       planId={plan?.id}

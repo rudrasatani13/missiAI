@@ -6,7 +6,9 @@ import { waitUntil } from "@/lib/server/platform/wait-until"
 import { getUserPlan } from "@/lib/billing/tier-checker"
 import { checkAndIncrementVoiceTime } from "@/lib/billing/usage-tracker"
 import { awardXP } from "@/lib/gamification/xp-engine"
-import { logLatency, createTimer } from "@/lib/server/observability/logger"
+import { logLatency, createTimer, logError } from "@/lib/server/observability/logger"
+import { checkHardBudget } from "@/lib/server/observability/cost-tracker"
+import { estimateRequestCost } from "@/lib/ai/providers/model-router"
 import type { KVStore } from "@/types"
 import type { PlanId } from "@/types/billing"
 import { API_ERROR_CODES } from "@/types/api"
@@ -81,6 +83,36 @@ export async function runChatStreamPreflight(
   const rateResult = await checkRateLimit(userId, planId === "free" ? "free" : "paid", "ai")
   if (!rateResult.allowed) {
     return { ok: false, response: rateLimitExceededResponse(rateResult) }
+  }
+
+  const estimatedCostUsd = estimateRequestCost("gemini-2.5-pro", 2000, 800)
+  const budgetResult = await checkHardBudget(kv, estimatedCostUsd)
+  if (!budgetResult.allowed) {
+    if (budgetResult.unavailable) {
+      return {
+        ok: false,
+        response: new Response(
+          JSON.stringify({
+            success: false,
+            error: "Service temporarily unavailable",
+            code: API_ERROR_CODES.SERVICE_UNAVAILABLE,
+          }),
+          { status: 503, headers: { "Content-Type": "application/json" } },
+        ),
+      }
+    }
+    logError("chat.budget_exceeded", `Daily AI budget exhausted (spent $${budgetResult.spendUsd.toFixed(4)} of $${budgetResult.budgetUsd})`, userId)
+    return {
+      ok: false,
+      response: new Response(
+        JSON.stringify({
+          success: false,
+          error: "Daily AI budget exhausted — service will resume tomorrow",
+          code: API_ERROR_CODES.USAGE_LIMIT_EXCEEDED,
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } },
+      ),
+    }
   }
 
   if (kv) {

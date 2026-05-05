@@ -66,7 +66,7 @@ export function BootSequence({ userName, onComplete }: BootSequenceProps) {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, filter: "blur(20px)" }}
           transition={{ duration: 0.8, ease: "easeInOut" }}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black overflow-hidden select-none pointer-events-none"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[var(--missi-bg)] overflow-hidden select-none pointer-events-none"
         >
           <div 
             className="absolute inset-0 opacity-0" 
@@ -95,10 +95,10 @@ export function BootSequence({ userName, onComplete }: BootSequenceProps) {
                 transition={{ duration: 0.8, ease: "easeOut" }}
                 className="absolute z-20 flex flex-col items-center justify-center"
               >
-                <div className="text-3xl sm:text-4xl md:text-5xl tracking-widest text-white font-mono uppercase mb-2 drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]">
+                <div className="text-3xl sm:text-4xl md:text-5xl tracking-widest text-[var(--missi-text-primary)] font-mono uppercase mb-2 drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]">
                   Hello {userName}
                 </div>
-                <div className="text-xs tracking-[0.3em] text-white/50 uppercase mt-1">
+                <div className="text-xs tracking-[0.3em] text-[var(--missi-text-muted)] uppercase mt-1">
                   I am ready.
                 </div>
               </motion.div>

@@ -37,7 +37,7 @@ export function StatsBar({ stats }: StatsBarProps) {
       {items.map(({ label, value }) => (
         <div
           key={label}
-          className="glass-card glass-noise"
+          className="bg-[var(--missi-surface)] border border-[var(--missi-border)] shadow-[var(--elevated-shadow)]"
           style={{
             padding: '16px',
             borderRadius: '16px',
@@ -46,7 +46,7 @@ export function StatsBar({ stats }: StatsBarProps) {
           <p
             style={{
               fontSize: '10px',
-              color: 'rgba(255,255,255,0.35)',
+              color: 'var(--missi-text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               margin: 0,
@@ -57,7 +57,7 @@ export function StatsBar({ stats }: StatsBarProps) {
           <p
             style={{
               fontSize: '20px',
-              color: 'rgba(255,255,255,0.85)',
+              color: 'var(--missi-text-primary)',
               fontWeight: 500,
               margin: '6px 0 0 0',
               overflow: 'hidden',

@@ -26,7 +26,7 @@ export function UsageBar({ usedSeconds, limitSeconds, planId, onUpgrade }: Usage
   const pct = Math.min((usedSeconds / limitSeconds) * 100, 100)
   const atLimit = usedSeconds >= limitSeconds
 
-  let barColor = 'rgba(255,255,255,0.2)'
+  let barColor = 'var(--missi-text-muted)'
   if (pct >= 90) barColor = '#EF4444'
   else if (pct >= 70) barColor = '#F59E0B'
 
@@ -45,7 +45,7 @@ export function UsageBar({ usedSeconds, limitSeconds, planId, onUpgrade }: Usage
       }}
     >
       {/* Progress bar */}
-      <div style={{ width: '100%', height: 2, background: 'rgba(255,255,255,0.05)' }}>
+      <div style={{ width: '100%', height: 2, background: 'var(--missi-border)' }}>
         <div
           data-testid="usage-bar-progress"
           style={{
@@ -65,7 +65,7 @@ export function UsageBar({ usedSeconds, limitSeconds, planId, onUpgrade }: Usage
           alignItems: 'center',
           justifyContent: 'center',
           gap: 6,
-          background: 'rgba(0,0,0,0.6)',
+          background: 'var(--missi-surface)',
           backdropFilter: 'blur(8px)',
         }}
       >
@@ -95,7 +95,7 @@ export function UsageBar({ usedSeconds, limitSeconds, planId, onUpgrade }: Usage
         ) : (
           <span
             data-testid="usage-bar-count-text"
-            style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.02em' }}
+            style={{ fontSize: 10, color: 'var(--missi-text-muted)', letterSpacing: '0.02em' }}
           >
             {formatTime(usedSeconds)} / {formatMinutes(limitSeconds)} voice today
           </span>

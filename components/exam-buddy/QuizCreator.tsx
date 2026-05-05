@@ -120,25 +120,25 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
       <div
         className="rounded-[26px] sm:rounded-[30px] p-6 sm:p-8 md:p-10 flex flex-col items-center justify-center gap-5"
         style={{
-          background: 'linear-gradient(180deg, rgba(10,10,14,0.94), rgba(18,18,24,0.9))',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--missi-surface)',
+          border: '1px solid var(--missi-border)',
           boxShadow: '0 28px 80px -42px rgba(0,0,0,0.92)',
           backdropFilter: 'blur(16px)',
         }}
       >
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
           <Sparkles className="w-3.5 h-3.5" style={{ color: '#6D5EF5' }} />
-          <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'var(--missi-text-secondary)' }}>
             Focus Mode
           </span>
         </div>
-        <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-white/60 animate-spin" />
+        <div className="w-10 h-10 rounded-full border-2 border-[var(--missi-border)] border-t-white/60 animate-spin" />
         <div className="text-center">
-          <p className="text-lg font-light mb-1" style={{ color: 'rgba(255,255,255,0.94)' }}>
+          <p className="text-lg font-light mb-1" style={{ color: 'var(--missi-text-primary)' }}>
             Building your quiz
           </p>
-          <p className="text-sm font-light" style={{ color: 'rgba(255,255,255,0.46)' }}>
+          <p className="text-sm font-light" style={{ color: 'var(--missi-text-secondary)' }}>
             Generating focused questions for {subject?.replace('_', ' ') ?? 'your subject'}{topic.trim() ? ` · ${topic.trim()}` : ''}.
           </p>
         </div>
@@ -165,15 +165,15 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
         className="order-2 xl:order-1 rounded-[26px] sm:rounded-[30px] p-4 sm:p-5 md:p-6 h-full min-w-0"
         style={{
           background: 'linear-gradient(180deg, rgba(10,10,14,0.9), rgba(18,18,24,0.86))',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--missi-border)',
           boxShadow: '0 28px 70px -42px rgba(0,0,0,0.92)',
           backdropFilter: 'blur(16px)',
         }}
       >
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-5"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
           <Sparkles className="w-3.5 h-3.5" style={{ color: '#6D5EF5' }} />
-          <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.46)' }}>
+          <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'var(--missi-text-secondary)' }}>
             Focus Setup
           </span>
         </div>
@@ -187,24 +187,24 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
                 key={item.key}
                 className="flex items-center gap-3 rounded-2xl px-3 py-3"
                 style={{
-                  background: isActive ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.025)',
-                  border: isActive ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.05)',
+                  background: isActive ? 'var(--missi-surface)' : 'var(--missi-surface)',
+                  border: isActive ? '1px solid var(--missi-border)' : '1px solid var(--missi-border)',
                 }}
               >
                 <div
                   className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0"
                   style={{
-                    background: isDone ? 'rgba(16,185,129,0.14)' : isActive ? 'rgba(251,191,36,0.18)' : 'rgba(255,255,255,0.08)',
-                    color: isDone ? '#34D399' : isActive ? '#FBBF24' : 'rgba(255,255,255,0.42)',
+                    background: isDone ? 'rgba(16,185,129,0.14)' : isActive ? 'rgba(251,191,36,0.18)' : 'var(--missi-border)',
+                    color: isDone ? '#34D399' : isActive ? '#FBBF24' : 'var(--missi-text-muted)',
                   }}
                 >
                   {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : index + 1}
                 </div>
                 <div>
-                  <p className="text-sm font-medium" style={{ color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.66)' }}>
+                  <p className="text-sm font-medium" style={{ color: isActive ? 'var(--missi-text-primary)' : 'var(--missi-text-secondary)' }}>
                     {item.label}
                   </p>
-                  <p className="text-[11px] font-light" style={{ color: 'rgba(255,255,255,0.38)' }}>
+                  <p className="text-[11px] font-light" style={{ color: 'var(--missi-text-muted)' }}>
                     {index === 0 ? 'Choose what you want to practice' : index === 1 ? 'Lock in a specific concept' : 'Tune the round before generating'}
                   </p>
                 </div>
@@ -214,10 +214,10 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
         </div>
 
         <div className="rounded-[24px] p-4"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
           <div className="flex items-center gap-2 mb-3">
             <Brain className="w-4 h-4" style={{ color: '#2563EB' }} />
-            <p className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.34)' }}>
+            <p className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'var(--missi-text-muted)' }}>
               Session summary
             </p>
           </div>
@@ -237,7 +237,7 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
             type="button"
             onClick={onClose}
             className="w-full mt-4 py-3 rounded-2xl text-xs font-medium"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.58)', cursor: 'pointer' }}
+            style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)', color: 'var(--missi-border)', cursor: 'pointer' }}
           >
             Close
           </button>
@@ -248,29 +248,29 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
         className="order-1 xl:order-2 rounded-[26px] sm:rounded-[30px] p-4 sm:p-5 md:p-7 min-w-0"
         style={{
           background: 'linear-gradient(180deg, rgba(10,10,14,0.9), rgba(18,18,24,0.86))',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--missi-border)',
           boxShadow: '0 28px 70px -42px rgba(0,0,0,0.92)',
           backdropFilter: 'blur(16px)',
         }}
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5 sm:mb-6">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.24em] uppercase mb-2" style={{ color: 'rgba(255,255,255,0.34)' }}>
+            <p className="text-[10px] font-semibold tracking-[0.24em] uppercase mb-2" style={{ color: 'var(--missi-text-muted)' }}>
               Step {activeStepIndex + 1} of 3
             </p>
-            <h2 className="text-2xl md:text-[2.3rem] font-light leading-tight" style={{ color: 'rgba(255,255,255,0.96)' }}>
+            <h2 className="text-2xl md:text-[2.3rem] font-light leading-tight" style={{ color: 'var(--missi-text-primary)' }}>
               {step === 'subject' ? 'Pick your subject' : step === 'topic' ? 'Choose the exact topic' : 'Tune your quiz round'}
             </h2>
           </div>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
             {step === 'subject' ? <Layers3 className="w-4 h-4" style={{ color: '#FBBF24' }} /> : step === 'topic' ? <BookOpen className="w-4 h-4" style={{ color: '#60A5FA' }} /> : <SlidersHorizontal className="w-4 h-4" style={{ color: '#A78BFA' }} />}
           </div>
         </div>
 
         {step === 'subject' && (
           <>
-            <p className="text-sm md:text-base font-light leading-7 mb-6" style={{ color: 'rgba(255,255,255,0.52)' }}>
+            <p className="text-sm md:text-base font-light leading-7 mb-6" style={{ color: 'var(--missi-text-secondary)' }}>
               Start with the subject you want to strengthen right now. Keep it simple and keep the session focused.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -283,13 +283,13 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
                     onClick={() => { setSubject(s.value); setStep('topic') }}
                     className="px-4 py-4 rounded-[22px] text-left transition-all"
                     style={{
-                      background: selectedSubject ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.03)',
-                      border: selectedSubject ? '1px solid rgba(251,191,36,0.26)' : '1px solid rgba(255,255,255,0.07)',
-                      color: selectedSubject ? '#FBBF24' : 'rgba(255,255,255,0.88)',
+                      background: selectedSubject ? 'rgba(251,191,36,0.12)' : 'var(--missi-surface)',
+                      border: selectedSubject ? '1px solid rgba(251,191,36,0.26)' : '1px solid var(--missi-border)',
+                      color: selectedSubject ? '#FBBF24' : 'var(--missi-text-primary)',
                       cursor: 'pointer',
                     }}
                   >
-                    <span className="text-[10px] font-semibold tracking-[0.22em] uppercase block mb-2" style={{ color: 'rgba(255,255,255,0.28)' }}>
+                    <span className="text-[10px] font-semibold tracking-[0.22em] uppercase block mb-2" style={{ color: 'var(--missi-text-muted)' }}>
                       Subject
                     </span>
                     <span className="text-sm font-medium block">{s.label}</span>
@@ -302,15 +302,15 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
 
         {step === 'topic' && (
           <>
-            <p className="text-sm md:text-base font-light leading-7 mb-6" style={{ color: 'rgba(255,255,255,0.52)' }}>
+            <p className="text-sm md:text-base font-light leading-7 mb-6" style={{ color: 'var(--missi-text-secondary)' }}>
               Add a precise topic so the questions stay sharp. Short, specific topics work best.
             </p>
             <div className="rounded-[24px] p-4 mb-4"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-2" style={{ color: 'rgba(255,255,255,0.34)' }}>
+              style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
+              <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-2" style={{ color: 'var(--missi-text-muted)' }}>
                 Selected subject
               </p>
-              <p className="text-sm font-medium capitalize" style={{ color: 'rgba(255,255,255,0.9)' }}>
+              <p className="text-sm font-medium capitalize" style={{ color: 'var(--missi-text-primary)' }}>
                 {subject?.replace('_', ' ')}
               </p>
             </div>
@@ -322,9 +322,9 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
               autoFocus
               className="w-full px-5 py-4 rounded-[24px] text-sm font-light outline-none"
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.92)',
+                background: 'var(--missi-surface)',
+                border: '1px solid var(--missi-border)',
+                color: 'var(--missi-text-primary)',
               }}
               onKeyDown={(e) => { if (e.key === 'Enter' && topic.trim()) setStep('settings') }}
             />
@@ -336,7 +336,7 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
                     type="button"
                     onClick={() => setTopic(item)}
                     className="px-3 py-2 rounded-full text-xs font-medium"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.64)', cursor: 'pointer' }}
+                    style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)', color: 'var(--missi-border)', cursor: 'pointer' }}
                   >
                     {item}
                   </button>
@@ -346,14 +346,14 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
             <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <button type="button" onClick={() => setStep('subject')}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-medium"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.58)', cursor: 'pointer' }}>
+                style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)', color: 'var(--missi-border)', cursor: 'pointer' }}>
                 Back
               </button>
               <button type="button" onClick={() => setStep('settings')} disabled={!topic.trim()}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-medium flex items-center justify-center gap-2"
                 style={{
-                  background: topic.trim() ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.08)',
-                  color: topic.trim() ? '#0a0a0f' : 'rgba(255,255,255,0.3)',
+                  background: topic.trim() ? 'var(--missi-border)' : 'var(--missi-border)',
+                  color: topic.trim() ? 'var(--missi-surface)' : 'var(--missi-text-muted)',
                   cursor: topic.trim() ? 'pointer' : 'not-allowed',
                 }}>
                 Continue
@@ -366,29 +366,29 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
         {step === 'settings' && (
           <>
             <div className="grid gap-4 md:grid-cols-2 mb-5">
-              <div className="rounded-[24px] p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-2" style={{ color: 'rgba(255,255,255,0.34)' }}>Subject</p>
-                <p className="text-sm font-medium capitalize" style={{ color: 'rgba(255,255,255,0.9)' }}>{subject?.replace('_', ' ')}</p>
+              <div className="rounded-[24px] p-4" style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
+                <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-2" style={{ color: 'var(--missi-text-muted)' }}>Subject</p>
+                <p className="text-sm font-medium capitalize" style={{ color: 'var(--missi-text-primary)' }}>{subject?.replace('_', ' ')}</p>
               </div>
-              <div className="rounded-[24px] p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-2" style={{ color: 'rgba(255,255,255,0.34)' }}>Topic</p>
-                <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>{topic.trim()}</p>
+              <div className="rounded-[24px] p-4" style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
+                <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-2" style={{ color: 'var(--missi-text-muted)' }}>Topic</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--missi-text-primary)' }}>{topic.trim()}</p>
               </div>
             </div>
 
-            <div className="rounded-[24px] p-5 mb-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="rounded-[24px] p-5 mb-4" style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
                 <div>
-                  <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-2" style={{ color: 'rgba(255,255,255,0.34)' }}>Current plan</p>
-                  <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>{activePlan.name}</p>
-                  <p className="text-xs font-light mt-1" style={{ color: 'rgba(255,255,255,0.44)' }}>
+                  <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-2" style={{ color: 'var(--missi-text-muted)' }}>Current plan</p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--missi-text-primary)' }}>{activePlan.name}</p>
+                  <p className="text-xs font-light mt-1" style={{ color: 'var(--missi-text-secondary)' }}>
                     Up to {maxQuestionsPerQuiz} questions per quiz · {quotaSummary}
                   </p>
                 </div>
                 <Link
                   href="/pricing"
                   className="inline-flex items-center justify-center px-3 py-2 rounded-2xl text-xs font-medium"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.72)' }}
+                  style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)', color: 'var(--missi-border)' }}
                 >
                   {activePlan.id === 'pro' ? 'Manage plan' : 'Upgrade'}
                 </Link>
@@ -401,16 +401,16 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
               </div>
             </div>
 
-            <div className="rounded-[24px] p-5 mb-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.34)' }}>Difficulty</p>
+            <div className="rounded-[24px] p-5 mb-4" style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
+              <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-3" style={{ color: 'var(--missi-text-muted)' }}>Difficulty</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {(['easy', 'medium', 'hard', 'mixed'] as QuizDifficulty[]).map((d) => (
                   <button key={d} type="button" onClick={() => setDifficulty(d)}
                     className="py-3 rounded-2xl text-sm font-medium capitalize transition-all"
                     style={{
-                      background: difficulty === d ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
-                      border: difficulty === d ? '1px solid rgba(251,191,36,0.28)' : '1px solid rgba(255,255,255,0.07)',
-                      color: difficulty === d ? '#FBBF24' : 'rgba(255,255,255,0.64)',
+                      background: difficulty === d ? 'rgba(251,191,36,0.14)' : 'var(--missi-surface)',
+                      border: difficulty === d ? '1px solid rgba(251,191,36,0.28)' : '1px solid var(--missi-border)',
+                      color: difficulty === d ? '#FBBF24' : 'var(--missi-text-secondary)',
                       cursor: 'pointer',
                     }}>
                     {d}
@@ -419,17 +419,17 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
               </div>
             </div>
 
-            <div className="rounded-[24px] p-5 mb-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="rounded-[24px] p-5 mb-4" style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div>
-                  <p className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.34)' }}>
+                  <p className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'var(--missi-text-muted)' }}>
                     Questions
                   </p>
-                  <p className="text-xs font-light mt-1" style={{ color: 'rgba(255,255,255,0.44)' }}>
+                  <p className="text-xs font-light mt-1" style={{ color: 'var(--missi-text-secondary)' }}>
                     Your {activePlan.name} plan supports up to {maxQuestionsPerQuiz} questions per quiz.
                   </p>
                 </div>
-                <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>{questionCount}</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--missi-text-primary)' }}>{questionCount}</span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
@@ -445,9 +445,9 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
                       disabled={disabled}
                       className="py-3 rounded-2xl text-sm font-medium transition-all"
                       style={{
-                        background: selectedCount ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
-                        border: selectedCount ? '1px solid rgba(251,191,36,0.28)' : '1px solid rgba(255,255,255,0.07)',
-                        color: disabled ? 'rgba(255,255,255,0.24)' : selectedCount ? '#FBBF24' : 'rgba(255,255,255,0.64)',
+                        background: selectedCount ? 'rgba(251,191,36,0.14)' : 'var(--missi-surface)',
+                        border: selectedCount ? '1px solid rgba(251,191,36,0.28)' : '1px solid var(--missi-border)',
+                        color: disabled ? 'var(--missi-text-muted)' : selectedCount ? '#FBBF24' : 'var(--missi-text-secondary)',
                         cursor: disabled ? 'not-allowed' : 'pointer',
                         opacity: disabled ? 0.55 : 1,
                       }}
@@ -462,28 +462,28 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
                 onChange={(e) => setQuestionCount(Number(e.target.value))}
                 className="w-full accent-yellow-400" />
 
-              <div className="flex items-center justify-between mt-2 text-[11px] font-light" style={{ color: 'rgba(255,255,255,0.38)' }}>
+              <div className="flex items-center justify-between mt-2 text-[11px] font-light" style={{ color: 'var(--missi-text-muted)' }}>
                 <span>1</span>
                 <span>{maxQuestionsPerQuiz}</span>
               </div>
 
               {activePlan.id !== 'pro' && (
-                <p className="text-[11px] font-light mt-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <p className="text-[11px] font-light mt-3" style={{ color: 'var(--missi-text-muted)' }}>
                   Upgrade to unlock longer quiz rounds and higher generation quotas.
                 </p>
               )}
             </div>
 
-            <div className="rounded-[24px] p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.34)' }}>Question Types</p>
+            <div className="rounded-[24px] p-5" style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
+              <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-3" style={{ color: 'var(--missi-text-muted)' }}>Question Types</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {(['mcq', 'true_false', 'numerical'] as QuizQuestionType[]).map((t) => (
                   <button key={t} type="button" onClick={() => toggleType(t)}
                     className="py-3 rounded-2xl text-sm font-medium transition-all"
                     style={{
-                      background: questionTypes.includes(t) ? 'rgba(96,165,250,0.14)' : 'rgba(255,255,255,0.05)',
-                      border: questionTypes.includes(t) ? '1px solid rgba(96,165,250,0.26)' : '1px solid rgba(255,255,255,0.07)',
-                      color: questionTypes.includes(t) ? '#60A5FA' : 'rgba(255,255,255,0.64)',
+                      background: questionTypes.includes(t) ? 'rgba(96,165,250,0.14)' : 'var(--missi-surface)',
+                      border: questionTypes.includes(t) ? '1px solid rgba(96,165,250,0.26)' : '1px solid var(--missi-border)',
+                      color: questionTypes.includes(t) ? '#60A5FA' : 'var(--missi-text-secondary)',
                       cursor: 'pointer',
                     }}>
                     {t === 'true_false' ? 'True / False' : t.toUpperCase()}
@@ -497,12 +497,12 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
             <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <button type="button" onClick={() => setStep('topic')}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-medium"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.58)', cursor: 'pointer' }}>
+                style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)', color: 'var(--missi-border)', cursor: 'pointer' }}>
                 Back
               </button>
               <button type="button" onClick={handleGenerate}
                 className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-medium"
-                style={{ background: 'rgba(255,255,255,0.96)', color: '#0a0a0f', cursor: 'pointer' }}>
+                style={{ background: 'var(--missi-border)', color: 'var(--missi-surface)', cursor: 'pointer' }}>
                 <BookOpen className="w-4 h-4" />
                 Generate focus quiz
               </button>
@@ -517,10 +517,10 @@ export function QuizCreator({ initialSubject, initialTopic, onClose }: QuizCreat
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-      <span className="text-[11px] font-light" style={{ color: 'rgba(255,255,255,0.4)' }}>
+      <span className="text-[11px] font-light" style={{ color: 'var(--missi-text-muted)' }}>
         {label}
       </span>
-      <span className="text-sm font-medium text-left sm:text-right" style={{ color: 'rgba(255,255,255,0.9)' }}>
+      <span className="text-sm font-medium text-left sm:text-right" style={{ color: 'var(--missi-text-primary)' }}>
         {value}
       </span>
     </div>
@@ -531,12 +531,12 @@ function LimitPill({ label, value }: { label: string; value: string }) {
   return (
     <div
       className="rounded-2xl px-3 py-3"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
     >
-      <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-1" style={{ color: 'rgba(255,255,255,0.34)' }}>
+      <p className="text-[10px] font-semibold tracking-[0.22em] uppercase mb-1" style={{ color: 'var(--missi-text-muted)' }}>
         {label}
       </p>
-      <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>
+      <p className="text-sm font-medium" style={{ color: 'var(--missi-text-primary)' }}>
         {value}
       </p>
     </div>

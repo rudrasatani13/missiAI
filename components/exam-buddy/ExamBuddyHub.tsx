@@ -66,24 +66,24 @@ function OnboardingView({ onComplete }: { onComplete: (profile: ExamBuddyProfile
         <div
           className="rounded-[28px] sm:rounded-[34px] p-5 sm:p-7 md:p-8"
           style={{
-            background: 'linear-gradient(180deg, rgba(10,10,14,0.94), rgba(18,18,24,0.88))',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
             boxShadow: '0 30px 80px -40px rgba(0,0,0,0.92)',
             backdropFilter: 'blur(16px)',
           }}
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-5"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ background: 'var(--missi-border)', border: '1px solid var(--missi-border)' }}>
             <Sparkles className="w-3.5 h-3.5" style={{ color: '#6D5EF5' }} />
-            <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'var(--missi-text-secondary)' }}>
               Focus Mode
             </span>
           </div>
-          <BookOpen className="w-11 h-11 mb-5" style={{ color: 'rgba(255,255,255,0.95)' }} />
-          <h2 className="text-3xl md:text-[3rem] font-light leading-[1.05] mb-4" style={{ color: 'rgba(255,255,255,0.96)' }}>
+          <BookOpen className="w-11 h-11 mb-5" style={{ color: 'var(--missi-text-primary)' }} />
+          <h2 className="text-3xl md:text-[3rem] font-light leading-[1.05] mb-4" style={{ color: 'var(--missi-text-primary)' }}>
             Practice with more clarity.
           </h2>
-          <p className="text-base md:text-[1.05rem] font-light leading-8 max-w-2xl" style={{ color: 'rgba(255,255,255,0.64)' }}>
+          <p className="text-base md:text-[1.05rem] font-light leading-8 max-w-2xl" style={{ color: 'var(--missi-text-secondary)' }}>
             Pick your exam once and let Missi turn Exam Buddy into a calmer study space with focused quizzes, cleaner review, and clearer next steps.
           </p>
           <div className="grid gap-3 sm:grid-cols-3 mt-8">
@@ -96,10 +96,10 @@ function OnboardingView({ onComplete }: { onComplete: (profile: ExamBuddyProfile
                 <div
                   key={item.title}
                   className="rounded-[24px] p-4"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                  style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
                 >
-                  <p className="text-sm font-medium mb-2" style={{ color: 'rgba(255,255,255,0.9)' }}>{item.title}</p>
-                  <p className="text-xs font-light leading-6" style={{ color: 'rgba(255,255,255,0.52)' }}>{item.copy}</p>
+                  <p className="text-sm font-medium mb-2" style={{ color: 'var(--missi-text-primary)' }}>{item.title}</p>
+                  <p className="text-xs font-light leading-6" style={{ color: 'var(--missi-text-secondary)' }}>{item.copy}</p>
                 </div>
               )
             })}
@@ -109,19 +109,19 @@ function OnboardingView({ onComplete }: { onComplete: (profile: ExamBuddyProfile
         <div
           className="rounded-[28px] sm:rounded-[34px] p-5 sm:p-6"
           style={{
-            background: 'rgba(10,10,14,0.82)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
             boxShadow: '0 30px 80px -40px rgba(0,0,0,0.92)',
             backdropFilter: 'blur(16px)',
           }}
         >
-          <p className="text-[10px] font-semibold tracking-[0.24em] uppercase mb-2" style={{ color: 'rgba(255,255,255,0.34)' }}>
+          <p className="text-[10px] font-semibold tracking-[0.24em] uppercase mb-2" style={{ color: 'var(--missi-text-muted)' }}>
             Choose your exam
           </p>
-          <h3 className="text-2xl font-light mb-3" style={{ color: 'rgba(255,255,255,0.96)' }}>
+          <h3 className="text-2xl font-light mb-3" style={{ color: 'var(--missi-text-primary)' }}>
             Set your study path.
           </h3>
-          <p className="text-sm font-light leading-7 mb-6" style={{ color: 'rgba(255,255,255,0.54)' }}>
+          <p className="text-sm font-light leading-7 mb-6" style={{ color: 'var(--missi-text-secondary)' }}>
             Keep your practice space aligned to the exam you care about most.
           </p>
 
@@ -133,16 +133,16 @@ function OnboardingView({ onComplete }: { onComplete: (profile: ExamBuddyProfile
                 onClick={() => setSelected(exam.value)}
                 className="rounded-[22px] px-4 py-4 text-left transition-all"
                 style={{
-                  background: selected === exam.value ? `${exam.color}16` : 'rgba(255,255,255,0.03)',
-                  border: selected === exam.value ? `1px solid ${exam.color}55` : '1px solid rgba(255,255,255,0.07)',
+                  background: selected === exam.value ? `${exam.color}16` : 'var(--missi-surface)',
+                  border: selected === exam.value ? `1px solid ${exam.color}55` : '1px solid var(--missi-border)',
                   boxShadow: selected === exam.value ? `0 18px 40px -28px ${exam.color}` : 'none',
                   cursor: 'pointer',
                 }}
               >
-                <span className="text-[10px] font-semibold tracking-[0.2em] uppercase block mb-1" style={{ color: 'rgba(255,255,255,0.28)' }}>
+                <span className="text-[10px] font-semibold tracking-[0.2em] uppercase block mb-1" style={{ color: 'var(--missi-text-muted)' }}>
                   Exam
                 </span>
-                <span className="text-sm font-medium block" style={{ color: selected === exam.value ? exam.color : 'rgba(255,255,255,0.9)' }}>
+                <span className="text-sm font-medium block" style={{ color: selected === exam.value ? exam.color : 'var(--missi-text-primary)' }}>
                   {exam.label}
                 </span>
               </button>
@@ -155,8 +155,8 @@ function OnboardingView({ onComplete }: { onComplete: (profile: ExamBuddyProfile
             disabled={!selected || saving}
             className="w-full mt-6 py-3.5 rounded-[22px] text-sm font-medium transition-all flex items-center justify-center gap-2"
             style={{
-              background: selected ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.08)',
-              color: selected ? '#0a0a0f' : 'rgba(255,255,255,0.28)',
+              background: selected ? 'var(--missi-nav-text-active)' : 'var(--missi-surface)',
+              color: selected ? 'var(--missi-bg)' : 'var(--missi-text-muted)',
               cursor: selected && !saving ? 'pointer' : 'not-allowed',
             }}
           >
@@ -210,7 +210,7 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
           type="button"
           onClick={() => { setActiveSection('home'); setPracticeSubject(undefined); setPracticeTopic(undefined) }}
           className="w-fit px-0 text-left text-xs font-medium"
-          style={{ color: 'rgba(255,255,255,0.5)', cursor: 'pointer', background: 'none', border: 'none' }}
+          style={{ color: 'var(--missi-text-secondary)', cursor: 'pointer', background: 'none', border: 'none' }}
         >
           ← Back
         </button>
@@ -219,14 +219,14 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
             <div
               className="rounded-[26px] sm:rounded-[30px] p-6 sm:p-8 md:p-10 flex flex-col items-center justify-center gap-5"
               style={{
-                background: 'linear-gradient(180deg, rgba(10,10,14,0.94), rgba(18,18,24,0.9))',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--missi-surface)',
+                border: '1px solid var(--missi-border)',
                 boxShadow: '0 28px 80px -42px rgba(0,0,0,0.92)',
                 backdropFilter: 'blur(16px)',
               }}
             >
-              <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-white/60 animate-spin" />
-              <p className="text-sm font-light" style={{ color: 'rgba(255,255,255,0.46)' }}>
+              <div className="w-10 h-10 rounded-full border-2 border-[var(--missi-border)] border-t-white/60 animate-spin" />
+              <p className="text-sm font-light" style={{ color: 'var(--missi-text-secondary)' }}>
                 Preparing your practice flow...
               </p>
             </div>
@@ -247,8 +247,8 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
       <div
         className="rounded-[30px] sm:rounded-[36px] p-5 sm:p-7 md:p-8"
         style={{
-          background: 'linear-gradient(180deg, rgba(10,10,14,0.94), rgba(18,18,24,0.9))',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--missi-surface)',
+          border: '1px solid var(--missi-border)',
           boxShadow: '0 32px 90px -42px rgba(0,0,0,0.94)',
           backdropFilter: 'blur(18px)',
         }}
@@ -256,19 +256,19 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
         <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-5"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              style={{ background: 'var(--missi-border)', border: '1px solid var(--missi-border)' }}>
               <Sparkles className="w-3.5 h-3.5" style={{ color: '#6D5EF5' }} />
-              <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.46)' }}>
+              <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'var(--missi-text-secondary)' }}>
                 Exam Buddy
               </span>
             </div>
             <p className="text-sm font-medium mb-3" style={{ color: examInfo?.color ?? '#6D5EF5' }}>
               {EXAM_NAMES[profile.examTarget]}
             </p>
-            <h2 className="text-3xl md:text-[3.2rem] font-light leading-[1.04] mb-4" style={{ color: 'rgba(255,255,255,0.96)' }}>
+            <h2 className="text-3xl md:text-[3.2rem] font-light leading-[1.04] mb-4" style={{ color: 'var(--missi-text-primary)' }}>
               Ready to study with clarity?
             </h2>
-            <p className="text-base md:text-[1.05rem] font-light leading-8 max-w-xl" style={{ color: 'rgba(255,255,255,0.62)' }}>
+            <p className="text-base md:text-[1.05rem] font-light leading-8 max-w-xl" style={{ color: 'var(--missi-text-secondary)' }}>
               Practice one concept at a time, get instant feedback, and keep your next step obvious.
             </p>
           </div>
@@ -279,7 +279,7 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
               <Flame className="w-4 h-4" style={{ color: '#F97316' }} />
               <div>
                 <p className="text-sm font-medium" style={{ color: '#FDBA74' }}>{profile.studyStreak} day streak</p>
-                <p className="text-[11px] font-light" style={{ color: 'rgba(255,255,255,0.42)' }}>Keep the rhythm going</p>
+                <p className="text-[11px] font-light" style={{ color: 'var(--missi-text-muted)' }}>Keep the rhythm going</p>
               </div>
             </div>
           )}
@@ -294,10 +294,10 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
             <div
               key={stat.label}
               className="rounded-[24px] px-4 py-4"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
             >
-              <p className="text-3xl font-light" style={{ color: 'rgba(255,255,255,0.94)' }}>{stat.value}</p>
-              <p className="text-[11px] font-light mt-1" style={{ color: 'rgba(255,255,255,0.38)' }}>{stat.label}</p>
+              <p className="text-3xl font-light" style={{ color: 'var(--missi-text-primary)' }}>{stat.value}</p>
+              <p className="text-[11px] font-light mt-1" style={{ color: 'var(--missi-text-muted)' }}>{stat.label}</p>
             </div>
           ))}
         </div>
@@ -307,7 +307,7 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
             type="button"
             onClick={() => setActiveSection('quiz')}
             className="flex-1 flex items-center justify-between rounded-[22px] px-5 py-4 text-left"
-            style={{ background: 'rgba(255,255,255,0.96)', color: '#0a0a0f', cursor: 'pointer' }}
+            style={{ background: 'var(--missi-border)', color: 'var(--missi-bg)', cursor: 'pointer' }}
           >
             <div>
               <p className="text-sm font-medium">Start focused quiz</p>
@@ -319,13 +319,13 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
           <Link
             href="/chat"
             className="flex-1 rounded-[22px] px-5 py-4 text-left block"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none' }}
+            style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)', textDecoration: 'none' }}
           >
             <div className="flex items-center gap-2 mb-2">
               <MessageCircle className="w-4 h-4" style={{ color: '#2563EB' }} />
-              <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>Ask Missi</p>
+              <p className="text-sm font-medium" style={{ color: 'var(--missi-text-primary)' }}>Ask Missi</p>
             </div>
-            <p className="text-xs font-light leading-6" style={{ color: 'rgba(255,255,255,0.44)' }}>Switch to chat for explanations, doubts, or step-by-step help.</p>
+            <p className="text-xs font-light leading-6" style={{ color: 'var(--missi-text-secondary)' }}>Switch to chat for explanations, doubts, or step-by-step help.</p>
           </Link>
         </div>
       </div>
@@ -334,37 +334,37 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
         <div
           className="rounded-[28px] sm:rounded-[32px] p-5 sm:p-6 md:p-7"
           style={{
-            background: 'rgba(10,10,14,0.82)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
             boxShadow: '0 28px 70px -40px rgba(0,0,0,0.92)',
             backdropFilter: 'blur(16px)',
           }}
         >
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-4 h-4" style={{ color: '#2563EB' }} />
-            <p className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.34)' }}>
+            <p className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'var(--missi-text-muted)' }}>
               Practice next
             </p>
           </div>
-          <h3 className="text-2xl font-light mb-2" style={{ color: 'rgba(255,255,255,0.94)' }}>
+          <h3 className="text-2xl font-light mb-2" style={{ color: 'var(--missi-text-primary)' }}>
             Continue where you need it most.
           </h3>
-          <p className="text-sm font-light leading-7 mb-5" style={{ color: 'rgba(255,255,255,0.52)' }}>
+          <p className="text-sm font-light leading-7 mb-5" style={{ color: 'var(--missi-text-secondary)' }}>
             Return to weak topics or jump straight into a new focused round.
           </p>
           {weakTopics.length > 0 ? (
             <WeakTopicsCard topics={weakTopics} onPractice={handlePractice} />
           ) : (
-            <div className="rounded-[24px] px-4 py-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <p className="text-sm font-medium mb-2" style={{ color: 'rgba(255,255,255,0.9)' }}>No weak topics yet</p>
-              <p className="text-xs font-light leading-6 mb-4" style={{ color: 'rgba(255,255,255,0.44)' }}>
+            <div className="rounded-[24px] px-4 py-5" style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
+              <p className="text-sm font-medium mb-2" style={{ color: 'var(--missi-text-primary)' }}>No weak topics yet</p>
+              <p className="text-xs font-light leading-6 mb-4" style={{ color: 'var(--missi-text-secondary)' }}>
                 Finish a few quizzes and Exam Buddy will start surfacing the concepts that deserve one more pass.
               </p>
               <button
                 type="button"
                 onClick={() => setActiveSection('quiz')}
                 className="px-4 py-2.5 rounded-[18px] text-sm font-medium"
-                style={{ background: 'rgba(255,255,255,0.96)', color: '#0a0a0f', cursor: 'pointer' }}
+                style={{ background: 'var(--missi-border)', color: 'var(--missi-bg)', cursor: 'pointer' }}
               >
                 Start a quiz
               </button>
@@ -375,22 +375,22 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
         <div
           className="rounded-[28px] sm:rounded-[32px] p-5 sm:p-6 md:p-7"
           style={{
-            background: 'rgba(10,10,14,0.82)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
             boxShadow: '0 28px 70px -40px rgba(0,0,0,0.92)',
             backdropFilter: 'blur(16px)',
           }}
         >
           <div className="flex items-center gap-2 mb-3">
             <Trophy className="w-4 h-4" style={{ color: '#8B5CF6' }} />
-            <p className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.34)' }}>
+            <p className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'var(--missi-text-muted)' }}>
               Recent quizzes
             </p>
           </div>
-          <h3 className="text-2xl font-light mb-2" style={{ color: 'rgba(255,255,255,0.94)' }}>
+          <h3 className="text-2xl font-light mb-2" style={{ color: 'var(--missi-text-primary)' }}>
             Your recent activity.
           </h3>
-          <p className="text-sm font-light leading-7 mb-5" style={{ color: 'rgba(255,255,255,0.52)' }}>
+          <p className="text-sm font-light leading-7 mb-5" style={{ color: 'var(--missi-text-secondary)' }}>
             Review the topics you practiced most recently and how each round went.
           </p>
           {recentSessions.length > 0 ? (
@@ -399,19 +399,19 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
                 const pct = s.score !== null && s.questions.length > 0
                   ? Math.round((s.score / s.questions.length) * 100)
                   : null
-                const pctColor = pct === null ? 'rgba(255,255,255,0.36)' : pct >= 75 ? '#34D399' : pct >= 50 ? '#FBBF24' : '#F87171'
+                const pctColor = pct === null ? 'var(--missi-text-muted)' : pct >= 75 ? '#34D399' : pct >= 50 ? '#FBBF24' : '#F87171'
                 return (
                   <div
                     key={s.id}
                     className="rounded-[22px] px-4 py-4"
-                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                    style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                        <p className="text-sm font-medium truncate" style={{ color: 'var(--missi-text-primary)' }}>
                           {s.topic}
                         </p>
-                        <p className="text-[11px] font-light capitalize mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <p className="text-[11px] font-light capitalize mt-1" style={{ color: 'var(--missi-text-muted)' }}>
                           {s.subject.replace('_', ' ')} · {s.questions.length} questions
                         </p>
                       </div>
@@ -424,9 +424,9 @@ function DashboardView({ profile }: { profile: ExamBuddyProfile }) {
               })}
             </div>
           ) : (
-            <div className="rounded-[24px] px-4 py-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <p className="text-sm font-medium mb-2" style={{ color: 'rgba(255,255,255,0.9)' }}>No recent quizzes</p>
-              <p className="text-xs font-light leading-6" style={{ color: 'rgba(255,255,255,0.44)' }}>
+            <div className="rounded-[24px] px-4 py-5" style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
+              <p className="text-sm font-medium mb-2" style={{ color: 'var(--missi-text-primary)' }}>No recent quizzes</p>
+              <p className="text-xs font-light leading-6" style={{ color: 'var(--missi-text-secondary)' }}>
                 Your last practice rounds will appear here once you start solving quizzes.
               </p>
             </div>
@@ -455,9 +455,9 @@ export function ExamBuddyHub() {
 
   if (isLoading) {
     return (
-      <div className="rounded-[34px] border border-white/10 bg-black/45 flex flex-col items-center justify-center py-24 gap-4 backdrop-blur-xl">
-        <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-white/60 animate-spin" />
-        <p className="text-sm font-light" style={{ color: 'rgba(255,255,255,0.45)' }}>
+      <div className="rounded-[34px] border border-[var(--missi-border)] bg-[var(--missi-surface)] flex flex-col items-center justify-center py-24 gap-4 shadow-[var(--elevated-shadow)]">
+        <div className="w-10 h-10 rounded-full border-2 border-[var(--missi-border)] border-t-white/60 animate-spin" />
+        <p className="text-sm font-light" style={{ color: 'var(--missi-text-secondary)' }}>
           Loading your focus dashboard...
         </p>
       </div>

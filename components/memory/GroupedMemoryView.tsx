@@ -84,7 +84,7 @@ function MemoryRow({
         alignItems: 'flex-start',
         gap: '12px',
         padding: '12px 0',
-        borderBottom: '1px solid rgba(255,255,255,0.04)',
+        borderBottom: '1px solid var(--missi-border)',
         opacity: isDeleting ? 0.4 : 1,
         transition: 'opacity 0.2s',
       }}
@@ -96,10 +96,10 @@ function MemoryRow({
           height: 6,
           borderRadius: '50%',
           background: node.confidence > 0.7
-            ? 'rgba(255,255,255,0.6)'
+            ? 'var(--missi-text-secondary)'
             : node.confidence >= 0.4
-              ? 'rgba(255,255,255,0.3)'
-              : 'rgba(255,255,255,0.12)',
+              ? 'var(--missi-text-muted)'
+              : 'var(--missi-text-muted)',
           marginTop: 6,
           flexShrink: 0,
         }}
@@ -111,7 +111,7 @@ function MemoryRow({
           style={{
             margin: 0,
             fontSize: '13px',
-            color: 'rgba(255,255,255,0.85)',
+            color: 'var(--missi-text-primary)',
             fontWeight: 500,
             lineHeight: '1.4',
           }}
@@ -123,7 +123,7 @@ function MemoryRow({
             style={{
               margin: '4px 0 0',
               fontSize: '12px',
-              color: 'rgba(255,255,255,0.4)',
+              color: 'var(--missi-text-muted)',
               lineHeight: '1.4',
               overflow: 'hidden',
               display: '-webkit-box',
@@ -145,7 +145,7 @@ function MemoryRow({
           border: confirming ? '1px solid rgba(239,68,68,0.4)' : 'none',
           borderRadius: '6px',
           cursor: 'pointer',
-          color: confirming ? '#ef4444' : 'rgba(255,255,255,0.2)',
+          color: confirming ? '#ef4444' : 'var(--missi-text-muted)',
           padding: '4px',
           display: 'flex',
           alignItems: 'center',
@@ -182,8 +182,8 @@ function GroupSection({
   return (
     <div
       style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
         borderRadius: '14px',
         overflow: 'hidden',
         transition: 'border-color 0.2s',
@@ -201,7 +201,7 @@ function GroupSection({
           background: 'none',
           border: 'none',
           cursor: 'pointer',
-          color: 'rgba(255,255,255,0.85)',
+          color: 'var(--missi-text-primary)',
           textAlign: 'left',
         }}
       >
@@ -221,8 +221,8 @@ function GroupSection({
         <span
           style={{
             fontSize: '11px',
-            color: 'rgba(255,255,255,0.35)',
-            background: 'rgba(255,255,255,0.06)',
+            color: 'var(--missi-text-muted)',
+            background: 'var(--missi-border)',
             borderRadius: '999px',
             padding: '2px 8px',
             fontWeight: 500,
@@ -234,7 +234,7 @@ function GroupSection({
           style={{
             width: 16,
             height: 16,
-            color: 'rgba(255,255,255,0.3)',
+            color: 'var(--missi-text-muted)',
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.25s ease',
           }}

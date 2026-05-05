@@ -2,16 +2,16 @@ import { Trash2 } from 'lucide-react'
 import type { LifeNode, MemoryCategory } from '@/types/memory'
 
 const CATEGORY_COLORS: Record<MemoryCategory, { bg: string; text: string; border: string }> = {
-  person:       { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
-  goal:         { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
-  habit:        { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
-  preference:   { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
-  event:        { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
-  emotion:      { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
-  skill:        { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
-  place:        { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
-  belief:       { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
-  relationship: { bg: 'rgba(255,255,255,0.05)', text: 'rgba(255,255,255,0.9)', border: 'rgba(255,255,255,0.15)' },
+  person:       { bg: 'var(--missi-border)', text: 'var(--missi-border-strong)', border: 'var(--missi-border-strong)' },
+  goal:         { bg: 'var(--missi-border)', text: 'var(--missi-border-strong)', border: 'var(--missi-border-strong)' },
+  habit:        { bg: 'var(--missi-border)', text: 'var(--missi-border-strong)', border: 'var(--missi-border-strong)' },
+  preference:   { bg: 'var(--missi-border)', text: 'var(--missi-border-strong)', border: 'var(--missi-border-strong)' },
+  event:        { bg: 'var(--missi-border)', text: 'var(--missi-border-strong)', border: 'var(--missi-border-strong)' },
+  emotion:      { bg: 'var(--missi-border)', text: 'var(--missi-border-strong)', border: 'var(--missi-border-strong)' },
+  skill:        { bg: 'var(--missi-border)', text: 'var(--missi-border-strong)', border: 'var(--missi-border-strong)' },
+  place:        { bg: 'var(--missi-border)', text: 'var(--missi-border-strong)', border: 'var(--missi-border-strong)' },
+  belief:       { bg: 'var(--missi-border)', text: 'var(--missi-border-strong)', border: 'var(--missi-border-strong)' },
+  relationship: { bg: 'var(--missi-border)', text: 'var(--missi-border-strong)', border: 'var(--missi-border-strong)' },
 }
 
 interface NodeCardHeaderProps {
@@ -48,7 +48,7 @@ export function NodeCardHeader({
         style={{
           flex: 1,
           fontSize: '14px',
-          color: 'rgba(255,255,255,0.85)',
+          color: 'var(--missi-text-primary)',
           fontWeight: 500,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -66,7 +66,7 @@ export function NodeCardHeader({
           border: confirming ? '1px solid rgba(239,68,68,0.4)' : 'none',
           borderRadius: '6px',
           cursor: 'pointer',
-          color: confirming ? '#ef4444' : 'rgba(255,255,255,0.3)',
+          color: confirming ? '#ef4444' : 'var(--missi-text-muted)',
           padding: '4px 6px',
           display: 'flex',
           alignItems: 'center',
@@ -82,8 +82,8 @@ export function NodeCardHeader({
               display: 'inline-block',
               width: '14px',
               height: '14px',
-              border: '2px solid rgba(255,255,255,0.3)',
-              borderTopColor: 'rgba(255,255,255,0.7)',
+              border: '2px solid var(--missi-border-strong)',
+              borderTopColor: 'var(--missi-border-strong)',
               borderRadius: '50%',
               animation: 'spin 0.6s linear infinite',
             }}

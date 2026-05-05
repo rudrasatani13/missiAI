@@ -12,7 +12,7 @@ export default function VisualMemoryPage() {
       className="min-h-screen"
       style={{
         background: 'radial-gradient(ellipse at 50% 0%, rgba(20,20,30,1) 0%, #000000 60%)',
-        color: 'rgba(255,255,255,0.85)',
+        color: 'var(--missi-text-primary)',
       }}
     >
       {/* Ambient glows */}
@@ -37,15 +37,15 @@ export default function VisualMemoryPage() {
         >
           <Link
             href="/memory"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/5 transition-all text-white/50 hover:text-white/80 no-underline text-xs"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-[var(--missi-surface)] transition-all text-[var(--missi-text-secondary)] hover:text-[var(--missi-text-secondary)] no-underline text-xs"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Memory</span>
           </Link>
 
           <div className="flex items-center gap-2.5">
-            <Camera className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
-            <h1 className="text-base md:text-lg font-medium m-0" style={{ color: 'rgba(255,255,255,0.9)' }}>
+            <Camera className="w-5 h-5" style={{ color: 'var(--missi-text-muted)' }} />
+            <h1 className="text-base md:text-lg font-medium m-0" style={{ color: 'var(--missi-text-primary)' }}>
               Visual Memories
             </h1>
           </div>

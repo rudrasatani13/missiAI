@@ -59,15 +59,15 @@ function StarCanvas() {
 
 export default function ManifestoPage() {
   return (
-    <div className="min-h-screen relative overflow-hidden bg-black">
+    <div className="min-h-screen relative overflow-hidden bg-[var(--missi-bg)]">
       <StarCanvas />
 
       {/* Back Button */}
       <div className="absolute top-4 left-4 md:top-8 md:left-8 z-20">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-xs md:text-sm group px-3 py-2 md:px-4 md:py-2 rounded-full"
-          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
+          className="inline-flex items-center gap-2 text-[var(--missi-text-secondary)] hover:text-[var(--missi-text-primary)] transition-colors text-xs md:text-sm group px-3 py-2 md:px-4 md:py-2 rounded-full"
+          style={{ background: "var(--missi-border)", border: "1px solid var(--missi-border)" }}
         >
           <ArrowLeft className="w-3 h-3 md:w-4 md:h-4 group-hover:-translate-x-1 transition-transform" />
           <span className="hidden sm:inline">Back to Home</span>
@@ -78,14 +78,14 @@ export default function ManifestoPage() {
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4 md:p-6 lg:p-8">
         <div className="w-full max-w-sm md:max-w-lg rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-2xl"
-          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}>
+          style={{ background: "var(--missi-surface)", border: "1px solid var(--missi-border)" }}>
 
           {/* LED Brand Logo */}
           <div className="flex items-center justify-center mb-4 select-none">
             <svg width="120" height="28" viewBox="0 0 120 28" xmlns="http://www.w3.org/2000/svg" className="w-auto h-6 md:h-7 opacity-80">
               <defs>
                 <pattern id="led-manifesto" width="2" height="2" patternUnits="userSpaceOnUse">
-                  <rect x="0.25" y="0.25" width="1.5" height="1.5" rx="0.3" fill="rgba(255,255,255,1)" />
+                  <rect x="0.25" y="0.25" width="1.5" height="1.5" rx="0.3" fill="var(--missi-text-primary)" />
                 </pattern>
                 <mask id="text-mask-manifesto">
                   <rect width="100%" height="100%" fill="black" />
@@ -105,7 +105,7 @@ export default function ManifestoPage() {
 
           {/* Manifesto Content */}
           <div className="flex flex-col gap-6 md:gap-8 text-left">
-            <div className="text-gray-200 text-xs md:text-sm leading-relaxed space-y-3 md:space-y-4 font-light">
+            <div className="text-[var(--missi-text-primary)] text-xs md:text-sm leading-relaxed space-y-3 md:space-y-4 font-light">
               <p>
                 At missiAI, we believe that artificial intelligence should transcend current limitations and redefine what&apos;s
                 possible. Our mission is to create the most advanced human AI assistant ever built—one that doesn&apos;t just
@@ -128,8 +128,8 @@ export default function ManifestoPage() {
 
             {/* Signature */}
             <div className="flex flex-col gap-1 mt-6 md:mt-8">
-              <div className="text-white text-2xl md:text-3xl italic transform -rotate-2" style={{ fontFamily: "var(--font-dancing-script), cursive" }}>Rudra S.</div>
-              <div className="text-gray-400 text-xs">Rudra Satani, CEO&nbsp;@&nbsp;missiAI</div>
+              <div className="text-[var(--missi-text-primary)] text-2xl md:text-3xl italic transform -rotate-2" style={{ fontFamily: "var(--font-dancing-script), cursive" }}>Rudra S.</div>
+              <div className="text-[var(--missi-text-secondary)] text-xs">Rudra Satani, CEO&nbsp;@&nbsp;missiAI</div>
             </div>
           </div>
         </div>

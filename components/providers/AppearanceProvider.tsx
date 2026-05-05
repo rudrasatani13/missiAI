@@ -35,12 +35,25 @@ function readAppearance(): AppearanceSettings {
   }
 }
 
+function resolveTheme(theme: AppearanceSettings["theme"]): "light" | "dark" {
+  if (theme === "system") {
+    if (typeof window === "undefined") return "light"
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+  }
+  return theme
+}
+
 function applyAppearance(a: AppearanceSettings) {
   if (typeof document === "undefined") return
   const root = document.documentElement
-  // Theme is locked to `dark` today but we still expose the attribute
-  // so future CSS can target light/system without refactoring this provider.
-  root.setAttribute("data-theme", a.theme)
+  const resolved = resolveTheme(a.theme)
+  root.setAttribute("data-theme", resolved)
+  // Keep Tailwind dark class in sync for shadcn/ui components
+  if (resolved === "dark") {
+    root.classList.add("dark")
+  } else {
+    root.classList.remove("dark")
+  }
   root.setAttribute("data-accent", a.accent)
   root.setAttribute("data-font-scale", a.fontScale)
   root.setAttribute("data-reduce-motion", String(a.reduceMotion))
@@ -50,17 +63,29 @@ function applyAppearance(a: AppearanceSettings) {
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     applyAppearance(readAppearance())
+    const media = window.matchMedia("(prefers-color-scheme: dark)")
 
     const onStorage = (e: StorageEvent) => {
       if (e.key === LS_KEY) applyAppearance(readAppearance())
     }
     const onSettingsChanged = () => applyAppearance(readAppearance())
+    const onSystemThemeChange = () => applyAppearance(readAppearance())
 
     window.addEventListener("storage", onStorage)
     window.addEventListener("missi-settings-changed", onSettingsChanged as EventListener)
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", onSystemThemeChange)
+    } else {
+      media.addListener(onSystemThemeChange)
+    }
     return () => {
       window.removeEventListener("storage", onStorage)
       window.removeEventListener("missi-settings-changed", onSettingsChanged as EventListener)
+      if (typeof media.removeEventListener === "function") {
+        media.removeEventListener("change", onSystemThemeChange)
+      } else {
+        media.removeListener(onSystemThemeChange)
+      }
     }
   }, [])
 

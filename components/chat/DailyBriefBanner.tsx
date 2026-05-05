@@ -84,7 +84,7 @@ export function DailyBriefBanner() {
         <Sparkles className="w-4 h-4 flex-shrink-0" style={{ color: '#fbbf24' }} />
         <span
           className="text-sm font-medium"
-          style={{ color: 'rgba(255,255,255,0.8)' }}
+          style={{ color: 'var(--missi-text-primary)' }}
         >
           Your daily mission is ready
         </span>
@@ -109,8 +109,8 @@ export function DailyBriefBanner() {
           e.stopPropagation()
           handleDismiss()
         }}
-        className="p-1.5 rounded-full transition-all hover:bg-white/10"
-        style={{ color: 'rgba(255,255,255,0.3)' }}
+        className="p-1.5 rounded-full transition-all hover:bg-[var(--missi-surface)]"
+        style={{ color: 'var(--missi-text-muted)' }}
       >
         <X className="w-3.5 h-3.5" />
       </button>

@@ -29,9 +29,9 @@ function PaymentBadges() {
           key={badge}
           style={{
             fontSize: 10,
-            color: 'rgba(255,255,255,0.4)',
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            color: 'var(--missi-text-muted)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
             padding: '3px 8px',
             borderRadius: 20,
             whiteSpace: 'nowrap',
@@ -69,7 +69,7 @@ function CancelModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0,0,0,0.55)',
+        background: 'var(--missi-surface)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
       }}
@@ -78,27 +78,27 @@ function CancelModal({
       <div
         data-testid="cancel-modal-content"
         style={{
-          background: 'rgba(20,20,26,0.85)',
+          background: 'var(--missi-surface)',
           backdropFilter: 'blur(24px) saturate(140%)',
           WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--missi-border)',
           borderRadius: 20,
           padding: '32px 28px',
           maxWidth: 400,
           width: '90%',
           textAlign: 'center',
           boxShadow:
-            '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+            '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 var(--missi-border)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-          <AlertTriangle style={{ width: 28, height: 28, color: 'rgba(245,158,11,0.85)' }} />
+          <AlertTriangle style={{ width: 28, height: 28, color: 'var(--missi-accent)' }} />
         </div>
-        <h3 style={{ fontSize: 18, fontWeight: 500, color: '#fff', marginBottom: 8, letterSpacing: '-0.02em' }}>
+        <h3 style={{ fontSize: 18, fontWeight: 500, color: 'var(--missi-text-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
           Cancel {planName} Subscription?
         </h3>
-        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', marginBottom: 24, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 14, color: 'var(--missi-text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>
           Your subscription will remain active until the end of the current billing period. After that, you&apos;ll be downgraded to the Free plan.
         </p>
         <div style={{ display: 'flex', gap: 12 }}>
@@ -111,9 +111,9 @@ function CancelModal({
               borderRadius: 10,
               fontSize: 13,
               fontWeight: 500,
-              border: '1px solid rgba(255,255,255,0.12)',
+              border: '1px solid var(--missi-border-strong)',
               background: 'transparent',
-              color: 'rgba(255,255,255,0.85)',
+              color: 'var(--missi-text-primary)',
               cursor: 'pointer',
             }}
           >
@@ -131,7 +131,7 @@ function CancelModal({
               fontWeight: 600,
               border: 'none',
               background: 'rgba(239,68,68,0.72)',
-              color: '#fff',
+              color: 'var(--missi-text-primary)',
               cursor: isLoading ? 'not-allowed' : 'pointer',
               opacity: isLoading ? 0.6 : 1,
             }}
@@ -182,22 +182,22 @@ function PlanCard({
       style={{
         position: 'relative',
         background: isGlass
-          ? 'rgba(20,20,26,0.55)'
-          : 'rgba(255,255,255,0.02)',
+          ? 'var(--missi-surface)'
+          : 'var(--missi-surface-secondary)',
         backdropFilter: isGlass ? 'blur(24px) saturate(140%)' : undefined,
         WebkitBackdropFilter: isGlass ? 'blur(24px) saturate(140%)' : undefined,
         border: isCurrentPlan
-          ? '1px solid rgba(255,255,255,0.18)'
+          ? '1px solid var(--missi-text-muted)'
           : isGlass
-            ? '1px solid rgba(255,255,255,0.08)'
-            : '1px solid rgba(255,255,255,0.06)',
+            ? '1px solid var(--missi-border)'
+            : '1px solid var(--missi-border)',
         borderRadius: 14,
         padding: '24px 20px',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
         boxShadow: isGlass
-          ? '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)'
+          ? '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 var(--missi-border)'
           : 'none',
       }}
     >
@@ -215,7 +215,7 @@ function PlanCard({
             fontWeight: 600,
             letterSpacing: '0.18em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.55)',
+            color: 'var(--missi-text-secondary)',
           }}
         >
           <Crown style={{ width: 10, height: 10 }} />
@@ -234,7 +234,7 @@ function PlanCard({
             fontWeight: 600,
             letterSpacing: '0.18em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.75)',
+            color: 'var(--missi-text-secondary)',
           }}
         >
           Recommended
@@ -246,7 +246,7 @@ function PlanCard({
           style={{
             fontSize: 15,
             fontWeight: 500,
-            color: 'rgba(255,255,255,0.75)',
+            color: 'var(--missi-text-secondary)',
             letterSpacing: '0.02em',
             marginBottom: 10,
           }}
@@ -258,14 +258,14 @@ function PlanCard({
             style={{
               fontSize: 36,
               fontWeight: 500,
-              color: '#fff',
+              color: 'var(--missi-text-primary)',
               letterSpacing: '-0.03em',
               lineHeight: 1,
             }}
           >
             ${price}
           </span>
-          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
+          <span style={{ fontSize: 13, color: 'var(--missi-text-muted)' }}>
             /month
           </span>
         </div>
@@ -287,7 +287,7 @@ function PlanCard({
               style={{
                 width: 14,
                 height: 14,
-                color: 'rgba(255,255,255,0.55)',
+                color: 'var(--missi-text-secondary)',
                 flexShrink: 0,
                 marginTop: 3,
               }}
@@ -295,7 +295,7 @@ function PlanCard({
             <span
               style={{
                 fontSize: 13,
-                color: 'rgba(255,255,255,0.75)',
+                color: 'var(--missi-text-secondary)',
                 lineHeight: 1.55,
               }}
             >
@@ -318,7 +318,7 @@ function PlanCard({
               style={{
                 width: 14,
                 height: 14,
-                color: 'rgba(255,255,255,0.55)',
+                color: 'var(--missi-text-secondary)',
                 flexShrink: 0,
                 marginTop: 3,
               }}
@@ -326,7 +326,7 @@ function PlanCard({
             <span
               style={{
                 fontSize: 13,
-                color: 'rgba(255,255,255,0.75)',
+                color: 'var(--missi-text-secondary)',
                 lineHeight: 1.55,
               }}
             >
@@ -352,21 +352,17 @@ function PlanCard({
             isLoading || (isCurrentPlan && planId === 'free')
               ? 'default'
               : 'pointer',
-          border: 'none',
           background: isCurrentPlan
-            ? planId === 'free'
-              ? 'rgba(255,255,255,0.03)'
-              : 'rgba(255,255,255,0.06)'
+            ? 'var(--missi-surface-secondary)'
             : isGlass
-              ? '#fff'
-              : 'rgba(255,255,255,0.06)',
+              ? 'var(--missi-nav-text-active)'
+              : 'var(--missi-surface-secondary)',
           color: isCurrentPlan
-            ? planId === 'free'
-              ? 'rgba(255,255,255,0.35)'
-              : 'rgba(255,255,255,0.75)'
+            ? 'var(--missi-text-muted)'
             : isGlass
-              ? '#0c0c10'
-              : '#fff',
+              ? 'var(--missi-bg)'
+              : 'var(--missi-text-secondary)',
+          border: isCurrentPlan ? '1px solid var(--missi-border)' : 'none',
           opacity: isLoading ? 0.6 : 1,
         }}
       >
@@ -383,7 +379,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
     <div
       data-testid="faq-item"
       style={{
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        borderBottom: '1px solid var(--missi-border)',
         padding: '16px 0',
       }}
     >
@@ -392,7 +388,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
         style={{
           background: 'none',
           border: 'none',
-          color: 'rgba(255,255,255,0.85)',
+          color: 'var(--missi-text-primary)',
           width: '100%',
           display: 'flex',
           alignItems: 'center',
@@ -410,7 +406,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
           style={{
             width: 16,
             height: 16,
-            color: 'rgba(255,255,255,0.4)',
+            color: 'var(--missi-text-muted)',
             transition: 'transform 0.2s ease',
             transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
             flexShrink: 0,
@@ -421,7 +417,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
         <p
           style={{
             fontSize: 13,
-            color: 'rgba(255,255,255,0.5)',
+            color: 'var(--missi-text-secondary)',
             marginTop: 10,
             lineHeight: 1.65,
           }}
@@ -530,8 +526,8 @@ export default function PricingPage() {
       className="pricing-root"
       style={{
         minHeight: isSignedIn ? '100%' : '100vh',
-        background: isSignedIn ? 'transparent' : '#060608',
-        color: '#fff',
+        background: isSignedIn ? 'transparent' : 'var(--missi-bg)',
+        color: 'var(--missi-text-primary)',
         fontFamily: 'var(--font-body)',
         position: 'relative',
         overflowX: 'hidden',
@@ -589,7 +585,7 @@ export default function PricingPage() {
           data-testid="pricing-home-link"
           style={{
             fontSize: 11,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--missi-text-secondary)',
             textDecoration: 'none',
             letterSpacing: '0.02em',
             transition: 'color 0.2s',
@@ -602,7 +598,7 @@ export default function PricingPage() {
           data-testid="pricing-chat-link"
           style={{
             fontSize: 11,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--missi-text-secondary)',
             textDecoration: 'none',
             letterSpacing: '0.02em',
             transition: 'color 0.2s',
@@ -635,10 +631,10 @@ export default function PricingPage() {
               marginBottom: 24,
               padding: '12px 20px',
               borderRadius: 10,
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--missi-surface)',
+              border: '1px solid var(--missi-border)',
               fontSize: 13,
-              color: 'rgba(255,255,255,0.75)',
+              color: 'var(--missi-text-secondary)',
             }}
           >
             Your {plan?.name} subscription will cancel at the end of the current billing period.
@@ -702,16 +698,16 @@ export default function PricingPage() {
               padding: '4px 11px',
               borderRadius: 20,
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--missi-border)',
             }}
           >
             <Sparkles
-              style={{ width: 11, height: 11, color: 'rgba(255,255,255,0.5)' }}
+              style={{ width: 11, height: 11, color: 'var(--missi-text-secondary)' }}
             />
             <span
               style={{
                 fontSize: 10,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--missi-text-secondary)',
                 letterSpacing: '0.18em',
                 textTransform: 'uppercase',
                 fontWeight: 600,
@@ -728,7 +724,7 @@ export default function PricingPage() {
               marginBottom: 12,
               letterSpacing: '-0.03em',
               lineHeight: 1.15,
-              color: '#fff',
+              color: 'var(--missi-text-primary)',
             }}
           >
             {currentPlanId === 'free'
@@ -738,7 +734,7 @@ export default function PricingPage() {
           <p
             style={{
               fontSize: 14,
-              color: 'rgba(255,255,255,0.5)',
+              color: 'var(--missi-text-secondary)',
               lineHeight: 1.65,
               margin: 0,
             }}
@@ -843,7 +839,7 @@ export default function PricingPage() {
             textAlign: 'center',
             marginBottom: 32,
             fontSize: 11,
-            color: 'rgba(255,255,255,0.35)',
+            color: 'var(--missi-text-muted)',
             letterSpacing: '0.02em',
           }}
         >
@@ -862,14 +858,14 @@ export default function PricingPage() {
               marginBottom: 32,
               padding: '12px 20px',
               borderRadius: 12,
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--missi-surface)',
+              border: '1px solid var(--missi-border)',
             }}
           >
-            <Gift style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.65)', flexShrink: 0 }} />
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', margin: 0, textAlign: 'center' }}>
-              <span style={{ fontWeight: 500, color: '#fff' }}>20% referral discount</span>
-              <span style={{ color: 'rgba(255,255,255,0.45)' }}>
+            <Gift style={{ width: 14, height: 14, color: 'var(--missi-text-secondary)', flexShrink: 0 }} />
+            <p style={{ fontSize: 13, color: 'var(--missi-text-primary)', margin: 0, textAlign: 'center' }}>
+              <span style={{ fontWeight: 500, color: 'var(--missi-text-primary)' }}>20% referral discount</span>
+              <span style={{ color: 'var(--missi-text-secondary)' }}>
                 {' '}· 6 extra free days on your first month
               </span>
             </p>
@@ -884,12 +880,12 @@ export default function PricingPage() {
               marginBottom: 48,
               padding: '14px 18px',
               borderRadius: 14,
-              background: 'rgba(20,20,26,0.55)',
+              background: 'var(--missi-surface)',
               backdropFilter: 'blur(24px) saturate(140%)',
               WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--missi-border)',
               boxShadow:
-                '0 20px 50px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+                '0 20px 50px -20px rgba(0,0,0,0.5), inset 0 1px 0 var(--missi-border)',
               display: 'flex',
               flexDirection: 'column',
               gap: 12,
@@ -905,13 +901,13 @@ export default function PricingPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                <Gift style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.6)', flexShrink: 0 }} />
+                <Gift style={{ width: 14, height: 14, color: 'var(--missi-text-secondary)', flexShrink: 0 }} />
                 <div style={{ minWidth: 0 }}>
                   <p
                     style={{
                       fontSize: 13,
                       fontWeight: 500,
-                      color: '#fff',
+                      color: 'var(--missi-text-primary)',
                       margin: 0,
                       lineHeight: 1.3,
                     }}
@@ -921,7 +917,7 @@ export default function PricingPage() {
                   <p
                     style={{
                       fontSize: 11,
-                      color: 'rgba(255,255,255,0.45)',
+                      color: 'var(--missi-text-secondary)',
                       margin: '2px 0 0',
                       lineHeight: 1.3,
                     }}
@@ -939,29 +935,29 @@ export default function PricingPage() {
                     alignItems: 'center',
                     gap: 12,
                     fontSize: 11,
-                    color: 'rgba(255,255,255,0.5)',
+                    color: 'var(--missi-text-secondary)',
                     flexWrap: 'wrap',
                   }}
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <Users style={{ width: 11, height: 11, color: 'rgba(255,255,255,0.4)' }} />
-                    <strong style={{ color: '#fff', fontWeight: 600 }}>
+                    <Users style={{ width: 11, height: 11, color: 'var(--missi-text-muted)' }} />
+                    <strong style={{ color: 'var(--missi-text-primary)', fontWeight: 600 }}>
                       {referral.successfulReferred}
                     </strong>{' '}
                     joined
                   </span>
-                  <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+                  <span style={{ color: 'var(--missi-text-muted)' }}>·</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <Award style={{ width: 11, height: 11, color: 'rgba(255,255,255,0.4)' }} />
-                    <strong style={{ color: '#fff', fontWeight: 600 }}>
+                    <Award style={{ width: 11, height: 11, color: 'var(--missi-text-muted)' }} />
+                    <strong style={{ color: 'var(--missi-text-primary)', fontWeight: 600 }}>
                       {referral.rewardDaysEarned}
                     </strong>{' '}
                     days
                   </span>
-                  <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+                  <span style={{ color: 'var(--missi-text-muted)' }}>·</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <Gift style={{ width: 11, height: 11, color: 'rgba(255,255,255,0.4)' }} />
-                    <strong style={{ color: '#fff', fontWeight: 600 }}>
+                    <Gift style={{ width: 11, height: 11, color: 'var(--missi-text-muted)' }} />
+                    <strong style={{ color: 'var(--missi-text-primary)', fontWeight: 600 }}>
                       {referral.remainingSlots}
                     </strong>{' '}
                     slots
@@ -980,8 +976,8 @@ export default function PricingPage() {
                   gap: 8,
                   padding: '8px 10px 8px 12px',
                   borderRadius: 10,
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'var(--missi-surface)',
+                  border: '1px solid var(--missi-border)',
                 }}
               >
                 <input
@@ -994,7 +990,7 @@ export default function PricingPage() {
                     background: 'transparent',
                     border: 'none',
                     outline: 'none',
-                    color: 'rgba(255,255,255,0.7)',
+                    color: 'var(--missi-text-secondary)',
                     fontSize: 12,
                     fontFamily: 'var(--font-mono)',
                   }}
@@ -1012,11 +1008,11 @@ export default function PricingPage() {
                     fontSize: 11,
                     fontWeight: 600,
                     letterSpacing: '0.02em',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    border: '1px solid var(--missi-border)',
                     cursor: 'pointer',
                     background: copied
                       ? 'rgba(34,197,94,0.15)'
-                      : 'rgba(255,255,255,0.06)',
+                      : 'var(--missi-text-muted)',
                     color: copied ? 'rgba(134,239,172,0.95)' : '#fff',
                     whiteSpace: 'nowrap',
                     flexShrink: 0,
@@ -1040,7 +1036,7 @@ export default function PricingPage() {
               marginBottom: 20,
               textAlign: 'center',
               letterSpacing: '-0.02em',
-              color: 'rgba(255,255,255,0.9)',
+              color: 'var(--missi-text-primary)',
             }}
           >
             Common questions

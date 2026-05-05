@@ -16,7 +16,7 @@ export default function TermsOfService() {
       </h1>
       <p
         className="text-sm mb-12"
-        style={{ color: "rgba(255,255,255,0.3)" }}
+        style={{ color: "var(--missi-text-muted)" }}
       >
         Last updated: April 2026
       </p>
@@ -25,12 +25,12 @@ export default function TermsOfService() {
         {/* Acceptance */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="terms-section-acceptance"
           >
             Acceptance of terms
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             By accessing or using missiAI, you agree to these Terms of Service.
             If you do not agree, please do not use the service. We may update
             these terms from time to time, and your continued use of missiAI
@@ -41,15 +41,15 @@ export default function TermsOfService() {
         {/* What missiAI is */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="terms-section-product"
           >
             What missiAI is
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             missiAI is a personal AI companion designed to support everyday
             life with memory, context, voice, and text-based assistance. It is{" "}
-            <strong className="text-white/70">
+            <strong className="text-[var(--missi-text-secondary)]">
               not a substitute for professional advice
             </strong>{" "}
             including medical, legal, financial, mental health, or emergency
@@ -62,12 +62,12 @@ export default function TermsOfService() {
         {/* Accounts and access */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="terms-section-account"
           >
             Accounts and access
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             You may need an account to use some features of missiAI. You are
             responsible for keeping your login details secure and for activity
             that happens through your account. Please provide accurate
@@ -79,29 +79,29 @@ export default function TermsOfService() {
         {/* Acceptable use */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="terms-section-acceptable-use"
           >
             Acceptable use
           </h2>
-          <p className="mb-4" style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p className="mb-4" style={{ color: "var(--missi-text-secondary)" }}>
             When using missiAI, you agree not to:
           </p>
           <ul
             className="space-y-2.5 text-sm"
-            style={{ color: "rgba(255,255,255,0.45)" }}
+            style={{ color: "var(--missi-text-secondary)" }}
           >
             <li className="flex items-start gap-3">
               <span
                 className="w-1 h-1 rounded-full mt-2 flex-shrink-0"
-                style={{ background: "rgba(255,255,255,0.25)" }}
+                style={{ background: "var(--missi-border)" }}
               />
               Use the service for any illegal activity or to facilitate harm
             </li>
             <li className="flex items-start gap-3">
               <span
                 className="w-1 h-1 rounded-full mt-2 flex-shrink-0"
-                style={{ background: "rgba(255,255,255,0.25)" }}
+                style={{ background: "var(--missi-border)" }}
               />
               Abuse, overload, probe, or interfere with the service or its
               underlying systems
@@ -109,7 +109,7 @@ export default function TermsOfService() {
             <li className="flex items-start gap-3">
               <span
                 className="w-1 h-1 rounded-full mt-2 flex-shrink-0"
-                style={{ background: "rgba(255,255,255,0.25)" }}
+                style={{ background: "var(--missi-border)" }}
               />
               Attempt to manipulate the AI through prompt injection or
               adversarial techniques
@@ -117,14 +117,14 @@ export default function TermsOfService() {
             <li className="flex items-start gap-3">
               <span
                 className="w-1 h-1 rounded-full mt-2 flex-shrink-0"
-                style={{ background: "rgba(255,255,255,0.25)" }}
+                style={{ background: "var(--missi-border)" }}
               />
               Impersonate others or misrepresent your identity
             </li>
             <li className="flex items-start gap-3">
               <span
                 className="w-1 h-1 rounded-full mt-2 flex-shrink-0"
-                style={{ background: "rgba(255,255,255,0.25)" }}
+                style={{ background: "var(--missi-border)" }}
               />
               Use automated scripts to interact with the service in ways that
               degrade performance for other users
@@ -132,7 +132,7 @@ export default function TermsOfService() {
             <li className="flex items-start gap-3">
               <span
                 className="w-1 h-1 rounded-full mt-2 flex-shrink-0"
-                style={{ background: "rgba(255,255,255,0.25)" }}
+                style={{ background: "var(--missi-border)" }}
               />
               Upload, submit, or generate content that violates the rights,
               privacy, or safety of others
@@ -143,16 +143,16 @@ export default function TermsOfService() {
         {/* Service availability */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="terms-section-availability"
           >
             Service availability
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             We work to keep missiAI available, secure, and useful, but we do
             not guarantee uninterrupted access or error-free operation. Features
             may change, improve, pause, or be removed over time. The service is
-            provided <strong className="text-white/70">as-is</strong> and may
+            provided <strong className="text-[var(--missi-text-secondary)]">as-is</strong> and may
             occasionally be unavailable because of maintenance, updates, or
             unexpected issues.
           </p>
@@ -161,12 +161,12 @@ export default function TermsOfService() {
         {/* Intellectual property */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="terms-section-ip"
           >
             Intellectual property
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             You retain rights to content you submit to missiAI, subject to any
             rights needed for us to operate the service. The missiAI brand,
             product design, software, visual assets, and related materials are
@@ -179,12 +179,12 @@ export default function TermsOfService() {
         {/* User content */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="terms-section-content"
           >
             Your content
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             You are responsible for the content you submit, including prompts,
             messages, files, and any other information you provide through the
             service. You agree not to submit content that is unlawful,
@@ -197,12 +197,12 @@ export default function TermsOfService() {
         {/* Termination */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="terms-section-termination"
           >
             Termination
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             We may suspend, restrict, or terminate access to missiAI if we
             believe you have violated these terms, created risk for other
             users, misused the service, or acted unlawfully. You may stop using
@@ -214,12 +214,12 @@ export default function TermsOfService() {
         {/* Limitation of liability */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="terms-section-liability"
           >
             Limitation of liability
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             To the maximum extent permitted by law, missiAI and its operators
             will not be liable for any indirect, incidental, consequential,
             special, or punitive damages arising from or related to your use of
@@ -232,12 +232,12 @@ export default function TermsOfService() {
         {/* Governing law */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="terms-section-governing-law"
           >
             Governing law
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             These terms shall be governed by and construed in accordance with
             the laws of India. Any disputes arising under these terms shall be
             subject to the exclusive jurisdiction of the courts in Gujarat,
@@ -248,16 +248,16 @@ export default function TermsOfService() {
         {/* Contact */}
         <section>
           <h2
-            className="text-lg font-medium tracking-tight mb-4 text-white"
+            className="text-lg font-medium tracking-tight mb-4 text-[var(--missi-text-primary)]"
             data-testid="terms-section-contact"
           >
             Contact
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p style={{ color: "var(--missi-text-secondary)" }}>
             Questions about these terms? Reach out at{" "}
             <a
               href="mailto:rudrasatani@missi.space"
-              className="text-white/70 underline underline-offset-4 decoration-white/20 hover:decoration-white/40 transition-colors"
+              className="text-[var(--missi-text-secondary)] underline underline-offset-4 decoration-white/20 hover:decoration-white/40 transition-colors"
               data-testid="terms-contact-email"
             >
               rudrasatani@missi.space

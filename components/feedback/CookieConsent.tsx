@@ -43,7 +43,7 @@ export function CookieConsent() {
         zIndex: 9999,
         maxWidth: "24rem",
         background: "rgba(14, 14, 14, 0.92)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
+        border: "1px solid var(--missi-border)",
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
         borderRadius: "0.75rem",
@@ -57,7 +57,7 @@ export function CookieConsent() {
         style={{
           fontSize: "11px",
           lineHeight: "1.6",
-          color: "rgba(255, 255, 255, 0.55)",
+          color: "var(--missi-text-secondary)",
           marginBottom: "1rem",
         }}
       >
@@ -65,7 +65,7 @@ export function CookieConsent() {
         management. No third-party trackers or ad networks.{" "}
         <Link
           href="/privacy"
-          style={{ color: "rgba(255, 255, 255, 0.4)", textDecoration: "underline" }}
+          style={{ color: "var(--missi-text-muted)", textDecoration: "underline" }}
         >
           Privacy Policy
         </Link>
@@ -78,7 +78,7 @@ export function CookieConsent() {
             flex: 1,
             padding: "0.45rem 0.75rem",
             fontSize: "11px",
-            background: "rgba(255, 255, 255, 0.95)",
+            background: "var(--missi-border)",
             color: "#000",
             border: "none",
             borderRadius: "0.4rem",
@@ -99,8 +99,8 @@ export function CookieConsent() {
             padding: "0.45rem 0.75rem",
             fontSize: "11px",
             background: "transparent",
-            color: "rgba(255, 255, 255, 0.35)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
+            color: "var(--missi-text-muted)",
+            border: "1px solid var(--missi-border)",
             borderRadius: "0.4rem",
             cursor: "pointer",
             fontFamily: "inherit",
@@ -108,12 +108,12 @@ export function CookieConsent() {
             transition: "color 0.15s, border-color 0.15s",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = "rgba(255,255,255,0.6)"
-            e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)"
+            e.currentTarget.style.color = "var(--missi-text-secondary)"
+            e.currentTarget.style.borderColor = "var(--missi-border-strong)"
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = "rgba(255,255,255,0.35)"
-            e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"
+            e.currentTarget.style.color = "var(--missi-text-muted)"
+            e.currentTarget.style.borderColor = "var(--missi-border)"
           }}
         >
           Reject Non-Essential

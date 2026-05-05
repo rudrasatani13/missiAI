@@ -56,8 +56,8 @@ export function TimelineView() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-white/50 space-y-4 h-full min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white/20"></div>
+      <div className="flex-1 flex flex-col items-center justify-center text-[var(--missi-text-secondary)] space-y-4 h-full min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--missi-border)]"></div>
         <p className="text-sm tracking-widest uppercase">Building timeline...</p>
       </div>
     )
@@ -65,8 +65,8 @@ export function TimelineView() {
 
   if (events.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-white/50 h-full">
-        <CalendarIcon className="w-12 h-12 mb-4 text-white/20" />
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-[var(--missi-text-secondary)] h-full">
+        <CalendarIcon className="w-12 h-12 mb-4 text-[var(--missi-text-muted)]" />
         <p>Your timeline is waiting to be written.</p>
         <p className="text-sm mt-2 opacity-60">Try chatting with Missi to add memories.</p>
       </div>
@@ -84,15 +84,15 @@ export function TimelineView() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="mx-auto max-w-fit flex items-center gap-3 bg-black/60 backdrop-blur-xl rounded-full pl-5 pr-2 py-2 border border-white/10 shadow-2xl pointer-events-auto"
+              className="mx-auto max-w-fit flex items-center gap-3 bg-[var(--missi-surface)] rounded-full pl-5 pr-2 py-2 border border-[var(--missi-border)] shadow-2xl pointer-events-auto"
             >
-              <span className="text-xs text-white/50 font-medium uppercase tracking-widest">Chapter Focus</span>
-              <span className="text-sm font-semibold text-white">
+              <span className="text-xs text-[var(--missi-text-secondary)] font-medium uppercase tracking-widest">Chapter Focus</span>
+              <span className="text-sm font-semibold text-[var(--missi-text-primary)]">
                 {chapters.find(c => c.id === activeChapterId)?.title}
               </span>
               <button 
                 onClick={() => setActiveChapterId(null)}
-                className="ml-2 bg-white/5 hover:bg-white/15 p-1.5 rounded-full transition-colors text-white/60 hover:text-white"
+                className="ml-2 bg-[var(--missi-surface)] hover:bg-[var(--missi-surface)] p-1.5 rounded-full transition-colors text-[var(--missi-text-secondary)] hover:text-[var(--missi-text-primary)]"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -128,7 +128,7 @@ export function TimelineView() {
 
                 {/* The Timeline Node / Orb */}
                 <div className="absolute left-[24px] md:left-1/2 -translate-x-1/2 flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-[#020205] flex items-center justify-center p-1 relative z-10 border border-white/5">
+                  <div className="w-8 h-8 rounded-full bg-[#020205] flex items-center justify-center p-1 relative z-10 border border-[var(--missi-border)]">
                     <motion.div 
                       className="w-full h-full rounded-full"
                       style={{ background: color, boxShadow: `0 0 20px ${color}80` }}
@@ -142,13 +142,13 @@ export function TimelineView() {
                   <div className="relative group">
                     {/* Connecting dashed line (orb to card) */}
                     <div 
-                      className={`absolute top-1/2 -translate-y-1/2 w-6 border-t border-dashed border-white/20 hidden md:block`}
+                      className={`absolute top-1/2 -translate-y-1/2 w-6 border-t border-dashed border-[var(--missi-border)] hidden md:block`}
                       style={{ [isLeft ? 'right' : 'left']: '-1.5rem' }}
                     />
 
                     {/* Card Body */}
                     <div 
-                      className="bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md rounded-2xl p-5 sm:p-6 border border-white/10 transition-colors shadow-2xl relative overflow-hidden"
+                      className="bg-[var(--missi-surface)] hover:bg-[var(--missi-surface-secondary)] rounded-2xl p-5 sm:p-6 border border-[var(--missi-border)] transition-colors shadow-2xl relative overflow-hidden"
                     >
                       {/* Top accent line */}
                       <div className="absolute top-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
@@ -157,22 +157,22 @@ export function TimelineView() {
                         <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider" style={{ color: color, backgroundColor: `${color}15` }}>
                           {event.category}
                         </span>
-                        <div className="flex items-center gap-1.5 text-xs text-white/40 ml-auto font-mono">
+                        <div className="flex items-center gap-1.5 text-xs text-[var(--missi-text-muted)] ml-auto font-mono">
                           <Clock className="w-3.5 h-3.5" />
                           {dateStr}
                         </div>
                       </div>
 
-                      <h3 className="text-xl font-medium text-white/90 leading-tight mb-2">
+                      <h3 className="text-xl font-medium text-[var(--missi-text-primary)] leading-tight mb-2">
                         {event.title}
                       </h3>
 
                       {/* Optional Chapter Link (if not already filtered) */}
                       {!activeChapterId && event.chapterId && (
-                        <div className="mt-4 pt-3 border-t border-white/5">
+                        <div className="mt-4 pt-3 border-t border-[var(--missi-border)]">
                           <button 
                             onClick={() => setActiveChapterId(event.chapterId!)}
-                            className="group/btn flex items-center gap-2 text-xs text-white/40 hover:text-white transition-colors uppercase tracking-widest font-semibold"
+                            className="group/btn flex items-center gap-2 text-xs text-[var(--missi-text-muted)] hover:text-[var(--missi-text-primary)] transition-colors uppercase tracking-widest font-semibold"
                           >
                             Chapter: {chapters.find(c => c.id === event.chapterId)?.title || 'Narrative Segment'}
                             <ArrowRight className="w-3 h-3 group-hover/btn:translate-x-1 transition-transform" />
@@ -189,7 +189,7 @@ export function TimelineView() {
         
         {/* End of timeline indicator */}
         <div className="w-full flex justify-center mt-8">
-          <div className="w-3 h-3 rounded-full border border-white/20 bg-transparent" />
+          <div className="w-3 h-3 rounded-full border border-[var(--missi-border)] bg-transparent" />
         </div>
       </div>
     </div>

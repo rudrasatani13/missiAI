@@ -21,10 +21,10 @@ function QuestSkeleton() {
   return (
     <div className="animate-pulse space-y-6">
       {[1, 2].map(i => (
-        <div key={i} className="space-y-3 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-          <div className="h-3 w-20 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
-          <div className="h-4 w-3/4 rounded" style={{ background: 'rgba(255,255,255,0.05)' }} />
-          <div className="h-[2px] w-full rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div key={i} className="space-y-3 py-5" style={{ borderBottom: '1px solid var(--missi-border)' }}>
+          <div className="h-3 w-20 rounded" style={{ background: 'var(--missi-surface)' }} />
+          <div className="h-4 w-3/4 rounded" style={{ background: 'var(--missi-surface)' }} />
+          <div className="h-[2px] w-full rounded" style={{ background: 'var(--missi-surface)' }} />
         </div>
       ))}
     </div>
@@ -71,12 +71,12 @@ function QuestRow({
         onClick={onSelect}
         className="w-full text-left py-5 transition-opacity active:scale-[0.99]"
         style={{
-          borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)',
+          borderBottom: isLast ? 'none' : '1px solid var(--missi-border)',
           background: 'none',
           border: 'none',
           borderBottomStyle: isLast ? 'none' : 'solid',
           borderBottomWidth: isLast ? 0 : 1,
-          borderBottomColor: 'rgba(255,255,255,0.05)',
+          borderBottomColor: 'var(--missi-border)',
           cursor: 'pointer',
           padding: '20px 0',
           display: 'block',
@@ -100,7 +100,7 @@ function QuestRow({
             <p
               className="text-[15px] leading-snug mb-1"
               style={{
-                color: isComplete ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.88)',
+                color: isComplete ? 'var(--missi-text-secondary)' : 'var(--missi-text-primary)',
                 fontWeight: 500,
                 letterSpacing: '-0.01em',
                 textDecoration: isComplete ? 'line-through' : 'none',
@@ -111,7 +111,7 @@ function QuestRow({
 
             {/* Next mission preview */}
             {nextMission && (
-              <p className="text-[13px] leading-relaxed mb-2.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="text-[13px] leading-relaxed mb-2.5" style={{ color: 'var(--missi-text-muted)' }}>
                 Next: {nextMission}
               </p>
             )}
@@ -120,7 +120,7 @@ function QuestRow({
             <div className="flex items-center gap-3">
               <div
                 className="flex-1 h-[2px] rounded-full overflow-hidden"
-                style={{ background: 'rgba(255,255,255,0.06)' }}
+                style={{ background: 'var(--missi-border)' }}
               >
                 <div
                   className="h-full rounded-full transition-all duration-700"
@@ -134,7 +134,7 @@ function QuestRow({
               </div>
               <span
                 className="text-[10px] font-semibold flex-shrink-0"
-                style={{ color: isComplete ? 'rgba(167,243,208,0.6)' : 'rgba(255,255,255,0.35)' }}
+                style={{ color: isComplete ? 'rgba(167,243,208,0.6)' : 'var(--missi-text-muted)' }}
               >
                 {isComplete ? 'Done' : `${quest.completedMissions}/${quest.totalMissions}`}
               </span>
@@ -171,7 +171,7 @@ function MissionRow({
       className="flex items-start gap-4 py-4 transition-opacity"
       style={{
         opacity: locked ? 0.3 : done ? 0.5 : 1,
-        borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)',
+        borderBottom: isLast ? 'none' : '1px solid var(--missi-border)',
       }}
     >
       {/* Check circle */}
@@ -180,7 +180,7 @@ function MissionRow({
         disabled={done || locked || !isActive || isLoading}
         className="mt-[2px] flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-colors active:scale-[0.97]"
         style={{
-          border: `1px solid ${done ? color + '60' : 'rgba(255,255,255,0.18)'}`,
+          border: `1px solid ${done ? color + '60' : 'var(--missi-border-strong)'}`,
           background: done ? color + '15' : 'transparent',
           cursor: done || locked || !isActive ? 'default' : 'pointer',
         }}
@@ -199,7 +199,7 @@ function MissionRow({
         </AnimatePresence>
         {isLoading && (
           <div
-            className="w-3 h-3 rounded-full border border-white/20 border-t-white/60"
+            className="w-3 h-3 rounded-full border border-[var(--missi-border)] border-t-white/60"
             style={{ animation: 'spin 0.7s linear infinite' }}
           />
         )}
@@ -218,7 +218,7 @@ function MissionRow({
         <p
           className="text-[15px] leading-snug mb-0.5"
           style={{
-            color: done ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.88)',
+            color: done ? 'var(--missi-text-muted)' : 'var(--missi-text-primary)',
             fontWeight: 500,
             letterSpacing: '-0.01em',
             textDecoration: done ? 'line-through' : 'none',
@@ -227,7 +227,7 @@ function MissionRow({
           {mission.title}
         </p>
         {mission.description && !locked && (
-          <p className="text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <p className="text-[13px] leading-relaxed" style={{ color: 'var(--missi-text-muted)' }}>
             {mission.description}
           </p>
         )}
@@ -236,7 +236,7 @@ function MissionRow({
       {/* XP */}
       <span
         className="mt-1.5 text-[10px] font-semibold flex-shrink-0"
-        style={{ color: 'rgba(255,255,255,0.2)' }}
+        style={{ color: 'var(--missi-text-muted)' }}
       >
         +{mission.xpReward}
       </span>
@@ -340,7 +340,7 @@ export default function QuestsClient() {
           <button
             onClick={() => { setView('list'); setSelectedQuestId(null); fetchQuests() }}
             className="inline-flex items-center gap-2 text-xs transition-colors"
-            style={{ color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer' }}
+            style={{ color: 'var(--missi-text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Quests
@@ -370,17 +370,17 @@ export default function QuestsClient() {
           </p>
           <h1
             className="text-[28px] md:text-[34px]"
-            style={{ fontWeight: 300, letterSpacing: '-0.03em', color: 'rgba(255,255,255,0.92)', lineHeight: 1.1 }}
+            style={{ fontWeight: 300, letterSpacing: '-0.03em', color: 'var(--missi-text-primary)', lineHeight: 1.1 }}
           >
             {selectedQuest.title}
           </h1>
-          <p className="mt-3 text-sm leading-relaxed max-w-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          <p className="mt-3 text-sm leading-relaxed max-w-sm" style={{ color: 'var(--missi-text-secondary)' }}>
             {selectedQuest.description}
           </p>
 
           {/* Progress rail */}
           <div className="mt-7 w-32">
-            <div className="h-[2px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-[2px] rounded-full overflow-hidden" style={{ background: 'var(--missi-border)' }}>
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: isComplete ? 'rgba(167,243,208,0.55)' : `${color}80` }}
@@ -390,7 +390,7 @@ export default function QuestsClient() {
               />
             </div>
             <p className="mt-2 text-[10px] font-semibold uppercase"
-              style={{ color: isComplete ? 'rgba(167,243,208,0.6)' : 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}>
+              style={{ color: isComplete ? 'rgba(167,243,208,0.6)' : 'var(--missi-text-muted)', letterSpacing: '0.18em' }}>
               {isComplete ? 'Complete' : `${selectedQuest.completedMissions} of ${selectedQuest.totalMissions}`}
             </p>
           </div>
@@ -402,7 +402,7 @@ export default function QuestsClient() {
             <button
               onClick={() => handleAction('start')}
               className="w-full rounded-xl px-4 py-2.5 text-sm font-medium transition-colors active:scale-[0.97]"
-              style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(255,255,255,0.9)', color: '#0a0a0f', cursor: 'pointer' }}
+              style={{ background: 'var(--missi-nav-text-active)', border: '1px solid var(--missi-border)', color: 'var(--missi-bg)', cursor: 'pointer' }}
             >
               Start Quest
             </button>
@@ -413,7 +413,7 @@ export default function QuestsClient() {
             <button
               onClick={() => handleAction('resume')}
               className="w-full rounded-xl px-4 py-2.5 text-sm font-medium transition-colors active:scale-[0.97]"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}
+              style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)', color: 'var(--missi-border)', cursor: 'pointer' }}
             >
               Resume Quest
             </button>
@@ -434,7 +434,7 @@ export default function QuestsClient() {
               >
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[10px] font-semibold uppercase"
-                    style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}>
+                    style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}>
                     {chapter.title}
                   </p>
                   {chapterDone && (
@@ -474,7 +474,7 @@ export default function QuestsClient() {
             <button
               onClick={() => handleAction('abandon')}
               className="inline-flex items-center gap-1.5 text-[11px] font-medium transition-colors active:scale-[0.97]"
-              style={{ color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 2px' }}
+              style={{ color: 'var(--missi-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 2px' }}
             >
               Pause quest
             </button>
@@ -484,7 +484,7 @@ export default function QuestsClient() {
         {/* XP footer */}
         {selectedQuest.totalXPEarned > 0 && (
           <p className="relative z-10 mt-8 text-[10px] font-semibold uppercase"
-            style={{ color: 'rgba(255,255,255,0.2)', letterSpacing: '0.18em' }}>
+            style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}>
             {selectedQuest.totalXPEarned} XP earned
           </p>
         )}
@@ -509,7 +509,7 @@ export default function QuestsClient() {
           <button
             onClick={() => setView('list')}
             className="inline-flex items-center gap-2 text-xs transition-colors"
-            style={{ color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer' }}
+            style={{ color: 'var(--missi-text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Quests
@@ -559,13 +559,13 @@ export default function QuestsClient() {
       >
         <p
           className="mb-4 text-[10px] font-semibold uppercase"
-          style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+          style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
         >
           {stats ? `${stats.totalMissionsCompleted} missions completed` : 'Your quests'}
         </p>
         <h1
           className="text-[32px] md:text-[40px]"
-          style={{ fontWeight: 300, letterSpacing: '-0.03em', color: 'rgba(255,255,255,0.92)', lineHeight: 1.1 }}
+          style={{ fontWeight: 300, letterSpacing: '-0.03em', color: 'var(--missi-text-primary)', lineHeight: 1.1 }}
         >
           Quests
         </h1>
@@ -573,17 +573,17 @@ export default function QuestsClient() {
         {/* Stats meter */}
         {stats && stats.totalQuests > 0 && (
           <div className="mt-7 w-32">
-            <div className="h-[2px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-[2px] rounded-full overflow-hidden" style={{ background: 'var(--missi-border)' }}>
               <motion.div
                 className="h-full rounded-full"
-                style={{ background: 'rgba(255,255,255,0.35)' }}
+                style={{ background: 'var(--missi-border)' }}
                 initial={{ width: 0 }}
                 animate={{ width: `${stats.totalQuests > 0 ? (stats.completedQuests / stats.totalQuests) * 100 : 0}%` }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
               />
             </div>
             <p className="mt-2 text-[10px] font-semibold uppercase"
-              style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}>
+              style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}>
               {stats.completedQuests} of {stats.totalQuests} done
             </p>
           </div>
@@ -596,7 +596,7 @@ export default function QuestsClient() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           className="relative z-10 w-full max-w-lg mb-8 px-5 py-4 rounded-xl text-sm"
-          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(239,68,68,0.18)', color: 'rgba(255,180,180,0.85)' }}
+          style={{ background: 'var(--missi-surface)', border: '1px solid rgba(239,68,68,0.18)', color: 'rgba(255,180,180,0.85)' }}
         >
           {error}
         </motion.div>
@@ -612,13 +612,13 @@ export default function QuestsClient() {
                 onClick={() => setFilter(f)}
                 className="text-[10px] font-semibold uppercase transition-colors active:scale-[0.97]"
                 style={{
-                  color: filter === f ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.25)',
+                  color: filter === f ? 'var(--missi-text-secondary)' : 'var(--missi-text-muted)',
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
                   letterSpacing: '0.18em',
                   padding: '4px 8px',
-                  borderBottom: filter === f ? '1px solid rgba(255,255,255,0.3)' : '1px solid transparent',
+                  borderBottom: filter === f ? '1px solid var(--missi-border-strong)' : '1px solid transparent',
                 }}
               >
                 {f}{f === 'active' && activeCount > 0 ? ` (${activeCount})` : ''}
@@ -628,11 +628,11 @@ export default function QuestsClient() {
 
           <button
             onClick={() => setView('create')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors active:scale-[0.97] hover:bg-white/[0.04]"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors active:scale-[0.97] hover:bg-[var(--missi-nav-hover)]"
             style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              color: 'rgba(255,255,255,0.55)',
+              background: 'var(--missi-surface)',
+              border: '1px solid var(--missi-border)',
+              color: 'var(--missi-text-secondary)',
               cursor: 'pointer',
             }}
           >
@@ -652,21 +652,21 @@ export default function QuestsClient() {
           >
             <div
               className="w-14 h-14 rounded-full mx-auto mb-5 flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
             >
-              <Sword className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.15)' }} />
+              <Sword className="w-6 h-6" style={{ color: 'var(--missi-text-muted)' }} />
             </div>
-            <p className="text-base font-light mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <p className="text-base font-light mb-2" style={{ color: 'var(--missi-text-secondary)' }}>
               {filter === 'all' ? 'No quests yet' : `No ${filter} quests`}
             </p>
-            <p className="text-xs font-light mb-6" style={{ color: 'rgba(255,255,255,0.25)' }}>
+            <p className="text-xs font-light mb-6" style={{ color: 'var(--missi-text-muted)' }}>
               {filter === 'all' ? 'Describe a goal and Missi will design a journey.' : 'Try changing the filter.'}
             </p>
             {filter === 'all' && (
               <button
                 onClick={() => setView('create')}
                 className="inline-flex px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
-                style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.9)', color: '#0a0a0f', cursor: 'pointer' }}
+                style={{ border: '1px solid var(--missi-border)', background: 'var(--missi-border)', color: 'var(--missi-surface)', cursor: 'pointer' }}
               >
                 Create your first quest
               </button>

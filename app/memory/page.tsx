@@ -41,11 +41,9 @@ function GlassCard({
       transition={{ duration: 0.35, delay, ease: [0.16, 1, 0.3, 1] }}
       className={`rounded-2xl ${className}`}
       style={{
-        background: 'rgba(20,20,26,0.55)',
-        backdropFilter: 'blur(24px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
+        boxShadow: 'none',
         ...style,
       }}
     >
@@ -157,8 +155,8 @@ export default function MemoryPage() {
           {/* Top row: Title · Refresh (sidebar provides nav) */}
           <div className="flex items-center justify-between md:justify-start md:gap-4">
             <div className="flex items-center gap-2.5">
-              <Brain className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
-              <h1 className="text-base md:text-lg font-medium m-0" style={{ color: 'rgba(255,255,255,0.9)' }}>
+              <Brain className="w-5 h-5" style={{ color: 'var(--missi-text-muted)' }} />
+              <h1 className="text-base md:text-lg font-medium m-0" style={{ color: 'var(--missi-text-primary)' }}>
                 Memory Graph
               </h1>
             </div>
@@ -167,12 +165,12 @@ export default function MemoryPage() {
               onClick={handleRefresh}
               disabled={isRefreshing}
               title="Refresh"
-              className="p-1.5 rounded-full transition-colors hover:bg-white/[0.04] active:scale-[0.97] md:hidden"
+              className="p-1.5 rounded-full transition-colors hover:bg-[var(--missi-nav-hover)] active:scale-[0.97] md:hidden"
               style={{
                 background: 'none',
                 border: 'none',
                 cursor: isRefreshing ? 'default' : 'pointer',
-                color: 'rgba(255,255,255,0.35)',
+                color: 'var(--missi-text-muted)',
               }}
             >
               <RefreshCw
@@ -192,11 +190,11 @@ export default function MemoryPage() {
               <Link
                 key={href}
                 href={href}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors no-underline hover:bg-white/[0.04] active:scale-[0.97] flex-shrink-0"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors no-underline hover:bg-[var(--missi-nav-hover)] active:scale-[0.97] flex-shrink-0"
                 style={{
-                  background: 'rgba(255,255,255,0.02)',
-                  border: '1px solid rgba(255,255,255,0.07)',
-                  color: 'rgba(255,255,255,0.55)',
+                  background: 'var(--missi-surface)',
+                  border: '1px solid var(--missi-border)',
+                  color: 'var(--missi-text-secondary)',
                 }}
               >
                 {icon} {label}
@@ -206,9 +204,9 @@ export default function MemoryPage() {
               onClick={() => setShowAddForm((v) => !v)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors active:scale-[0.97] flex-shrink-0"
               style={{
-                background: showAddForm ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.07)',
-                color: 'rgba(255,255,255,0.65)',
+                background: showAddForm ? 'var(--missi-nav-active-bg)' : 'var(--missi-surface)',
+                border: '1px solid var(--missi-border)',
+                color: 'var(--missi-nav-text-active)',
                 cursor: 'pointer',
               }}
             >
@@ -219,12 +217,12 @@ export default function MemoryPage() {
               onClick={handleRefresh}
               disabled={isRefreshing}
               title="Refresh"
-              className="p-1.5 rounded-full transition-colors hover:bg-white/[0.04] active:scale-[0.97] hidden md:flex flex-shrink-0"
+              className="p-1.5 rounded-full transition-colors hover:bg-var(--missi-surface-hover) active:scale-[0.97] hidden md:flex flex-shrink-0"
               style={{
                 background: 'none',
                 border: 'none',
                 cursor: isRefreshing ? 'default' : 'pointer',
-                color: 'rgba(255,255,255,0.35)',
+                color: 'var(--missi-text-muted)',
               }}
             >
               <RefreshCw
@@ -249,7 +247,7 @@ export default function MemoryPage() {
               onSubmit={handleAddMemory}
               className="p-5 flex flex-col gap-3.5"
             >
-              <p className="text-[12px] font-light m-0" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              <p className="text-[12px] font-light m-0" style={{ color: 'var(--missi-text-secondary)' }}>
                 Add a memory manually — Missi will extract and store the key facts.
               </p>
 
@@ -307,7 +305,7 @@ export default function MemoryPage() {
               </div>
 
               {addError && (
-                <p className="text-xs m-0" style={{ color: '#ef4444' }}>
+                <p className="text-xs m-0" style={{ color: 'hsl(var(--destructive))' }}>
                   {addError}
                 </p>
               )}
@@ -318,15 +316,15 @@ export default function MemoryPage() {
                   disabled={isSubmitting || !addTitle.trim() || !addDetail.trim()}
                   className="px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
                   style={{
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    border: '1px solid var(--missi-border)',
                     background:
                       isSubmitting || !addTitle.trim() || !addDetail.trim()
-                        ? 'rgba(255,255,255,0.04)'
-                        : 'rgba(255,255,255,0.9)',
+                        ? 'var(--missi-surface)'
+                        : 'var(--missi-nav-text-active)',
                     color:
                       isSubmitting || !addTitle.trim() || !addDetail.trim()
-                        ? 'rgba(255,255,255,0.35)'
-                        : '#0a0a0f',
+                        ? 'var(--missi-text-secondary)'
+                        : 'var(--missi-bg)',
                     cursor:
                       isSubmitting || !addTitle.trim() || !addDetail.trim()
                         ? 'default'
@@ -375,8 +373,8 @@ export default function MemoryPage() {
                   key={i}
                   className="rounded-xl"
                   style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.05)',
+                    background: 'var(--missi-surface)',
+                    border: '1px solid var(--missi-border)',
                     height: '120px',
                     animation: 'pulse 1.5s ease-in-out infinite',
                   }}
@@ -385,14 +383,14 @@ export default function MemoryPage() {
             </div>
           ) : error ? (
             <div className="text-center py-12">
-              <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>{error}</p>
+              <p className="text-sm mb-4" style={{ color: 'var(--missi-text-secondary)' }}>{error}</p>
               <button
                 onClick={handleRefresh}
                 className="px-5 py-2 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
                 style={{
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  background: 'rgba(255,255,255,0.04)',
-                  color: 'rgba(255,255,255,0.6)',
+                  border: '1px solid var(--missi-border)',
+                  background: 'var(--missi-surface)',
+                  color: 'var(--missi-text-primary)',
                   cursor: 'pointer',
                 }}
               >
@@ -403,30 +401,30 @@ export default function MemoryPage() {
             <div className="text-center py-16 px-4">
               <div
                 className="w-14 h-14 rounded-full mx-auto mb-5 flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+                style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}
               >
-                <Brain className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.15)' }} />
+                <Brain className="w-6 h-6" style={{ color: 'var(--missi-text-muted)' }} />
               </div>
-              <p className="text-base font-light mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              <p className="text-base font-light mb-2" style={{ color: 'var(--missi-text-secondary)' }}>
                 No memories yet
               </p>
-              <p className="text-xs font-light mb-6" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              <p className="text-xs font-light mb-6" style={{ color: 'var(--missi-text-muted)' }}>
                 Start a conversation and Missi will remember what matters.
               </p>
               <Link
                 href="/chat"
                 className="inline-flex px-5 py-2 rounded-full text-xs font-medium no-underline transition-colors active:scale-[0.97]"
                 style={{
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  background: 'rgba(255,255,255,0.9)',
-                  color: '#0a0a0f',
+                  border: '1px solid var(--missi-border)',
+                  background: 'var(--missi-nav-text-active)',
+                  color: 'var(--missi-bg)',
                 }}
               >
                 Start a conversation
               </Link>
             </div>
           ) : hasNoResults ? (
-            <div className="text-center py-14" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <div className="text-center py-14" style={{ color: 'var(--missi-text-muted)' }}>
               <p className="text-sm font-light">
                 {searchQuery.trim().length >= 2
                   ? `No results for "${searchQuery.trim()}"`
@@ -460,7 +458,7 @@ export default function MemoryPage() {
 const labelStyle: React.CSSProperties = {
   display: 'block',
   fontSize: '10px',
-  color: 'rgba(255,255,255,0.35)',
+  color: 'var(--missi-text-muted)',
   marginBottom: '6px',
   textTransform: 'uppercase',
   letterSpacing: '0.18em',
@@ -469,11 +467,11 @@ const labelStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  background: 'var(--missi-input-bg)',
+  border: '1px solid var(--missi-input-border)',
   borderRadius: '10px',
   padding: '10px 12px',
-  color: 'rgba(255,255,255,0.85)',
+  color: 'var(--missi-input-text)',
   fontSize: '13px',
   outline: 'none',
   boxSizing: 'border-box',

@@ -15,11 +15,11 @@ function getCurrentTime(): string {
 }
 
 function ItemIcon({ type }: { type: BriefingItem['type'] }) {
-  if (type === 'daily_win') return <Star className="w-4 h-4 text-white opacity-60" />
-  if (type === 'tomorrow_prep') return <Clock className="w-4 h-4 text-white opacity-60" />
-  if (type === 'sleep_nudge') return <Moon className="w-4 h-4 text-white opacity-60" />
-  if (type === 'gratitude_prompt') return <Sunrise className="w-4 h-4 text-white opacity-60" />
-  return <div className="w-4 h-4 rounded-full bg-white opacity-20" />
+  if (type === 'daily_win') return <Star className="w-4 h-4 text-[var(--missi-text-primary)] opacity-60" />
+  if (type === 'tomorrow_prep') return <Clock className="w-4 h-4 text-[var(--missi-text-primary)] opacity-60" />
+  if (type === 'sleep_nudge') return <Moon className="w-4 h-4 text-[var(--missi-text-primary)] opacity-60" />
+  if (type === 'gratitude_prompt') return <Sunrise className="w-4 h-4 text-[var(--missi-text-primary)] opacity-60" />
+  return <div className="w-4 h-4 rounded-full bg-[var(--missi-text-primary)] opacity-20" />
 }
 
 function ReflectionCard({ item }: { item: BriefingItem }) {
@@ -35,8 +35,8 @@ function ReflectionCard({ item }: { item: BriefingItem }) {
         .filter(Boolean)
         .join(' ')}
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
         opacity: isSleepNudge ? 0.6 : 1,
       }}
     >
@@ -46,7 +46,7 @@ function ReflectionCard({ item }: { item: BriefingItem }) {
         </div>
         <p
           className={`leading-relaxed ${isGratitude ? 'text-[15px] font-light' : 'text-sm font-light'}`}
-          style={{ color: 'rgba(255,255,255,0.8)' }}
+          style={{ color: 'var(--missi-text-secondary)' }}
         >
           {item.message}
         </p>
@@ -165,16 +165,16 @@ export default function WindDownPage() {
 
           {/* Header */}
         <div className="flex flex-col items-center mb-8 md:mb-10">
-          <Moon className="w-6 h-6 md:w-7 md:h-7 mb-4 md:mb-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          <Moon className="w-6 h-6 md:w-7 md:h-7 mb-4 md:mb-5" style={{ color: 'var(--missi-text-muted)' }} />
           <h1
-            className="text-[28px] md:text-[40px] font-light text-white mb-2 md:mb-3"
+            className="text-[28px] md:text-[40px] font-light text-[var(--missi-text-primary)] mb-2 md:mb-3"
             style={{ letterSpacing: '-0.02em', lineHeight: 1.1 }}
           >
             Good night
           </h1>
           <p
             className="text-[10px] font-semibold uppercase"
-            style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+            style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
           >
             {currentTime}
           </p>
@@ -187,21 +187,21 @@ export default function WindDownPage() {
           <div
             className="flex flex-col w-full rounded-2xl p-4 sm:p-6 lg:p-9"
             style={{
-              background: 'rgba(20,20,26,0.55)',
+              background: 'var(--missi-surface)',
               backdropFilter: 'blur(24px) saturate(140%)',
               WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+              border: '1px solid var(--missi-border)',
+              boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 var(--missi-border)',
             }}
           >
              <div className="flex flex-col items-start mb-7">
                <p
                  className="mb-2 text-[10px] font-semibold uppercase"
-                 style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+                 style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
                >
                  Evening Reflection
                </p>
-               <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+               <p className="text-sm leading-relaxed" style={{ color: 'var(--missi-text-secondary)' }}>
                  Review the highlights of your day.
                </p>
              </div>
@@ -210,7 +210,7 @@ export default function WindDownPage() {
         {isLoading && (
           <div className="flex justify-center py-16">
             <div
-              className="w-5 h-5 rounded-full border border-white opacity-20 animate-pulse"
+              className="w-5 h-5 rounded-full border border-[var(--missi-text-primary)] opacity-20 animate-pulse"
             />
           </div>
         )}
@@ -218,7 +218,7 @@ export default function WindDownPage() {
         {!isLoading && (!reflection || reflection.items.length === 0) && (
           <p
             className="text-center text-sm font-light leading-relaxed"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
+            style={{ color: 'var(--missi-text-muted)' }}
           >
             Nothing to reflect on yet — start talking to missi during the day.
           </p>
@@ -238,9 +238,9 @@ export default function WindDownPage() {
                 disabled={isPlayingTTS}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-medium transition-colors active:scale-[0.97]"
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: isPlayingTTS ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.6)',
+                  background: 'var(--missi-surface)',
+                  border: '1px solid var(--missi-border)',
+                  color: isPlayingTTS ? 'var(--missi-text-muted)' : 'var(--missi-text-secondary)',
                   cursor: isPlayingTTS ? 'default' : 'pointer',
                 }}
               >
@@ -256,11 +256,11 @@ export default function WindDownPage() {
           <div
             className="flex flex-col w-full rounded-2xl p-4 sm:p-6 lg:p-9"
             style={{
-              background: 'rgba(20,20,26,0.55)',
+              background: 'var(--missi-surface)',
               backdropFilter: 'blur(24px) saturate(140%)',
               WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+              border: '1px solid var(--missi-border)',
+              boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 var(--missi-border)',
             }}
           >
             <SleepSessions />

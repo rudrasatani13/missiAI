@@ -90,7 +90,7 @@ export function QuizView({ session: initialSession, onRetry, localSessionToken }
         className="rounded-[28px] p-5 md:p-6"
         style={{
           background: 'linear-gradient(180deg, rgba(10,10,14,0.92), rgba(18,18,24,0.88))',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--missi-border)',
           boxShadow: '0 28px 80px -40px rgba(0,0,0,0.92)',
           backdropFilter: 'blur(16px)',
         }}
@@ -98,38 +98,38 @@ export function QuizView({ session: initialSession, onRetry, localSessionToken }
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.46)' }}>
+              style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
+              <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'var(--missi-text-secondary)' }}>
                 Focus Quiz
               </span>
             </div>
             <p className="text-xs font-medium capitalize mb-2" style={{ color: '#8B5CF6' }}>
               {initialSession.subject.replace('_', ' ')}
             </p>
-            <h2 className="text-2xl md:text-[2.2rem] font-light leading-tight" style={{ color: 'rgba(255,255,255,0.96)' }}>
+            <h2 className="text-2xl md:text-[2.2rem] font-light leading-tight" style={{ color: 'var(--missi-text-primary)' }}>
               {initialSession.topic}
             </h2>
           </div>
 
           <div className="grid grid-cols-2 gap-3 min-w-[220px]">
             <div className="rounded-2xl px-4 py-4"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <p className="text-xl font-light" style={{ color: 'rgba(255,255,255,0.94)' }}>{currentIndex + 1}/{questions.length}</p>
-              <p className="text-[11px] font-light mt-1" style={{ color: 'rgba(255,255,255,0.38)' }}>Current question</p>
+              style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
+              <p className="text-xl font-light" style={{ color: 'var(--missi-text-primary)' }}>{currentIndex + 1}/{questions.length}</p>
+              <p className="text-[11px] font-light mt-1" style={{ color: 'var(--missi-text-muted)' }}>Current question</p>
             </div>
             <div className="rounded-2xl px-4 py-4"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <p className="text-xl font-light" style={{ color: 'rgba(255,255,255,0.94)' }}>{progressPercent}%</p>
-              <p className="text-[11px] font-light mt-1" style={{ color: 'rgba(255,255,255,0.38)' }}>Progress</p>
+              style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
+              <p className="text-xl font-light" style={{ color: 'var(--missi-text-primary)' }}>{progressPercent}%</p>
+              <p className="text-[11px] font-light mt-1" style={{ color: 'var(--missi-text-muted)' }}>Progress</p>
             </div>
           </div>
         </div>
 
         <div className="flex items-center justify-between mt-5 mb-3">
-          <p className="text-xs font-light" style={{ color: 'rgba(255,255,255,0.42)' }}>
+          <p className="text-xs font-light" style={{ color: 'var(--missi-text-muted)' }}>
             {answeredCount}/{questions.length} answered
           </p>
-          <p className="text-xs font-light capitalize" style={{ color: 'rgba(255,255,255,0.42)' }}>
+          <p className="text-xs font-light capitalize" style={{ color: 'var(--missi-text-muted)' }}>
             {currentQ.difficulty} · {currentQ.type === 'true_false' ? 'True / False' : currentQ.type.toUpperCase()}
           </p>
         </div>
@@ -147,7 +147,7 @@ export function QuizView({ session: initialSession, onRetry, localSessionToken }
                     ? 'rgba(251,191,36,0.88)'
                     : answers[q.id]
                     ? 'rgba(52,211,153,0.52)'
-                    : 'rgba(255,255,255,0.08)',
+                    : 'var(--missi-text-muted)',
                 cursor: 'pointer',
               }}
             />
@@ -165,24 +165,24 @@ export function QuizView({ session: initialSession, onRetry, localSessionToken }
           className="rounded-[30px] p-6 md:p-7"
           style={{
             background: 'linear-gradient(180deg, rgba(10,10,14,0.9), rgba(18,18,24,0.86))',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid var(--missi-border)',
             boxShadow: '0 28px 70px -42px rgba(0,0,0,0.92)',
             backdropFilter: 'blur(16px)',
           }}
         >
           <div className="flex items-center justify-between gap-3 mb-5">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.44)' }}>
+              style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
+              <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'var(--missi-text-secondary)' }}>
                 Question {currentIndex + 1}
               </span>
             </div>
-            <span className="text-[11px] font-light capitalize" style={{ color: 'rgba(255,255,255,0.38)' }}>
+            <span className="text-[11px] font-light capitalize" style={{ color: 'var(--missi-text-muted)' }}>
               {currentQ.type === 'true_false' ? 'True / False' : currentQ.type.toUpperCase()}
             </span>
           </div>
 
-          <div className="text-lg md:text-[1.45rem] font-light leading-relaxed mb-6" style={{ color: 'rgba(255,255,255,0.94)' }}>
+          <div className="text-lg md:text-[1.45rem] font-light leading-relaxed mb-6" style={{ color: 'var(--missi-text-primary)' }}>
             <MathText text={currentQ.questionText} />
           </div>
           {currentQ.options.length > 0 ? (
@@ -197,19 +197,19 @@ export function QuizView({ session: initialSession, onRetry, localSessionToken }
                     onClick={() => handleSelect(currentQ.id, opt)}
                     className="text-left px-4 md:px-5 py-4 rounded-[24px] text-sm font-light transition-all flex items-center gap-4"
                     style={{
-                      background: selected ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.03)',
+                      background: selected ? 'rgba(251,191,36,0.14)' : 'var(--missi-surface)',
                       border: selected
                         ? '1px solid rgba(251,191,36,0.32)'
-                        : '1px solid rgba(255,255,255,0.06)',
-                      color: selected ? '#FBBF24' : 'rgba(255,255,255,0.88)',
+                        : '1px solid var(--missi-text-muted)',
+                      color: selected ? '#FBBF24' : 'var(--missi-text-primary)',
                       cursor: 'pointer',
                       boxShadow: selected ? '0 18px 44px -32px rgba(251,191,36,0.32)' : 'none',
                     }}
                   >
                     <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold leading-none"
                       style={{
-                        background: selected ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.08)',
-                        color: selected ? '#FBBF24' : 'rgba(255,255,255,0.44)',
+                        background: selected ? 'rgba(251,191,36,0.2)' : 'var(--missi-border)',
+                        color: selected ? '#FBBF24' : 'var(--missi-text-secondary)',
                       }}>
                       {label}
                     </span>
@@ -228,9 +228,9 @@ export function QuizView({ session: initialSession, onRetry, localSessionToken }
               onChange={(e) => handleSelect(currentQ.id, e.target.value)}
               className="w-full px-5 py-4 rounded-[24px] text-sm font-light outline-none"
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.92)',
+                background: 'var(--missi-surface)',
+                border: '1px solid var(--missi-border)',
+                color: 'var(--missi-text-primary)',
               }}
             />
           )}
@@ -248,9 +248,9 @@ export function QuizView({ session: initialSession, onRetry, localSessionToken }
           disabled={isFirst}
           className="flex items-center justify-center gap-1 px-4 py-3.5 rounded-2xl text-sm font-medium transition-all"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            color: isFirst ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.72)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
+            color: isFirst ? 'var(--missi-text-muted)' : 'var(--missi-text-secondary)',
             cursor: isFirst ? 'not-allowed' : 'pointer',
           }}
         >
@@ -265,8 +265,8 @@ export function QuizView({ session: initialSession, onRetry, localSessionToken }
             disabled={!allAnswered || isSubmitting}
             className="flex-1 py-3.5 rounded-2xl text-sm font-medium transition-all"
             style={{
-              background: allAnswered ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.08)',
-              color: allAnswered ? '#0a0a0f' : 'rgba(255,255,255,0.3)',
+              background: allAnswered ? 'var(--missi-border)' : 'var(--missi-border)',
+              color: allAnswered ? 'var(--missi-surface)' : 'var(--missi-text-muted)',
               cursor: allAnswered && !isSubmitting ? 'pointer' : 'not-allowed',
             }}
           >
@@ -278,9 +278,9 @@ export function QuizView({ session: initialSession, onRetry, localSessionToken }
             onClick={handleNext}
             className="flex-1 flex items-center justify-center gap-1 py-3.5 rounded-2xl text-sm font-medium transition-all"
             style={{
-              background: currentAnswered ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.04)',
-              border: currentAnswered ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.07)',
-              color: currentAnswered ? '#0a0a0f' : 'rgba(255,255,255,0.72)',
+              background: currentAnswered ? 'var(--missi-border)' : 'var(--missi-surface)',
+              border: currentAnswered ? '1px solid var(--missi-border)' : '1px solid var(--missi-border)',
+              color: currentAnswered ? 'var(--missi-surface)' : 'var(--missi-text-secondary)',
               cursor: 'pointer',
             }}
           >
@@ -322,24 +322,24 @@ function ResultsView({
         className="rounded-[30px] p-6 md:p-7 text-center"
         style={{
           background: 'linear-gradient(180deg, rgba(10,10,14,0.92), rgba(18,18,24,0.88))',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--missi-border)',
           boxShadow: '0 28px 80px -42px rgba(0,0,0,0.92)',
           backdropFilter: 'blur(16px)',
         }}
       >
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'rgba(255,255,255,0.44)' }}>
+          style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
+          <span className="text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ color: 'var(--missi-text-secondary)' }}>
             Quiz Review
           </span>
         </div>
         <p className="text-5xl font-light mb-1" style={{ color: pctColor }}>
           {score.pct}%
         </p>
-        <p className="text-sm font-light mb-4" style={{ color: 'rgba(255,255,255,0.42)' }}>
+        <p className="text-sm font-light mb-4" style={{ color: 'var(--missi-text-muted)' }}>
           {score.correct}/{score.total} correct · {score.totalMarks} marks
         </p>
-        <p className="text-base font-light leading-relaxed max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.62)' }}>
+        <p className="text-base font-light leading-relaxed max-w-2xl mx-auto" style={{ color: 'var(--missi-text-secondary)' }}>
           {encouragement}
         </p>
         {xpEarned !== 0 && (
@@ -376,10 +376,10 @@ function ResultsView({
                     : <X className="w-2.5 h-2.5" style={{ color: '#F87171' }} strokeWidth={2.5} />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: 'rgba(255,255,255,0.34)' }}>
+                  <p className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-2" style={{ color: 'var(--missi-text-muted)' }}>
                     Question {i + 1}
                   </p>
-                  <div className="text-sm font-light leading-relaxed" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                  <div className="text-sm font-light leading-relaxed" style={{ color: 'var(--missi-text-primary)' }}>
                   <MathText text={q.questionText} />
                   </div>
                 </div>
@@ -395,7 +395,7 @@ function ResultsView({
                 </div>
               )}
               {q.explanation && (
-                <div className="text-xs font-light ml-9 leading-relaxed mt-1" style={{ color: 'rgba(255,255,255,0.58)' }}>
+                <div className="text-xs font-light ml-9 leading-relaxed mt-1" style={{ color: 'var(--missi-text-secondary)' }}>
                   <MathText text={q.explanation} />
                 </div>
               )}
@@ -410,9 +410,9 @@ function ResultsView({
           onClick={onRetry}
           className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-medium"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            color: 'rgba(255,255,255,0.72)',
+            background: 'var(--missi-surface)',
+            border: '1px solid var(--missi-border)',
+            color: 'var(--missi-text-secondary)',
             cursor: 'pointer',
           }}
         >
@@ -423,9 +423,9 @@ function ResultsView({
           href="/chat"
           className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-medium"
           style={{
-            background: 'rgba(255,255,255,0.96)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: '#0a0a0f',
+            background: 'var(--missi-border)',
+            border: '1px solid var(--missi-border)',
+            color: 'var(--missi-surface)',
             textDecoration: 'none',
           }}
         >

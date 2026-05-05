@@ -4,7 +4,9 @@ import type { VectorizeEnv } from "@/lib/memory/vectorize"
 import { checkRateLimit, rateLimitExceededResponse, type RateLimitResult } from "@/lib/server/security/rate-limiter"
 import { CHAT_REQUEST_MAX_BODY_BYTES, getChatKV, getChatVectorizeEnv } from "@/lib/server/chat/shared"
 import { chatSchema, validationErrorResponse, type ChatInput } from "@/lib/validation/schemas"
-import { logLatency, createTimer } from "@/lib/server/observability/logger"
+import { logLatency, createTimer, logError } from "@/lib/server/observability/logger"
+import { checkHardBudget } from "@/lib/server/observability/cost-tracker"
+import { estimateRequestCost } from "@/lib/ai/providers/model-router"
 import type { KVStore } from "@/types"
 
 function normalizeVoiceDurationMs(input: ChatInput): number | undefined {
@@ -72,6 +74,38 @@ export async function runChatRoutePreflight(
       ok: false,
       kind: "rate_limited",
       response: rateLimitExceededResponse(rateResult),
+    }
+  }
+
+  const estimatedCostUsd = estimateRequestCost("gemini-2.5-pro", 2000, 800)
+  const budgetResult = await checkHardBudget(kv, estimatedCostUsd)
+  if (!budgetResult.allowed) {
+    if (budgetResult.unavailable) {
+      return {
+        ok: false,
+        kind: "kv_unavailable",
+        response: new Response(
+          JSON.stringify({
+            success: false,
+            error: "Service temporarily unavailable — please try again",
+            code: "SERVICE_UNAVAILABLE",
+          }),
+          { status: 503, headers: { "Content-Type": "application/json" } },
+        ),
+      }
+    }
+    logError("chat.budget_exceeded", `Daily AI budget exhausted (spent $${budgetResult.spendUsd.toFixed(4)} of $${budgetResult.budgetUsd})`, userId)
+    return {
+      ok: false,
+      kind: "rate_limited",
+      response: new Response(
+        JSON.stringify({
+          success: false,
+          error: "Daily AI budget exhausted — service will resume tomorrow",
+          code: "USAGE_LIMIT_EXCEEDED",
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } },
+      ),
     }
   }
 

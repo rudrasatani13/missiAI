@@ -1186,7 +1186,7 @@ export function MissiLEDFace({
   return (
     <div className={cn("relative flex items-center justify-center", className)}>
       <motion.div
-        className="relative z-10 w-full h-full rounded-2xl bg-zinc-950 border shadow-[0_5px_20px_rgba(0,0,0,0.6)] overflow-hidden"
+        className="relative z-10 w-full h-full rounded-2xl bg-[var(--missi-surface-secondary)] border overflow-hidden"
         animate={shellAnimate}
         transition={shellTransition}
       >

@@ -67,12 +67,12 @@ function CopyButton({ onCopy }: { onCopy: () => void }) {
       onClick={handleCopy}
       aria-label="Copy draft"
       style={{
-        background: "rgba(255,255,255,0.08)",
-        border: "1px solid rgba(255,255,255,0.12)",
+        background: "var(--missi-border)",
+        border: "1px solid var(--missi-border)",
         borderRadius: "6px",
         padding: "4px 8px",
         cursor: "pointer",
-        color: "rgba(255,255,255,0.7)",
+        color: "var(--missi-text-secondary)",
         fontSize: "11px",
         display: "flex",
         alignItems: "center",
@@ -80,10 +80,10 @@ function CopyButton({ onCopy }: { onCopy: () => void }) {
         transition: "background 0.2s",
       }}
       onMouseEnter={(e) =>
-        ((e.target as HTMLElement).style.background = "rgba(255,255,255,0.14)")
+        ((e.target as HTMLElement).style.background = "var(--missi-border)")
       }
       onMouseLeave={(e) =>
-        ((e.target as HTMLElement).style.background = "rgba(255,255,255,0.08)")
+        ((e.target as HTMLElement).style.background = "var(--missi-border)")
       }
     >
       {copied ? <Check size={11} /> : <Copy size={11} />}
@@ -107,7 +107,7 @@ function ActionOutput({ type, output }: { type: string; output: string }) {
       style={{
         fontSize: "13px",
         lineHeight: "1.5",
-        color: "rgba(255,255,255,0.72)",
+        color: "var(--missi-text-secondary)",
         margin: 0,
         wordBreak: "break-word",
       }}
@@ -125,7 +125,7 @@ function ActionFooter({ actionTaken }: { actionTaken: string }) {
       data-testid="action-card-footer"
       style={{
         fontSize: "10px",
-        color: "rgba(255,255,255,0.25)",
+        color: "var(--missi-text-muted)",
         marginTop: "6px",
         marginBottom: 0,
         fontStyle: "italic",
@@ -179,8 +179,8 @@ export function ActionCard({ result, onDismiss, onCopy }: ActionCardProps) {
         transform: visible ? "translateY(0px)" : "translateY(20px)",
         opacity: visible ? 1 : 0,
         transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.1)",
+        background: "var(--missi-border)",
+        border: "1px solid var(--missi-border)",
         backdropFilter: "blur(10px)",
         WebkitBackdropFilter: "blur(10px)",
         borderRadius: "14px",
@@ -240,16 +240,16 @@ export function ActionCard({ result, onDismiss, onCopy }: ActionCardProps) {
               background: "none",
               border: "none",
               cursor: "pointer",
-              color: "rgba(255,255,255,0.3)",
+              color: "var(--missi-text-muted)",
               padding: "2px",
               display: "flex",
               transition: "color 0.2s",
             }}
             onMouseEnter={(e) =>
-              ((e.target as HTMLElement).style.color = "rgba(255,255,255,0.6)")
+              ((e.target as HTMLElement).style.color = "var(--missi-text-secondary)")
             }
             onMouseLeave={(e) =>
-              ((e.target as HTMLElement).style.color = "rgba(255,255,255,0.3)")
+              ((e.target as HTMLElement).style.color = "var(--missi-text-muted)")
             }
           >
             <X size={14} />

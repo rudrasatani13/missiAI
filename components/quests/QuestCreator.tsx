@@ -74,7 +74,7 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
             className="h-[2px] rounded-full transition-all duration-300"
             style={{
               width: i === step ? 32 : 12,
-              background: i <= step ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.08)',
+              background: i <= step ? 'var(--missi-border)' : 'var(--missi-border)',
             }}
           />
         ))}
@@ -89,13 +89,13 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
         >
           <p
             className="mb-3 text-[10px] font-semibold uppercase"
-            style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+            style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
           >
             Your goal
           </p>
           <h2
             className="text-[24px] md:text-[28px] mb-6"
-            style={{ fontWeight: 300, letterSpacing: '-0.03em', color: 'rgba(255,255,255,0.92)', lineHeight: 1.1 }}
+            style={{ fontWeight: 300, letterSpacing: '-0.03em', color: 'var(--missi-text-primary)', lineHeight: 1.1 }}
           >
             What do you want to achieve?
           </h2>
@@ -108,13 +108,13 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
             placeholder="e.g. Learn basic conversational Spanish in 2 months"
             className="w-full rounded-xl px-4 py-3 text-sm outline-none resize-none transition-all mb-2"
             style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.85)',
+              background: 'var(--missi-surface)',
+              border: '1px solid var(--missi-border)',
+              color: 'var(--missi-text-primary)',
               fontFamily: 'inherit',
             }}
           />
-          <p className="text-[10px] mb-8" style={{ color: 'rgba(255,255,255,0.2)' }}>
+          <p className="text-[10px] mb-8" style={{ color: 'var(--missi-text-muted)' }}>
             {goal.length}/500
           </p>
 
@@ -122,7 +122,7 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
             <button
               onClick={onCancel}
               className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors active:scale-[0.97]"
-              style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)', cursor: 'pointer' }}
+              style={{ background: 'transparent', border: '1px solid var(--missi-border)', color: 'var(--missi-border)', cursor: 'pointer' }}
             >
               Cancel
             </button>
@@ -131,9 +131,9 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
               disabled={goal.trim().length < 10}
               className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors active:scale-[0.97] disabled:opacity-20"
               style={{
-                background: goal.trim().length >= 10 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: goal.trim().length >= 10 ? '#0a0a0f' : 'rgba(255,255,255,0.35)',
+                background: goal.trim().length >= 10 ? 'var(--missi-border)' : 'var(--missi-surface)',
+                border: '1px solid var(--missi-border)',
+                color: goal.trim().length >= 10 ? 'var(--missi-surface)' : 'var(--missi-text-muted)',
                 cursor: goal.trim().length >= 10 ? 'pointer' : 'default',
               }}
             >
@@ -152,13 +152,13 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
         >
           <p
             className="mb-3 text-[10px] font-semibold uppercase"
-            style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+            style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
           >
             Category
           </p>
           <h2
             className="text-[24px] md:text-[28px] mb-8"
-            style={{ fontWeight: 300, letterSpacing: '-0.03em', color: 'rgba(255,255,255,0.92)', lineHeight: 1.1 }}
+            style={{ fontWeight: 300, letterSpacing: '-0.03em', color: 'var(--missi-text-primary)', lineHeight: 1.1 }}
           >
             What area is this?
           </h2>
@@ -172,7 +172,7 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
                 style={{
                   background: 'none',
                   border: 'none',
-                  borderBottom: '1px solid rgba(255,255,255,0.05)',
+                  borderBottom: '1px solid var(--missi-border)',
                   cursor: 'pointer',
                   opacity: category === cat.id ? 1 : 0.5,
                 }}
@@ -180,12 +180,12 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
                 <span className="text-base">{cat.emoji}</span>
                 <span
                   className="text-sm font-medium"
-                  style={{ color: 'rgba(255,255,255,0.85)' }}
+                  style={{ color: 'var(--missi-text-primary)' }}
                 >
                   {cat.label}
                 </span>
                 {category === cat.id && (
-                  <span className="ml-auto text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>●</span>
+                  <span className="ml-auto text-[10px]" style={{ color: 'var(--missi-text-muted)' }}>●</span>
                 )}
               </button>
             ))}
@@ -195,14 +195,14 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
             <button
               onClick={() => setStep(0)}
               className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors active:scale-[0.97]"
-              style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)', cursor: 'pointer' }}
+              style={{ background: 'transparent', border: '1px solid var(--missi-border)', color: 'var(--missi-border)', cursor: 'pointer' }}
             >
               Back
             </button>
             <button
               onClick={() => setStep(2)}
               className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors active:scale-[0.97]"
-              style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(255,255,255,0.9)', color: '#0a0a0f', cursor: 'pointer' }}
+              style={{ background: 'var(--missi-nav-text-active)', border: '1px solid var(--missi-border)', color: 'var(--missi-bg)', cursor: 'pointer' }}
             >
               Next
             </button>
@@ -219,20 +219,20 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
         >
           <p
             className="mb-3 text-[10px] font-semibold uppercase"
-            style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}
+            style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}
           >
             Configuration
           </p>
           <h2
             className="text-[24px] md:text-[28px] mb-8"
-            style={{ fontWeight: 300, letterSpacing: '-0.03em', color: 'rgba(255,255,255,0.92)', lineHeight: 1.1 }}
+            style={{ fontWeight: 300, letterSpacing: '-0.03em', color: 'var(--missi-text-primary)', lineHeight: 1.1 }}
           >
             How ambitious?
           </h2>
 
           {/* Duration */}
           <p className="text-[10px] font-semibold uppercase mb-3"
-            style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}>
+            style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}>
             Duration
           </p>
           <div className="flex flex-wrap gap-2 mb-8">
@@ -242,9 +242,9 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
                 onClick={() => setDuration(d.days)}
                 className="px-3.5 py-1.5 rounded-full text-[11px] font-medium transition-colors active:scale-[0.97]"
                 style={{
-                  background: duration === d.days ? 'rgba(255,255,255,0.08)' : 'transparent',
-                  border: `1px solid ${duration === d.days ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)'}`,
-                  color: duration === d.days ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.35)',
+                  background: duration === d.days ? 'var(--missi-border)' : 'transparent',
+                  border: `1px solid ${duration === d.days ? 'var(--missi-border-strong)' : 'var(--missi-border)'}`,
+                  color: duration === d.days ? 'var(--missi-text-primary)' : 'var(--missi-text-muted)',
                   cursor: 'pointer',
                 }}
               >
@@ -255,7 +255,7 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
 
           {/* Pace */}
           <p className="text-[10px] font-semibold uppercase mb-3"
-            style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em' }}>
+            style={{ color: 'var(--missi-text-muted)', letterSpacing: '0.18em' }}>
             Pace
           </p>
           <div className="space-y-1 mb-8">
@@ -267,15 +267,15 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
                 style={{
                   background: 'none',
                   border: 'none',
-                  borderBottom: '1px solid rgba(255,255,255,0.05)',
+                  borderBottom: '1px solid var(--missi-border)',
                   cursor: 'pointer',
                   opacity: difficulty === diff.id ? 1 : 0.5,
                 }}
               >
-                <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                <span className="text-sm font-medium" style={{ color: 'var(--missi-text-primary)' }}>
                   {diff.label}
                 </span>
-                <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <span className="text-[11px]" style={{ color: 'var(--missi-text-muted)' }}>
                   {diff.desc}
                 </span>
               </button>
@@ -286,7 +286,7 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
             <button
               onClick={() => setStep(1)}
               className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors active:scale-[0.97]"
-              style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)', cursor: 'pointer' }}
+              style={{ background: 'transparent', border: '1px solid var(--missi-border)', color: 'var(--missi-border)', cursor: 'pointer' }}
             >
               Back
             </button>
@@ -295,9 +295,9 @@ export function QuestCreator({ onSubmit, onCancel, isLoading }: QuestCreatorProp
               disabled={isLoading}
               className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors active:scale-[0.97] disabled:opacity-50"
               style={{
-                background: isLoading ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.9)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: isLoading ? 'rgba(255,255,255,0.35)' : '#0a0a0f',
+                background: isLoading ? 'var(--missi-surface)' : 'var(--missi-border)',
+                border: '1px solid var(--missi-border)',
+                color: isLoading ? 'var(--missi-text-muted)' : 'var(--missi-surface)',
                 cursor: isLoading ? 'wait' : 'pointer',
               }}
             >

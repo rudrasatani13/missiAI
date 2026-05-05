@@ -68,30 +68,33 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 bg-black text-white relative overflow-hidden">
+    <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 bg-[var(--missi-bg)] text-[var(--missi-text-primary)] relative overflow-hidden">
       
       {/* Background Decorative Gradient */}
       <div 
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[120px] opacity-20 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(0,0,0,0) 70%)' }}
+        style={{ background: 'radial-gradient(circle, var(--missi-border) 0%, rgba(0,0,0,0) 70%)' }}
       />
 
-      <div className="w-full max-w-md relative z-10 glass-card glass-noise p-8" style={{ borderRadius: '24px' }}>
+      <div
+        className="w-full max-w-md relative z-10 p-8 bg-[var(--missi-surface)] border border-[var(--missi-border)]"
+        style={{ borderRadius: '24px', boxShadow: 'var(--elevated-shadow-strong)' }}
+      >
         
         {/* Progress indicator */}
         <div className="flex gap-2 mb-8">
-          <div className="h-1 flex-1 rounded-full bg-white/20 overflow-hidden">
-            <div className="h-full bg-white transition-all duration-500 w-full" />
+          <div className="h-1 flex-1 rounded-full bg-[var(--missi-surface)] overflow-hidden">
+            <div className="h-full bg-[var(--missi-nav-text-active)] transition-all duration-500 w-full" />
           </div>
-          <div className="h-1 flex-1 rounded-full bg-white/20 overflow-hidden">
+          <div className="h-1 flex-1 rounded-full bg-[var(--missi-surface)] overflow-hidden">
             <div 
-              className="h-full bg-white transition-all duration-500" 
+              className="h-full bg-[var(--missi-nav-text-active)] transition-all duration-500" 
               style={{ width: step >= 2 ? '100%' : '0%' }}
             />
           </div>
-          <div className="h-1 flex-1 rounded-full bg-white/20 overflow-hidden">
+          <div className="h-1 flex-1 rounded-full bg-[var(--missi-surface)] overflow-hidden">
             <div 
-              className="h-full bg-white transition-all duration-500" 
+              className="h-full bg-[var(--missi-nav-text-active)] transition-all duration-500" 
               style={{ width: step >= 3 ? '100%' : '0%' }}
             />
           </div>
@@ -101,7 +104,7 @@ export default function SetupPage() {
         {step === 1 && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-2xl mb-2 font-medium tracking-tight">What should Missi call you?</h1>
-            <p className="text-white/50 text-sm mb-6">This helps Missi address you naturally.</p>
+            <p className="text-[var(--missi-text-secondary)] text-sm mb-6">This helps Missi address you naturally.</p>
             
             <input
               type="text"
@@ -114,15 +117,15 @@ export default function SetupPage() {
                 if (e.key === 'Enter') handleNext()
               }}
               placeholder="Your name..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-lg outline-none focus:border-white/30 transition-colors mb-6 placeholder:text-white/20"
+              className="w-full bg-[var(--missi-surface)] border border-[var(--missi-border)] rounded-xl px-4 py-3 text-lg outline-none focus:border-[var(--missi-border-strong)] transition-colors mb-6 placeholder:text-[var(--missi-text-muted)]"
               autoFocus
             />
 
-            {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+            {error && <p className="text-destructive text-sm mb-4">{error}</p>}
 
             <button
               onClick={handleNext}
-              className="w-full flex items-center justify-center gap-2 bg-white text-black py-3 px-4 rounded-xl font-medium transition-transform hover:scale-[1.02] active:scale-95"
+              className="w-full flex items-center justify-center gap-2 bg-[var(--missi-nav-text-active)] text-[var(--missi-bg)] py-3 px-4 rounded-xl font-medium transition-transform hover:scale-[1.02] active:scale-95"
             >
               Continue <ArrowRight className="w-4 h-4" />
             </button>
@@ -133,7 +136,7 @@ export default function SetupPage() {
         {step === 2 && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-2xl mb-2 font-medium tracking-tight">When were you born?</h1>
-            <p className="text-white/50 text-sm mb-6">This helps Missi understand your age and astrology context. (Optional)</p>
+            <p className="text-[var(--missi-text-secondary)] text-sm mb-6">This helps Missi understand your age and astrology context. (Optional)</p>
             
             <input
               type="date"
@@ -145,9 +148,8 @@ export default function SetupPage() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleNext()
               }}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-lg outline-none focus:border-white/30 transition-colors mb-6 text-white"
+              className="w-full bg-[var(--missi-surface)] border border-[var(--missi-border)] rounded-xl px-4 py-3 text-lg outline-none focus:border-[var(--missi-border-strong)] transition-colors mb-6 text-[var(--missi-text-primary)]"
               style={{
-                colorScheme: 'dark',
                 WebkitAppearance: 'none',
                 MozAppearance: 'none',
                 appearance: 'none',
@@ -160,18 +162,18 @@ export default function SetupPage() {
               autoFocus
             />
 
-            {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+            {error && <p className="text-destructive text-sm mb-4">{error}</p>}
 
             <button
               onClick={handleNext}
-              className="w-full flex items-center justify-center gap-2 bg-white text-black py-3 px-4 rounded-xl font-medium transition-transform hover:scale-[1.02] active:scale-95"
+              className="w-full flex items-center justify-center gap-2 bg-[var(--missi-nav-text-active)] text-[var(--missi-bg)] py-3 px-4 rounded-xl font-medium transition-transform hover:scale-[1.02] active:scale-95"
             >
               Continue <ArrowRight className="w-4 h-4" />
             </button>
 
             <button
               onClick={() => setStep(1)}
-              className="w-full text-white/40 text-sm mt-4 hover:text-white/70 transition-colors"
+              className="w-full text-[var(--missi-text-muted)] text-sm mt-4 hover:text-[var(--missi-text-secondary)] transition-colors"
             >
               Back
             </button>
@@ -182,7 +184,7 @@ export default function SetupPage() {
         {step === 3 && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-2xl mb-2 font-medium tracking-tight">What do you do?</h1>
-            <p className="text-white/50 text-sm mb-6">e.g. Student, Software Engineer, Designer. This personalizes Missi's context.</p>
+            <p className="text-[var(--missi-text-secondary)] text-sm mb-6">e.g. Student, Software Engineer, Designer. This personalizes Missi's context.</p>
             
             <input
               type="text"
@@ -195,16 +197,16 @@ export default function SetupPage() {
                 if (e.key === 'Enter') handleSubmit()
               }}
               placeholder="Your occupation (optional)..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-lg outline-none focus:border-white/30 transition-colors mb-6 placeholder:text-white/20"
+              className="w-full bg-[var(--missi-surface)] border border-[var(--missi-border)] rounded-xl px-4 py-3 text-lg outline-none focus:border-[var(--missi-border-strong)] transition-colors mb-6 placeholder:text-[var(--missi-text-muted)]"
               autoFocus
             />
 
-            {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+            {error && <p className="text-destructive text-sm mb-4">{error}</p>}
 
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 bg-white text-black py-3 px-4 rounded-xl font-medium transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-70 disabled:hover:scale-100"
+              className="w-full flex items-center justify-center gap-2 bg-[var(--missi-nav-text-active)] text-[var(--missi-bg)] py-3 px-4 rounded-xl font-medium transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-70 disabled:hover:scale-100"
             >
               {isSubmitting ? (
                 <>
@@ -219,7 +221,7 @@ export default function SetupPage() {
 
             <button
               onClick={() => setStep(2)}
-              className="w-full text-white/40 text-sm mt-4 hover:text-white/70 transition-colors"
+              className="w-full text-[var(--missi-text-muted)] text-sm mt-4 hover:text-[var(--missi-text-secondary)] transition-colors"
             >
               Back
             </button>

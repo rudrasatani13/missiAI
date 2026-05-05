@@ -218,29 +218,38 @@ describe("openai-stream", () => {
   })
 
   describe("isOpenAIFallbackEnabled", () => {
-    it("returns true when ENABLE_OPENAI_FALLBACK=true", () => {
+    it("returns true when ENABLE_OPENAI_FALLBACK=true and key is present", () => {
       process.env.ENABLE_OPENAI_FALLBACK = "true"
+      process.env.OPENAI_API_KEY = "sk-test"
       expect(isOpenAIFallbackEnabled()).toBe(true)
     })
 
-    it("returns true when ENABLE_OPENAI_FALLBACK=1", () => {
+    it("returns true when ENABLE_OPENAI_FALLBACK=1 and key is present", () => {
       process.env.ENABLE_OPENAI_FALLBACK = "1"
+      process.env.OPENAI_API_KEY = "sk-test"
       expect(isOpenAIFallbackEnabled()).toBe(true)
     })
 
     it("returns false when ENABLE_OPENAI_FALLBACK=false", () => {
       process.env.ENABLE_OPENAI_FALLBACK = "false"
+      process.env.OPENAI_API_KEY = "sk-test"
       expect(isOpenAIFallbackEnabled()).toBe(false)
     })
 
-    it("defaults to true when key is present and flag is unset", () => {
+    it("defaults to false when key is present but flag is unset (opt-in required)", () => {
       delete (process.env as any).ENABLE_OPENAI_FALLBACK
       process.env.OPENAI_API_KEY = "sk-test"
-      expect(isOpenAIFallbackEnabled()).toBe(true)
+      expect(isOpenAIFallbackEnabled()).toBe(false)
     })
 
     it("defaults to false when key is absent and flag is unset", () => {
       delete (process.env as any).ENABLE_OPENAI_FALLBACK
+      delete (process.env as any).OPENAI_API_KEY
+      expect(isOpenAIFallbackEnabled()).toBe(false)
+    })
+
+    it("returns false when key is absent even if flag is true", () => {
+      process.env.ENABLE_OPENAI_FALLBACK = "true"
       delete (process.env as any).OPENAI_API_KEY
       expect(isOpenAIFallbackEnabled()).toBe(false)
     })

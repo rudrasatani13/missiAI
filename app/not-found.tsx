@@ -3,13 +3,13 @@ import Image from "next/image"
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--missi-bg)] text-[var(--missi-text-primary)] flex flex-col items-center justify-center px-6 relative overflow-hidden">
       {/* Subtle radial glow */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 60% 40% at 50% 40%, rgba(255,255,255,0.02), transparent)",
+            "radial-gradient(ellipse 60% 40% at 50% 40%, var(--missi-text-muted), transparent)",
         }}
       />
 
@@ -30,7 +30,7 @@ export default function NotFound() {
         {/* 404 indicator */}
         <div
           className="text-[120px] md:text-[160px] font-semibold leading-none tracking-tighter select-none"
-          style={{ color: "rgba(255,255,255,0.04)" }}
+          style={{ color: "var(--missi-text-muted)" }}
           data-testid="not-found-404-text"
         >
           404
@@ -45,7 +45,7 @@ export default function NotFound() {
         </h1>
         <p
           className="text-sm font-light leading-relaxed mb-10"
-          style={{ color: "rgba(255,255,255,0.35)" }}
+          style={{ color: "var(--missi-text-muted)" }}
         >
           The page you&apos;re looking for has been moved, deleted, or never
           existed in the first place.
@@ -55,7 +55,7 @@ export default function NotFound() {
         <Link
           href="/"
           className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:scale-[1.03]"
-          style={{ background: "rgba(255,255,255,0.9)", color: "#000" }}
+          style={{ background: "var(--missi-border)", color: "var(--missi-text-primary)" }}
           data-testid="not-found-home-button"
         >
           Back to missi.space

@@ -7,10 +7,10 @@ interface NodeCardBodyProps {
 export function NodeCardBody({ node }: NodeCardBodyProps) {
   const confidenceColor =
     node.confidence > 0.7
-      ? 'rgba(255,255,255,0.9)'
+      ? 'var(--missi-text-primary)'
       : node.confidence >= 0.4
-        ? 'rgba(255,255,255,0.5)'
-        : 'rgba(255,255,255,0.2)'
+        ? 'var(--missi-text-secondary)'
+        : 'var(--missi-text-muted)'
 
   const visibleTags = node.tags.slice(0, 4)
   const extraTagCount = node.tags.length - 4
@@ -22,7 +22,7 @@ export function NodeCardBody({ node }: NodeCardBodyProps) {
         <p
           style={{
             fontSize: '12px',
-            color: 'rgba(255,255,255,0.5)',
+            color: 'var(--missi-text-secondary)',
             margin: 0,
             overflow: 'hidden',
             display: '-webkit-box',
@@ -43,8 +43,8 @@ export function NodeCardBody({ node }: NodeCardBodyProps) {
               key={tag}
               style={{
                 fontSize: '10px',
-                color: 'rgba(255,255,255,0.5)',
-                background: 'rgba(255,255,255,0.08)',
+                color: 'var(--missi-text-secondary)',
+                background: 'var(--missi-nav-active-bg)',
                 borderRadius: '999px',
                 padding: '2px 8px',
               }}
@@ -56,7 +56,7 @@ export function NodeCardBody({ node }: NodeCardBodyProps) {
             <span
               style={{
                 fontSize: '10px',
-                color: 'rgba(255,255,255,0.35)',
+                color: 'var(--missi-text-muted)',
                 padding: '2px 4px',
               }}
             >
@@ -71,7 +71,7 @@ export function NodeCardBody({ node }: NodeCardBodyProps) {
         <span
           style={{
             fontSize: '10px',
-            color: 'rgba(255,255,255,0.3)',
+            color: 'var(--missi-text-muted)',
             flexShrink: 0,
           }}
         >
@@ -81,7 +81,7 @@ export function NodeCardBody({ node }: NodeCardBodyProps) {
           style={{
             flex: 1,
             height: '4px',
-            background: 'rgba(255,255,255,0.08)',
+            background: 'var(--missi-nav-active-bg)',
             borderRadius: '2px',
             overflow: 'hidden',
           }}
@@ -99,7 +99,7 @@ export function NodeCardBody({ node }: NodeCardBodyProps) {
         <span
           style={{
             fontSize: '10px',
-            color: 'rgba(255,255,255,0.3)',
+            color: 'var(--missi-text-muted)',
             flexShrink: 0,
           }}
         >

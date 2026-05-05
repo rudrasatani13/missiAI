@@ -62,26 +62,26 @@ export default function MemoryGraph3D({
 
   if (nodes.length === 0) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center text-white/50 space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white/20"></div>
+      <div className="w-full h-full flex flex-col items-center justify-center text-[var(--missi-text-secondary)] space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--missi-border)]"></div>
         <p>Loading neural pathways...</p>
       </div>
     )
   }
 
   return (
-    <div ref={containerRef} className="w-full h-full bg-black relative">
+    <div ref={containerRef} className="w-full h-full bg-[var(--missi-bg)] relative">
       
       {/* Overlay UI elements */}
       <div className="absolute top-4 left-4 z-10 pointer-events-none">
-        <h2 className="text-white/80 font-medium text-lg leading-none">LifeGraph Visualizer</h2>
-        <p className="text-white/40 text-xs mt-1">{nodes.length} Nodes & {graphData.links.length} Connections</p>
+        <h2 className="text-[var(--missi-text-secondary)] font-medium text-lg leading-none">LifeGraph Visualizer</h2>
+        <p className="text-[var(--missi-text-muted)] text-xs mt-1">{nodes.length} Nodes & {graphData.links.length} Connections</p>
       </div>
 
       <div className="absolute bottom-4 left-4 z-10 pointer-events-none flex flex-col gap-1">
-        <div className="text-white/30 text-[10px] uppercase tracking-widest px-2 py-1 bg-white/5 rounded backdrop-blur-md border border-white/10">Drag node to Pin</div>
-        <div className="text-white/30 text-[10px] uppercase tracking-widest px-2 py-1 bg-white/5 rounded backdrop-blur-md border border-white/10">Click node to Unpin</div>
-        <div className="text-white/30 text-[10px] uppercase tracking-widest px-2 py-1 bg-white/5 rounded backdrop-blur-md border border-white/10 mt-2">Scroll/Drag Background to Rotate</div>
+        <div className="text-[var(--missi-text-muted)] text-[10px] uppercase tracking-widest px-2 py-1 bg-[var(--missi-surface)] rounded border border-[var(--missi-border)]">Drag node to Pin</div>
+        <div className="text-[var(--missi-text-muted)] text-[10px] uppercase tracking-widest px-2 py-1 bg-[var(--missi-surface)] rounded border border-[var(--missi-border)]">Click node to Unpin</div>
+        <div className="text-[var(--missi-text-muted)] text-[10px] uppercase tracking-widest px-2 py-1 bg-[var(--missi-surface)] rounded border border-[var(--missi-border)] mt-2">Scroll/Drag Background to Rotate</div>
       </div>
 
       <ForceGraph3D
@@ -96,10 +96,10 @@ export default function MemoryGraph3D({
         nodeOpacity={0.85}
         linkWidth={(link: any) => Math.min(link.value * 0.3, 2)}
         linkOpacity={0.4}
-        linkColor={() => 'rgba(255, 255, 255, 0.15)'}
+        linkColor={() => 'var(--missi-text-muted)'}
         linkDirectionalParticles={renderSettings.linkDirectionalParticles}
         linkDirectionalParticleWidth={1.5}
-        linkDirectionalParticleColor={() => 'rgba(255, 255, 255, 0.6)'}
+        linkDirectionalParticleColor={() => 'var(--missi-text-secondary)'}
         backgroundColor="#000000"
         enableNodeDrag={true}
         onNodeDragEnd={(node: any) => {

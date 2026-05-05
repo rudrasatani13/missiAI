@@ -120,8 +120,8 @@ export default function SleepSessions() {
         
       {/* Header */}
       <div className="flex flex-col items-start mb-3 sm:mb-4">
-         <h2 className="text-xl sm:text-2xl font-light text-white tracking-wide mb-1.5 sm:mb-2">Sleep Sessions</h2>
-         <p className="text-xs sm:text-sm font-light leading-relaxed text-white/40">
+         <h2 className="text-xl sm:text-2xl font-light text-[var(--missi-text-primary)] tracking-wide mb-1.5 sm:mb-2">Sleep Sessions</h2>
+         <p className="text-xs sm:text-sm font-light leading-relaxed text-[var(--missi-text-muted)]">
            Unwind with a personalized story or breathwork.
          </p>
       </div>
@@ -158,8 +158,8 @@ export default function SleepSessions() {
             onClick={() => setActiveTab(t.id)}
             className={`flex-shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-[11px] sm:text-xs transition-colors whitespace-nowrap ${
               activeTab === t.id
-                ? 'bg-white/10 text-white border border-white/20'
-                : 'text-white/40 hover:text-white/60 hover:bg-white/5 border border-transparent'
+                ? 'bg-[var(--missi-surface)] text-[var(--missi-text-primary)] border border-[var(--missi-border)]'
+                : 'text-[var(--missi-text-muted)] hover:text-[var(--missi-text-secondary)] hover:bg-[var(--missi-surface)] border border-transparent'
             }`}
           >
             {t.label}
@@ -169,10 +169,10 @@ export default function SleepSessions() {
 
       {/* Tab: Personal */}
       {activeTab === 'tonight' && (
-        <div className="w-full bg-black/20 border border-white/10 inset-shadow-sm rounded-3xl p-5 sm:p-8 flex flex-col items-center justify-center text-center">
+        <div className="w-full bg-[var(--missi-surface)] border border-[var(--missi-border)] inset-shadow-sm rounded-3xl p-5 sm:p-8 flex flex-col items-center justify-center text-center">
             <Stars className="w-8 h-8 text-indigo-300 opacity-80 mb-5" />
-            <h3 className="text-lg text-white font-light tracking-wide mb-2">Tonight&apos;s Story</h3>
-            <p className="text-sm text-center font-light mb-6 text-white/50">
+            <h3 className="text-lg text-[var(--missi-text-primary)] font-light tracking-wide mb-2">Tonight&apos;s Story</h3>
+            <p className="text-sm text-center font-light mb-6 text-[var(--missi-text-secondary)]">
                A unique 10-20 minute sleep story crafted entirely for how you felt today.
             </p>
             <button 
@@ -194,10 +194,10 @@ export default function SleepSessions() {
 
       {/* Tab: Custom */}
       {activeTab === 'custom' && (
-        <div className="w-full bg-black/20 border border-white/10 inset-shadow-sm rounded-3xl p-5 sm:p-8 flex flex-col items-center justify-center text-center">
+        <div className="w-full bg-[var(--missi-surface)] border border-[var(--missi-border)] inset-shadow-sm rounded-3xl p-5 sm:p-8 flex flex-col items-center justify-center text-center">
             <Edit3 className="w-8 h-8 text-emerald-300 opacity-80 mb-5" />
-            <h3 className="text-lg text-white font-light tracking-wide mb-2">Custom Story</h3>
-            <p className="text-sm text-center font-light mb-6 text-white/50">
+            <h3 className="text-lg text-[var(--missi-text-primary)] font-light tracking-wide mb-2">Custom Story</h3>
+            <p className="text-sm text-center font-light mb-6 text-[var(--missi-text-secondary)]">
                What would you like to hear about tonight? Missi will turn it into a 10-20 minute sleep story.
             </p>
             <textarea
@@ -205,10 +205,10 @@ export default function SleepSessions() {
                onChange={(e) => setCustomPrompt(e.target.value)}
                maxLength={200}
                placeholder="e.g. A walk through an ancient rain forest..."
-               className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30 resize-none mb-2"
+               className="w-full bg-[var(--missi-surface)] border border-[var(--missi-border)] rounded-xl p-4 text-sm text-[var(--missi-text-primary)] placeholder-[var(--missi-input-placeholder)] focus:outline-none focus:border-[var(--missi-border-strong)] resize-none mb-2"
                rows={3}
             />
-            <p className="w-full text-right text-xs text-white/30 mb-6">{customPrompt.length}/200</p>
+            <p className="w-full text-right text-xs text-[var(--missi-text-muted)] mb-6">{customPrompt.length}/200</p>
             <button 
                onClick={handlePlayCustom} 
                disabled={isBusy || customPrompt.length < 3}
@@ -232,13 +232,13 @@ export default function SleepSessions() {
              <button 
                  onClick={() => handlePlayBreathing('4-7-8', 6)}
                  disabled={isBusy}
-                 className="w-full flex items-center justify-between p-4 sm:p-6 bg-black/20 border border-white/10 inset-shadow-sm rounded-[24px] hover:bg-black/40 transition-colors disabled:opacity-50 text-left"
+                 className="w-full flex items-center justify-between p-4 sm:p-6 bg-[var(--missi-surface)] border border-[var(--missi-border)] inset-shadow-sm rounded-[24px] hover:bg-[var(--missi-surface-secondary)] transition-colors disabled:opacity-50 text-left"
              >
                  <div>
-                     <h4 className="text-white text-sm tracking-wide mb-1 flex items-center gap-2">
+                     <h4 className="text-sm tracking-wide mb-1 flex items-center gap-2">
                          <Wind className="w-4 h-4 text-sky-300"/> 4-7-8 Sleep Breath
                      </h4>
-                     <p className="text-xs text-white/40">Inhale 4s, hold 7s, exhale 8s. Instantly calming.</p>
+                     <p className="text-xs text-[var(--missi-text-muted)]">Inhale 4s, hold 7s, exhale 8s. Instantly calming.</p>
                  </div>
                  {processingState?.target === 'breathing:4-7-8' ? (
                      <div className="flex items-center gap-2 text-sky-200/80">
@@ -246,20 +246,20 @@ export default function SleepSessions() {
                          <span className="text-xs">Preparing...</span>
                      </div>
                  ) : (
-                     <Play className="w-5 h-5 text-white/20" />
+                     <Play className="w-5 h-5 text-[var(--missi-text-muted)]" />
                  )}
              </button>
 
              <button 
                  onClick={() => handlePlayBreathing('box', 5)}
                  disabled={isBusy}
-                 className="w-full flex items-center justify-between p-4 sm:p-6 bg-black/20 border border-white/10 inset-shadow-sm rounded-[24px] hover:bg-black/40 transition-colors disabled:opacity-50 text-left"
+                 className="w-full flex items-center justify-between p-4 sm:p-6 bg-[var(--missi-surface)] border border-[var(--missi-border)] inset-shadow-sm rounded-[24px] hover:bg-[var(--missi-surface-secondary)] transition-colors disabled:opacity-50 text-left"
              >
                  <div>
-                     <h4 className="text-white text-sm tracking-wide mb-1 flex items-center gap-2">
+                     <h4 className="text-sm tracking-wide mb-1 flex items-center gap-2">
                          <Wind className="w-4 h-4 text-sky-300"/> Box Breathing
                      </h4>
-                     <p className="text-xs text-white/40">Hold and exhale equally. Reset your mind.</p>
+                     <p className="text-xs text-[var(--missi-text-muted)]">Hold and exhale equally. Reset your mind.</p>
                  </div>
                  {processingState?.target === 'breathing:box' ? (
                      <div className="flex items-center gap-2 text-sky-200/80">
@@ -267,20 +267,20 @@ export default function SleepSessions() {
                          <span className="text-xs">Preparing...</span>
                      </div>
                  ) : (
-                     <Play className="w-5 h-5 text-white/20" />
+                     <Play className="w-5 h-5 text-[var(--missi-text-muted)]" />
                  )}
              </button>
 
              <button 
                  onClick={() => handlePlayBreathing('belly', 8)}
                  disabled={isBusy}
-                 className="w-full flex items-center justify-between p-4 sm:p-6 bg-black/20 border border-white/10 inset-shadow-sm rounded-[24px] hover:bg-black/40 transition-colors disabled:opacity-50 text-left"
+                 className="w-full flex items-center justify-between p-4 sm:p-6 bg-[var(--missi-surface)] border border-[var(--missi-border)] inset-shadow-sm rounded-[24px] hover:bg-[var(--missi-surface-secondary)] transition-colors disabled:opacity-50 text-left"
              >
                  <div>
-                     <h4 className="text-white text-sm tracking-wide mb-1 flex items-center gap-2">
+                     <h4 className="text-sm tracking-wide mb-1 flex items-center gap-2">
                          <Wind className="w-4 h-4 text-sky-300"/> Deep Belly Breath
                      </h4>
-                     <p className="text-xs text-white/40">Deep inhale, slow exhale. For profound rest.</p>
+                     <p className="text-xs text-[var(--missi-text-muted)]">Deep inhale, slow exhale. For profound rest.</p>
                  </div>
                  {processingState?.target === 'breathing:belly' ? (
                      <div className="flex items-center gap-2 text-sky-200/80">
@@ -288,7 +288,7 @@ export default function SleepSessions() {
                          <span className="text-xs">Preparing...</span>
                      </div>
                  ) : (
-                     <Play className="w-5 h-5 text-white/20" />
+                     <Play className="w-5 h-5 text-[var(--missi-text-muted)]" />
                  )}
              </button>
          </div>
@@ -302,16 +302,16 @@ export default function SleepSessions() {
                      key={story.id} 
                      onClick={() => handlePlayLibrary(story)}
                      disabled={isBusy}
-                     className="snap-start shrink-0 w-56 sm:w-64 p-4 sm:p-6 bg-black/20 border border-white/10 inset-shadow-sm rounded-[24px] hover:bg-black/40 transition-colors text-left flex flex-col justify-between disabled:opacity-60"
+                     className="snap-start shrink-0 w-56 sm:w-64 p-4 sm:p-6 bg-[var(--missi-surface)] border border-[var(--missi-border)] inset-shadow-sm rounded-[24px] hover:bg-[var(--missi-surface-secondary)] transition-colors text-left flex flex-col justify-between disabled:opacity-60"
                      style={{ minHeight: '180px' }}
                  >
                      <div>
                         <div className="flex items-center gap-2 mb-3">
                            <BookOpen className="w-4 h-4 text-amber-300/80" />
-                           <span className="text-xs uppercase tracking-wider text-white/40 font-mono">{story.category}</span>
+                           <span className="text-xs uppercase tracking-wider text-[var(--missi-text-muted)] font-mono">{story.category}</span>
                         </div>
-                        <h4 className="text-sm font-light text-white leading-relaxed mb-2">{story.title}</h4>
-                        <p className="text-xs text-white/30 line-clamp-3 leading-loose">{story.text}</p>
+                        <h4 className="text-sm font-light text-[var(--missi-text-primary)] leading-relaxed mb-2">{story.title}</h4>
+                        <p className="text-xs text-[var(--missi-text-muted)] line-clamp-3 leading-loose">{story.text}</p>
                      </div>
                      {processingState?.target === `library:${story.id}` ? (
                          <div className="flex items-center gap-2 mt-4 text-xs text-amber-200/80">
@@ -328,34 +328,34 @@ export default function SleepSessions() {
          </div>
       )}
 
-      <p className="text-center text-[10px] uppercase font-mono tracking-widest text-white/20 mt-6">
+      <p className="text-center text-[10px] uppercase font-mono tracking-widest text-[var(--missi-text-muted)] mt-6">
          For educational purposes only.<br/>Not a substitute for medical advice.
       </p>
 
       {/* Global Audio Player Dock */}
       {currentStory && (
           <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 z-50">
-             <div className="w-full bg-[#0a0a0a] border border-white/10 rounded-full py-3 px-6 flex items-center justify-between shadow-2xl backdrop-blur-xl">
+             <div className="w-full bg-[var(--missi-surface)] border border-[var(--missi-border)] rounded-full py-3 px-6 flex items-center justify-between shadow-2xl">
                  
                  {/* Left controls */}
                  <div className="flex items-center gap-3 w-1/3">
-                    <button onClick={() => skipBackward(30)} aria-label="Skip backward 30 seconds" className="text-white/40 hover:text-white transition-colors">
+                    <button onClick={() => skipBackward(30)} aria-label="Skip backward 30 seconds" className="text-[var(--missi-text-muted)] hover:text-[var(--missi-text-primary)] transition-colors">
                         <SkipBack className="w-4 h-4" />
                     </button>
-                    <button onClick={isPlaying ? pausePlayback : resumePlayback} aria-label={isPlaying ? "Pause playback" : "Resume playback"} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all">
+                    <button onClick={isPlaying ? pausePlayback : resumePlayback} aria-label={isPlaying ? "Pause playback" : "Resume playback"} className="w-10 h-10 rounded-full bg-[var(--missi-surface)] flex items-center justify-center text-[var(--missi-text-primary)] hover:bg-[var(--missi-surface)] transition-all">
                         {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current translate-x-0.5" />}
                     </button>
-                    <button onClick={() => skipForward(30)} aria-label="Skip forward 30 seconds" className="text-white/40 hover:text-white transition-colors">
+                    <button onClick={() => skipForward(30)} aria-label="Skip forward 30 seconds" className="text-[var(--missi-text-muted)] hover:text-[var(--missi-text-primary)] transition-colors">
                         <SkipForward className="w-4 h-4" />
                     </button>
                  </div>
 
                  {/* Center text & progress */}
                  <div className="w-1/3 flex flex-col items-center">
-                    <p className="text-xs text-white/80 font-light truncate w-full text-center mb-1">
+                    <p className="text-xs text-[var(--missi-text-secondary)] font-light truncate w-full text-center mb-1">
                         {currentStory.title}
                     </p>
-                    <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                    <div className="w-full h-1 bg-[var(--missi-surface)] rounded-full overflow-hidden">
                         <div 
                            className="h-full bg-indigo-400 rounded-full transition-all duration-300"
                            style={{ width: `${playbackProgress * 100}%` }}
@@ -365,7 +365,7 @@ export default function SleepSessions() {
 
                  {/* Right controls */}
                  <div className="w-1/3 flex justify-end">
-                    <button onClick={stopPlayback} aria-label="Stop playback" className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-colors">
+                    <button onClick={stopPlayback} aria-label="Stop playback" className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--missi-text-muted)] hover:text-[var(--missi-text-primary)] hover:bg-[var(--missi-surface)] transition-colors">
                         <X className="w-4 h-4" />
                     </button>
                  </div>

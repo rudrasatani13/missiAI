@@ -23,9 +23,9 @@ export default function SpaceCard({ summary }: { summary: SpaceSummary }) {
       href={`/spaces/${summary.spaceId}`}
       className="block rounded-2xl p-5 no-underline transition-colors"
       style={{
-        background: 'rgba(20,20,26,0.55)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        color: 'rgba(255,255,255,0.9)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
+        color: 'var(--missi-text-primary)',
       }}
     >
       <div className="flex items-start justify-between mb-3">
@@ -36,25 +36,25 @@ export default function SpaceCard({ summary }: { summary: SpaceSummary }) {
             color:
               summary.userRole === 'owner'
                 ? 'rgba(251,191,36,0.85)'
-                : 'rgba(255,255,255,0.5)',
+                : 'var(--missi-text-secondary)',
             background:
               summary.userRole === 'owner'
                 ? 'rgba(251,191,36,0.08)'
-                : 'rgba(255,255,255,0.05)',
+                : 'var(--missi-text-muted)',
             border:
               summary.userRole === 'owner'
                 ? '1px solid rgba(251,191,36,0.25)'
-                : '1px solid rgba(255,255,255,0.07)',
+                : '1px solid var(--missi-border)',
           }}
         >
           {summary.userRole}
         </span>
       </div>
       <h3 className="text-base font-medium m-0 mb-1">{summary.name}</h3>
-      <p className="text-[11px] text-white/45 m-0 mb-3 capitalize">
+      <p className="text-[11px] text-[var(--missi-text-muted)] m-0 mb-3 capitalize">
         {summary.category}
       </p>
-      <div className="flex items-center justify-between text-[11px] text-white/40">
+      <div className="flex items-center justify-between text-[11px] text-[var(--missi-text-muted)]">
         <span>
           {summary.memberCount} member{summary.memberCount === 1 ? '' : 's'}
         </span>

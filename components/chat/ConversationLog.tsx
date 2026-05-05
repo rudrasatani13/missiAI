@@ -39,14 +39,14 @@ function ConversationLogInner({ messages, isVisible }: ConversationLogProps) {
       data-testid="conversation-log"
       style={{
         background: "rgba(0,0,0,0.7)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        border: "1px solid var(--missi-border)",
         backdropFilter: "blur(30px)",
         animation: "slideDown 0.25s ease-out both",
       }}
     >
       <p
         className="text-[10px] font-medium tracking-wider uppercase mb-3"
-        style={{ color: "rgba(255,255,255,0.3)" }}
+        style={{ color: "var(--missi-text-muted)" }}
       >
         Conversation
       </p>
@@ -59,7 +59,7 @@ function ConversationLogInner({ messages, isVisible }: ConversationLogProps) {
         {visibleMessages.length === 0 && (
           <p
             className="text-[11px] font-light text-center"
-            style={{ color: "rgba(255,255,255,0.2)" }}
+            style={{ color: "var(--missi-text-muted)" }}
           >
             No messages yet
           </p>
@@ -72,7 +72,7 @@ function ConversationLogInner({ messages, isVisible }: ConversationLogProps) {
           >
             <span
               className="text-[9px] font-light"
-              style={{ color: "rgba(255,255,255,0.2)" }}
+              style={{ color: "var(--missi-text-muted)" }}
             >
               {msg.role === "user" ? "You" : "Missi"}
               {msg.timestamp ? ` \u00B7 ${formatRelativeTime(msg.timestamp)}` : ""}
@@ -82,18 +82,18 @@ function ConversationLogInner({ messages, isVisible }: ConversationLogProps) {
               style={{
                 background:
                   msg.role === "user"
-                    ? "rgba(255,255,255,0.08)"
+                    ? "var(--missi-text-muted)"
                     : "rgba(0,255,140,0.06)",
                 border: `1px solid ${
                   msg.role === "user"
-                    ? "rgba(255,255,255,0.1)"
+                    ? "var(--missi-text-muted)"
                     : "rgba(0,255,140,0.1)"
                 }`,
               }}
             >
               <p
                 className="text-[11px] font-light leading-relaxed"
-                style={{ color: "rgba(255,255,255,0.65)" }}
+                style={{ color: "var(--missi-text-secondary)" }}
               >
                 {msg.content}
               </p>

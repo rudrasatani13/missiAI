@@ -32,11 +32,9 @@ function GlassCard({
       transition={{ duration: 0.35, delay, ease: [0.16, 1, 0.3, 1] }}
       className={`rounded-2xl ${className}`}
       style={{
-        background: 'rgba(20,20,26,0.55)',
-        backdropFilter: 'blur(24px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+        background: 'var(--missi-surface)',
+        border: '1px solid var(--missi-border)',
+        boxShadow: 'none',
       }}
     >
       {children}
@@ -72,10 +70,10 @@ function AvatarOrb({ tier, tierName, level }: { tier: AvatarTier; tierName: stri
           <span
             className="flex items-center justify-center w-full h-full rounded-full"
             style={{
-              background: 'radial-gradient(circle at 30% 30%, rgba(30,30,30,1), rgba(5,5,5,1))',
+              background: 'var(--missi-bg)',
               fontSize: 40,
               fontWeight: 200,
-              color: 'rgba(255,255,255,0.95)',
+              color: 'var(--missi-text-primary)',
               letterSpacing: '-0.02em',
               fontFamily: 'var(--font-body)',
             }}
@@ -126,31 +124,31 @@ function TierProgressBar({
   return (
     <div className="w-full px-1">
       <div className="flex justify-between items-center mb-2.5">
-        <span className="text-[11px] font-medium tracking-wide" style={{ color: 'rgba(255,255,255,0.6)' }}>
+        <span className="text-[11px] font-medium tracking-wide" style={{ color: 'var(--missi-text-secondary)' }}>
           <Zap className="w-3 h-3 inline-block mr-1 -mt-0.5" />
           {totalXP} XP
         </span>
         {nextTierName && nextTierXP && (
-          <span className="text-[11px] font-light" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <span className="text-[11px] font-light" style={{ color: 'var(--missi-text-muted)' }}>
             {nextTierXP - totalXP} to {nextTierName}
           </span>
         )}
         {!nextTierName && (
-          <span className="text-[11px] font-light" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <span className="text-[11px] font-light" style={{ color: 'var(--missi-text-muted)' }}>
             Max tier
           </span>
         )}
       </div>
       <div
         className="w-full rounded-full overflow-hidden"
-        style={{ height: 2, background: 'rgba(255,255,255,0.06)' }}
+        style={{ height: 2, background: 'var(--missi-border)' }}
       >
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${tierProgress}%` }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="h-full rounded-full"
-          style={{ background: 'rgba(255,255,255,0.75)' }}
+          style={{ background: 'var(--missi-nav-text-active)' }}
         />
       </div>
     </div>
@@ -161,8 +159,8 @@ function TierRoadmap({ currentTier }: { currentTier: AvatarTier }) {
   return (
     <div className="w-full">
       <div className="flex items-center gap-2 mb-4">
-        <TrendingUp className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
-        <p className="text-[10px] font-semibold tracking-[0.18em] uppercase" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <TrendingUp className="w-3.5 h-3.5" style={{ color: 'var(--missi-text-muted)' }} />
+        <p className="text-[10px] font-semibold tracking-[0.18em] uppercase" style={{ color: 'var(--missi-text-muted)' }}>
           Evolution Path
         </p>
       </div>
@@ -179,7 +177,7 @@ function TierRoadmap({ currentTier }: { currentTier: AvatarTier }) {
                     height: isCurrent ? 5 : 3,
                     background: isActive
                       ? `linear-gradient(90deg, ${t.colorStart}, ${t.colorEnd})`
-                      : 'rgba(255,255,255,0.06)',
+                      : 'var(--missi-border)',
                   }}
                 />
                 {isCurrent && (
@@ -196,7 +194,7 @@ function TierRoadmap({ currentTier }: { currentTier: AvatarTier }) {
               <span
                 className="text-[8px] font-medium tracking-wider"
                 style={{
-                  color: isCurrent ? 'rgba(255,255,255,0.8)' : isActive ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)',
+                  color: isCurrent ? 'var(--missi-text-secondary)' : isActive ? 'var(--missi-text-secondary)' : 'var(--missi-text-muted)',
                 }}
               >
                 {t.name}
@@ -215,8 +213,8 @@ function AchievementGrid({ achievements }: { achievements: Achievement[] }) {
   return (
     <div className="w-full">
       <div className="flex items-center gap-2 mb-4">
-        <Trophy className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
-        <p className="text-[10px] font-semibold tracking-[0.18em] uppercase" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <Trophy className="w-3.5 h-3.5" style={{ color: 'var(--missi-text-muted)' }} />
+        <p className="text-[10px] font-semibold tracking-[0.18em] uppercase" style={{ color: 'var(--missi-text-muted)' }}>
           Achievements
         </p>
       </div>
@@ -231,29 +229,29 @@ function AchievementGrid({ achievements }: { achievements: Achievement[] }) {
               transition={{ duration: 0.3, delay: 0.05 * i }}
               className="rounded-xl px-4 py-3.5"
               style={{
-                background: unlocked ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+                background: unlocked ? 'var(--missi-border)' : 'var(--missi-surface)',
                 border: unlocked
-                  ? '1px solid rgba(255,255,255,0.08)'
-                  : '1px solid rgba(255,255,255,0.04)',
+                  ? '1px solid var(--missi-border)'
+                  : '1px solid var(--missi-border)',
                 opacity: unlocked ? 1 : 0.4,
               }}
             >
               <div className="flex items-start gap-2">
                 {unlocked && (
-                  <div className="shrink-0 mt-0.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
-                    <Check className="w-2.5 h-2.5" style={{ color: 'rgba(255,255,255,0.8)' }} strokeWidth={2.5} />
+                  <div className="shrink-0 mt-0.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'var(--missi-nav-active-bg)', border: '1px solid var(--missi-border-strong)' }}>
+                    <Check className="w-2.5 h-2.5" style={{ color: 'var(--missi-text-secondary)' }} strokeWidth={2.5} />
                   </div>
                 )}
                 <div className="min-w-0">
                   <p
                     className="text-[11px] font-medium leading-snug"
-                    style={{ color: unlocked ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)' }}
+                    style={{ color: unlocked ? 'var(--missi-text-primary)' : 'var(--missi-text-muted)' }}
                   >
                     {a.title}
                   </p>
                   <p
                     className="text-[9px] font-light mt-1 leading-relaxed"
-                    style={{ color: 'rgba(255,255,255,0.25)' }}
+                    style={{ color: 'var(--missi-text-muted)' }}
                   >
                     {a.description}
                   </p>
@@ -262,9 +260,9 @@ function AchievementGrid({ achievements }: { achievements: Achievement[] }) {
               <div
                 className="mt-2 inline-block px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wide"
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  color: unlocked ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.15)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  background: 'var(--missi-surface)',
+                  color: unlocked ? 'var(--missi-text-secondary)' : 'var(--missi-text-muted)',
+                  border: '1px solid var(--missi-border)',
                 }}
               >
                 +{a.xpBonus} XP
@@ -299,17 +297,17 @@ function XPBreakdown({ xpToday, xpTodayTotal }: { xpToday: { source: string; amo
     <div className="w-full">
       <div className="flex justify-between items-center mb-3.5">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
-          <p className="text-[10px] font-semibold tracking-[0.18em] uppercase" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--missi-text-muted)' }} />
+          <p className="text-[10px] font-semibold tracking-[0.18em] uppercase" style={{ color: 'var(--missi-text-muted)' }}>
             Today&apos;s XP
           </p>
         </div>
         <span
           className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
           style={{
-            color: 'rgba(255,255,255,0.85)',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            color: 'var(--missi-text-primary)',
+            background: 'var(--missi-border)',
+            border: '1px solid var(--missi-border)',
           }}
         >
           +{xpTodayTotal}
@@ -320,12 +318,12 @@ function XPBreakdown({ xpToday, xpTodayTotal }: { xpToday: { source: string; amo
           <div
             key={source}
             className="flex justify-between items-center px-3 py-2 rounded-lg"
-            style={{ background: 'rgba(255,255,255,0.03)' }}
+            style={{ background: 'var(--missi-surface)' }}
           >
-            <span className="text-[11px] font-light" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <span className="text-[11px] font-light" style={{ color: 'var(--missi-text-secondary)' }}>
               {SOURCE_LABELS[source] || source}
             </span>
-            <span className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            <span className="text-[11px] font-medium" style={{ color: 'var(--missi-text-secondary)' }}>
               +{amount}
             </span>
           </div>
@@ -356,22 +354,22 @@ function HabitCard({
       transition={{ duration: 0.4, delay: 0.05 * index }}
       className="rounded-2xl px-5 py-4"
       style={{
-        background: 'rgba(255,255,255,0.03)',
+        background: 'var(--missi-surface)',
         border: done
-          ? '1px solid rgba(255,255,255,0.08)'
-          : '1px solid rgba(255,255,255,0.06)',
-        borderLeft: done ? '2px solid rgba(255,255,255,0.25)' : '2px solid transparent',
+          ? '1px solid var(--missi-border)'
+          : '1px solid var(--missi-border)',
+        borderLeft: done ? '2px solid var(--missi-border-strong)' : '2px solid transparent',
       }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-white text-sm font-light leading-snug truncate">
+          <p className="text-sm font-light leading-snug truncate">
             {streak.title}
           </p>
           <div className="flex items-center gap-3 mt-2.5">
             <span
               className="flex items-center gap-1.5 text-xs font-medium"
-              style={{ color: streak.currentStreak > 0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)' }}
+              style={{ color: streak.currentStreak > 0 ? 'var(--missi-text-primary)' : 'var(--missi-text-muted)' }}
             >
               <Flame className="w-3.5 h-3.5" style={{ color: streak.currentStreak > 0 ? '#F97316' : undefined }} />
               {streak.currentStreak > 0 ? `${streak.currentStreak} days` : 'No streak'}
@@ -380,8 +378,8 @@ function HabitCard({
               <span
                 className="text-[10px] font-light px-2 py-0.5 rounded-full"
                 style={{
-                  color: 'rgba(255,255,255,0.35)',
-                  background: 'rgba(255,255,255,0.04)',
+                  color: 'var(--missi-text-muted)',
+                  background: 'var(--missi-surface)',
                 }}
               >
                 Best: {streak.longestStreak}
@@ -392,18 +390,18 @@ function HabitCard({
         {done ? (
           <div
             className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)' }}
+            style={{ background: 'var(--missi-nav-active-bg)', border: '1px solid var(--missi-border-strong)' }}
           >
-            <Check className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.8)' }} strokeWidth={2.5} />
+            <Check className="w-3 h-3" style={{ color: 'var(--missi-text-secondary)' }} strokeWidth={2.5} />
           </div>
         ) : (
           <button
             onClick={() => onCheckIn(streak.nodeId, streak.title)}
             className="shrink-0 px-4 py-1.5 rounded-full text-[11px] font-medium transition-colors active:scale-[0.97]"
             style={{
-              background: 'rgba(255,255,255,0.9)',
-              border: '1px solid rgba(255,255,255,0.9)',
-              color: '#0a0a0f',
+              background: 'var(--missi-nav-text-active)',
+              border: '1px solid var(--missi-border-strong)',
+              color: 'var(--missi-bg)',
               cursor: 'pointer',
             }}
           >
@@ -445,15 +443,15 @@ function ActiveQuestsCard() {
     <GlassCard className="px-5 py-5" delay={0.3}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <TrendingUp className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
-          <p className="text-[10px] font-semibold tracking-[0.18em] uppercase" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <TrendingUp className="w-3.5 h-3.5" style={{ color: 'var(--missi-text-muted)' }} />
+          <p className="text-[10px] font-semibold tracking-[0.18em] uppercase" style={{ color: 'var(--missi-text-muted)' }}>
             Active Quests
           </p>
         </div>
         <Link
           href="/quests"
-          className="text-[10px] font-medium px-2.5 py-0.5 rounded-full transition-all hover:bg-white/10"
-          style={{ color: 'rgba(251,191,36,0.8)', textDecoration: 'none' }}
+          className="text-[10px] font-medium px-2.5 py-0.5 rounded-full transition-all hover:bg-[var(--missi-surface)]"
+          style={{ color: 'var(--missi-nav-accent)', textDecoration: 'none' }}
         >
           View all →
         </Link>
@@ -467,10 +465,10 @@ function ActiveQuestsCard() {
               <div className="flex items-center gap-3 group cursor-pointer">
                 <span className="text-lg transition-transform group-hover:scale-110">{q.coverEmoji}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                  <p className="text-xs font-medium truncate" style={{ color: 'var(--missi-text-secondary)' }}>
                     {q.title}
                   </p>
-                  <div className="w-full h-1 rounded-full mt-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <div className="w-full h-1 rounded-full mt-1.5" style={{ background: 'var(--missi-border)' }}>
                     <div
                       className="h-full rounded-full transition-all duration-700"
                       style={{
@@ -610,8 +608,8 @@ export default function StreakAvatarPage() {
             <GlassCard className="px-5 py-5" delay={0.3}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <Flame className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
-                  <p className="text-[10px] font-semibold tracking-[0.18em] uppercase" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  <Flame className="w-3.5 h-3.5" style={{ color: 'var(--missi-text-muted)' }} />
+                  <p className="text-[10px] font-semibold tracking-[0.18em] uppercase" style={{ color: 'var(--missi-text-muted)' }}>
                     Habits
                   </p>
                 </div>
@@ -619,9 +617,9 @@ export default function StreakAvatarPage() {
                   <span
                     className="text-[10px] font-medium px-2.5 py-0.5 rounded-full"
                     style={{
-                      color: 'rgba(255,255,255,0.5)',
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: 'var(--missi-text-secondary)',
+                      background: 'var(--missi-border)',
+                      border: '1px solid var(--missi-border)',
                     }}
                   >
                     {avatar.loginStreak}-day login streak
@@ -631,19 +629,19 @@ export default function StreakAvatarPage() {
 
               {avatar.isLoading && (
                 <div className="flex justify-center py-12">
-                  <div className="w-6 h-6 rounded-full border-2 border-white/10 border-t-white/40 animate-spin" />
+                  <div className="w-6 h-6 rounded-full border-2 border-[var(--missi-border)] border-t-white/40 animate-spin" />
                 </div>
               )}
 
               {!avatar.isLoading && habits.length === 0 && (
                 <div className="text-center py-10 px-4">
-                  <div className="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <Flame className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.15)' }} />
+                  <div className="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--missi-surface)', border: '1px solid var(--missi-border)' }}>
+                    <Flame className="w-5 h-5" style={{ color: 'var(--missi-text-muted)' }} />
                   </div>
-                  <p className="text-sm font-light leading-relaxed" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  <p className="text-sm font-light leading-relaxed" style={{ color: 'var(--missi-text-muted)' }}>
                     No habits tracked yet.
                   </p>
-                  <p className="text-xs font-light mt-1" style={{ color: 'rgba(255,255,255,0.15)' }}>
+                  <p className="text-xs font-light mt-1" style={{ color: 'var(--missi-text-muted)' }}>
                     Tell Missi about a habit you want to build.
                   </p>
                 </div>
@@ -692,15 +690,15 @@ export default function StreakAvatarPage() {
             <div
               className="max-w-sm w-full rounded-2xl px-6 py-5 text-center"
               style={{
-                background: 'rgba(20,20,26,0.88)',
+                background: 'var(--missi-surface)',
                 backdropFilter: 'blur(24px) saturate(140%)',
                 WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                boxShadow: '0 20px 50px -20px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)',
+                border: '1px solid var(--missi-border)',
+                boxShadow: '0 20px 50px -20px rgba(0,0,0,0.7), inset 0 1px 0 var(--missi-border)',
               }}
             >
-              <Sparkles className="w-4 h-4 mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.5)' }} />
-              <p className="text-sm font-light leading-relaxed" style={{ color: 'rgba(255,255,255,0.82)' }}>
+              <Sparkles className="w-4 h-4 mx-auto mb-2" style={{ color: 'var(--missi-text-secondary)' }} />
+              <p className="text-sm font-light leading-relaxed" style={{ color: 'var(--missi-text-primary)' }}>
                 {celebrationRef.current}
               </p>
             </div>

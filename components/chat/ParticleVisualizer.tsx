@@ -39,6 +39,7 @@ const VERTEX_SHADER = /* glsl */ `
   uniform float uAudioLevel;
   uniform float uActivityLevel;
   uniform float uStateBlend;
+  uniform float uLightMode;
 
   attribute float aSeed;
   attribute float aLife;
@@ -179,15 +180,22 @@ const VERTEX_SHADER = /* glsl */ `
     //  Matching reference image: bright green center, blue tendrils
     // ══════════════════════════════════════════════════════════════
 
-    // Center → Edge gradient: bright green → cyan → blue
-    float t_center = smoothstep(0.0, 0.8, fromCenter);  // 0 at center, 1 at edge
+    // Center → Edge gradient
+    float t_center = smoothstep(0.0, 0.8, fromCenter);
 
-    // Core color: bright vibrant green
-    vec3 coreColor = vec3(0.1, 1.0, 0.4);
-    // Mid color: bright cyan
-    vec3 midColor = vec3(0.0, 0.8, 1.0);
-    // Edge color: deep blue
-    vec3 edgeColor = vec3(0.0, 0.3, 0.9);
+    // Dark mode: bright green core → cyan → deep blue
+    vec3 coreColorDark = vec3(0.1, 1.0, 0.4);
+    vec3 midColorDark  = vec3(0.0, 0.8, 1.0);
+    vec3 edgeColorDark = vec3(0.0, 0.3, 0.9);
+
+    // Light mode: navy blue core → medium blue → indigo edge
+    vec3 coreColorLight = vec3(0.05, 0.18, 0.72);
+    vec3 midColorLight  = vec3(0.08, 0.22, 0.82);
+    vec3 edgeColorLight = vec3(0.12, 0.08, 0.90);
+
+    vec3 coreColor = mix(coreColorDark, coreColorLight, uLightMode);
+    vec3 midColor  = mix(midColorDark,  midColorLight,  uLightMode);
+    vec3 edgeColor = mix(edgeColorDark, edgeColorLight, uLightMode);
 
     vec3 col;
     if (t_center < 0.5) {
@@ -201,21 +209,25 @@ const VERTEX_SHADER = /* glsl */ `
     col.g += colorNoise;
     col.b += colorNoise * 0.5;
 
-    // Speaking: shift toward bright cyan-white
-    col = mix(col, vec3(0.5, 1.0, 1.0), speakTurb * 0.4);
+    // Speaking: shift color
+    vec3 speakTargetDark  = vec3(0.5, 1.0, 1.0);
+    vec3 speakTargetLight = vec3(0.2, 0.4, 0.9);
+    col = mix(col, mix(speakTargetDark, speakTargetLight, uLightMode), speakTurb * 0.4);
 
-    // Thinking: shift toward deep blue-purple
+    // Thinking: shift toward blue-purple
     float thinkBlend = smoothstep(0.5, 0.8, uStateBlend) * (1.0 - speakTurb);
     col = mix(col, vec3(0.2, 0.25, 0.8), thinkBlend * 0.35);
 
     // Audio brightens
-    col += vec3(0.05, 0.15, 0.1) * uAudioLevel * 2.0;
+    col += vec3(0.05, 0.15, 0.1) * uAudioLevel * 2.0 * (1.0 - uLightMode * 0.5);
 
-    // Tendril tips glow cyan
-    col += vec3(0.0, 0.25, 0.2) * tendrilMask * uTendrilStrength;
+    // Tendril tips glow
+    vec3 tendrilDark  = vec3(0.0, 0.25, 0.2);
+    vec3 tendrilLight = vec3(0.0, 0.1, 0.35);
+    col += mix(tendrilDark, tendrilLight, uLightMode) * tendrilMask * uTendrilStrength;
 
-    // Keep colors natural
-    col *= 0.9;
+    // In light mode boost saturation so particles are vivid against light bg
+    col *= mix(0.9, 1.4, uLightMode);
 
     vColor = col;
 
@@ -320,7 +332,7 @@ function ParticleVisualizerInner({ state, isActive: _isActive, audioLevel = 0, a
       renderer = new THREE.WebGLRenderer({
         canvas,
         antialias: quality === "high",
-        alpha: false,
+        alpha: true,
         powerPreference: "default",
       })
     } catch {
@@ -328,8 +340,11 @@ function ParticleVisualizerInner({ state, isActive: _isActive, audioLevel = 0, a
       return
     }
 
+    const isLightMode = () => document.documentElement.getAttribute("data-theme") === "light"
+
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x000000)
+    scene.background = isLightMode() ? null : new THREE.Color(0x000000)
+    renderer.setClearColor(0x000000, isLightMode() ? 0 : 1)
 
     // Size is derived from the canvas' own layout box (which is 100%/100% of
     // its parent). This makes the orb recenter inside the chat column when the
@@ -360,6 +375,7 @@ function ParticleVisualizerInner({ state, isActive: _isActive, audioLevel = 0, a
       uAudioLevel:      { value: 0 },
       uActivityLevel:   { value: 0.3 },
       uStateBlend:      { value: 0 },
+      uLightMode:       { value: isLightMode() ? 1.0 : 0.0 },
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -427,7 +443,7 @@ function ParticleVisualizerInner({ state, isActive: _isActive, audioLevel = 0, a
       fragmentShader: FRAGMENT_SHADER,
       transparent: true,
       depthWrite:  false,
-      blending:    THREE.AdditiveBlending,
+      blending:    isLightMode() ? THREE.NormalBlending : THREE.AdditiveBlending,
     })
 
     const particles = new THREE.Points(geometry, material)
@@ -479,6 +495,18 @@ function ParticleVisualizerInner({ state, isActive: _isActive, audioLevel = 0, a
     }
     document.addEventListener("visibilitychange", onVisibility)
 
+    // React to theme changes at runtime
+    const onTheme = () => {
+      const light = isLightMode()
+      if (uniforms.uLightMode) uniforms.uLightMode.value = light ? 1.0 : 0.0
+      scene.background = light ? null : new THREE.Color(0x000000)
+      renderer.setClearColor(0x000000, light ? 0 : 1)
+      material.blending = light ? THREE.NormalBlending : THREE.AdditiveBlending
+      material.needsUpdate = true
+    }
+    const themeObs = new MutationObserver(onTheme)
+    themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] })
+
     const animate = () => {
       if (pausedRef.current) return
       const v = vizRef.current
@@ -526,6 +554,7 @@ function ParticleVisualizerInner({ state, isActive: _isActive, audioLevel = 0, a
       ro?.disconnect()
       document.removeEventListener("visibilitychange", onVisibility)
       try { renderer.dispose() } catch { }
+      themeObs.disconnect()
     }
     // This effect intentionally runs once (mount-only initialization).
     // Three.js WebGL contexts are expensive to create/destroy — re-initializing
