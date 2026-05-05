@@ -11,11 +11,56 @@ import {
   getCloudflareAtomicCounterBinding,
 } from "@/lib/server/platform/bindings"
 import { envExists } from "@/lib/server/platform/env"
+import { isAdminUser } from "@/lib/server/security/admin-auth"
+import {
+  checkRateLimit,
+  rateLimitExceededResponse,
+} from "@/lib/server/security/rate-limiter"
+import { log } from "@/lib/server/observability/logger"
 
+// ─── Check result type ────────────────────────────────────────────────────────
 
 interface CheckResult {
   status: "ok" | "degraded" | "not_configured" | "error" | "skipped"
   latencyMs: number
+}
+
+// ─── Deep-health access control ───────────────────────────────────────────────
+//
+// Deep probes reveal KV / D1 / Vectorize / Durable Object / AI provider
+// topology and may trigger live backend calls. They are gated behind either:
+//
+//   A) A static internal token (HEALTH_INTERNAL_TOKEN env var, ≥ 16 chars)
+//      sent as `Authorization: Bearer <token>` — for uptime monitors /
+//      Cloudflare scheduled checks that cannot carry a Clerk session.
+//   B) A Clerk admin session (role === 'admin' or ADMIN_USER_ID match).
+//
+// Public callers with no deep/probe params get only `{ ok: true }`.
+// Public callers who include deep/probe params without valid auth get 401.
+
+async function resolveDeepHealthCaller(
+  req: NextRequest,
+): Promise<{ authorized: boolean; rateLimitId: string }> {
+  // Option A: static internal token
+  const internalToken = process.env.HEALTH_INTERNAL_TOKEN
+  if (internalToken && internalToken.length >= 16) {
+    const authHeader = req.headers.get("authorization") ?? ""
+    if (authHeader === `Bearer ${internalToken}`) {
+      return { authorized: true, rateLimitId: "__health_internal__" }
+    }
+  }
+
+  // Option B: Clerk admin session
+  try {
+    const { auth } = await import("@clerk/nextjs/server")
+    const clerkAuth = await auth()
+    const { userId } = clerkAuth
+    if (!userId) return { authorized: false, rateLimitId: "" }
+    if (!isAdminUser(clerkAuth, userId)) return { authorized: false, rateLimitId: "" }
+    return { authorized: true, rateLimitId: userId }
+  } catch {
+    return { authorized: false, rateLimitId: "" }
+  }
 }
 
 function hasHealthProbe(req: NextRequest, ...names: string[]): boolean {
@@ -186,6 +231,37 @@ function mapProviderCheck(
 }
 
 export async function GET(req: NextRequest) {
+  // ── 1. Minimal public liveness signal ───────────────────────────────────────
+  // No deep/probe flags → cheapest possible success. Safe to expose publicly —
+  // reveals nothing about infrastructure topology.
+  const isDeepRequested =
+    req.nextUrl.searchParams.get("deep") === "true" ||
+    req.nextUrl.searchParams.getAll("probe").length > 0
+
+  if (!isDeepRequested) {
+    return Response.json({ ok: true }, { status: 200 })
+  }
+
+  // ── 2. Authenticate deep probe caller ────────────────────────────────────────
+  const caller = await resolveDeepHealthCaller(req)
+  if (!caller.authorized) {
+    log({ level: "warn", event: "health.deep.unauthorized", timestamp: Date.now() })
+    return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 })
+  }
+
+  // ── 3. Rate-limit deep probes ────────────────────────────────────────────────
+  const rateResult = await checkRateLimit(caller.rateLimitId, "free", "api")
+  if (!rateResult.allowed) {
+    log({
+      level: "warn",
+      event: "health.deep.rate_limited",
+      metadata: { rateLimitId: caller.rateLimitId },
+      timestamp: Date.now(),
+    })
+    return rateLimitExceededResponse(rateResult)
+  }
+
+  // ── 4. Run infrastructure probes ─────────────────────────────────────────────
   const start = Date.now()
   const probeVectorize = shouldProbeVectorize(req)
   const probeDurableObject = shouldProbeDurableObject(req)
