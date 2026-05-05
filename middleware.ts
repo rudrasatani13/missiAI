@@ -2,35 +2,20 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import type { NextRequest, NextFetchEvent } from "next/server"
 import { log, logAuthEvent, logSecurityEvent } from "@/lib/server/observability/logger"
-import { getAdminRoleFromAuth, isAdminUser } from "@/lib/server/security/admin-auth"
 
 const isPublicRoute = createRouteMatcher([
   "/",
   "/chat",
   "/sign-in(.*)",
   "/sign-up(.*)",
-  "/manifesto(.*)",
   "/privacy(.*)",
   "/terms(.*)",
-  "/api/webhooks/dodo",
-  // Bot platform webhooks — platform-to-server calls have no Clerk session.
-  // Signature/secret-token validation is enforced inside each route handler.
-  // IP-based rate limiting still applies via the middleware logic below.
-  "/api/webhooks/whatsapp",
-  "/api/webhooks/telegram",
   "/api/v1/guest-chat",
-  "/pricing(.*)",
-  // Missi Spaces invite preview page is public so recipients can see the
-  // Space name/emoji before signing up. Joining still requires Clerk auth.
-  "/join(.*)",
 ])
 
 // Auth page routes — rate-limited separately with a tighter per-IP cap to
 // slow credential-stuffing bots and mass sign-up automation.
 const isAuthRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"])
-
-// Admin routes require Clerk auth and admin role check
-const isAdminRoute = createRouteMatcher(["/admin(.*)", "/api/v1/admin(.*)"])
 
 // API routes handle their own Clerk auth and return JSON 401 — not a browser
 // redirect. Letting middleware's auth.protect() run here causes Clerk to issue a
@@ -478,28 +463,6 @@ const clerkHandler = clerkMiddleware(
       return rateLimited429(result)
     }
 
-    if (isAdminRoute(request)) {
-      const authObj = await auth()
-      const role = getAdminRoleFromAuth(authObj)
-      const isAdminAllowed = isAdminUser(authObj)
-
-      if (!isAdminAllowed) {
-        return applySecurityHeaders(
-          new NextResponse(
-            JSON.stringify({ error: "Forbidden: Admin access required" }),
-            { status: 403, headers: { "Content-Type": "application/json" } }
-          )
-        )
-      }
-
-      // Check for session freshness (require separate login confirmation for sensitive actions)
-      // Clerk JWT includes `iat` (issued at) or `auth_time`. If the token's original auth
-      // is too old, or we want to force re-evaluation, we can enforce it here.
-      // For now, we enforce that the admin has the role check passing. 
-      // If a specific sensitive action requires step-up auth, those API routes
-      // can manually trigger a re-auth challenge by returning 401 with a specific error code.
-    }
-
     // Route handlers call auth() themselves — do not redirect here.
     return
   }
@@ -546,26 +509,6 @@ const clerkHandler = clerkMiddleware(
 
   if (!isPublicRoute(request)) {
     await auth.protect()
-
-    if (isAdminRoute(request)) {
-      const authObj = await auth()
-      const role = getAdminRoleFromAuth(authObj)
-      const isAdminAllowed = isAdminUser(authObj)
-
-      log({
-        level: "debug",
-        event: "admin.access_check",
-        userId: authObj.userId ?? undefined,
-        metadata: { role, isAdminAllowed, path: request.nextUrl.pathname },
-        timestamp: Date.now(),
-      })
-
-      if (!isAdminAllowed) {
-        const signInUrl = new URL("/sign-in", request.url)
-        signInUrl.searchParams.set("redirect_url", request.nextUrl.pathname)
-        return NextResponse.redirect(signInUrl)
-      }
-    }
   }
   },
   {
