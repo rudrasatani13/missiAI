@@ -1,27 +1,24 @@
-# missiAI - Current Product Scope
+# missiAI - Product Scope
 
 ## Overview
-missiAI is a chat-first AI companion with voice, saved memory, messaging bot foundations, billing, and secure admin/health operations.
+missiAI is a live voice AI companion. Users can have real-time voice conversations with Gemini AI, with theme support and minimal settings.
 
 ## Architecture
 - **Frontend**: Next.js 15 (React, TypeScript)
 - **Auth**: Clerk
-- **Storage**: Cloudflare KV (`MISSI_MEMORY`) + Cloudflare Vectorize (`LIFE_GRAPH`)
-- **Billing**: Dodo Payments (Plus & Pro subscriptions)
+- **Storage**: Cloudflare KV (`MISSI_MEMORY`)
 - **Deployment**: OpenNext Cloudflare + custom worker entry
 - **AI**: Gemini via Vertex AI (chat, STT, TTS, Gemini Live)
 
-## Kept Features
+## Features
 
-- **Core chat**: authenticated chat, guest chat, streaming responses, and action surfaces.
-- **Voice**: STT, TTS, Gemini Live relay, and the main voice UI.
-- **Saved memory**: memory extraction, storage, search, filtering, deletion, prompt grounding, and export.
-- **Messaging bots**: WhatsApp and Telegram linking/webhook foundations.
-- **Billing core**: Dodo checkout, subscriptions, pricing, webhooks, and plan checks.
-- **Integrations**: Google Calendar, Notion, plugin refresh, and safe tool execution.
-- **Operations**: auth, security, admin analytics, health checks, observability, and AI spend controls.
+- **Live Voice**: Real-time voice conversations with Gemini Live, STT, TTS, and voice UI
+- **Theme Support**: Dark, light, and system theme options
+- **Settings**: Voice toggle, theme selection, analytics opt-in
+- **Guest Chat**: Limited guest access (5 messages per 24 hours)
+- **Authentication**: Clerk-based auth for full access
 
 ## Backlog / Future
-- P1: Subscription status sync cron job
-- P1: Email notifications for payment events
-- P2: Billing analytics admin dashboard
+- Voice activity detection improvements
+- Additional voice languages
+- Voice activity visualization

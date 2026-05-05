@@ -1,7 +1,7 @@
 # Security Runbook — missiAI Production
 
 This document is the authoritative security checklist for deploying and operating
-missiAI in production on Cloudflare (OpenNext runtime + Workers KV + Vectorize).
+missiAI in production on Cloudflare (OpenNext runtime + Workers KV).
 
 **Domain:** [missi.space](https://missi.space)
 
@@ -16,38 +16,13 @@ All non-public routes are protected by Clerk middleware (`middleware.ts`).
 **Public routes** (no auth required):
 - `/` (redirects to /chat)
 - `/sign-in`, `/sign-up`
-- `/pricing`, `/privacy`, `/terms`, `/manifesto`
+- `/privacy`, `/terms`
 - `/api/health`
-- `/api/webhooks/dodo` (verified via webhook signature)
-- `/api/webhooks/whatsapp` (verified via HMAC-SHA256 signature; see §13)
-- `/api/webhooks/telegram` (verified via secret-token header; see §13)
+- `/api/v1/guest-chat` (rate limited, no auth)
 
 **Protected routes** (Clerk session required):
-- `/chat`, `/memory`, `/setup`, `/settings`, `/today`
-- All `/api/v1/*` endpoints
-- `/admin` (additionally requires `ADMIN_USER_ID` match)
-
-### Admin Access
-
-The admin dashboard (`/admin`, `/api/v1/admin/*`) uses **defense-in-depth**
-admin authorization with two independent checks:
-
-1. **Primary (role-based):** `publicMetadata.role === "admin"` on the Clerk
-   user record. Set this once via the Clerk dashboard or admin API after initial
-   setup. This is the **preferred long-term auth path** — it survives secret
-   rotation and does not depend on a specific user ID.
-
-2. **Fallback (ID-based):** `userId === process.env.ADMIN_USER_ID`. This is
-   a **bootstrap / break-glass mechanism** for the initial deployment before the
-   Clerk metadata role is set, or for account recovery. It is implemented in
-   `lib/server/security/admin-auth.ts` via `isAdminUser()` and the auditable
-   `getAdminGrantReason()` helper.
-
-**Production recommendation:** Set `publicMetadata.role = "admin"` on your
-Clerk user and verify admin access works via the role path before relying on
-`ADMIN_USER_ID` alone. Use `getAdminGrantReason()` in admin API handlers to
-log which path granted access — a persistent `id_fallback` grant in production
-logs indicates the role metadata is missing and should be configured.
+- `/chat`, `/settings`
+- All `/api/v1/*` endpoints (except `/api/v1/guest-chat`)
 
 ---
 
@@ -141,26 +116,8 @@ wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON
 wrangler secret put CLERK_SECRET_KEY
 wrangler secret put NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
-# Payments
-wrangler secret put DODO_PAYMENTS_API_KEY
-wrangler secret put DODO_WEBHOOK_SECRET
-wrangler secret put DODO_PLUS_PRODUCT_ID
-wrangler secret put DODO_PRO_PRODUCT_ID
-
-# Admin
-wrangler secret put ADMIN_USER_ID
-
-# KV encryption / confirmation tokens
+# KV encryption
 wrangler secret put MISSI_KV_ENCRYPTION_SECRET
-
-# Push Notifications
-wrangler secret put VAPID_PRIVATE_KEY
-
-# OAuth Integrations (if enabled)
-wrangler secret put GOOGLE_CLIENT_ID
-wrangler secret put GOOGLE_CLIENT_SECRET
-wrangler secret put NOTION_CLIENT_ID
-wrangler secret put NOTION_CLIENT_SECRET
 
 # Verify (values are redacted in output)
 wrangler secret list
@@ -170,9 +127,8 @@ Also set `VERTEX_AI_PROJECT_ID` as a runtime environment variable. `VERTEX_AI_LO
 
 ### Runtime behavior
 
-- `MISSI_KV_ENCRYPTION_SECRET` is required in production for KV encryption, boss tokens, and live relay tickets.
+- `MISSI_KV_ENCRYPTION_SECRET` is required in production for KV encryption and live relay tickets.
 - Missing or empty `MISSI_KV_ENCRYPTION_SECRET` now fails closed with a 503 on routes that need it.
-- Confirmation tokens are single-use and are not generated with fallback secrets.
 - Per-isolate IP rate limiting is a burst guard only; Cloudflare WAF / Rate Limiting rules are still required for distributed abuse.
 
 ---
@@ -196,15 +152,10 @@ id = "ddf2e5eb21484fd1a9aecd8e4eaada74"
 - The KV namespace ID is a resource identifier, not a credential
 - Only the deployed Worker with the binding can read/write the namespace
 
-### Cloudflare Vectorize (`missiai-life-graph`)
-
-Vector embeddings for semantic memory search are stored in Cloudflare Vectorize.
-Access is restricted to the Workers runtime binding — no external API exposure.
-
 ### Data Isolation
 
 All user data is keyed by Clerk user ID. API routes extract the authenticated
-user ID from the Clerk session and scope all KV/Vectorize operations to that ID.
+user ID from the Clerk session and scope all KV operations to that ID.
 There is no cross-user data access path.
 
 ---
@@ -218,19 +169,7 @@ Invalid payloads are rejected with 400 responses before reaching business logic.
 
 **Additional guards:**
 - Payload size limits on all POST endpoints
-- Maximum input length enforced on chat messages and memory content
-- File upload restricted to image types with size caps
-
-### Memory Sanitization
-
-Facts extracted from conversations are sanitized (`lib/memory/memory-sanitizer.ts`)
-before being written to KV. This prevents injection of malicious content into
-the stored knowledge graph.
-
-### Token Counting
-
-A token estimation module (`lib/memory/token-counter.ts`) prevents prompt
-injection via excessively large memory context windows.
+- Maximum input length enforced on chat messages
 
 ---
 
@@ -246,42 +185,9 @@ missiAI uses **dual-layer rate limiting**:
 2. **Per-user KV-backed limits** — applied in route handlers. Tracks usage per
    authenticated Clerk user ID with configurable windows and thresholds.
 
-### AI Spend Controls
-
-A daily API spend tracker (`DAILY_BUDGET_USD`, default: $5.00) monitors
-Gemini model usage and text-to-speech spend. When the configured threshold is approached,
-the system throttles non-essential API calls.
-
 ---
 
-## 7. Webhook Security
-
-### Dodo Payments Webhook
-
-The `/api/webhooks/dodo` endpoint verifies webhook signatures using the
-**Standard Webhooks** specification:
-
-- The `DODO_WEBHOOK_SECRET` is used to verify the `webhook-signature` header
-- Invalid signatures are rejected with 401 before any processing occurs
-- Webhook events are idempotent — duplicate delivery does not cause issues
-
-### WhatsApp Webhook
-
-- Requires `WHATSAPP_APP_SECRET` for HMAC verification and `WHATSAPP_VERIFY_TOKEN` for subscription setup.
-- Missing env fails closed.
-- Invalid signatures return 401; replayed messages older than 5 minutes are ignored.
-- Invalid payloads are not silently accepted.
-
-### Telegram Webhook
-
-- Requires `TELEGRAM_WEBHOOK_SECRET`.
-- Missing env fails closed.
-- Invalid secret-token headers return 401.
-- `/start {code}` linking codes are single-use and time-limited.
-
----
-
-## 8. Security Headers
+## 7. Security Headers
 
 All responses include security headers via `next.config.mjs`:
 
@@ -303,35 +209,7 @@ curl -sI https://missi.space | grep -iE \
 
 ---
 
-## 9. OAuth Integration Security
-
-### Google Calendar
-
-- OAuth 2.0 authorization code flow with PKCE
-- Tokens stored in KV, scoped to user's Clerk ID
-- Refresh tokens are encrypted at rest in KV
-- Scopes limited to `calendar.readonly` and `calendar.events`
-
-### Notion
-
-- OAuth 2.0 authorization code flow
-- Access tokens stored in KV, scoped to user's Clerk ID
-- Scopes limited to read access on pages and databases
-
-### Token Handling
-
-- OAuth tokens are **never** exposed to the client
-- Refresh is handled server-side in API routes
-- Disconnecting a plugin immediately deletes stored tokens from KV
-
-### Admin policy
-
-- `/admin` and `/api/v1/admin/*` require Clerk auth plus either `publicMetadata.role === "admin"` or `ADMIN_USER_ID`.
-- Sensitive admin mutations should use step-up re-auth where practical.
-
----
-
-## 10. Key Rotation Procedure (Incident Response)
+## 8. Key Rotation Procedure (Incident Response)
 
 If a secret is suspected to be compromised, follow the steps below.
 
@@ -353,91 +231,20 @@ production** (fail closed — returns 500/503, not a degraded fallback).
 - Do NOT use `openssl rand -hex 16` (gives only 128-bit entropy)
 - **Use:** `openssl rand -base64 32` → 44-char string, 256-bit entropy
 
-**Migration risk:** The `enc:v1:` key derivation uses the first 32 bytes of the
-secret as the raw AES-256 key (truncates longer secrets; rejects shorter ones).
-Changing or rotating the secret **does not break existing** `enc:v1:` KV values
-as long as the new secret's first 32 chars are identical to the old secret's
-first 32 chars. If the first 32 chars change, existing `enc:v1:` ciphertext
-will fail to decrypt. Plan a re-encryption pass for OAuth tokens and plugin
-credentials before rotating if the first 32 chars will differ.
-
 **Rotation steps:**
 1. `openssl rand -base64 32` → copy the 44-char result
 2. `wrangler secret put MISSI_KV_ENCRYPTION_SECRET`
 3. Update in Cloudflare dashboard environment settings (Production + Preview)
-4. **Impact:** Existing confirmation, boss-token, and live relay tickets signed
-   with the old secret will stop validating (users retry; no data loss).
-   OAuth tokens stored as `enc:v1:` will fail to decrypt if first 32 chars
-   changed — affected users must reconnect their integrations.
-
-### Dodo Payments API Key
-1. Revoke at https://app.dodopayments.com > Developer > API
-2. Create a new key
-3. `wrangler secret put DODO_PAYMENTS_API_KEY`
-
-### Dodo Webhook Secret
-1. Regenerate at Dodo dashboard > Webhooks
-2. `wrangler secret put DODO_WEBHOOK_SECRET`
-3. Verify webhook signature validation end-to-end
+4. **Impact:** Existing live relay tickets signed with the old secret will stop validating (users retry; no data loss).
 
 ### Clerk Secret Key
 1. Roll at https://dashboard.clerk.com > API Keys
 2. `wrangler secret put CLERK_SECRET_KEY`
 3. **Impact:** All existing sessions are invalidated — users will be signed out
 
-### VAPID Private Key
-1. Generate new key pair: `npx web-push generate-vapid-keys`
-2. `wrangler secret put VAPID_PRIVATE_KEY`
-3. Update `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in env
-4. **Impact:** Existing push subscriptions will fail until users re-subscribe
-
-### Google / Notion OAuth Credentials
-1. Revoke in the respective developer console
-2. Generate new credentials
-3. Update via `wrangler secret put` for both `CLIENT_ID` and `CLIENT_SECRET`
-4. **Impact:** Users will need to reconnect their integrations
-
-### WhatsApp App Secret (`WHATSAPP_APP_SECRET`)
-1. Generate a new secret in Meta Developer Console > App > Settings > Basic
-2. `wrangler secret put WHATSAPP_APP_SECRET`
-3. Update in Cloudflare dashboard environment settings (Production + Preview)
-4. **Impact:** All incoming webhook HMAC signatures will fail until the new
-   secret propagates to Cloudflare Workers (typically < 1 minute). Meta will
-   retry failed webhooks automatically.
-
-### WhatsApp Access Token (`WHATSAPP_ACCESS_TOKEN`)
-1. Generate a new permanent token in Meta Developer Console > WhatsApp >
-   API Setup > Generate Token
-2. `wrangler secret put WHATSAPP_ACCESS_TOKEN`
-3. **Impact:** Outbound WhatsApp messages will fail until the new token
-   propagates; no inbound message loss.
-
-### Telegram Bot Token (`TELEGRAM_BOT_TOKEN`)
-1. Message `@BotFather` on Telegram: `/revoke` then select the bot
-2. Copy the new token
-3. `wrangler secret put TELEGRAM_BOT_TOKEN`
-4. Re-register the webhook: `curl -X POST "https://api.telegram.org/bot<NEW_TOKEN>/setWebhook" -d "url=https://missi.space/api/webhooks/telegram&secret_token=<TELEGRAM_WEBHOOK_SECRET>"`
-5. **Impact:** Bot will be offline from revocation until the new token is
-   deployed and the webhook is re-registered.
-
-### Telegram Webhook Secret (`TELEGRAM_WEBHOOK_SECRET`)
-1. Generate a new secret: `openssl rand -hex 32`
-2. `wrangler secret put TELEGRAM_WEBHOOK_SECRET`
-3. Re-register the webhook with the new secret (see Telegram Bot Token step 4
-   above — both the token URL and the `secret_token` parameter must be updated)
-4. **Impact:** Incoming webhook requests signed with the old secret will be
-   rejected (401) until Telegram's delivery retries pick up the new registration.
-
-### OpenAI / Anthropic Fallback Keys
-1. Revoke the old key in the respective developer console
-2. Generate a replacement key
-3. `wrangler secret put OPENAI_API_KEY` or `wrangler secret put ANTHROPIC_API_KEY`
-4. **Impact:** AI fallback providers will be unavailable during the propagation
-   window (< 1 minute). Primary Vertex AI path is unaffected.
-
 ---
 
-## 11. Secret Scanning in CI
+## 9. Secret Scanning in CI
 
 The CI pipeline runs [TruffleHog](https://github.com/trufflesecurity/trufflehog)
 on every push to scan for accidentally committed secrets. If a secret pattern is
@@ -447,104 +254,7 @@ See `.github/workflows/ci.yml` for the scanning step configuration.
 
 ---
 
-## 13. Bot Webhook Security
-
-### WhatsApp (Meta Cloud API) — `app/api/webhooks/whatsapp/route.ts`
-
-Validation is enforced in strict order before any KV, memory, or AI operation:
-
-1. **Signature verification (HMAC-SHA256)**
-   - Header: `X-Hub-Signature-256: sha256=<hex-digest>`
-   - Key: `WHATSAPP_APP_SECRET` (raw UTF-8 bytes, from env)
-   - Message: raw request body (read once before anything else)
-   - Comparison: `timingSafeCompare(computedHex, providedHex)` — constant-time, no string equality
-   - Failure: HTTP 401 immediately, no further processing
-
-2. **Replay attack protection (timestamp validation)**
-   - `message.timestamp` is checked against `Date.now()` — reject if `|now - ts| > 300s`
-   - Failures are logged as `security.bot.wa.replay_attempt` and the message is silently skipped
-
-3. **Message deduplication**
-   - `bot:dedup:wa:{messageId}` → `"1"` with 7-day TTL in KV
-   - Checked before any processing; duplicate messages are silently dropped
-
-4. **userId resolution from KV (never from payload)**
-   - Sender phone → `bot:wa:{phone}` → Clerk userId
-   - Unknown senders get an onboarding reply; no AI or memory operations run
-
-5. **Plan gate**
-   - Requires Pro plan (`getUserPlan(userId) === 'pro'`)
-   - Blocked users receive an upgrade prompt; logged as `security.bot.wa.plan_gate_blocked`
-
-6. **Daily message limit**
-   - Counter: `bot:daily:wa:{userId}:{date}` — capped at 200 messages/day
-   - KV-backed, TTL 48 h
-
-7. **HTTP response policy**
-   - **401** returned immediately on invalid HMAC signature — intentional fail-closed; invalid payloads are never silently accepted even though Meta retries non-200 responses.
-   - **200** returned for all other cases (valid sig + transient error, parse failure, unknown sender, plan block, etc.) to prevent Meta retry storms on recoverable conditions.
-   - All AI processing after a valid 200 response is fire-and-forget via `waitUntil()`.
-
-### Telegram Bot API — `app/api/webhooks/telegram/route.ts`
-
-1. **Secret token verification**
-   - Header: `X-Telegram-Bot-Api-Secret-Token: <token>`
-   - Compared with `TELEGRAM_WEBHOOK_SECRET` using `timingSafeCompare` — constant-time
-   - Failure: HTTP 401 immediately
-
-2. **Message deduplication**
-   - `bot:dedup:tg:{updateId}` → `"1"` with 7-day TTL in KV
-
-3. **userId resolution (never from payload)**
-   - Telegram user ID → `bot:tg:{telegramId}` → Clerk userId
-
-4. **Plan gate and daily limit** — identical to WhatsApp
-
-### WhatsApp OTP Linking — `app/api/v1/bot/link/whatsapp/route.ts`
-
-- OTP generated with `crypto.getRandomValues` (cryptographically random 6-digit code)
-- Stored in KV: `bot:otp:{userId}` with 10-minute TTL
-- **Single-use**: deleted immediately on first successful verification
-- **Rate limited**: max 5 OTP requests per user per day (`bot:otp:attempts:{userId}:{date}`)
-- OTP mismatch and expiry logged as `security.bot.wa.otp_verification_failed`
-
-### Telegram Deep-Link — `app/api/v1/bot/link/telegram/route.ts`
-
-- Code generated with `crypto.getRandomValues(32 bytes)` → 64 hex chars
-- Stored in KV: `bot:tglink:{code}` with 15-minute TTL
-- **Single-use**: deleted immediately when the `/start {code}` command is received
-
-### General Security Properties
-
-- All new API endpoints follow the same auth pattern: `getVerifiedUserId()` for user-facing routes (userId always from Clerk, never from request body)
-- All user message text is passed through `sanitizeInput` from `lib/validation/sanitizer.ts` before being sent to Gemini, preventing prompt injection via WhatsApp/Telegram
-- No raw message content stored in KV deduplication keys — dedup keys store only `"1"`
-- All security events (failed signatures, replay attempts, unknown senders, plan blocks) are logged with `logSecurityEvent` from `lib/server/logger.ts`
-- Webhook endpoints are public (no Clerk auth) but still subject to IP-based rate limiting via `middleware.ts`
-- WhatsApp 6-digit link codes are rate-limited to 10 attempts per sender phone per day (`bot:wa:link-attempts:{phone}:{date}`) to prevent brute-forcing the 1M-combination space within the 15-minute code TTL.
-
-### Admin Authorization
-
-Both `/admin` pages and `/api/v1/admin/*` API routes require **two checks** (defense-in-depth):
-1. Middleware verifies Clerk `publicMetadata.role === "admin"` OR `userId === ADMIN_USER_ID`.
-2. Each admin API route handler re-verifies the same condition independently before processing the mutation.
-
-The implementation lives in `lib/server/security/admin-auth.ts`:
-
-- `isAdminUser(authObject, explicitUserId?)` — boolean gate used by middleware
-  and route handlers.
-- `getAdminGrantReason(authObject, explicitUserId?)` — returns `'role'`,
-  `'id_fallback'`, or `null`. Use this in privileged mutation handlers to emit
-  a structured log entry so that break-glass `id_fallback` grants are always
-  auditable in Cloudflare Logs.
-
-The dual policy (role-based + env-var super-admin) is consistent across all
-admin surfaces. **Role-based is the production-stable path; `id_fallback` is
-the bootstrap / break-glass path.**
-
----
-
-## 12. Reporting Vulnerabilities
+## 10. Reporting Vulnerabilities
 
 If you discover a security vulnerability in missiAI, please report it
 responsibly:
